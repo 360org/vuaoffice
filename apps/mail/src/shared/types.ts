@@ -46,6 +46,7 @@ export interface EmailMessage {
   isStarred: boolean
   isImportant?: boolean
   isDraft?: boolean
+  previousFolderId?: string
   hasAttachments: boolean
   attachments?: EmailAttachment[]
   category?: 'focused' | 'other'
@@ -124,6 +125,8 @@ export interface VuaMailApi {
   toggleStarred: (emailId: string) => Promise<boolean>
   deleteEmail: (emailId: string) => Promise<void>
   archiveEmail: (emailId: string) => Promise<void>
+  moveEmail: (emailId: string, targetFolderId: string, targetAccountId?: string) => Promise<boolean>
+  restoreEmail: (emailId: string) => Promise<{ success: boolean; restoredFolderId?: string }>
   sendEmail: (draft: {
     accountId: string
     to: string[]
@@ -146,6 +149,9 @@ export interface VuaMailApi {
   }>
   cancelOAuthFlow: () => Promise<boolean>
   getAppVersion?: () => Promise<string>
+  openEmailPopup?: (emailId: string) => Promise<boolean>
+  printEmail?: (emailId: string) => Promise<boolean>
+  saveEmailEml?: (emailId: string) => Promise<boolean>
   getAiSettings?: () => Promise<any>
   aiStream?: (request: any) => Promise<void>
   aiStreamCancel?: (requestId: string) => Promise<void>

@@ -74,6 +74,14 @@ export function registerMailIpc(
     await storage.archiveEmail(emailId)
   })
 
+  ipcMain.handle(VUA_MAIL_IPC.MOVE_EMAIL, async (_evt, emailId: string, targetFolderId: string, targetAccountId?: string) => {
+    return storage.moveEmail(emailId, targetFolderId, targetAccountId)
+  })
+
+  ipcMain.handle(VUA_MAIL_IPC.RESTORE_EMAIL, async (_evt, emailId: string) => {
+    return storage.restoreEmail(emailId)
+  })
+
   ipcMain.handle(VUA_MAIL_IPC.SEND_EMAIL, async (_evt, draft) => {
     return storage.sendEmail(draft)
   })
@@ -273,5 +281,145 @@ export function registerMailIpc(
 
   ipcMain.handle(VUA_MAIL_IPC.GET_APP_VERSION, () => {
     return app.getVersion()
+  })
+
+  ipcMain.handle(VUA_MAIL_IPC.OPEN_EMAIL_POPUP, async (_evt, emailId: string) => {
+    const email = storage.storage.getEmails('all_inbox').find((e) => e.id === emailId) ||
+      storage.storage.getEmails('f_trash').find((e) => e.id === emailId) ||
+      storage.storage.getEmails('f_archive').find((e) => e.id === emailId) ||
+      storage.storage.getEmails('f_sent').find((e) => e.id === emailId)
+    const body = await storage.getEmailBody(emailId)
+
+    const popupWin = new BrowserWindow({
+      width: 900,
+      height: 700,
+      minWidth: 600,
+      minHeight: 400,
+      title: email ? `${email.subject} - VuaOffice Mail` : 'Chi tiết thư',
+      autoHideMenuBar: true,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        sandbox: true,
+      },
+    })
+
+    const safeHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>${email?.subject || 'VuaOffice Mail'}</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 24px; background: #ffffff; color: #232425; }
+            .header { border-bottom: 1px solid #e3e6ea; padding-bottom: 16px; margin-bottom: 20px; }
+            .subject { font-size: 20px; font-weight: 700; margin-bottom: 12px; }
+            .meta { font-size: 13px; color: #606366; line-height: 1.6; }
+            .meta b { color: #232425; }
+            .body { font-size: 14px; line-height: 1.6; }
+            .tag { display: inline-block; padding: 2px 6px; border-radius: 4px; background: #e5f3fc; color: #0077cd; font-size: 11px; font-weight: 600; }
+            @media print { body { padding: 0; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="subject">${email?.subject || '(Không có tiêu đề)'}</div>
+            <div class="meta">
+              <div>Người gửi: <b>${email?.senderName || ''}</b> &lt;${email?.senderEmail || ''}&gt;</div>
+              <div>Người nhận: <b>${email?.recipientEmails?.join(', ') || ''}</b></div>
+              <div>Thời gian: ${email ? new Date(email.dateIso).toLocaleString('vi-VN') : ''}</div>
+            </div>
+          </div>
+          <div class="body">
+            ${body?.html || `<pre style="white-space: pre-wrap; font-family: inherit;">${body?.plainText || email?.snippet || ''}</pre>`}
+          </div>
+        </body>
+      </html>
+    `
+
+    await popupWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(safeHtml)}`)
+    return true
+  })
+
+  ipcMain.handle(VUA_MAIL_IPC.PRINT_EMAIL, async (_evt, emailId: string) => {
+    const email = storage.storage.getEmails('all_inbox').find((e) => e.id === emailId) ||
+      storage.storage.getEmails('f_trash').find((e) => e.id === emailId) ||
+      storage.storage.getEmails('f_archive').find((e) => e.id === emailId) ||
+      storage.storage.getEmails('f_sent').find((e) => e.id === emailId)
+    const body = await storage.getEmailBody(emailId)
+
+    const printWin = new BrowserWindow({
+      show: false,
+      webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true },
+    })
+
+    const safeHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>${email?.subject || 'VuaOffice Mail'}</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 20px; color: #000; }
+            .header { border-bottom: 2px solid #333; padding-bottom: 12px; margin-bottom: 16px; }
+            .subject { font-size: 18px; font-weight: bold; margin-bottom: 8px; }
+            .meta { font-size: 12px; color: #444; line-height: 1.5; }
+            .body { font-size: 13px; line-height: 1.6; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="subject">${email?.subject || '(Không có tiêu đề)'}</div>
+            <div class="meta">
+              <div><b>Từ:</b> ${email?.senderName || ''} &lt;${email?.senderEmail || ''}&gt;</div>
+              <div><b>Tới:</b> ${email?.recipientEmails?.join(', ') || ''}</div>
+              <div><b>Ngày:</b> ${email ? new Date(email.dateIso).toLocaleString('vi-VN') : ''}</div>
+            </div>
+          </div>
+          <div class="body">
+            ${body?.html || `<pre style="white-space: pre-wrap; font-family: inherit;">${body?.plainText || email?.snippet || ''}</pre>`}
+          </div>
+        </body>
+      </html>
+    `
+
+    await printWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(safeHtml)}`)
+    printWin.webContents.print({ silent: false, printBackground: true }, () => {
+      printWin.close()
+    })
+    return true
+  })
+
+  ipcMain.handle(VUA_MAIL_IPC.SAVE_EMAIL_EML, async (_evt, emailId: string) => {
+    const email = storage.storage.getEmails('all_inbox').find((e) => e.id === emailId) ||
+      storage.storage.getEmails('f_trash').find((e) => e.id === emailId) ||
+      storage.storage.getEmails('f_archive').find((e) => e.id === emailId) ||
+      storage.storage.getEmails('f_sent').find((e) => e.id === emailId)
+    const body = await storage.getEmailBody(emailId)
+    if (!email) return false
+
+    const { dialog } = await import('electron')
+    const defaultFilename = `${(email.subject || 'email').replace(/[/\\?%*:|"<>]/g, '_')}.eml`
+    const saveRes = await dialog.showSaveDialog({
+      title: 'Lưu email định dạng .eml',
+      defaultPath: defaultFilename,
+      filters: [{ name: 'Email File', extensions: ['eml'] }],
+    })
+
+    if (!saveRes.canceled && saveRes.filePath) {
+      const emlContent = [
+        `From: "${email.senderName}" <${email.senderEmail}>`,
+        `To: ${email.recipientEmails.join(', ')}`,
+        `Subject: ${email.subject}`,
+        `Date: ${new Date(email.dateIso).toUTCString()}`,
+        `MIME-Version: 1.0`,
+        `Content-Type: text/html; charset=utf-8`,
+        ``,
+        body?.html || body?.plainText || email.snippet,
+      ].join('\r\n')
+      writeFileSync(saveRes.filePath, emlContent, 'utf8')
+      return true
+    }
+    return false
   })
 }

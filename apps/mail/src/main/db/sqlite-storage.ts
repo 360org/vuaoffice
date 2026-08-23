@@ -511,16 +511,61 @@ export class SQLiteMailStorage {
   deleteEmail(emailId: string): void {
     const email = this.data.emails.find((e) => e.id === emailId)
     if (email) {
-      if (email.folderId === 'f_trash') {
+      if (email.folderId === 'f_trash' || email.folderId === 'all_trash') {
         // permanently delete
         this.data.emails = this.data.emails.filter((e) => e.id !== emailId)
         delete this.data.bodies[emailId]
       } else {
-        // move to trash
+        // remember previous location for 1-click restore
+        email.previousFolderId = email.folderId
         email.folderId = 'f_trash'
       }
       this.persist()
     }
+  }
+
+  moveEmail(emailId: string, targetFolderId: string, targetAccountId?: string): boolean {
+    const email = this.data.emails.find((e) => e.id === emailId)
+    if (!email) return false
+
+    // If target folder is a virtual unified folder, map to corresponding account folder
+    let resolvedFolderId = targetFolderId
+    if (targetFolderId.startsWith('all_')) {
+      const kind = targetFolderId.replace('all_', '')
+      if (email.accountId === 'acc_secondary') {
+        resolvedFolderId = kind === 'inbox' ? 'f2_inbox' : kind === 'sent' ? 'f2_sent' : kind === 'archive' ? 'f2_archive' : 'f_trash'
+      } else {
+        resolvedFolderId = kind === 'inbox' ? 'f_inbox' : kind === 'drafts' ? 'f_drafts' : kind === 'sent' ? 'f_sent' : kind === 'archive' ? 'f_archive' : 'f_trash'
+      }
+    }
+
+    if (email.folderId !== resolvedFolderId) {
+      email.previousFolderId = email.folderId
+      email.folderId = resolvedFolderId
+    }
+
+    if (targetAccountId && targetAccountId !== 'all_accounts' && targetAccountId !== email.accountId) {
+      email.accountId = targetAccountId
+    }
+
+    this.persist()
+    return true
+  }
+
+  restoreEmail(emailId: string): { success: boolean; restoredFolderId?: string } {
+    const email = this.data.emails.find((e) => e.id === emailId)
+    if (!email) return { success: false }
+
+    // Restore to previousFolderId if known, else default to inbox of email's account
+    let targetFolderId = email.previousFolderId
+    if (!targetFolderId || targetFolderId === 'f_trash' || targetFolderId === 'all_trash') {
+      targetFolderId = email.accountId === 'acc_secondary' ? 'f2_inbox' : 'f_inbox'
+    }
+
+    email.folderId = targetFolderId
+    delete email.previousFolderId
+    this.persist()
+    return { success: true, restoredFolderId: targetFolderId }
   }
 
   archiveEmail(emailId: string): void {

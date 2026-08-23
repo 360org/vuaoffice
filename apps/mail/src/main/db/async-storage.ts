@@ -62,6 +62,14 @@ export class AsyncMailStorage {
     this.storage.archiveEmail(emailId)
   }
 
+  async moveEmail(emailId: string, targetFolderId: string, targetAccountId?: string): Promise<boolean> {
+    return this.storage.moveEmail(emailId, targetFolderId, targetAccountId)
+  }
+
+  async restoreEmail(emailId: string): Promise<{ success: boolean; restoredFolderId?: string }> {
+    return this.storage.restoreEmail(emailId)
+  }
+
   async sendEmail(draft: {
     accountId: string
     to: string[]

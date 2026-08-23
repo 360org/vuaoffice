@@ -6,6 +6,7 @@ import {
   IconEdit,
   IconCalendarPlus,
   IconTrash,
+  IconRestore,
   IconArchive,
   IconJunk,
   IconReply,
@@ -32,6 +33,7 @@ interface MailRibbonProps {
   onNewMail: () => void
   onNewMeeting?: () => void
   onDelete: () => void
+  onRestore?: () => void
   onArchive: () => void
   onJunk?: () => void
   onReply: () => void
@@ -50,6 +52,7 @@ interface MailRibbonProps {
   onOpenImportExport?: () => void
   onOpenProfile?: () => void
   isSyncing?: boolean
+  isTrashFolder?: boolean
   hasSelectedEmail: boolean
   isSelectedRead?: boolean
   isSelectedFlagged?: boolean
@@ -66,6 +69,7 @@ export const MailRibbon: React.FC<MailRibbonProps> = ({
   onNewMail,
   onNewMeeting,
   onDelete,
+  onRestore,
   onArchive,
   onJunk,
   onReply,
@@ -84,6 +88,7 @@ export const MailRibbon: React.FC<MailRibbonProps> = ({
   onOpenImportExport,
   onOpenProfile,
   isSyncing,
+  isTrashFolder = false,
   hasSelectedEmail,
   isSelectedRead = true,
   isSelectedFlagged = false,
@@ -221,9 +226,23 @@ export const MailRibbon: React.FC<MailRibbonProps> = ({
 
             <div className="ribbon-sep" />
 
-            {/* Nhóm 2: Xử lý & Xoá (Delete / Archive / Junk) */}
+            {/* Nhóm 2: Xử lý & Xoá (Delete / Restore / Archive / Junk) */}
             <div className="ribbon-group">
               <div className="ribbon-group-items">
+                {isTrashFolder && (
+                  <button
+                    type="button"
+                    className="rb-big rb-primary"
+                    disabled={!hasSelectedEmail}
+                    onClick={onRestore}
+                    title="Khôi phục thư về thư mục gốc trước khi xoá (Restore)"
+                  >
+                    <span className="rb-big-icon">
+                      <IconRestore size={22} />
+                    </span>
+                    <span>Khôi phục</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   className="rb-big"

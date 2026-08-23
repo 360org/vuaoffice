@@ -23,6 +23,7 @@ export const OAUTH_CONFIGS: Record<'google' | 'microsoft' | 'microsoft_personal'
     tokenEndpoint: 'https://oauth2.googleapis.com/token',
     // Public Native Desktop Client ID for Thunderbird / standard mail clients
     clientId: '406964657835-aq8lmia8j95dhl1a2bvharmfk3t1hgqj.apps.googleusercontent.com',
+    clientSecret: 'WSyXVxiBNAMLSIq4RLua2TwX',
     scopes: [
       'openid',
       'profile',

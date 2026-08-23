@@ -3,9 +3,34 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.12] - 2026-08-23
+
+### Mail & Google Workspace Integration
+- **Sửa lỗi Xác thực Google Workspace / Gmail OAuth (`client_secret is missing`)**:
+  - Bổ sung `clientSecret` tương ứng cho Google Desktop Public Client trong cấu hình OAuth client.
+  - Đảm bảo luồng RFC 8252 Authorization Code Grant đổi token hoàn tất liền mạch không phát sinh lỗi từ Google Token Endpoint.
+- **Khắc phục triệt để hiện tượng giật/nhấp nháy (Hover Flickering) danh sách MailList**:
+  - Loại bỏ hoàn toàn cơ chế re-render React state `isHovered` hoán đổi DOM thẻ Ngày tháng.
+  - Sử dụng CSS overlay tĩnh với transition opacity mượt mà cho thanh tác vụ nhanh (Quick actions), triệt tiêu 100% layout shift khi di chuột qua từng email.
+
 ## [1.0.11] - 2026-08-23
 
-### Mail & UI Optimization
+### Mail & Outlook Parity
+- **Kéo thả email & Khôi phục 1-click (Drag & Drop & Restore Engine)**:
+  - Cho phép người dùng kéo thả thư trực tiếp giữa các thư mục và các tài khoản khác nhau trên FolderTree.
+  - Cơ chế ghi nhận `previousFolderId` tự động khi xoá thư, hỗ trợ khôi phục (Restore) 1-click trả email về đúng thư mục gốc trước khi xoá.
+- **Menu chuột phải (Context Menu) & Cửa sổ độc lập (Popup Window)**:
+  - Bổ sung Menu chuột phải đầy đủ tác vụ chuẩn Microsoft Outlook: Mở cửa sổ riêng, Trả lời, Chuyển tiếp, Đánh dấu sao, Đọc/Chưa đọc, Di chuyển, In thư, Xuất `.eml`, Xoá/Khôi phục.
+  - Hỗ trợ Double-click mở email trong cửa sổ `BrowserWindow` độc lập với sandbox bảo mật cao.
+- **In thư (Print) & Xuất tệp RFC 822 (`.eml`)**:
+  - Tích hợp IPC in trực tiếp email ra máy in/PDF native.
+  - Hỗ trợ lưu trữ offline và sao lưu thư định dạng MIME chuẩn `.eml`.
+- **Hệ thống Phím tắt Toàn cục Chuẩn Outlook**:
+  - `F9`: Đồng bộ thư tức thì (Send/Receive).
+  - `Ctrl+N` / `Cmd+N`: Soạn thư mới.
+  - `Ctrl+R` / `Cmd+R`: Trả lời thư đã chọn.
+  - `Ctrl+P` / `Cmd+P`: In thư đã chọn.
+  - `Delete`: Xoá nhanh thư vào Thùng rác.
 - **Sửa lỗi Xem nhanh tài liệu đính kèm (PDF/DOCX/XLSX/PPTX)**:
   - Bổ sung cấu trúc PDF 1.7 chuẩn ISO 32000-1 cho tệp tin đính kèm mẫu, khắc phục triệt để lỗi file corrupt *"The file could not be opened / It may be damaged"*.
   - Kết nối router `openDocumentPath` từ Shell vào `configureMailRuntime`, giúp tài liệu đính kèm mở trực tiếp thành tab mới trong VuaOffice Suite.

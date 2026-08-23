@@ -611,6 +611,13 @@ export const IconUndo: React.FC<IconProps> = (props) => (
   </Svg>
 )
 
+export const IconRestore: React.FC<IconProps> = (props) => (
+  <Svg {...props}>
+    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+    <path d="M3 3v5h5" />
+  </Svg>
+)
+
 export const IconRedo: React.FC<IconProps> = (props) => (
   <Svg {...props}>
     <path d="M21 7v6h-6" />
@@ -683,6 +690,22 @@ export const IconSliders: React.FC<IconProps> = (props) => (
 export const IconShield: React.FC<IconProps> = (props) => (
   <Svg {...props}>
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+  </Svg>
+)
+
+export const IconPrinter: React.FC<IconProps> = (props) => (
+  <Svg {...props}>
+    <polyline points="6 9 6 2 18 2 18 9" />
+    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+    <rect width="12" height="8" x="6" y="14" />
+  </Svg>
+)
+
+export const IconDownload: React.FC<IconProps> = (props) => (
+  <Svg {...props}>
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="7 10 12 15 17 10" />
+    <line x1="12" y1="15" x2="12" y2="3" />
   </Svg>
 )
 

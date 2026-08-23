@@ -8,6 +8,7 @@ import {
   IconForward,
   IconArchive,
   IconTrash,
+  IconRestore,
   IconSparkles,
   IconPaperclip,
   IconFileText,
@@ -16,6 +17,8 @@ import {
   IconExternalLink,
   IconX,
   IconMaximize,
+  IconPrinter,
+  IconDownload,
 } from '../common/MailIcons'
 
 interface ReadingPaneProps {
@@ -25,6 +28,7 @@ interface ReadingPaneProps {
   isLoadingBody: boolean
   activeAccountEmail?: string
   targetAccountEmail?: string
+  isTrashFolder?: boolean
   onTriggerAiSummary: () => void
   onSmartReply?: (replyText: string) => void
   onPreviewAttachment?: (att: EmailAttachment) => void
@@ -33,9 +37,13 @@ interface ReadingPaneProps {
   onForward?: () => void
   onExpandReply?: (currentText: string) => void
   onDelete?: () => void
+  onRestore?: () => void
   onArchive?: () => void
   onCreateTask?: (title: string) => void
   onCreateCalendar?: (title: string) => void
+  onOpenInNewWindow?: () => void
+  onPrint?: () => void
+  onSaveEml?: () => void
 }
 
 export const ReadingPane: React.FC<ReadingPaneProps> = ({
@@ -44,6 +52,7 @@ export const ReadingPane: React.FC<ReadingPaneProps> = ({
   aiSummary,
   isLoadingBody,
   targetAccountEmail,
+  isTrashFolder,
   onTriggerAiSummary,
   onSmartReply,
   onPreviewAttachment,
@@ -52,9 +61,13 @@ export const ReadingPane: React.FC<ReadingPaneProps> = ({
   onForward,
   onExpandReply,
   onDelete,
+  onRestore,
   onArchive,
   onCreateTask,
   onCreateCalendar,
+  onOpenInNewWindow,
+  onPrint,
+  onSaveEml,
 }) => {
   const [quickReplyText, setQuickReplyText] = useState('')
   const [isQuickReplying, setIsQuickReplying] = useState(false)
@@ -166,6 +179,93 @@ export const ReadingPane: React.FC<ReadingPaneProps> = ({
               <IconForward size={13} color="var(--mail-primary-blue, #0077cd)" />
               <span>Chuyển tiếp</span>
             </button>
+
+            {isTrashFolder && (
+              <button
+                type="button"
+                onClick={onRestore}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  padding: '5px 10px',
+                  backgroundColor: 'var(--mail-primary-blue-soft, #e5f3fc)',
+                  border: '1px solid var(--mail-primary-blue, #0077cd)',
+                  borderRadius: '5px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: 'var(--mail-primary-blue, #0077cd)',
+                  cursor: 'pointer',
+                }}
+                title="Khôi phục email về thư mục gốc trước khi xoá (Restore)"
+              >
+                <IconRestore size={13} color="var(--mail-primary-blue, #0077cd)" />
+                <span>Khôi phục</span>
+              </button>
+            )}
+
+            {onOpenInNewWindow && (
+              <button
+                type="button"
+                onClick={onOpenInNewWindow}
+                style={{
+                  padding: '5px 8px',
+                  backgroundColor: 'var(--surface, #ffffff)',
+                  border: '1px solid var(--border, #e3e6ea)',
+                  borderRadius: '5px',
+                  cursor: 'pointer',
+                  color: 'var(--text-secondary, #606366)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                title="Mở thư trong cửa sổ riêng (Shift+Enter)"
+              >
+                <IconExternalLink size={13} />
+              </button>
+            )}
+
+            {onPrint && (
+              <button
+                type="button"
+                onClick={onPrint}
+                style={{
+                  padding: '5px 8px',
+                  backgroundColor: 'var(--surface, #ffffff)',
+                  border: '1px solid var(--border, #e3e6ea)',
+                  borderRadius: '5px',
+                  cursor: 'pointer',
+                  color: 'var(--text-secondary, #606366)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                title="In thư (Ctrl+P)"
+              >
+                <IconPrinter size={13} />
+              </button>
+            )}
+
+            {onSaveEml && (
+              <button
+                type="button"
+                onClick={onSaveEml}
+                style={{
+                  padding: '5px 8px',
+                  backgroundColor: 'var(--surface, #ffffff)',
+                  border: '1px solid var(--border, #e3e6ea)',
+                  borderRadius: '5px',
+                  cursor: 'pointer',
+                  color: 'var(--text-secondary, #606366)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                title="Lưu file thư (.eml)"
+              >
+                <IconDownload size={13} />
+              </button>
+            )}
 
             <button
               type="button"

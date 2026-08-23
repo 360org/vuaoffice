@@ -146,6 +146,42 @@ export const App: React.FC = () => {
   const selectedEmail = emails.find((e) => e.id === selectedEmailId) || null
   const targetAccountForSelected = selectedEmail ? accounts.find((a) => a.id === selectedEmail.accountId) : null
   const activeFolder = folders.find((f) => f.id === activeFolderId)
+  const isTrashFolder = activeFolder?.kind === 'trash'
+
+  // Global Outlook Keyboard Shortcuts (F9: Sync, Delete: Delete, Ctrl+N: New, Ctrl+R: Reply, Ctrl+P: Print)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip if focus is inside an input, textarea or contenteditable element
+      const target = e.target as HTMLElement
+      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
+      if (isInput && e.key !== 'F9') return
+
+      const isMac = navigator.platform.toUpperCase().includes('MAC')
+      const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey
+
+      if (e.key === 'F9') {
+        e.preventDefault()
+        handleSyncNow()
+      } else if (cmdOrCtrl && (e.key === 'n' || e.key === 'N')) {
+        e.preventDefault()
+        handleOpenComposeNew()
+      } else if (cmdOrCtrl && (e.key === 'r' || e.key === 'R')) {
+        e.preventDefault()
+        if (selectedEmailId) handleReplySelected()
+      } else if (cmdOrCtrl && (e.key === 'p' || e.key === 'P')) {
+        e.preventDefault()
+        if (selectedEmailId) handlePrintEmail(selectedEmailId)
+      } else if (e.key === 'Delete' || (isMac && cmdOrCtrl && e.key === 'Backspace')) {
+        if (selectedEmailId && !isTrashFolder) {
+          e.preventDefault()
+          handleDelete()
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedEmailId, isTrashFolder, accounts, activeAccountId, activeFolderId, emails])
 
   const filteredEmails = emails.filter((e) => {
     if (!searchQuery.trim()) return true
@@ -162,6 +198,59 @@ export const App: React.FC = () => {
     await window.vuaMail.deleteEmail(selectedEmailId)
     setEmails((prev) => prev.filter((e) => e.id !== selectedEmailId))
     setSelectedEmailId(null)
+    // Refresh folders for updated unread/total counts
+    refreshFolderCounts()
+  }
+
+  const handleRestore = async () => {
+    if (!window.vuaMail || !selectedEmailId) return
+    const res = await window.vuaMail.restoreEmail(selectedEmailId)
+    if (res.success) {
+      setEmails((prev) => prev.filter((e) => e.id !== selectedEmailId))
+      setSelectedEmailId(null)
+      // Refresh folders to update count in restored folder
+      refreshFolderCounts()
+    }
+  }
+
+  const handleMoveEmail = async (emailId: string, targetFolderId: string, targetAccountId?: string) => {
+    if (!window.vuaMail) return
+    const success = await window.vuaMail.moveEmail(emailId, targetFolderId, targetAccountId)
+    if (success) {
+      // Remove moved email from current folder view if not in target folder
+      setEmails((prev) => prev.filter((e) => e.id !== emailId))
+      if (selectedEmailId === emailId) {
+        setSelectedEmailId(null)
+      }
+      refreshFolderCounts()
+    }
+  }
+
+  const refreshFolderCounts = async () => {
+    if (!window.vuaMail) return
+    const api = window.vuaMail
+    const accList = accounts.length > 0 ? accounts : await api.getAccounts()
+    const allFolderPromises = [
+      api.getFolders('all_accounts'),
+      ...accList.map((acc) => api.getFolders(acc.id)),
+    ]
+    const folderResults = await Promise.all(allFolderPromises)
+    setFolders(folderResults.flat())
+  }
+
+  const handlePrintEmail = async (emailId: string) => {
+    if (!window.vuaMail?.printEmail) return
+    await window.vuaMail.printEmail(emailId)
+  }
+
+  const handleSaveEml = async (emailId: string) => {
+    if (!window.vuaMail?.saveEmailEml) return
+    await window.vuaMail.saveEmailEml(emailId)
+  }
+
+  const handleOpenInNewWindow = async (emailId: string) => {
+    if (!window.vuaMail?.openEmailPopup) return
+    await window.vuaMail.openEmailPopup(emailId)
   }
 
   const handleArchive = async () => {
@@ -169,6 +258,7 @@ export const App: React.FC = () => {
     await window.vuaMail.archiveEmail(selectedEmailId)
     setEmails((prev) => prev.filter((e) => e.id !== selectedEmailId))
     setSelectedEmailId(null)
+    refreshFolderCounts()
   }
 
   const handleTriggerAiSummary = () => {
@@ -261,7 +351,9 @@ export const App: React.FC = () => {
         onNewMail={handleOpenComposeNew}
         onNewMeeting={() => setActiveRailTab('calendar')}
         onDelete={handleDelete}
+        onRestore={handleRestore}
         onArchive={handleArchive}
+        isTrashFolder={activeFolder?.kind === 'trash'}
         onJunk={async () => {
           if (!selectedEmailId || !window.vuaMail) return
           await window.vuaMail.deleteEmail(selectedEmailId)
@@ -342,6 +434,7 @@ export const App: React.FC = () => {
                 folders={folders}
                 activeFolderId={activeFolderId}
                 onSelectFolder={handleSelectFolder}
+                onDropEmailToFolder={handleMoveEmail}
               />
 
               <MailList
@@ -354,20 +447,59 @@ export const App: React.FC = () => {
                 activeAccountId={activeAccountId}
                 accounts={accounts}
                 onRefresh={handleSyncNow}
+                onOpenInNewWindow={handleOpenInNewWindow}
+                onPrintEmail={handlePrintEmail}
+                onSaveEml={handleSaveEml}
+                onReplyEmail={(emailId) => {
+                  const target = emails.find((e) => e.id === emailId)
+                  if (!target) return
+                  setSelectedEmailId(emailId)
+                  setComposeInitial({
+                    to: target.senderEmail,
+                    subject: target.subject.startsWith('Re:') ? target.subject : `Re: ${target.subject}`,
+                    body: `\n\n---\nOn ${new Date(target.dateIso).toLocaleString()}, ${target.senderName} wrote:\n> ${target.snippet}`,
+                  })
+                  setIsComposeOpen(true)
+                }}
+                onReplyAllEmail={(emailId) => {
+                  const target = emails.find((e) => e.id === emailId)
+                  if (!target) return
+                  setSelectedEmailId(emailId)
+                  setComposeInitial({
+                    to: target.senderEmail,
+                    cc: target.ccEmails?.join(', '),
+                    subject: target.subject.startsWith('Re:') ? target.subject : `Re: ${target.subject}`,
+                    body: `\n\n---\nOn ${new Date(target.dateIso).toLocaleString()}, ${target.senderName} wrote:\n> ${target.snippet}`,
+                  })
+                  setIsComposeOpen(true)
+                }}
+                onForwardEmail={(emailId) => {
+                  const target = emails.find((e) => e.id === emailId)
+                  if (!target) return
+                  setSelectedEmailId(emailId)
+                  setComposeInitial({
+                    to: '',
+                    subject: target.subject.startsWith('Fwd:') ? target.subject : `Fwd: ${target.subject}`,
+                    body: `\n\n---------- Thư chuyển tiếp ----------\nTừ: ${target.senderName} <${target.senderEmail}>\nNgày: ${new Date(target.dateIso).toLocaleString()}\nTiêu đề: ${target.subject}\n\n${target.snippet}`,
+                  })
+                  setIsComposeOpen(true)
+                }}
                 onDeleteEmail={async (emailId, e) => {
-                  e.stopPropagation()
+                  if (e) e.stopPropagation()
                   if (window.vuaMail) await window.vuaMail.deleteEmail(emailId)
                   setEmails((prev) => prev.filter((item) => item.id !== emailId))
                   if (selectedEmailId === emailId) setSelectedEmailId(null)
+                  refreshFolderCounts()
                 }}
                 onArchiveEmail={async (emailId, e) => {
-                  e.stopPropagation()
+                  if (e) e.stopPropagation()
                   if (window.vuaMail) await window.vuaMail.archiveEmail(emailId)
                   setEmails((prev) => prev.filter((item) => item.id !== emailId))
                   if (selectedEmailId === emailId) setSelectedEmailId(null)
+                  refreshFolderCounts()
                 }}
                 onToggleReadEmail={async (emailId, e) => {
-                  e.stopPropagation()
+                  if (e) e.stopPropagation()
                   const target = emails.find((item) => item.id === emailId)
                   if (!target) return
                   const nextRead = !target.isRead
@@ -375,9 +507,10 @@ export const App: React.FC = () => {
                   setEmails((prev) =>
                     prev.map((item) => (item.id === emailId ? { ...item, isRead: nextRead } : item))
                   )
+                  refreshFolderCounts()
                 }}
                 onToggleFlagEmail={async (emailId, e) => {
-                  e.stopPropagation()
+                  if (e) e.stopPropagation()
                   const target = emails.find((item) => item.id === emailId)
                   if (!target) return
                   const nextStarred = !target.isStarred
@@ -394,6 +527,7 @@ export const App: React.FC = () => {
                 aiSummary={aiSummary}
                 isLoadingBody={isLoadingBody}
                 targetAccountEmail={targetAccountForSelected?.email}
+                isTrashFolder={activeFolder?.kind === 'trash'}
                 onTriggerAiSummary={handleTriggerAiSummary}
                 onSmartReply={handleSmartReply}
                 onPreviewAttachment={handlePreviewAttachment}
@@ -412,7 +546,11 @@ export const App: React.FC = () => {
                   setIsComposeOpen(true)
                 }}
                 onDelete={handleDelete}
+                onRestore={handleRestore}
                 onArchive={handleArchive}
+                onOpenInNewWindow={selectedEmailId ? () => handleOpenInNewWindow(selectedEmailId) : undefined}
+                onPrint={selectedEmailId ? () => handlePrintEmail(selectedEmailId) : undefined}
+                onSaveEml={selectedEmailId ? () => handleSaveEml(selectedEmailId) : undefined}
                 onCreateTask={(_title) => setActiveRailTab('todo')}
                 onCreateCalendar={(_title) => setActiveRailTab('calendar')}
               />

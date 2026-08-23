@@ -18,6 +18,7 @@ interface FolderTreeProps {
   folders: MailFolder[]
   activeFolderId: string
   onSelectFolder: (folderId: string, accountId: string) => void
+  onDropEmailToFolder?: (emailId: string, targetFolderId: string, targetAccountId?: string) => void
 }
 
 export const FolderTree: React.FC<FolderTreeProps> = ({
@@ -27,12 +28,14 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
   folders,
   activeFolderId,
   onSelectFolder,
+  onDropEmailToFolder,
 }) => {
   const [expandedAccounts, setExpandedAccounts] = useState<Record<string, boolean>>({
     all_accounts: true,
     acc_primary: true,
     acc_secondary: true,
   })
+  const [dragOverFolderKey, setDragOverFolderKey] = useState<string | null>(null)
 
   const toggleExpand = (accId: string, e: React.MouseEvent) => {
     e.stopPropagation()
@@ -116,10 +119,28 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
             <div className="account-folders-list">
               {allAccountsFolders.map((f) => {
                 const isActive = activeFolderId === f.id && activeAccountId === 'all_accounts'
+                const isDragOver = dragOverFolderKey === `all_${f.id}`
                 return (
                   <div
                     key={f.id}
-                    className={`folder-item ${isActive ? 'active' : ''}`}
+                    className={`folder-item ${isActive ? 'active' : ''} ${isDragOver ? 'drag-over' : ''}`}
+                    style={isDragOver ? { backgroundColor: 'var(--mail-primary-blue-soft, #e5f3fc)', outline: '2px dashed var(--mail-primary-blue, #0077cd)' } : undefined}
+                    onDragOver={(e) => {
+                      e.preventDefault()
+                      e.dataTransfer.dropEffect = 'move'
+                      if (dragOverFolderKey !== `all_${f.id}`) setDragOverFolderKey(`all_${f.id}`)
+                    }}
+                    onDragLeave={() => {
+                      if (dragOverFolderKey === `all_${f.id}`) setDragOverFolderKey(null)
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault()
+                      setDragOverFolderKey(null)
+                      const emailId = e.dataTransfer.getData('text/email-id') || e.dataTransfer.getData('text/plain')
+                      if (emailId && onDropEmailToFolder) {
+                        onDropEmailToFolder(emailId, f.id, 'all_accounts')
+                      }
+                    }}
                     onClick={() => {
                       onSelectAccount('all_accounts')
                       onSelectFolder(f.id, 'all_accounts')
@@ -144,10 +165,28 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
           <div className="folder-group-title">MỤC YÊU THÍCH</div>
           {favoriteFolders.map((f) => {
             const isActive = activeFolderId === f.id && activeAccountId === f.accountId
+            const isDragOver = dragOverFolderKey === `fav_${f.id}`
             return (
               <div
                 key={`fav_${f.id}`}
-                className={`folder-item ${isActive ? 'active' : ''}`}
+                className={`folder-item ${isActive ? 'active' : ''} ${isDragOver ? 'drag-over' : ''}`}
+                style={isDragOver ? { backgroundColor: 'var(--mail-primary-blue-soft, #e5f3fc)', outline: '2px dashed var(--mail-primary-blue, #0077cd)' } : undefined}
+                onDragOver={(e) => {
+                  e.preventDefault()
+                  e.dataTransfer.dropEffect = 'move'
+                  if (dragOverFolderKey !== `fav_${f.id}`) setDragOverFolderKey(`fav_${f.id}`)
+                }}
+                onDragLeave={() => {
+                  if (dragOverFolderKey === `fav_${f.id}`) setDragOverFolderKey(null)
+                }}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  setDragOverFolderKey(null)
+                  const emailId = e.dataTransfer.getData('text/email-id') || e.dataTransfer.getData('text/plain')
+                  if (emailId && onDropEmailToFolder) {
+                    onDropEmailToFolder(emailId, f.id, f.accountId)
+                  }
+                }}
                 onClick={() => {
                   onSelectAccount(f.accountId)
                   onSelectFolder(f.id, f.accountId)
@@ -193,10 +232,28 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
               <div className="account-folders-list">
                 {accFolders.map((f) => {
                   const isActive = activeFolderId === f.id && activeAccountId === acc.id
+                  const isDragOver = dragOverFolderKey === `${acc.id}_${f.id}`
                   return (
                     <div
                       key={f.id}
-                      className={`folder-item ${isActive ? 'active' : ''}`}
+                      className={`folder-item ${isActive ? 'active' : ''} ${isDragOver ? 'drag-over' : ''}`}
+                      style={isDragOver ? { backgroundColor: 'var(--mail-primary-blue-soft, #e5f3fc)', outline: '2px dashed var(--mail-primary-blue, #0077cd)' } : undefined}
+                      onDragOver={(e) => {
+                        e.preventDefault()
+                        e.dataTransfer.dropEffect = 'move'
+                        if (dragOverFolderKey !== `${acc.id}_${f.id}`) setDragOverFolderKey(`${acc.id}_${f.id}`)
+                      }}
+                      onDragLeave={() => {
+                        if (dragOverFolderKey === `${acc.id}_${f.id}`) setDragOverFolderKey(null)
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault()
+                        setDragOverFolderKey(null)
+                        const emailId = e.dataTransfer.getData('text/email-id') || e.dataTransfer.getData('text/plain')
+                        if (emailId && onDropEmailToFolder) {
+                          onDropEmailToFolder(emailId, f.id, acc.id)
+                        }
+                      }}
                       onClick={() => {
                         onSelectAccount(acc.id)
                         onSelectFolder(f.id, acc.id)

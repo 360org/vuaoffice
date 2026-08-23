@@ -10,6 +10,8 @@ export const VUA_MAIL_IPC = {
   TOGGLE_STARRED: 'vua-mail:toggle-starred',
   DELETE_EMAIL: 'vua-mail:delete-email',
   ARCHIVE_EMAIL: 'vua-mail:archive-email',
+  MOVE_EMAIL: 'vua-mail:move-email',
+  RESTORE_EMAIL: 'vua-mail:restore-email',
   SEND_EMAIL: 'vua-mail:send-email',
   OPEN_ATTACHMENT: 'vua-mail:open-attachment',
   SYNC_NOW: 'vua-mail:sync-now',
@@ -17,5 +19,8 @@ export const VUA_MAIL_IPC = {
   START_OAUTH_FLOW: 'vua-mail:start-oauth-flow',
   CANCEL_OAUTH_FLOW: 'vua-mail:cancel-oauth-flow',
   GET_APP_VERSION: 'vua-mail:get-app-version',
+  OPEN_EMAIL_POPUP: 'vua-mail:open-email-popup',
+  PRINT_EMAIL: 'vua-mail:print-email',
+  SAVE_EMAIL_EML: 'vua-mail:save-email-eml',
 } as const
 

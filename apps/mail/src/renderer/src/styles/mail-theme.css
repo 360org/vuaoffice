@@ -532,6 +532,12 @@ body,
   font-weight: 600;
 }
 
+.folder-item.drag-over {
+  background-color: var(--mail-primary-blue-soft, #e5f3fc) !important;
+  outline: 2px dashed var(--mail-primary-blue, #0077cd) !important;
+  outline-offset: -2px;
+}
+
 .folder-unread {
   background: var(--mail-brand-green);
   color: #ffffff;
@@ -770,6 +776,56 @@ body,
   color: var(--mail-primary-blue);
 }
 
+.msg-card {
+  position: relative;
+  transition: background-color 0.12s ease;
+}
+
+.msg-card:hover {
+  background-color: var(--surface-subtle, #f8f9fa);
+}
+
+.msg-card.active {
+  background-color: var(--mail-primary-blue-soft, #e5f3fc) !important;
+  border-left-color: var(--mail-primary-blue, #0077cd) !important;
+}
+
+.mail-hover-actions {
+  position: absolute;
+  right: 10px;
+  top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background-color: var(--surface, #ffffff);
+  border-radius: 4px;
+  padding: 1px 2px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--border-subtle, #e3e6ea);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 5;
+}
+
+.msg-card:hover .mail-hover-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.msg-card.active .mail-hover-actions {
+  background-color: var(--mail-primary-blue-soft, #e5f3fc);
+}
+
+.mail-card-date {
+  opacity: 1;
+  transition: opacity 0.15s ease;
+}
+
+.msg-card:hover .mail-card-date {
+  opacity: 0;
+}
+
 .mail-hover-btn {
   background: transparent;
   border: none;
@@ -791,6 +847,32 @@ body,
 .mail-hover-btn.delete-action:hover {
   background: rgba(209, 52, 56, 0.1);
   color: #d13438;
+}
+
+/* Context Menu Items (Right click on Mail List) */
+.ctx-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 14px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font-size: 12.5px;
+  color: var(--text-primary, #232425);
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.ctx-menu-item:hover {
+  background-color: var(--hover, #e8f2fc);
+  color: var(--mail-primary-blue, #0077cd);
+}
+
+.ctx-menu-item.delete-item:hover {
+  background-color: rgba(209, 52, 56, 0.08);
+  color: var(--danger, #d13438) !important;
 }
 
 /* ==========================================================================

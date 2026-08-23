@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import type { EmailMessage } from '../../../../shared/types'
 import {
   IconRefresh,
@@ -10,6 +10,14 @@ import {
   IconArchive,
   IconFlag,
   IconPin,
+  IconReply,
+  IconReplyAll,
+  IconForward,
+  IconExternalLink,
+  IconPrinter,
+  IconDownload,
+  IconCheckSquare,
+  IconSquare,
 } from '../common/MailIcons'
 
 interface MailListProps {
@@ -22,10 +30,16 @@ interface MailListProps {
   activeAccountId?: string
   accounts?: Array<{ id: string; name: string; email: string }>
   onRefresh?: () => void
-  onDeleteEmail?: (emailId: string, e: React.MouseEvent) => void
-  onArchiveEmail?: (emailId: string, e: React.MouseEvent) => void
-  onToggleReadEmail?: (emailId: string, e: React.MouseEvent) => void
-  onToggleFlagEmail?: (emailId: string, e: React.MouseEvent) => void
+  onDeleteEmail?: (emailId: string, e?: React.MouseEvent) => void
+  onArchiveEmail?: (emailId: string, e?: React.MouseEvent) => void
+  onToggleReadEmail?: (emailId: string, e?: React.MouseEvent) => void
+  onToggleFlagEmail?: (emailId: string, e?: React.MouseEvent) => void
+  onOpenInNewWindow?: (emailId: string) => void
+  onReplyEmail?: (emailId: string) => void
+  onReplyAllEmail?: (emailId: string) => void
+  onForwardEmail?: (emailId: string) => void
+  onPrintEmail?: (emailId: string) => void
+  onSaveEml?: (emailId: string) => void
 }
 
 type FilterType = 'all' | 'unread' | 'flagged' | 'attachments'
@@ -46,10 +60,34 @@ export const MailList: React.FC<MailListProps> = ({
   onArchiveEmail,
   onToggleReadEmail,
   onToggleFlagEmail,
+  onOpenInNewWindow,
+  onReplyEmail,
+  onReplyAllEmail,
+  onForwardEmail,
+  onPrintEmail,
+  onSaveEml,
 }) => {
   const [filterQuery, setFilterQuery] = useState('')
   const [activeFilter, setActiveFilter] = useState<FilterType>('all')
-  const [hoveredEmailId, setHoveredEmailId] = useState<string | null>(null)
+  const [contextMenu, setContextMenu] = useState<{
+    x: number
+    y: number
+    email: EmailMessage
+  } | null>(null)
+
+  // Close context menu on outside click or escape
+  useEffect(() => {
+    const handleOutside = () => setContextMenu(null)
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setContextMenu(null)
+    }
+    window.addEventListener('click', handleOutside)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('click', handleOutside)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [])
 
   const filtered = emails.filter((m) => {
     // Category tab filter (Focused / Other / All)
@@ -93,7 +131,6 @@ export const MailList: React.FC<MailListProps> = ({
       : `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}`
 
     const isSelected = msg.id === selectedEmailId
-    const isHovered = msg.id === hoveredEmailId
     const avatarColor = AVATAR_COLORS[index % AVATAR_COLORS.length]
     const initial = (msg.senderName || msg.senderEmail || 'U').charAt(0).toUpperCase()
     const targetAccount = accounts.find((a) => a.id === msg.accountId)
@@ -101,21 +138,33 @@ export const MailList: React.FC<MailListProps> = ({
     return (
       <div
         key={msg.id}
+        draggable
+        onDragStart={(e) => {
+          e.dataTransfer.setData('text/email-id', msg.id)
+          e.dataTransfer.setData('text/plain', msg.id)
+          e.dataTransfer.effectAllowed = 'move'
+        }}
         className={`msg-card ${isSelected ? 'active' : ''} ${!msg.isRead ? 'unread' : ''}`}
         onClick={() => onSelectEmail(msg.id)}
-        onMouseEnter={() => setHoveredEmailId(msg.id)}
-        onMouseLeave={() => setHoveredEmailId(null)}
+        onDoubleClick={() => onOpenInNewWindow?.(msg.id)}
+        onContextMenu={(e) => {
+          e.preventDefault()
+          onSelectEmail(msg.id)
+          setContextMenu({
+            x: e.clientX,
+            y: e.clientY,
+            email: msg,
+          })
+        }}
         style={{
           display: 'flex',
           alignItems: 'flex-start',
           gap: '10px',
           padding: '10px 14px',
-          cursor: 'pointer',
+          cursor: 'grab',
           borderBottom: '1px solid var(--border-subtle, #efefef)',
-          backgroundColor: isSelected ? 'var(--mail-primary-blue-soft, #e5f3fc)' : isHovered ? 'var(--surface-subtle, #f8f9fa)' : 'transparent',
           borderLeft: isSelected ? '3px solid var(--mail-primary-blue, #0077cd)' : '3px solid transparent',
           position: 'relative',
-          transition: 'background 0.12s ease',
         }}
       >
         {/* Unread indicator dot */}
@@ -188,66 +237,57 @@ export const MailList: React.FC<MailListProps> = ({
               )}
             </div>
 
-            {/* Normal date / hover actions toggle (Outlook style) */}
-            {isHovered ? (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '2px',
-                  backgroundColor: isSelected ? 'var(--mail-primary-blue-soft, #e5f3fc)' : 'var(--surface, #ffffff)',
-                  borderRadius: '4px',
-                  padding: '1px 2px',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-                }}
-                onClick={(e) => e.stopPropagation()}
+            {/* Date & Icons (Always present, zero layout shift) */}
+            <div className="mail-card-date" style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, marginLeft: '6px' }}>
+              {msg.hasAttachments && (
+                <IconPaperclip size={12} color="var(--text-muted, #878e96)" />
+              )}
+              {msg.isStarred && (
+                <IconStar size={12} active />
+              )}
+              <span style={{ fontSize: '11px', color: 'var(--text-muted, #878e96)' }}>
+                {dateStr}
+              </span>
+            </div>
+
+            {/* Hover Actions Bar (CSS absolute overlay, zero layout jump) */}
+            <div
+              className="mail-hover-actions"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                className="mail-hover-btn"
+                title={msg.isRead ? 'Đánh dấu Chưa đọc' : 'Đánh dấu Đã đọc'}
+                onClick={(e) => onToggleReadEmail?.(msg.id, e)}
               >
-                <button
-                  type="button"
-                  className="mail-hover-btn"
-                  title={msg.isRead ? 'Đánh dấu Chưa đọc' : 'Đánh dấu Đã đọc'}
-                  onClick={(e) => onToggleReadEmail?.(msg.id, e)}
-                >
-                  {msg.isRead ? <IconMailUnread size={13} /> : <IconMail size={13} />}
-                </button>
-                <button
-                  type="button"
-                  className="mail-hover-btn"
-                  title="Gắn cờ theo dõi"
-                  onClick={(e) => onToggleFlagEmail?.(msg.id, e)}
-                >
-                  <IconFlag size={13} active={msg.isStarred} />
-                </button>
-                <button
-                  type="button"
-                  className="mail-hover-btn"
-                  title="Lưu trữ"
-                  onClick={(e) => onArchiveEmail?.(msg.id, e)}
-                >
-                  <IconArchive size={13} />
-                </button>
-                <button
-                  type="button"
-                  className="mail-hover-btn delete-action"
-                  title="Xoá thư"
-                  onClick={(e) => onDeleteEmail?.(msg.id, e)}
-                >
-                  <IconTrash size={13} />
-                </button>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, marginLeft: '6px' }}>
-                {msg.hasAttachments && (
-                  <IconPaperclip size={12} color="var(--text-muted, #878e96)" />
-                )}
-                {msg.isStarred && (
-                  <IconStar size={12} active />
-                )}
-                <span style={{ fontSize: '11px', color: 'var(--text-muted, #878e96)' }}>
-                  {dateStr}
-                </span>
-              </div>
-            )}
+                {msg.isRead ? <IconMailUnread size={13} /> : <IconMail size={13} />}
+              </button>
+              <button
+                type="button"
+                className="mail-hover-btn"
+                title="Gắn cờ theo dõi"
+                onClick={(e) => onToggleFlagEmail?.(msg.id, e)}
+              >
+                <IconFlag size={13} active={msg.isStarred} />
+              </button>
+              <button
+                type="button"
+                className="mail-hover-btn"
+                title="Lưu trữ"
+                onClick={(e) => onArchiveEmail?.(msg.id, e)}
+              >
+                <IconArchive size={13} />
+              </button>
+              <button
+                type="button"
+                className="mail-hover-btn delete-action"
+                title="Xoá thư"
+                onClick={(e) => onDeleteEmail?.(msg.id, e)}
+              >
+                <IconTrash size={13} />
+              </button>
+            </div>
           </div>
 
           <div
@@ -526,6 +566,156 @@ export const MailList: React.FC<MailListProps> = ({
           </>
         )}
       </div>
+
+      {/* Outlook Standard Context Menu (Right Click on Email) */}
+      {contextMenu && (
+        <div
+          style={{
+            position: 'fixed',
+            top: Math.min(contextMenu.y, window.innerHeight - 320),
+            left: Math.min(contextMenu.x, window.innerWidth - 220),
+            backgroundColor: 'var(--surface, #ffffff)',
+            border: '1px solid var(--border, #e3e6ea)',
+            borderRadius: '6px',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.14)',
+            zIndex: 9999,
+            minWidth: '200px',
+            padding: '4px 0',
+            fontSize: '12.5px',
+            color: 'var(--text-primary, #232425)',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            className="ctx-menu-item"
+            onClick={() => {
+              onOpenInNewWindow?.(contextMenu.email.id)
+              setContextMenu(null)
+            }}
+          >
+            <IconExternalLink size={14} color="var(--mail-primary-blue, #0077cd)" />
+            <span>Mở trong cửa sổ mới</span>
+          </button>
+
+          <div style={{ height: '1px', backgroundColor: 'var(--border-subtle, #efefef)', margin: '4px 0' }} />
+
+          <button
+            type="button"
+            className="ctx-menu-item"
+            onClick={() => {
+              onReplyEmail?.(contextMenu.email.id)
+              setContextMenu(null)
+            }}
+          >
+            <IconReply size={14} color="var(--mail-primary-blue, #0077cd)" />
+            <span>Trả lời (Ctrl+R)</span>
+          </button>
+
+          <button
+            type="button"
+            className="ctx-menu-item"
+            onClick={() => {
+              onReplyAllEmail?.(contextMenu.email.id)
+              setContextMenu(null)
+            }}
+          >
+            <IconReplyAll size={14} color="var(--mail-primary-blue, #0077cd)" />
+            <span>Trả lời tất cả</span>
+          </button>
+
+          <button
+            type="button"
+            className="ctx-menu-item"
+            onClick={() => {
+              onForwardEmail?.(contextMenu.email.id)
+              setContextMenu(null)
+            }}
+          >
+            <IconForward size={14} color="var(--mail-primary-blue, #0077cd)" />
+            <span>Chuyển tiếp (Ctrl+F)</span>
+          </button>
+
+          <div style={{ height: '1px', backgroundColor: 'var(--border-subtle, #efefef)', margin: '4px 0' }} />
+
+          <button
+            type="button"
+            className="ctx-menu-item"
+            onClick={(e) => {
+              onToggleReadEmail?.(contextMenu.email.id, e)
+              setContextMenu(null)
+            }}
+          >
+            {contextMenu.email.isRead ? <IconMailUnread size={14} /> : <IconMail size={14} />}
+            <span>{contextMenu.email.isRead ? 'Đánh dấu Chưa đọc' : 'Đánh dấu Đã đọc'}</span>
+          </button>
+
+          <button
+            type="button"
+            className="ctx-menu-item"
+            onClick={(e) => {
+              onToggleFlagEmail?.(contextMenu.email.id, e)
+              setContextMenu(null)
+            }}
+          >
+            <IconFlag size={14} active={contextMenu.email.isStarred} />
+            <span>{contextMenu.email.isStarred ? 'Bỏ gắn cờ' : 'Gắn cờ theo dõi'}</span>
+          </button>
+
+          <button
+            type="button"
+            className="ctx-menu-item"
+            onClick={(e) => {
+              onArchiveEmail?.(contextMenu.email.id, e)
+              setContextMenu(null)
+            }}
+          >
+            <IconArchive size={14} />
+            <span>Lưu trữ (Archive)</span>
+          </button>
+
+          <div style={{ height: '1px', backgroundColor: 'var(--border-subtle, #efefef)', margin: '4px 0' }} />
+
+          <button
+            type="button"
+            className="ctx-menu-item"
+            onClick={() => {
+              onPrintEmail?.(contextMenu.email.id)
+              setContextMenu(null)
+            }}
+          >
+            <IconPrinter size={14} />
+            <span>In email (Ctrl+P)</span>
+          </button>
+
+          <button
+            type="button"
+            className="ctx-menu-item"
+            onClick={() => {
+              onSaveEml?.(contextMenu.email.id)
+              setContextMenu(null)
+            }}
+          >
+            <IconDownload size={14} />
+            <span>Lưu tệp thư (.eml)...</span>
+          </button>
+
+          <div style={{ height: '1px', backgroundColor: 'var(--border-subtle, #efefef)', margin: '4px 0' }} />
+
+          <button
+            type="button"
+            className="ctx-menu-item delete-item"
+            style={{ color: 'var(--danger, #d13438)' }}
+            onClick={(e) => {
+              onDeleteEmail?.(contextMenu.email.id, e)
+              setContextMenu(null)
+            }}
+          >
+            <IconTrash size={14} color="var(--danger, #d13438)" />
+            <span>Xoá thư (Delete)</span>
+          </button>
+        </div>
+      )}
     </div>
   )
 }

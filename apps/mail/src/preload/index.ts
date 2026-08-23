@@ -15,6 +15,10 @@ const api: VuaMailApi = {
   toggleStarred: (emailId: string): Promise<boolean> => ipcRenderer.invoke(VUA_MAIL_IPC.TOGGLE_STARRED, emailId),
   deleteEmail: (emailId: string): Promise<void> => ipcRenderer.invoke(VUA_MAIL_IPC.DELETE_EMAIL, emailId),
   archiveEmail: (emailId: string): Promise<void> => ipcRenderer.invoke(VUA_MAIL_IPC.ARCHIVE_EMAIL, emailId),
+  moveEmail: (emailId: string, targetFolderId: string, targetAccountId?: string): Promise<boolean> =>
+    ipcRenderer.invoke(VUA_MAIL_IPC.MOVE_EMAIL, emailId, targetFolderId, targetAccountId),
+  restoreEmail: (emailId: string): Promise<{ success: boolean; restoredFolderId?: string }> =>
+    ipcRenderer.invoke(VUA_MAIL_IPC.RESTORE_EMAIL, emailId),
   sendEmail: (draft): Promise<{ success: boolean; emailId?: string }> =>
     ipcRenderer.invoke(VUA_MAIL_IPC.SEND_EMAIL, draft),
   openAttachment: (attachment): Promise<boolean> =>
@@ -27,6 +31,12 @@ const api: VuaMailApi = {
     ipcRenderer.invoke(VUA_MAIL_IPC.CANCEL_OAUTH_FLOW),
   getAppVersion: (): Promise<string> =>
     ipcRenderer.invoke(VUA_MAIL_IPC.GET_APP_VERSION),
+  openEmailPopup: (emailId: string): Promise<boolean> =>
+    ipcRenderer.invoke(VUA_MAIL_IPC.OPEN_EMAIL_POPUP, emailId),
+  printEmail: (emailId: string): Promise<boolean> =>
+    ipcRenderer.invoke(VUA_MAIL_IPC.PRINT_EMAIL, emailId),
+  saveEmailEml: (emailId: string): Promise<boolean> =>
+    ipcRenderer.invoke(VUA_MAIL_IPC.SAVE_EMAIL_EML, emailId),
   getAiSettings: (): Promise<any> => ipcRenderer.invoke('ai:get-settings'),
   aiStream: (request: any): Promise<void> => ipcRenderer.invoke('ai:stream', request),
   aiStreamCancel: (requestId: string): Promise<void> => ipcRenderer.invoke('ai:stream-cancel', requestId),
