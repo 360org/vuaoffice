@@ -435,10 +435,50 @@ export class SQLiteMailStorage {
   }
 
   getFolders(accountId: string): MailFolder[] {
+    if (accountId === 'all_accounts') {
+      // Unified aggregate folders across all accounts
+      const folderKinds: Array<{ kind: 'inbox' | 'drafts' | 'sent' | 'archive' | 'trash'; name: string; iconName: string }> = [
+        { kind: 'inbox', name: 'Inbox', iconName: 'Inbox' },
+        { kind: 'drafts', name: 'Drafts', iconName: 'Drafts' },
+        { kind: 'sent', name: 'Sent Items', iconName: 'Send' },
+        { kind: 'archive', name: 'Archive', iconName: 'Archive' },
+        { kind: 'trash', name: 'Deleted Items', iconName: 'Delete' },
+      ]
+
+      return folderKinds.map(({ kind, name, iconName }) => {
+        const matchingFolders = this.data.folders.filter((f) => f.kind === kind)
+        const matchingFolderIds = new Set(matchingFolders.map((f) => f.id))
+        const matchingEmails = this.data.emails.filter((e) => matchingFolderIds.has(e.folderId))
+        const unreadCount = matchingEmails.filter((e) => !e.isRead).length
+        const totalCount = matchingEmails.length
+
+        return {
+          id: `all_${kind}`,
+          accountId: 'all_accounts',
+          name,
+          kind,
+          iconName,
+          unreadCount,
+          totalCount,
+          isFavorite: kind === 'inbox' || kind === 'drafts' || kind === 'sent' || kind === 'trash',
+        }
+      })
+    }
     return this.data.folders.filter((f) => f.accountId === accountId)
   }
 
   getEmails(folderId: string, category?: 'focused' | 'other'): EmailMessage[] {
+    if (folderId.startsWith('all_')) {
+      const targetKind = folderId.replace('all_', '')
+      const matchingFolderIds = new Set(
+        this.data.folders.filter((f) => f.kind === targetKind).map((f) => f.id)
+      )
+      return this.data.emails.filter((e) => {
+        if (!matchingFolderIds.has(e.folderId)) return false
+        if (category && e.category !== category) return false
+        return true
+      })
+    }
     return this.data.emails.filter((e) => {
       if (e.folderId !== folderId) return false
       if (category && e.category !== category) return false

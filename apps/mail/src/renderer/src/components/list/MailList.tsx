@@ -18,6 +18,9 @@ interface MailListProps {
   onSelectEmail: (emailId: string) => void
   categoryTab: string
   onCategoryChange: (cat: string) => void
+  folderName?: string
+  activeAccountId?: string
+  accounts?: Array<{ id: string; name: string; email: string }>
   onRefresh?: () => void
   onDeleteEmail?: (emailId: string, e: React.MouseEvent) => void
   onArchiveEmail?: (emailId: string, e: React.MouseEvent) => void
@@ -35,6 +38,9 @@ export const MailList: React.FC<MailListProps> = ({
   onSelectEmail,
   categoryTab,
   onCategoryChange,
+  folderName,
+  activeAccountId,
+  accounts = [],
   onRefresh,
   onDeleteEmail,
   onArchiveEmail,
@@ -90,6 +96,7 @@ export const MailList: React.FC<MailListProps> = ({
     const isHovered = msg.id === hoveredEmailId
     const avatarColor = AVATAR_COLORS[index % AVATAR_COLORS.length]
     const initial = (msg.senderName || msg.senderEmail || 'U').charAt(0).toUpperCase()
+    const targetAccount = accounts.find((a) => a.id === msg.accountId)
 
     return (
       <div
@@ -148,18 +155,38 @@ export const MailList: React.FC<MailListProps> = ({
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
-            <span
-              style={{
-                fontSize: '12.5px',
-                fontWeight: !msg.isRead ? 700 : 600,
-                color: 'var(--text-primary, #232425)',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              {msg.senderName || msg.senderEmail}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+              <span
+                style={{
+                  fontSize: '12.5px',
+                  fontWeight: !msg.isRead ? 700 : 600,
+                  color: 'var(--text-primary, #232425)',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {msg.senderName || msg.senderEmail}
+              </span>
+              {activeAccountId === 'all_accounts' && targetAccount && (
+                <span
+                  style={{
+                    fontSize: '9.5px',
+                    fontWeight: 600,
+                    padding: '1px 5px',
+                    borderRadius: '4px',
+                    backgroundColor: 'var(--surface-subtle, #f0f4f8)',
+                    color: 'var(--text-secondary, #606366)',
+                    border: '1px solid var(--border, #e3e6ea)',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                  }}
+                  title={targetAccount.email}
+                >
+                  {targetAccount.email.split('@')[0]}
+                </span>
+              )}
+            </div>
 
             {/* Normal date / hover actions toggle (Outlook style) */}
             {isHovered ? (
@@ -281,7 +308,7 @@ export const MailList: React.FC<MailListProps> = ({
         }}
       >
         <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary, #232425)' }}>
-          Hộp thư đến (Inbox)
+          {folderName || 'Hộp thư đến (Inbox)'}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <button

@@ -284,6 +284,7 @@ configureMailRuntime({
   preloadPath: join(MAIL_OUT, 'preload', 'index.js'),
   rendererUrl: process.env.MAIL_RENDERER_URL,
   rendererFile: join(MAIL_OUT, 'renderer', 'index.html'),
+  openDocumentPath: (path) => openDocumentPath(path),
 })
 
 // ---- UI language ----

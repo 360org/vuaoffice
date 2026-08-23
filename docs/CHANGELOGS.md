@@ -3,6 +3,25 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.11] - 2026-08-23
+
+### Mail & UI Optimization
+- **Sửa lỗi Xem nhanh tài liệu đính kèm (PDF/DOCX/XLSX/PPTX)**:
+  - Bổ sung cấu trúc PDF 1.7 chuẩn ISO 32000-1 cho tệp tin đính kèm mẫu, khắc phục triệt để lỗi file corrupt *"The file could not be opened / It may be damaged"*.
+  - Kết nối router `openDocumentPath` từ Shell vào `configureMailRuntime`, giúp tài liệu đính kèm mở trực tiếp thành tab mới trong VuaOffice Suite.
+- **Tính năng Hộp thư hợp nhất Tất cả tài khoản (All Accounts / Unified Folders)**:
+  - Tích hợp node gốc "Tất cả tài khoản" (All Accounts) trên thanh cây thư mục FolderTree chuẩn Microsoft Outlook 365, gom gọn các thư mục Inbox, Sent Items, Drafts, Archive, Deleted Items từ toàn bộ tài khoản.
+  - Tự động tính toán số lượng thư chưa đọc và tổng số thư tổng hợp tức thời trên SQLite Engine.
+  - MailList và ReadingPane hiển thị huy hiệu gắn nhãn tài khoản (`chau.le`, `ceo`) khi xem ở chế độ Tất cả tài khoản, giúp người dùng phân biệt nguồn gốc email tức thì.
+- **Đồng bộ hiển thị phiên bản Mail tự động**:
+  - Bổ sung IPC `vua-mail:get-app-version` trong `apps/mail` đọc trực tiếp từ version thực tế của ứng dụng (`app.getVersion()`), loại bỏ hardcode `v1.0.8` ở thanh trạng thái sidebar Settings & Profile.
+- **Tối ưu trải nghiệm soạn thư (ComposeModal)**:
+  - Cải tiến chế độ phóng to / toàn màn hình: nội dung soạn thảo căn full-width co giãn linh hoạt, padding chuẩn công thái học văn bản, loại bỏ khoảng xám trống thừa và tình trạng co cụm như tờ giấy hẹp.
+- **Khắc phục lỗi Menu Assets Shell**:
+  - Tái tạo asset `menu-pdf.png` (16x16) và `menu-home.png` (16x16) đồng bộ với bản retina `@2x` (32x32), sửa lỗi mất biểu tượng PDF trên menu New Tab `+` và Context Menu.
+- **Bảo mật Sandbox HTML Frame cho Email**:
+  - Sử dụng `EmailHtmlFrame` cách ly toàn diện `body.html` của email qua `<iframe sandbox="allow-same-origin">`, ngăn chặn rò rỉ CSS và nguy cơ XSS.
+
 ## [1.0.10] - 2026-08-23
 
 ### Core & Document Routing
@@ -10,12 +29,6 @@ Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaO
   - Bổ sung adapter chuyển đổi `docToDocx` trong `@genoffice/file-parse` sử dụng `word-extractor` và `@genoffice/docx-engine`.
   - Cập nhật router tài liệu trong `apps/shell/src/main/index.ts` và `apps/docs/src/main/docs-main.ts` để nhận diện và mở trực tiếp các tệp tin `.doc` vào tab Docs.
   - Cập nhật bộ lọc tệp tin Open Dialog và giao diện Quick Cards Home để người dùng mở cả 2 định dạng `.docx` và `.doc`.
-
-### Mail & UI Optimization
-- **Đồng bộ hiển thị phiên bản Mail tự động**:
-  - Bổ sung IPC `vua-mail:get-app-version` trong `apps/mail` đọc trực tiếp từ version thực tế của ứng dụng (`app.getVersion()`), loại bỏ hardcode `v1.0.8` ở thanh trạng thái sidebar Settings & Profile.
-- **Tối ưu trải nghiệm soạn thư (ComposeModal)**:
-  - Cải tiến chế độ phóng to / toàn màn hình: nội dung soạn thảo căn full-width co giãn linh hoạt, padding chuẩn công thái học văn bản, loại bỏ khoảng xám trống thừa và tình trạng co cụm như tờ giấy hẹp.
 
 ### Whitelabel & Build System
 - Cập nhật cấu hình bảo vệ định danh font (`Gothic KR`, `Tamil`) trong `whitelabel/brand-config.json`.

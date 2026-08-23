@@ -68,13 +68,21 @@ export const App: React.FC = () => {
       setAccounts(accList)
       if (accList.length > 0) {
         const primary = accList[0]
-        setActiveAccountId(primary.id)
-        const allFolderPromises = accList.map((acc) => api.getFolders(acc.id))
+        setActiveAccountId('all_accounts')
+
+        // Fetch folders for all individual accounts and the unified all_accounts
+        const allFolderPromises = [
+          api.getFolders('all_accounts'),
+          ...accList.map((acc) => api.getFolders(acc.id)),
+        ]
         const folderResults = await Promise.all(allFolderPromises)
         const combinedFolders = folderResults.flat()
         setFolders(combinedFolders)
 
-        const defaultFolder = combinedFolders.find((f) => f.accountId === primary.id && f.kind === 'inbox') || combinedFolders[0]
+        const defaultFolder =
+          combinedFolders.find((f) => f.accountId === 'all_accounts' && f.kind === 'inbox') ||
+          combinedFolders.find((f) => f.accountId === primary.id && f.kind === 'inbox') ||
+          combinedFolders[0]
         if (defaultFolder) {
           setActiveFolderId(defaultFolder.id)
         }
@@ -136,6 +144,8 @@ export const App: React.FC = () => {
 
   const activeAccount = accounts.find((a) => a.id === activeAccountId) || accounts[0] || null
   const selectedEmail = emails.find((e) => e.id === selectedEmailId) || null
+  const targetAccountForSelected = selectedEmail ? accounts.find((a) => a.id === selectedEmail.accountId) : null
+  const activeFolder = folders.find((f) => f.id === activeFolderId)
 
   const filteredEmails = emails.filter((e) => {
     if (!searchQuery.trim()) return true
@@ -340,6 +350,9 @@ export const App: React.FC = () => {
                 onSelectEmail={setSelectedEmailId}
                 categoryTab={categoryTab}
                 onCategoryChange={setCategoryTab}
+                folderName={activeFolder?.name}
+                activeAccountId={activeAccountId}
+                accounts={accounts}
                 onRefresh={handleSyncNow}
                 onDeleteEmail={async (emailId, e) => {
                   e.stopPropagation()
@@ -380,6 +393,7 @@ export const App: React.FC = () => {
                 body={activeBody}
                 aiSummary={aiSummary}
                 isLoadingBody={isLoadingBody}
+                targetAccountEmail={targetAccountForSelected?.email}
                 onTriggerAiSummary={handleTriggerAiSummary}
                 onSmartReply={handleSmartReply}
                 onPreviewAttachment={handlePreviewAttachment}

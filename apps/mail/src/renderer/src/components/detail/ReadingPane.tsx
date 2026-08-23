@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import type { EmailAttachment, EmailBody, EmailMessage } from '../../../../shared/types'
+import { EmailHtmlFrame } from './EmailHtmlFrame'
 import {
   IconMail,
   IconReply,
@@ -22,6 +23,8 @@ interface ReadingPaneProps {
   body: EmailBody | null
   aiSummary: string | null
   isLoadingBody: boolean
+  activeAccountEmail?: string
+  targetAccountEmail?: string
   onTriggerAiSummary: () => void
   onSmartReply?: (replyText: string) => void
   onPreviewAttachment?: (att: EmailAttachment) => void
@@ -40,6 +43,7 @@ export const ReadingPane: React.FC<ReadingPaneProps> = ({
   body,
   aiSummary,
   isLoadingBody,
+  targetAccountEmail,
   onTriggerAiSummary,
   onSmartReply,
   onPreviewAttachment,
@@ -221,6 +225,22 @@ export const ReadingPane: React.FC<ReadingPaneProps> = ({
             </div>
             <div className="reading-sender-email">
               &lt;{email.senderEmail}&gt; • Gửi tới: {email.recipientEmails.join(', ')}
+              {targetAccountEmail && (
+                <span
+                  style={{
+                    marginLeft: '8px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    padding: '1px 6px',
+                    borderRadius: '4px',
+                    backgroundColor: 'var(--surface-subtle, #f0f4f8)',
+                    color: 'var(--mail-primary-blue, #0077cd)',
+                    border: '1px solid var(--border, #e3e6ea)',
+                  }}
+                >
+                  Tài khoản: {targetAccountEmail}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -308,7 +328,7 @@ export const ReadingPane: React.FC<ReadingPaneProps> = ({
       {isLoadingBody ? (
         <div style={{ color: 'var(--text-muted, #878e96)', fontSize: '13px' }}>Đang nạp nội dung thư...</div>
       ) : body?.html ? (
-        <div className="reading-body" dangerouslySetInnerHTML={{ __html: body.html }} />
+        <EmailHtmlFrame html={body.html} title={email.subject} />
       ) : (
         <div className="reading-body">{body?.plainText || email.snippet}</div>
       )}

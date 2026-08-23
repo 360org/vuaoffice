@@ -29,6 +29,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
   onSelectFolder,
 }) => {
   const [expandedAccounts, setExpandedAccounts] = useState<Record<string, boolean>>({
+    all_accounts: true,
     acc_primary: true,
     acc_secondary: true,
   })
@@ -75,10 +76,70 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
   // Favorite quick links: only show favorites for current active account to avoid duplicates
   const favoriteFolders = folders.filter((f) => f.accountId === activeAccountId && f.isFavorite)
 
+  const allAccountsFolders = folders.filter((f) => f.accountId === 'all_accounts')
+  const isAllAccountsExpanded = expandedAccounts['all_accounts'] ?? true
+
   return (
     <div className="mail-folders">
+      {/* All Accounts / Unified Folders (Microsoft Outlook Parity) */}
+      {allAccountsFolders.length > 0 && (
+        <div className="folder-account-group" style={{ marginBottom: '6px' }}>
+          <div
+            className={`folder-account-header ${activeAccountId === 'all_accounts' ? 'current-acc' : ''}`}
+            onClick={() => {
+              onSelectAccount('all_accounts')
+              const inbox = allAccountsFolders.find((f) => f.kind === 'inbox') || allAccountsFolders[0]
+              if (inbox) {
+                onSelectFolder(inbox.id, 'all_accounts')
+              }
+            }}
+          >
+            <button
+              type="button"
+              className="expand-btn"
+              onClick={(e) => toggleExpand('all_accounts', e)}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              {isAllAccountsExpanded ? <IconChevronDown size={12} /> : <IconChevronRight size={12} />}
+            </button>
+            <div className="account-title-box">
+              <span className="account-name" style={{ fontWeight: 700, color: 'var(--mail-primary-blue, #0077cd)' }}>
+                Tất cả tài khoản
+              </span>
+              <span className="account-email" style={{ fontSize: '10.5px' }}>
+                Hộp thư hợp nhất ({accounts.length} tài khoản)
+              </span>
+            </div>
+          </div>
+
+          {isAllAccountsExpanded && (
+            <div className="account-folders-list">
+              {allAccountsFolders.map((f) => {
+                const isActive = activeFolderId === f.id && activeAccountId === 'all_accounts'
+                return (
+                  <div
+                    key={f.id}
+                    className={`folder-item ${isActive ? 'active' : ''}`}
+                    onClick={() => {
+                      onSelectAccount('all_accounts')
+                      onSelectFolder(f.id, 'all_accounts')
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {getFolderIcon(f.kind)}
+                      <span>{getFolderLabel(f)}</span>
+                    </div>
+                    {f.unreadCount > 0 && <span className="folder-unread">{f.unreadCount}</span>}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Favorites Section */}
-      {favoriteFolders.length > 0 && (
+      {favoriteFolders.length > 0 && activeAccountId !== 'all_accounts' && (
         <div className="folder-section">
           <div className="folder-group-title">MỤC YÊU THÍCH</div>
           {favoriteFolders.map((f) => {
