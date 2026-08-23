@@ -84,6 +84,18 @@ jobs:
       - name: Check brand integrity
         run: npm run brand:gate
 
+      # Bản ghi kiểm toán là ảnh chụp kho mã tại một thời điểm. Cổng này chặn
+      # việc sửa/xoá/đổi tên một bản đã tồn tại — lỗi đã từng xảy ra và xoá mất
+      # bản kiểm toán v0.7.0. Xem docs/AUDIT_REPORT.md.
+      - name: Check audit records are immutable
+        env:
+          FORMAT_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            FORMAT_BASE_REF=$(git rev-parse HEAD^1)
+          fi
+          npm run audit:check
+
       # Keep tracked code comments and contributor-facing documentation
       # English-only; functional CJK strings and AI prompt examples are allowed.
       - name: Check comments/docs are English-only

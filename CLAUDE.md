@@ -79,7 +79,11 @@ Nguyên tắc nền tảng:
    `protected` chặn một chiều PHẢI có cặp đối xứng. Sau mọi thay đổi config,
    bắt buộc chạy `npm run whitelabel:selftest`.
 8. **Trước mọi commit**: `npm run brand:gate` phải ĐẠT (selftest + status +
-   check-brand). Cấm vô hiệu hóa cổng, cấm `continue-on-error`, cấm `--no-verify`.
+   check-brand + audit:check). Cấm vô hiệu hóa cổng, cấm `continue-on-error`,
+   cấm `--no-verify`.
+8b. **Bản ghi kiểm toán BẤT BIẾN**: cấm sửa/ghi đè/xoá tệp trong `docs/audits/`.
+   Kiểm toán mới → tạo tệp mới `AUDIT-<YYYY-MM-DD>-<version>.md` kèm banner
+   `<!-- AUDIT-IMMUTABLE -->`. Cổng `audit:check` sẽ chặn nếu vi phạm.
 9. **Đồng bộ upstream**: chạy `npm run upstream:setup` một lần mỗi máy (Git
    KHÔNG tự kích hoạt merge driver `ours` khi clone — thiếu bước này thì
    `.gitattributes` im lặng vô tác dụng). Luôn merge qua nhánh
@@ -101,7 +105,8 @@ Nguyên tắc nền tảng:
 | `npm run whitelabel:status` | Báo cáo, không ghi tệp, exit 1 nếu chưa sạch |
 | `npm run whitelabel:selftest` | Kiểm chứng luật song ánh |
 | `npm run brand:check` | Cổng phát hiện rò rỉ (2 tầng) |
-| `npm run brand:gate` | Gộp cả ba cổng — chạy trước mọi commit |
+| `npm run audit:check` | Chặn sửa/xoá/đổi tên bản ghi kiểm toán |
+| `npm run brand:gate` | Gộp cả bốn cổng — chạy trước mọi commit |
 | `npm run upstream:setup` | Cấu hình remote upstream + merge driver |
 
 ## Release Rules (mandatory)

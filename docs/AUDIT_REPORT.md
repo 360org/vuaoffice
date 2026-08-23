@@ -1,213 +1,98 @@
-# AUDIT_REPORT.md — Báo cáo Kiểm toán Mã nguồn VuaOffice
+# AUDIT_REPORT.md — Mục lục Báo cáo Kiểm toán Mã nguồn
 
-> **Tài liệu Kiểm toán Kỹ thuật & Đánh giá Chất lượng Mã nguồn**
 > **Chủ quản**: 360 CORP
-> **Phạm vi**: Nhánh `main` — Phiên bản `v1.0.12` (commit `de51bbf`)
-> **Ngày thực hiện**: 2026-08-23
-> **Phương pháp**: checkout sạch + `npm ci`; mọi phát hiện bảo mật kèm mã tái hiện
+> **Tệp này là MỤC LỤC, không phải nội dung kiểm toán.**
+> Từng bản kiểm toán nằm trong [`docs/audits/`](./audits/), mỗi bản một tệp riêng theo ngày.
 
 ---
 
-## 1. Tóm tắt Điều hành
+## 🔒 Quy tắc bất biến (bắt buộc)
 
-Kiểm toán sau khi kho mã đi từ v1.0.0 lên **v1.0.12** qua 41 commit, gồm một đợt merge upstream và một đợt viết lại giao diện Mail.
+Báo cáo kiểm toán là **ảnh chụp kho mã tại một thời điểm**. Giá trị của nó nằm ở chỗ phản ánh đúng những gì đã thấy **lúc đó**.
 
-**Đã tốt lên rõ rệt.** Lớp cưỡng chế whitelabel sống sót nguyên vẹn qua đợt merge upstream. Hai phát hiện từ đợt kiểm toán trước đã được xử lý (IPC path sandbox, AI fetch backoff), và trong lúc kiểm toán này diễn ra thì hai phát hiện nữa cũng được vá (XSS Mail, namespace font). Thêm 9 pre-hook tự động chạy `whitelabel:apply` trước mọi lệnh build — đóng luôn khả năng quên bước.
+> **CẤM sửa, ghi đè, đổi tên hay xoá một bản kiểm toán đã tồn tại.**
+> Kiểm toán mới → **tạo tệp mới**: `docs/audits/AUDIT-<YYYY-MM-DD>-<version>.md`
 
-**Còn ba việc**, đều đã kiểm chứng bằng mã chạy thật.
+### Vì sao có quy tắc này
 
-| Mức độ | Số lượng | Tình trạng |
-| :--- | :---: | :--- |
-| 🔴 Nghiêm trọng | 1 | Bộ lọc MathML vượt qua được |
-| 🟠 Cao | 2 | Allowlist IPC tự nạp · kiểm tra đường dẫn hỏng trên Windows |
-| 🔵 Trung bình | 3 | Lint · quy tắc whitelabel mong manh · tệp cấu hình cá nhân |
-| ✅ Đã vá trong kỳ | 4 | XSS Mail · namespace font · IPC sandbox · AI backoff |
+Ngày 2026-08-23, một lượt cập nhật đã **ghi đè toàn bộ** tệp này bằng nội dung kiểm toán mới, xoá mất bản kiểm toán v0.7.0 cùng các cập nhật của maintainer ở commit `bf51b87`. Nội dung phải khôi phục lại từ lịch sử git.
 
-### Trạng thái các cổng
+Ghi đè làm mất hai thứ không lấy lại được bằng bản mới:
 
-| Cổng | Kết quả |
+- **Bằng chứng về tình trạng kho mã lúc đó** — không còn đối chiếu được vấn đề nào có từ bao giờ.
+- **Dấu vết xử lý của maintainer** — các ghi chú “đã vá”, “đã xác nhận” trên bản cũ biến mất.
+
+### Cơ chế cưỡng chế
+
+Quy tắc này **không dựa vào trí nhớ hay kỷ luật**. Nó được một cổng tự động chặn:
+
+```bash
+npm run audit:check
+```
+
+Cổng `tools/check-audit-immutable.mjs` sẽ **báo đỏ và chặn** nếu phát hiện:
+
+| Hành vi | Kết quả |
 | :--- | :--- |
-| `brand:gate` | ✅ ĐẠT — 552 tệp, 0 rò rỉ thương hiệu |
-| `typecheck` | ✅ SẠCH — 20/20 workspace |
-| `lint` | ⚠️ 48 lỗi (mức nền cũ là 29) |
-| `npm test` | ⚠️ 8 đỏ — chỉ 3 cần xử lý, còn lại do môi trường |
+| Sửa một tệp trong `docs/audits/` đã tồn tại | ❌ Chặn |
+| Xoá một bản kiểm toán | ❌ Chặn |
+| Đổi tên một bản kiểm toán | ❌ Chặn |
+| Thêm tệp sai quy ước tên | ❌ Chặn |
+| Thêm tệp thiếu banner `<!-- AUDIT-IMMUTABLE -->` | ❌ Chặn |
+| Thêm bản kiểm toán mới đúng quy ước | ✅ Cho qua |
+
+Cổng chạy trong CI và nằm trong `npm run brand:gate`, nên mọi agent đều gặp nó trước khi commit.
 
 ---
 
-## 2. Lỗ hổng Nghiêm trọng
+## Danh sách bản kiểm toán
 
-### 2.1. Bộ lọc MathML vượt qua được bằng thẻ lồng nhau
+Sắp theo thời gian, mới nhất ở trên.
 
-**Vị trí**: `apps/docs/src/renderer/editor/extensions.ts:685`
-
-Bản vá từ `bf51b87` dùng regex blocklist thay thế **một lượt**. Vì chuỗi sau khi cắt lại ghép thành thẻ hợp lệ, payload tự tái tạo:
-
-```
-vào :  <scr<script>ipt>alert(1)</scr</script>ipt>
-ra   :  <script>alert(1)</script>          ← lọc xong thành mã chạy được
-
-vào :  href="javajavascript:script:alert(1)"
-ra   :  href="javascript:alert(1)"
-
-vào :  <sc<iframe>ript>alert(1)</sc<iframe>ript>
-ra   :  <script>alert(1)</script>
-```
-
-**Kiểm chứng**: 3/3 payload thử nghiệm vượt qua, đã chạy lại trên v1.0.12 — vẫn nguyên.
-
-**Đường vào**: tệp `.docx` chế tác sẵn → người dùng mở → mã chạy trong Renderer của Docs, nơi có quyền gọi API qua `contextBridge`.
-
-**Khuyến nghị**: không vá thêm mẫu regex — cách tiếp cận này không cứu được bằng cách bổ sung mẫu, vì lỗi nằm ở chỗ thay thế một lượt tạo ra chuỗi mới. Hai hướng đúng:
-
-1. Phân tích bằng `DOMParser` rồi duyệt cây theo **danh sách thẻ/thuộc tính cho phép** (allowlist), hoặc
-2. Render MathML trong `<iframe sandbox>` như đã làm với Mail (`EmailHtmlFrame.tsx`) — trình duyệt chặn thực thi ở tầng engine, không phụ thuộc bộ lọc.
+| Ngày | Phiên bản | Bản ghi | Tóm tắt |
+| :--- | :--- | :--- | :--- |
+| 2026-08-23 | `v1.0.12` | [AUDIT-2026-08-23-v1.0.12.md](./audits/AUDIT-2026-08-23-v1.0.12.md) | Lớp cưỡng chế whitelabel sống sót qua merge upstream; XSS Mail và namespace font đã vá. Còn 1 Nghiêm trọng (bộ lọc MathML vượt qua được) và 2 Cao (allowlist IPC tự nạp, đường dẫn hỏng trên Windows). |
+| 2026-08-16 | `v0.7.0` | [AUDIT-2026-08-16-v0.7.0.md](./audits/AUDIT-2026-08-16-v0.7.0.md) | Kiểm toán nền đầu tiên: 2 Nghiêm trọng, 5 Cao, 10 Trung bình. Có cập nhật trạng thái của maintainer tại `bf51b87`. |
 
 ---
 
-## 3. Vấn đề Mức Cao
+## Cách thực hiện một đợt kiểm toán mới
 
-### 3.1. Danh sách cho phép của IPC tự nạp qua kênh không kiểm tra
+```bash
+# 1. Đồng bộ và cài đặt sạch
+git pull origin main && npm ci
 
-**Vị trí**: `apps/shell/src/main/index.ts` — handler `toggleStar` · hàm `assertSafeUserPath`
+# 2. Chạy các cổng để lấy số liệu thật
+npm run brand:gate
+npm run typecheck
+npm run lint
+npm test
 
-`assertSafeUserPath` chấp nhận mọi đường dẫn nằm trong danh sách recent/starred:
+# 3. Tạo tệp MỚI — không đụng vào bản cũ
+#    Đặt tên theo ngày để thư mục tự sắp xếp theo thời gian
+touch docs/audits/AUDIT-$(date +%F)-v$(node -p "require('./package.json').version").md
 
-```ts
-const knownFiles = new Set([...readRecentFiles(), ...readStarredFiles()])
-return knownFiles.has(targetPath)
+# 4. Thêm banner bất biến ngay sau dòng tiêu đề:
+#    <!-- AUDIT-IMMUTABLE -->
+
+# 5. Thêm một dòng vào bảng "Danh sách bản kiểm toán" ở trên
+
+# 6. Cổng phải ĐẠT trước khi commit
+npm run audit:check
 ```
 
-Nhưng handler `toggleStar` ghi thẳng vào danh sách starred **mà không qua kiểm tra**:
+### Yêu cầu về chất lượng nội dung
 
-```ts
-ipcMain.handle(HOME_CHANNELS.toggleStar, (_event, path: unknown) => {
-  if (typeof path === 'string') toggleStarredFile(path)   // ← không validate
-})
-```
-
-**Kiểm chứng** (mô phỏng đúng luồng thật):
-
-```
-assertSafeUserPath('/etc/hosts')   → false
-toggleStar('/etc/hosts')           ← renderer gọi, không bị chặn
-assertSafeUserPath('/etc/hosts')   → true    ← vòng qua được
-```
-
-Renderer bị chiếm quyền có thể tự thêm đường dẫn bất kỳ vào allowlist rồi dùng nó cho `deleteFiles` / `openPath` / `duplicateFile`. Bản vá sandbox trở nên vô hiệu.
-
-**Khuyến nghị**: gọi `assertSafeUserPath` ngay trong `toggleStar`, và lọc lại danh sách khi **đọc** thay vì tin nó.
+- **Mọi phát hiện bảo mật phải kèm mã tái hiện chạy được** — không suy đoán.
+- **Phân loại rõ test đỏ**: lỗi thật · test cũ · môi trường · có sẵn từ trước. Nêu rõ cái nào chưa xác minh được trên máy khác.
+- **Ghi nhận cả phần đã cải thiện**, không chỉ liệt kê lỗi.
+- **Nêu rõ mốc kiểm toán**: commit hash và phiên bản, để đối chiếu sau này.
 
 ---
 
-### 3.2. Kiểm tra đường dẫn hỏng trên Windows
-
-**Vị trí**: `apps/shell/src/main/index.ts` — hàm `isPathInside`
-
-```ts
-return rel === root || (rel.startsWith(root) && rel.charAt(root.length) === '/')
-```
-
-Dấu phân cách bị viết cứng là `'/'`. Trên Windows `path.resolve` trả về dấu `\`, nên phép kiểm tra thư mục con **luôn sai**:
-
-```
-Linux    /home/u/Documents/a.docx      trong /home/u/Documents      → true
-Windows  C:\Users\me\Documents\a.docx  trong C:\Users\me\Documents  → false
-```
-
-Mọi tệp trong Documents/Downloads/Desktop bị từ chối, chỉ còn dựa vào danh sách recent. Windows là nền tảng đang phát hành (`Windows-x64-Setup.exe`, `Windows-ia32-Setup.exe`).
-
-**Khuyến nghị**: dùng `path.sep` thay cho `'/'` — sửa một dòng.
-
----
-
-## 4. Vấn đề Mức Trung bình
-
-### 4.1. Lint tăng từ 29 lên 48 lỗi
-
-Chín tệp mới có lỗi, phần lớn là component Mail vừa thêm: `CalendarView`, `MailList`, `ProfileView`, `SettingsModal`, `ImportExportModal`, cùng `docs-main.ts`, `docs/App.tsx`, `sheets-main.ts`, `slides/ai-ipc.ts`.
-
-Cổng lint đang chặn **Bước 4** của bảng kiểm phát hành trong `RELEASE_PROTOCOL.md`.
-
-### 4.2. Một quy tắc whitelabel phụ thuộc đúng 8 dấu cách thụt đầu dòng
-
-```json
-{ "from": "Genspark\n        </span>", "to": "VuaOffice AI\n        </span>" }
-```
-
-Prettier chạy lại, đổi cấp lồng JSX, hay thêm một thuộc tính là quy tắc **im lặng hết tác dụng** — thương hiệu upstream quay lại mà không cổng nào báo.
-
-**Khuyến nghị**: khớp theo tên thuộc tính như quy tắc `aiPanelTitle: 'Genspark'` ngay bên cạnh, thay vì khớp theo khoảng trắng.
-
-### 4.3. Tệp cấu hình máy cá nhân được commit vào kho công khai
-
-`.claude/` nằm trong `.gitignore` dòng 21 nhưng **5 tệp vẫn được track** — git chỉ bỏ qua tệp *chưa* track. Trong đó `settings.local.json` chứa đường dẫn máy cá nhân `/Volumes/DATA/DEV/…`, và `.claude/CLAUDE.md` chỉ agent tới một tệp `graph.json` không tồn tại trên máy nào khác.
-
-Không phải rò rỉ bí mật, nhưng trái với ý định của `.gitignore` và đẩy bố cục thư mục của một người lên mọi máy.
-
----
-
-## 5. Tám Bài Kiểm thử Đỏ — Phân loại
-
-| Workspace | Đỏ | Nguyên nhân | Cần xử lý? |
-| :--- | :---: | :--- | :--- |
-| `docs` | 3 | Test kỳ vọng alias font `GenOffice`; alias nay đã trả về `GenOffice` — cần chạy lại xác nhận | ⚠️ Xác nhận lại |
-| `electron-utils` | 1 | Test tạo thư mục read-only; container chạy `root` nên vẫn ghi được | ⚪ Môi trường |
-| `markdown` | 1 | Test chờ cảnh báo khi bị chặn ghi; `root` không bị chặn | ⚪ Môi trường |
-| `font-metrics` | 1 | Giả định không font nào map `U+0378`; máy này có | ⚪ Môi trường |
-| `pdf` | 1 | Giả định không có font phủ ký tự; máy này có | ⚪ Môi trường |
-| `sheets` | 1 | LibreOffice headless convert — đã tái hiện y hệt trên v0.7.0 | ⚪ Có sẵn |
-
-> ⚠️ Bốn bài xếp loại “môi trường” **chưa được xác minh trên máy khác** — vì CI của dự án chưa từng chạy tự động. Không loại trừ khả năng chúng cũng đỏ trên máy Sếp.
-
----
-
-## 6. Ghi nhận: Đã Cải thiện trong Kỳ
-
-### 6.1. ✅ Lớp cưỡng chế whitelabel sống sót qua merge upstream
-
-Bảy lệnh npm, chín dòng `merge=ours` trong `.gitattributes`, cổng thật trong cả `ci.yml` và `release.yml`, ba tài liệu quy chế — tất cả còn nguyên sau đợt merge upstream. Luật song ánh vẫn đạt trên 552 tệp, không rò rỉ thương hiệu nào.
-
-### 6.2. ✅ Chín pre-hook tự động áp thương hiệu trước mọi lệnh build
-
-`predev`, `prebuild`, `prebuild:all`, `predist:*` — tất cả gọi `whitelabel:apply`. Đây là cải tiến đúng hướng: đóng khả năng quên bước thay vì dựa vào kỷ luật con người.
-
-### 6.3. ✅ Namespace font đã nhất quán trở lại
-
-Đợt merge upstream trước đó làm hai alias mới (`Gothic KR`, `Tamil`) bị quy tắc bao trùm đổi thành VuaOffice, tạo ra namespace nửa đổi nửa không. Nay `Gothic|Tamil` đã được thêm vào danh sách miễn trừ và **cả 19 alias đều trở về `GenOffice`** — nhất quán.
-
-> **Bài học còn lại**: danh sách miễn trừ font vẫn là **liệt kê tên cụ thể**, nên sẽ tiếp tục trôi mỗi lần upstream thêm font mới. Nên đổi sang quy tắc theo ngữ cảnh (mọi chuỗi trong `fonts.css` và `line-metrics.ts` đều là alias) thay vì liệt kê.
-
-### 6.4. ✅ Bản vá cách ly HTML email đã được khôi phục
-
-Bản vá này từng bị gỡ trong đợt viết lại giao diện Mail và lọt ra bản phát hành v1.0.9. Bộ kiểm thử chống hồi quy đã bắt đúng lỗi, và nay `ReadingPane` dùng lại `EmailHtmlFrame`.
-
----
-
-## 7. Đề xuất Thứ tự Xử lý
-
-| # | Việc | Quy mô | Lý do ưu tiên |
-| :---: | :--- | :--- | :--- |
-| 1 | Thay bộ lọc MathML bằng `DOMParser` + allowlist, hoặc iframe sandbox | ~1 giờ | Lỗ hổng Nghiêm trọng duy nhất còn lại |
-| 2 | Kiểm tra đường dẫn trong `toggleStar` | ~30 phút | Đóng đường vòng làm vô hiệu bản vá sandbox |
-| 3 | `'/'` → `path.sep` trong `isPathInside` | 1 dòng | Sửa hành vi trên Windows |
-| 4 | **Bật CI trên `pull_request`** | 10 phút | Xem ghi chú bên dưới |
-| 5 | Dọn 19 lỗi lint mới | ~2 giờ | Khôi phục cổng chất lượng phát hành |
-| 6 | Sửa quy tắc whitelabel mong manh (§4.2) | ~15 phút | Chống trôi ở lần đồng bộ upstream tới |
-| 7 | Gỡ `.claude/` khỏi git index (§4.3) | 5 phút | `git rm --cached -r .claude/` |
-
-> ### Việc số 4 là việc có đòn bẩy lớn nhất
->
-> Lỗ hổng XSS trong Mail bị gỡ ở v1.0.9 **đã được bộ kiểm thử của chính dự án bắt được** — bài “ReadingPane không còn dùng dangerouslySetInnerHTML” báo đỏ ngay. Test đã nằm sẵn trong `npm test` gốc. Nó vẫn lọt ra bản phát hành chỉ vì `ci.yml` đặt `on: workflow_dispatch`, tức không ai chạy.
->
-> Bộ kiểm thử đã đủ tốt. Vấn đề là nó không được chạy.
->
-> **Về tuân thủ `CLAUDE.md`**: quy định “CI/Build runner tuyệt đối KHÔNG được tự động chạy” nhắm vào workflow **đóng gói/phát hành** (`release.yml`, vốn chỉ chạy trên tag `v*` — đã đúng). `ci.yml` chỉ chạy kiểm thử, không tạo artifact cài đặt. Bật `pull_request` cho riêng nó không vi phạm quy định về build release. Đề xuất này **cần Sếp phê duyệt** trước khi áp dụng.
-
----
-
-## 8. Tài liệu Liên quan
+## Tài liệu Liên quan
 
 - [`WHITELABEL_STRATEGY.md`](./WHITELABEL_STRATEGY.md) — Quy chế whitelabel & đồng bộ upstream
 - [`RELEASE_PROTOCOL.md`](./RELEASE_PROTOCOL.md) — Bảng kiểm 9 bước khi phát hành
-- [`SECURITY.md`](./SECURITY.md) — Chính sách bảo mật *(mục 2.2 vẫn khẳng định mọi payload IPC được xác thực schema nghiêm ngặt; thực tế chỉ đúng với Sheets — cần đồng bộ)*
-- [`../CLAUDE.md`](../CLAUDE.md) — Quy tắc bắt buộc cho AI agent
+- [`AGENTS.md`](./AGENTS.md) — Quy chuẩn cho AI agent
+- [`SECURITY.md`](./SECURITY.md) — Chính sách bảo mật

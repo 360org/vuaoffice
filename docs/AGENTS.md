@@ -85,7 +85,8 @@ VuaOffice là bản phái sinh whitelabel của dự án mã nguồn mở `gensp
 | `npm run whitelabel:status` | Báo cáo, không ghi tệp, exit 1 nếu chưa sạch |
 | `npm run whitelabel:selftest` | Kiểm chứng luật song ánh |
 | `npm run brand:check` | Cổng phát hiện rò rỉ (2 tầng) |
-| `npm run brand:gate` | **Gộp cả ba cổng — chạy trước mọi commit** |
+| `npm run audit:check` | Chặn sửa/xoá/đổi tên bản ghi kiểm toán |
+| `npm run brand:gate` | **Gộp cả bốn cổng — chạy trước mọi commit** |
 | `npm run upstream:setup` | Cấu hình remote upstream + merge driver |
 
 ### 3.2 Bảo toàn tính toàn vẹn thương hiệu
@@ -97,6 +98,24 @@ VuaOffice là bản phái sinh whitelabel của dự án mã nguồn mở `gensp
   nguồn nào tham chiếu**; sửa tệp trong đó sẽ không có tác dụng gì.
 - **Ribbon & AI Panel**: bắt buộc "VuaOffice AI", không còn chữ/icon Genspark cũ.
   Cổng `npm run brand:check` sẽ chặn nếu rò rỉ.
+
+
+### 3.3 🔒 Bản ghi kiểm toán là BẤT BIẾN
+
+Báo cáo kiểm toán là **ảnh chụp kho mã tại một thời điểm**. Giá trị của nó nằm ở
+chỗ phản ánh đúng những gì đã thấy **lúc đó**.
+
+> **CẤM sửa, ghi đè, đổi tên hay xoá một bản kiểm toán đã tồn tại trong `docs/audits/`.**
+> Kiểm toán mới → **tạo tệp mới** `docs/audits/AUDIT-<YYYY-MM-DD>-<version>.md`,
+> kèm banner `<!-- AUDIT-IMMUTABLE -->` ngay sau tiêu đề, rồi thêm một dòng vào
+> bảng mục lục trong `docs/AUDIT_REPORT.md`.
+
+Lỗi này **đã xảy ra thật**: một lượt cập nhật ghi đè `AUDIT_REPORT.md` bằng nội
+dung kiểm toán mới, xoá mất bản v0.7.0 cùng các ghi chú "đã vá" của maintainer —
+phải khôi phục từ lịch sử git.
+
+Quy tắc không dựa vào trí nhớ: `npm run audit:check` (nằm trong `brand:gate` và
+CI) sẽ **chặn** mọi lượt sửa, xoá, đổi tên, sai quy ước tên, hay thiếu banner.
 
 ---
 
@@ -119,7 +138,7 @@ VuaOffice là bản phái sinh whitelabel của dự án mã nguồn mở `gensp
 Chạy tuần tự, **cấm bỏ bước, cấm bỏ qua khi báo đỏ**:
 
 ```bash
-npm run brand:gate     # selftest (song ánh) + status (đã apply đủ) + check-brand (0 rò rỉ)
+npm run brand:gate     # selftest + status + check-brand + audit:check
 npm run lint
 npm run typecheck
 npm test
