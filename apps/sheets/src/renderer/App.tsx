@@ -145,6 +145,7 @@ import {
 } from '../domain/chart-visual'
 import { InMemoryWorkbookAdapter } from '../domain/in-memory-workbook'
 import { cfRuleUnsaveableReason, iconSetSaveable } from '../gateway/xlsx-cf'
+import { installLazyFindBridge } from './lazy-find'
 import type { ApplyOutcome, ChangePlan } from '../domain/workbook.types'
 import { createElectronTransport } from './ai/transport'
 import { MAX_READ_RANGE_CELLS, type ActiveSheetInfo, type SheetsSkillDeps } from './ai/tools'
@@ -1475,6 +1476,9 @@ export function App(): React.JSX.Element {
     // Rule-management panels show what each rule actually does: list options /
     // source range, CF formula text, ⚠ on #REF! dead rules.
     const ruleDetailDisposable = installRuleDetail(runtime)
+    // Ctrl+F covers every row of a streamed workbook, not just the loaded
+    // window: the bridge pages the underlying file for out-of-window hits.
+    const lazyFindDisposable = installLazyFindBridge({ runtime, lazyWorkbookRef, setMessage })
     const scrollDisposable = runtime.univerAPI.addEvent(
       runtime.univerAPI.Event.Scroll,
       (params) => {
@@ -2328,6 +2332,7 @@ export function App(): React.JSX.Element {
       copyMaterializeDisposable.dispose()
       dataValidationArrowDisposable.dispose()
       ruleDetailDisposable()
+      lazyFindDisposable.dispose()
       scrollDisposable.dispose()
       zoomDisposable.dispose()
       editStartDisposable.dispose()
