@@ -2014,7 +2014,7 @@ export function Home() {
   }
 
   const NEW_ITEMS = [
-    { ext: 'docx', title: t('newDoc'), sub: '.docx', action: handleNewDoc, badge: 'AI', disabled: false },
+    { ext: 'docx', title: t('newDoc'), sub: '.docx / .doc', action: handleNewDoc, badge: 'AI', disabled: false },
     { ext: 'xlsx', title: t('newSheet'), sub: '.xlsx', action: handleNewSheet, badge: 'AI', disabled: false },
     { ext: 'pptx', title: t('newSlide'), sub: '.pptx', action: handleNewSlide, badge: 'AI', disabled: false },
     { ext: 'md', title: t('newMarkdown'), sub: '.md', action: handleNewMarkdown, badge: 'AI', disabled: false },
@@ -2064,7 +2064,7 @@ export function Home() {
             <span className="quick-title-row">
               <span className="quick-title">{t('openLocal')}</span>
             </span>
-            <span className="quick-sub">.docx / .xlsx / .xls / .csv / .pptx / .pdf / .md</span>
+            <span className="quick-sub">.docx / .doc / .xlsx / .xls / .csv / .pptx / .pdf / .md</span>
           </span>
         </button>
       </div>

@@ -1,6 +1,8 @@
 import { fileURLToPath } from 'node:url'
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { parseFileToText } from '../src/index'
+import { docToDocx, parseFileToText } from '../src/index'
+import { parseDocx } from '@genoffice/docx-engine'
 import {
   buildDocxFixture,
   buildPptxFixture,
@@ -20,6 +22,21 @@ describe('parseFileToText: doc', () => {
     expect(result.text).toContain('Legacy Report')
     expect(result.text).toContain('Legacy DOC body text')
     expect(result.text).toContain('Second paragraph from Word 97-2003.')
+  })
+
+  it('converts legacy .doc to valid .docx via docToDocx', async () => {
+    const docBytes = readFileSync(legacyFixture('legacy-sample.doc'))
+    const docxBytes = await docToDocx(docBytes)
+    expect(docxBytes.length).toBeGreaterThan(0)
+
+    const parsed = await parseDocx(docxBytes)
+    expect(parsed.blocks.length).toBeGreaterThan(0)
+    const texts = parsed.blocks
+      .filter((b) => b.type === 'paragraph' && Array.isArray(b.runs))
+      .map((b) => b.runs!.map((r) => r.text).join(''))
+    expect(texts).toContain('Legacy Report')
+    expect(texts).toContain('Legacy DOC body text')
+    expect(texts).toContain('Second paragraph from Word 97-2003.')
   })
 })
 

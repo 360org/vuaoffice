@@ -195,7 +195,7 @@
  * (tools/build-gothic-kr-font.py), advances unmodified; renamed per OFL
  * ("Nanum" is a Reserved Font Name and subsetting is a modification). */
 @font-face {
-  font-family: 'VuaOffice Gothic KR';
+  font-family: 'GenOffice Gothic KR';
   src: url('./GenOfficeGothicKR-Regular-subset.woff2') format('woff2');
   font-weight: normal;
   font-style: normal;
@@ -418,7 +418,7 @@
  * Sans Tamil with advances rewritten to Latha's (tools/build-tamil-font.py;
  * shaped sentence R 0.994, all probe sentences within ±2.3%). */
 @font-face {
-  font-family: 'VuaOffice Tamil';
+  font-family: 'GenOffice Tamil';
   src: url('./GenOfficeTamil-Regular.woff2') format('woff2');
   font-weight: normal;
   font-style: normal;

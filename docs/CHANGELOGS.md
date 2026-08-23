@@ -5,6 +5,12 @@ Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaO
 
 ## [1.0.9] - 2026-08-22
 
+### Core & Document Routing
+- **Hỗ trợ định dạng Word 97-2003 (`.doc`) song song với `.docx`**:
+  - Bổ sung adapter chuyển đổi `docToDocx` trong `@genoffice/file-parse` sử dụng `word-extractor` và `@genoffice/docx-engine`.
+  - Cập nhật router tài liệu trong `apps/shell/src/main/index.ts` và `apps/docs/src/main/docs-main.ts` để nhận diện và mở trực tiếp các tệp tin `.doc` vào tab Docs.
+  - Cập nhật bộ lọc tệp tin Open Dialog và giao diện Quick Cards Home để người dùng mở cả 2 định dạng `.docx` và `.doc`.
+
 ### UI & Architecture
 - **Tái thiết kế giao diện Cài đặt & Hồ sơ (Settings & Profile View)**:
   - Chuyển đổi toàn diện sang bố cục 2 cột tiêu chuẩn Microsoft Outlook 365 / macOS Settings (Left Sidebar 250px + Right Scrollable Content Pane).

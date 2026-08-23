@@ -2471,14 +2471,14 @@ function createShellWindow(): void {
 
 // ---- routing: one dispatch function for every open path ----
 
-const DOCX_RE = /\.docx$/i
+const DOCX_RE = /\.(docx|doc)$/i
 const XLSX_RE = /\.(xlsx|xls|csv)$/i
 const PPTX_RE = /\.pptx$/i
 const PDF_RE = /\.pdf$/i
 const MD_RE = /\.(md|markdown)$/i
 
 /** document formats we recognize but don't open — surfaced as a dialog, not silently dropped */
-const UNSUPPORTED_DOC_RE = /\.(doc|rtf|odt|ppt|pps|odp|ods|xlsm|xlsb|pages|key|numbers)$/i
+const UNSUPPORTED_DOC_RE = /\.(rtf|odt|ppt|pps|odp|ods|xlsm|xlsb|pages|key|numbers)$/i
 
 /**
  * Single source of truth for the open-dialog filter. Includes the

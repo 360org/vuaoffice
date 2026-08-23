@@ -372,8 +372,8 @@ export const BUNDLED_FONTS = new Set([
   'Noto Serif CJK SC',
   'GenOffice Sans KR',
   'GenOffice Serif KR',
-  'VuaOffice Gothic KR',
-  'VuaOffice Tamil',
+  'GenOffice Gothic KR',
+  'GenOffice Tamil',
   'GenOffice Fullwidth TC',
   'GenOffice Songti SC',
   'Carlito GO',
@@ -584,7 +584,7 @@ export function cssFontFamily(font: string): string {
     // real-metric subset leads the sans chain instead of the Batang-ward
     // substitution. Installed Nanum still resolves at the literal head.
     if (/nanum ?gothic|나눔 ?고딕/i.test(nfkc)) {
-      return `${chain(font, 'VuaOffice Gothic KR', ...KO_SANS)},sans-serif`
+      return `${chain(font, 'GenOffice Gothic KR', ...KO_SANS)},sans-serif`
     }
     // other vendor faces missing locally follow Word's Batang-ward substitution;
     // Windows core faces (Malgun/Gulim/Dotum) map cleanly to the sans chain
@@ -613,7 +613,7 @@ export function cssFontFamily(font: string): string {
   // declared name resolves natively ahead of it; macOS system faces stay as
   // coverage tails (the subset ships no Latin letters).
   if (/tamil|latha|vijaya|inaimathi/i.test(nfkc)) {
-    return `${chain(font, 'VuaOffice Tamil', 'InaiMathi', 'Tamil MN', 'Tamil Sangam MN')},sans-serif`
+    return `${chain(font, 'GenOffice Tamil', 'InaiMathi', 'Tamil MN', 'Tamil Sangam MN')},sans-serif`
   }
   // unknown font family: guess serif-ness by name (Song/Ming/Serif → serif fallback)
   const serifLike = /宋|明|serif|song|ming/i.test(font)
