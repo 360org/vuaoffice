@@ -145,6 +145,7 @@ export interface VuaMailApi {
     error?: string
   }>
   cancelOAuthFlow: () => Promise<boolean>
+  getAppVersion?: () => Promise<string>
   getAiSettings?: () => Promise<any>
   aiStream?: (request: any) => Promise<void>
   aiStreamCancel?: (requestId: string) => Promise<void>

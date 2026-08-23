@@ -266,4 +266,8 @@ export function registerMailIpc(
   ipcMain.handle(VUA_MAIL_IPC.CANCEL_OAUTH_FLOW, () => {
     return OAuthClient.cancelActiveFlow()
   })
+
+  ipcMain.handle(VUA_MAIL_IPC.GET_APP_VERSION, () => {
+    return app.getVersion()
+  })
 }

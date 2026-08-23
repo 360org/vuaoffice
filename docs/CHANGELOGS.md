@@ -11,6 +11,12 @@ Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaO
   - Cập nhật router tài liệu trong `apps/shell/src/main/index.ts` và `apps/docs/src/main/docs-main.ts` để nhận diện và mở trực tiếp các tệp tin `.doc` vào tab Docs.
   - Cập nhật bộ lọc tệp tin Open Dialog và giao diện Quick Cards Home để người dùng mở cả 2 định dạng `.docx` và `.doc`.
 
+### Mail & UI Optimization
+- **Đồng bộ hiển thị phiên bản Mail tự động**:
+  - Bổ sung IPC `vua-mail:get-app-version` trong `apps/mail` đọc trực tiếp từ version thực tế của ứng dụng (`app.getVersion()`), loại bỏ hardcode `v1.0.8` ở thanh trạng thái sidebar Settings & Profile.
+- **Tối ưu trải nghiệm soạn thư (ComposeModal)**:
+  - Cải tiến chế độ phóng to / toàn màn hình: nội dung soạn thảo căn full-width co giãn linh hoạt, padding chuẩn công thái học văn bản, loại bỏ khoảng xám trống thừa và tình trạng co cụm như tờ giấy hẹp.
+
 ### Whitelabel & Build System
 - Cập nhật cấu hình bảo vệ định danh font (`Gothic KR`, `Tamil`) trong `whitelabel/brand-config.json`.
 - Hoàn thiện toàn bộ các gói Rollup cross-platform trong `package-lock.json` cho hạ tầng CI multi-runner.

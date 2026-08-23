@@ -16,5 +16,6 @@ export const VUA_MAIL_IPC = {
   GET_SYNC_STATUS: 'vua-mail:get-sync-status',
   START_OAUTH_FLOW: 'vua-mail:start-oauth-flow',
   CANCEL_OAUTH_FLOW: 'vua-mail:cancel-oauth-flow',
+  GET_APP_VERSION: 'vua-mail:get-app-version',
 } as const
 

@@ -205,24 +205,24 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 1000,
-        padding: isExpanded ? '12px' : '24px',
+        padding: isExpanded ? '0' : '24px',
         transition: 'all 0.2s ease',
       }}
     >
       <div
         style={{
-          width: isExpanded ? '96vw' : '820px',
-          height: isExpanded ? '94vh' : '640px',
-          maxWidth: isExpanded ? '100%' : '880px',
-          maxHeight: isExpanded ? '100%' : '90vh',
+          width: isExpanded ? '100vw' : '840px',
+          height: isExpanded ? '100vh' : '660px',
+          maxWidth: '100%',
+          maxHeight: isExpanded ? '100vh' : '92vh',
           backgroundColor: 'var(--surface, #ffffff)',
           color: 'var(--text-primary, #232425)',
-          borderRadius: '8px',
-          boxShadow: '0 24px 48px rgba(0, 0, 0, 0.28)',
+          borderRadius: isExpanded ? '0' : '8px',
+          boxShadow: isExpanded ? 'none' : '0 24px 48px rgba(0, 0, 0, 0.28)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          border: '1px solid var(--border, #e3e6ea)',
+          border: isExpanded ? 'none' : '1px solid var(--border, #e3e6ea)',
           transition: 'width 0.2s ease, height 0.2s ease',
         }}
       >
@@ -909,7 +909,7 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
             </div>
           </div>
 
-          {/* VuaOffice Docs-like Document Writing Canvas */}
+          {/* VuaOffice Mail Document Writing Canvas */}
           <div
             style={{
               flex: 1,
@@ -919,8 +919,8 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
               borderRadius: '6px',
               border: '1px solid var(--border, #e3e6ea)',
               overflowY: 'auto',
-              padding: isExpanded ? '24px 32px' : '16px 20px',
-              alignItems: 'center',
+              padding: isExpanded ? '16px 24px' : '12px 16px',
+              alignItems: 'stretch',
             }}
           >
             <div
@@ -932,18 +932,17 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
                 }
               }}
               style={{
-                width: isExpanded ? '860px' : '100%',
-                maxWidth: '860px',
-                minHeight: isExpanded ? '100%' : '260px',
-                flex: isExpanded ? 'none' : 1,
-                padding: '24px 32px',
+                width: '100%',
+                minHeight: '100%',
+                flex: 1,
+                padding: isExpanded ? '28px 36px' : '20px 24px',
                 backgroundColor: 'var(--surface, #ffffff)',
                 color: 'var(--text-primary, #232425)',
                 outline: 'none',
                 fontSize: '13.5px',
                 lineHeight: '1.7',
                 fontFamily: selectedFont,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.06), 0 0 1px rgba(0,0,0,0.08)',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
                 borderRadius: '4px',
                 border: '1px solid var(--border, #e3e6ea)',
                 boxSizing: 'border-box',

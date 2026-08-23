@@ -84,10 +84,16 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [tplSubjectInput, setTplSubjectInput] = useState('')
   const [tplCategoryInput, setTplCategoryInput] = useState('')
   const [tplBodyInput, setTplBodyInput] = useState('')
+  const [appVersion, setAppVersion] = useState('')
 
   useEffect(() => {
     setSignatures(getStoredSignatures())
     setTemplates(getStoredTemplates())
+    if (window.vuaMail?.getAppVersion) {
+      window.vuaMail.getAppVersion().then((ver) => {
+        if (ver) setAppVersion(ver)
+      }).catch(() => {})
+    }
   }, [])
 
   // Trigger OAuth 2.0 / SSO Login Flow
@@ -277,7 +283,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </div>
 
         <div className="settings-sidebar-footer">
-          <span>VuaOffice Mail v1.0.8</span>
+          <span>VuaOffice Mail v{appVersion || '1.0.10'}</span>
           <span style={{ color: 'var(--mail-brand-green)', fontWeight: 600 }}>● Trực tuyến</span>
         </div>
       </div>

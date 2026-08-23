@@ -25,6 +25,8 @@ const api: VuaMailApi = {
     ipcRenderer.invoke(VUA_MAIL_IPC.START_OAUTH_FLOW, provider, emailHint),
   cancelOAuthFlow: (): Promise<boolean> =>
     ipcRenderer.invoke(VUA_MAIL_IPC.CANCEL_OAUTH_FLOW),
+  getAppVersion: (): Promise<string> =>
+    ipcRenderer.invoke(VUA_MAIL_IPC.GET_APP_VERSION),
   getAiSettings: (): Promise<any> => ipcRenderer.invoke('ai:get-settings'),
   aiStream: (request: any): Promise<void> => ipcRenderer.invoke('ai:stream', request),
   aiStreamCancel: (requestId: string): Promise<void> => ipcRenderer.invoke('ai:stream-cancel', requestId),
