@@ -1,273 +1,213 @@
-# AUDIT_REPORT.md — Báo cáo Kiểm toán Toàn diện Mã nguồn VuaOffice
+# AUDIT_REPORT.md — Báo cáo Kiểm toán Mã nguồn VuaOffice
 
-> **Tài liệu Kiểm toán Kỹ thuật & Đánh giá Chất lượng Mã nguồn (Codebase Audit Report)**
+> **Tài liệu Kiểm toán Kỹ thuật & Đánh giá Chất lượng Mã nguồn**
 > **Chủ quản**: 360 CORP
-> **Phạm vi kiểm toán**: Nhánh `main` — Phiên bản `v0.7.0`
-> **Ngày thực hiện**: 2026-08-16
-> **Quy mô**: 1.066 tệp mã nguồn · ~400.000 dòng lệnh · 428 tệp kiểm thử
+> **Phạm vi**: Nhánh `main` — Phiên bản `v1.0.12` (commit `de51bbf`)
+> **Ngày thực hiện**: 2026-08-23
+> **Phương pháp**: checkout sạch + `npm ci`; mọi phát hiện bảo mật kèm mã tái hiện
 
 ---
 
-## 1. Tóm tắt Điều hành (Executive Summary)
+## 1. Tóm tắt Điều hành
 
-VuaOffice là một hệ sinh thái Electron monorepo trưởng thành với kiến trúc phân lớp rõ ràng, ranh giới package sạch sẽ và độ bao phủ kiểm thử xuất sắc ở tầng engine xử lý tài liệu. Tuy nhiên, đợt kiểm toán này phát hiện **02 lỗ hổng bảo mật nghiêm trọng (Critical)** cần khắc phục trước khi phát hành bản kế tiếp, cùng **05 vấn đề mức Cao** liên quan đến kiểm soát truy cập tệp tin, quy trình CI và khoảng trống kiểm thử.
+Kiểm toán sau khi kho mã đi từ v1.0.0 lên **v1.0.12** qua 41 commit, gồm một đợt merge upstream và một đợt viết lại giao diện Mail.
 
-| Mức độ | Số lượng | Trạng thái |
+**Đã tốt lên rõ rệt.** Lớp cưỡng chế whitelabel sống sót nguyên vẹn qua đợt merge upstream. Hai phát hiện từ đợt kiểm toán trước đã được xử lý (IPC path sandbox, AI fetch backoff), và trong lúc kiểm toán này diễn ra thì hai phát hiện nữa cũng được vá (XSS Mail, namespace font). Thêm 9 pre-hook tự động chạy `whitelabel:apply` trước mọi lệnh build — đóng luôn khả năng quên bước.
+
+**Còn ba việc**, đều đã kiểm chứng bằng mã chạy thật.
+
+| Mức độ | Số lượng | Tình trạng |
 | :--- | :---: | :--- |
-| 🔴 Nghiêm trọng (Critical) | 2 | Cần xử lý ngay trước release |
-| 🟠 Cao (High) | 5 | Xử lý trong sprint hiện tại |
-| 🔵 Trung bình (Medium) | 10 | Đưa vào backlog ưu tiên |
-| ⚪ Thấp (Low) | 3 | Cải tiến dần |
-| ✅ Điểm mạnh ghi nhận | 8 | Duy trì & phát huy |
+| 🔴 Nghiêm trọng | 1 | Bộ lọc MathML vượt qua được |
+| 🟠 Cao | 2 | Allowlist IPC tự nạp · kiểm tra đường dẫn hỏng trên Windows |
+| 🔵 Trung bình | 3 | Lint · quy tắc whitelabel mong manh · tệp cấu hình cá nhân |
+| ✅ Đã vá trong kỳ | 4 | XSS Mail · namespace font · IPC sandbox · AI backoff |
 
-### Bảng điểm Sức khỏe Hệ thống
+### Trạng thái các cổng
 
-| Hạng mục | Điểm | Đánh giá |
-| :--- | :---: | :--- |
-| Bảo mật (Security) | 4.0 / 10 | ⚠️ Cần cải thiện gấp |
-| Kiến trúc (Architecture) | 6.5 / 10 | Khá — vướng các tệp quá lớn |
-| Độ bao phủ Kiểm thử | 5.5 / 10 | Phân hóa mạnh giữa các module |
-| Quy trình CI/CD | 5.0 / 10 | ⚠️ Cổng chất lượng chưa tự động |
-| Tuân thủ Theme/UI | 7.5 / 10 | Tốt — còn vi phạm cục bộ |
-| Hiệu năng (Performance) | 7.8 / 10 | Tốt |
-| Tích hợp AI | 6.8 / 10 | Khá — thiếu cơ chế retry |
+| Cổng | Kết quả |
+| :--- | :--- |
+| `brand:gate` | ✅ ĐẠT — 552 tệp, 0 rò rỉ thương hiệu |
+| `typecheck` | ✅ SẠCH — 20/20 workspace |
+| `lint` | ⚠️ 48 lỗi (mức nền cũ là 29) |
+| `npm test` | ⚠️ 8 đỏ — chỉ 3 cần xử lý, còn lại do môi trường |
 
 ---
 
-## 2. Lỗ hổng Bảo mật Nghiêm trọng (Critical)
+## 2. Lỗ hổng Nghiêm trọng
 
-### 2.1. Lỗ hổng XSS qua Render HTML Email không Kiểm duyệt
+### 2.1. Bộ lọc MathML vượt qua được bằng thẻ lồng nhau
 
-**Vị trí**: `apps/mail/src/renderer/src/components/detail/ReadingPane.tsx:79`
+**Vị trí**: `apps/docs/src/renderer/editor/extensions.ts:685`
 
-Nội dung HTML của email được render trực tiếp qua `dangerouslySetInnerHTML` mà **không qua bất kỳ lớp kiểm duyệt (sanitize) nào**. Toàn bộ thư mục `apps/mail/` không hề tồn tại DOMPurify hay thư viện tương đương.
+Bản vá từ `bf51b87` dùng regex blocklist thay thế **một lượt**. Vì chuỗi sau khi cắt lại ghép thành thẻ hợp lệ, payload tự tái tạo:
 
-```tsx
-<div className="reading-body" dangerouslySetInnerHTML={{ __html: body.html }} />
+```
+vào :  <scr<script>ipt>alert(1)</scr</script>ipt>
+ra   :  <script>alert(1)</script>          ← lọc xong thành mã chạy được
+
+vào :  href="javajavascript:script:alert(1)"
+ra   :  href="javascript:alert(1)"
+
+vào :  <sc<iframe>ript>alert(1)</sc<iframe>ript>
+ra   :  <script>alert(1)</script>
 ```
 
-**Kịch bản khai thác**: Kẻ tấn công gửi một email chứa mã JavaScript độc hại. Khi người dùng mở email, mã này thực thi ngay trong tiến trình Renderer, có khả năng truy cập các API được `contextBridge` công bố, đánh cắp dữ liệu phiên làm việc hoặc thao tác lên hệ thống tệp tin thông qua các kênh IPC.
+**Kiểm chứng**: 3/3 payload thử nghiệm vượt qua, đã chạy lại trên v1.0.12 — vẫn nguyên.
 
-**Khuyến nghị khắc phục**:
-- Tích hợp `DOMPurify` để lọc HTML trước khi render, hoặc
-- Chuyển sang render nội dung email trong `<iframe sandbox>` biệt lập (phương án an toàn hơn, đúng chuẩn các mail client thương mại).
+**Đường vào**: tệp `.docx` chế tác sẵn → người dùng mở → mã chạy trong Renderer của Docs, nơi có quyền gọi API qua `contextBridge`.
 
----
+**Khuyến nghị**: không vá thêm mẫu regex — cách tiếp cận này không cứu được bằng cách bổ sung mẫu, vì lỗi nằm ở chỗ thay thế một lượt tạo ra chuỗi mới. Hai hướng đúng:
 
-### 2.2. Lỗ hổng Injection HTML từ Nội dung Tài liệu (Docs App)
-
-**Vị trí**:
-- `apps/docs/src/renderer/App.tsx:3122` (hàm `splitHtml`)
-- `apps/docs/src/renderer/editor/extensions.ts:571`, `:2133` (`dom.innerHTML = mathml`)
-- `apps/docs/src/renderer/components/PaginationPreview.tsx:534, 579, 607, 643`
-
-Các điểm trên inject HTML/MathML được bóc tách từ tệp tài liệu `.docx` trực tiếp vào DOM mà không loại bỏ thẻ `<script>` hay các thuộc tính sự kiện (`onerror`, `onload`, ...).
-
-**Kịch bản khai thác**: Người dùng mở một tệp `.docx` được chế tác đặc biệt (nhận qua email, tải từ Internet) → mã độc thực thi trong Renderer của Docs app.
-
-**Khuyến nghị khắc phục**: Bổ sung bước lọc thẻ script và thuộc tính sự kiện ngay trong pipeline phân tích OOXML tại `packages/docx-engine`, đảm bảo dữ liệu đã sạch trước khi tới tầng render.
+1. Phân tích bằng `DOMParser` rồi duyệt cây theo **danh sách thẻ/thuộc tính cho phép** (allowlist), hoặc
+2. Render MathML trong `<iframe sandbox>` như đã làm với Mail (`EmailHtmlFrame.tsx`) — trình duyệt chặn thực thi ở tầng engine, không phụ thuộc bộ lọc.
 
 ---
 
-## 3. Vấn đề Mức Cao (High)
+## 3. Vấn đề Mức Cao
 
-### 3.1. IPC Thao tác Tệp tin Thiếu Kiểm soát Phạm vi Đường dẫn
+### 3.1. Danh sách cho phép của IPC tự nạp qua kênh không kiểm tra
 
-**Vị trí**: `apps/shell/src/main/index.ts:2018–2136`
+**Vị trí**: `apps/shell/src/main/index.ts` — handler `toggleStar` · hàm `assertSafeUserPath`
 
-Các handler `openPath`, `revealPath`, `duplicateFile`, `deleteFiles` chấp nhận đường dẫn tùy ý từ Renderer, chỉ kiểm tra kiểu dữ liệu chứ **không giới hạn phạm vi thư mục**:
+`assertSafeUserPath` chấp nhận mọi đường dẫn nằm trong danh sách recent/starred:
 
 ```ts
-ipcMain.handle(HOME_CHANNELS.openPath, (_event, path: unknown) => {
-  if (typeof path === 'string') openDocumentPath(path)
+const knownFiles = new Set([...readRecentFiles(), ...readStarredFiles()])
+return knownFiles.has(targetPath)
+```
+
+Nhưng handler `toggleStar` ghi thẳng vào danh sách starred **mà không qua kiểm tra**:
+
+```ts
+ipcMain.handle(HOME_CHANNELS.toggleStar, (_event, path: unknown) => {
+  if (typeof path === 'string') toggleStarredFile(path)   // ← không validate
 })
 ```
 
-Nếu Renderer bị chiếm quyền (ví dụ qua lỗ hổng XSS tại mục 2.1 hoặc 2.2), kẻ tấn công có thể đọc, sao chép hoặc **xóa bất kỳ tệp nào** trên máy nạn nhân.
+**Kiểm chứng** (mô phỏng đúng luồng thật):
 
-> ⚠️ **Lưu ý về tính nhất quán tài liệu**: `docs/SECURITY.md` mục 2.2 hiện khẳng định *"Mọi payload truyền qua IPC đều được kiểm tra tính hợp lệ và xác thực schema nghiêm ngặt trước khi xử lý"*. Thực tế mã nguồn cho thấy điều này **chỉ đúng với app Sheets** (dùng `zod` end-to-end), chưa áp dụng cho các handler tệp tin của Shell. Cần đồng bộ lại tài liệu hoặc nâng cấp mã nguồn cho khớp cam kết.
-
-**Khuyến nghị**: Xây dựng hàm `assertPathInAllowedRoot()` giới hạn thao tác trong thư mục tài liệu người dùng và danh sách thư mục gần đây đã được ghi nhận.
-
----
-
-### 3.2. CI Không Tự động Kích hoạt trên Pull Request
-
-**Vị trí**: `.github/workflows/ci.yml:8-9`
-
-```yaml
-on:
-  workflow_dispatch:
+```
+assertSafeUserPath('/etc/hosts')   → false
+toggleStar('/etc/hosts')           ← renderer gọi, không bị chặn
+assertSafeUserPath('/etc/hosts')   → true    ← vòng qua được
 ```
 
-Workflow CI **chỉ chạy khi kích hoạt thủ công**. Điều này đồng nghĩa mọi Pull Request đều có thể được merge vào `main` mà không cần vượt qua các cổng kiểm tra: format, lint, typecheck, unit test, E2E và cổng tương thích Sheets.
+Renderer bị chiếm quyền có thể tự thêm đường dẫn bất kỳ vào allowlist rồi dùng nó cho `deleteFiles` / `openPath` / `duplicateFile`. Bản vá sandbox trở nên vô hiệu.
 
-> **Ghi chú tuân thủ CLAUDE.md**: Quy định nội bộ nêu rõ *"CI/Build runner tuyệt đối KHÔNG được phép tự động chạy trừ khi Sếp yêu cầu"* — quy định này nhắm vào **workflow đóng gói/phát hành** (`release.yml`, vốn chỉ chạy trên tag `v*`, đã đúng). Riêng workflow **kiểm thử** (`ci.yml`) không tạo artifact cài đặt, nên việc bật trigger `pull_request` sẽ tăng cường chất lượng mà không vi phạm quy định về build release. Đề xuất này cần Sếp phê duyệt trước khi áp dụng.
-
----
-
-### 3.3. Các Tệp Mã nguồn Quá Lớn (God Files)
-
-Nhiều tệp vượt xa ngưỡng khuyến nghị 500 dòng, gây khó khăn cho việc review và bảo trì:
-
-| Tệp | Số dòng |
-| :--- | ---: |
-| `apps/pdf/src/renderer/App.tsx` | 8.938 |
-| `packages/docx-engine/src/parse.ts` | 4.847 |
-| `apps/slides/src/main/slides-main.ts` | 4.115 |
-| `apps/docs/src/main/docs-main.ts` | 3.859 |
-| `apps/slides/src/renderer/App.tsx` | 3.649 |
-| `apps/docs/src/renderer/App.tsx` | 3.448 |
-| `apps/sheets/src/renderer/App.tsx` | 3.410 |
-| `packages/pptx-engine/src/index.ts` | 3.301 |
-| `apps/docs/src/renderer/components/Ribbon.tsx` | 3.267 |
-| `apps/shell/src/main/index.ts` | 3.127 |
-
-**Khuyến nghị**: Tách dần theo nguyên tắc trách nhiệm đơn lẻ — tách nhóm handler IPC, logic editor và các panel UI thành module riêng. Ưu tiên bắt đầu từ `apps/pdf/src/renderer/App.tsx`.
+**Khuyến nghị**: gọi `assertSafeUserPath` ngay trong `toggleStar`, và lọc lại danh sách khi **đọc** thay vì tin nó.
 
 ---
 
-### 3.4. Mức độ Nghiêm ngặt TypeScript Không Đồng nhất
+### 3.2. Kiểm tra đường dẫn hỏng trên Windows
 
-Chỉ riêng app **Sheets** bật `noUncheckedIndexedAccess` và `exactOptionalPropertyTypes`. Các app còn lại (docs, slides, pdf, markdown, mail) chỉ kế thừa `tsconfig.base.json` với mức kiểm tra lỏng hơn. Đồng thời:
+**Vị trí**: `apps/shell/src/main/index.ts` — hàm `isPathInside`
 
-- `tsconfig.base.json:13` đặt `noUnusedLocals: false` → biến thừa tích tụ không bị cảnh báo.
-- `eslint.config.mjs:28` tắt `@typescript-eslint/no-explicit-any` toàn cục → ghi nhận **128 lượt ép kiểu `as any`** trên 21 tệp.
+```ts
+return rel === root || (rel.startsWith(root) && rel.charAt(root.length) === '/')
+```
 
-**Khuyến nghị**: Nâng dần mức nghiêm ngặt theo từng app, lấy cấu hình Sheets làm chuẩn mực tham chiếu.
+Dấu phân cách bị viết cứng là `'/'`. Trên Windows `path.resolve` trả về dấu `\`, nên phép kiểm tra thư mục con **luôn sai**:
 
----
+```
+Linux    /home/u/Documents/a.docx      trong /home/u/Documents      → true
+Windows  C:\Users\me\Documents\a.docx  trong C:\Users\me\Documents  → false
+```
 
-### 3.5. App Mail và Package UI Hoàn toàn Không có Kiểm thử
+Mọi tệp trong Documents/Downloads/Desktop bị từ chối, chỉ còn dựa vào danh sách recent. Windows là nền tảng đang phát hành (`Windows-x64-Setup.exe`, `Windows-ia32-Setup.exe`).
 
-| Module | Số tệp test | Số dòng mã |
-| :--- | ---: | ---: |
-| `apps/mail` | **0** | ~1.861 |
-| `packages/ui` | **0** | ~1.000 |
-
-App Mail — chính là nơi tồn tại lỗ hổng XSS nghiêm trọng nhất — không có bất kỳ tệp kiểm thử nào. Package `ui` chứa hệ thống token theme dùng chung toàn suite cũng trong tình trạng tương tự.
-
----
-
-## 4. Vấn đề Mức Trung bình (Medium)
-
-### 4.1. Độ Bao phủ Kiểm thử Phân hóa Mạnh
-
-| Module | Tệp test | Dòng mã | Đánh giá |
-| :--- | ---: | ---: | :--- |
-| `packages/docx-engine` | 60 | ~5.000 | ✅ Xuất sắc |
-| `packages/pptx-engine` | 58 | ~5.000 | ✅ Xuất sắc |
-| `apps/sheets` | 89 | 94.285 | 🔵 Trung bình |
-| `apps/docs` | 83 | 72.233 | 🔵 Trung bình |
-| `apps/slides` | 43 | 77.225 | 🟠 Thấp so với quy mô |
-| `apps/pdf` | 33 | 31.978 | 🔵 Trung bình |
-| `apps/shell` | 10 | 17.784 | 🟠 Thấp |
-| `apps/markdown` | 5 | 9.459 | 🟠 Thấp |
-| `e2e` (toàn suite) | 14 | — | 🔵 Chỉ phủ Sheets & Home |
-
-Bộ E2E hiện chỉ kiểm thử màn hình Home và các luồng Sheets; **Docs, Slides, PDF chưa có kiểm thử đầu-cuối nào**.
-
-### 4.2. Thiếu Token Dark Mode cho Màu Lỗi
-
-**Vị trí**: `packages/ui/src/tokens.css:55-56`
-
-Hai token `--color-error` (`#ef4444`) và `--color-error-hover` (`#dc2626`) được định nghĩa trong `:root` nhưng **không được ghi đè** ở cả khối `[data-theme='dark']` lẫn khối fallback `prefers-color-scheme: dark`. Điều này vi phạm quy tắc bắt buộc số 2 trong `CLAUDE.md` (*"Every new token gets both values"*) và khiến màu đỏ hệ sáng hiển thị trên nền tối.
-
-### 4.3. Vi phạm Quy tắc Theme — Màu Hex Thô trong CSS Chrome
-
-Ghi nhận 696 lượt màu hex trên 10 tệp CSS. Sau khi loại trừ các dòng định nghĩa custom property (được phép), các vi phạm tập trung tại:
-
-| Tệp | Ghi nhận | Mô tả vi phạm |
-| :--- | ---: | :--- |
-| `apps/mail/.../mail-theme.css` | 16 | Hardcode `#0078d4`, `#ffffff`, `#106ebe` — không dùng token nào |
-| `apps/shell/.../onboarding.css` | 41 | Hardcode `#fff`, `#2a2a2a` cho nền |
-| `apps/shell/.../home.css` | 93 | Hardcode `#fff`, `#b3261e`, `#f5a623`, `#c9ced4` |
-
-> ✅ **Ghi nhận đúng chuẩn**: Khoảng 15 lượt `style={{ background: '#' + hex }}` trong các bộ chọn màu của Ribbon (màu chữ, highlight, tô hình) là **hoàn toàn hợp lệ** — theo quy tắc số 4 của `CLAUDE.md`, màu nội dung tài liệu là dữ liệu, không được bám theo theme.
-
-### 4.4. Thao tác Tệp Đồng bộ trong Tiến trình Main
-
-Ghi nhận 291 lượt `readFileSync`/`writeFileSync`/`execSync` trên 84 tệp. Phần lớn nằm trong test fixture (chấp nhận được), nhưng một số nằm trong tiến trình Main và có thể gây treo giao diện:
-
-- `apps/docs/src/main/docs-main.ts` — 9 lượt
-- `apps/pdf/src/main/text-edit.ts` — 4 lượt
-- `apps/pdf/src/main/font-subset.ts` — 2 lượt
-
-### 4.5. Tầng AI Thiếu Cơ chế Retry và Rate Limiting
-
-Package `ai-provider` đã có `StreamWatchdog` xử lý timeout rất tốt (tách biệt connect timeout 60s và idle timeout 180s) cùng cơ chế "rescue fetch" dự phòng. Tuy nhiên **chưa có retry với exponential backoff** cho các lỗi tạm thời (HTTP 429/502/503) và **chưa có rate limiting phía client**. Một lỗi 429 thoáng qua sẽ khiến thao tác của người dùng thất bại ngay lập tức.
-
-### 4.6. Chưa có Thông báo Minh bạch Dữ liệu gửi tới AI
-
-Nội dung tài liệu được gửi tới 5 nhà cung cấp AI bên ngoài nhưng chưa có chỉ báo trực quan cho người dùng biết dữ liệu nào đang được truyền đi, chưa có luồng đồng ý (consent) lần đầu sử dụng và chưa có lớp lọc thông tin định danh cá nhân (PII).
-
-### 4.7. Chưa Cấu hình Git Hooks
-
-Không tồn tại thư mục `.husky/`. Việc kiểm tra format và lint trước khi commit hoàn toàn không được thực thi ở máy lập trình viên. Kết hợp với vấn đề 3.2 (CI thủ công), toàn bộ cổng chất lượng hiện đang là **tùy chọn**.
-
-### 4.8. Script Test/Typecheck Chạy Tuần tự
-
-`package.json:28-29` nối chuỗi từng workspace bằng `&&`, khiến thời gian CI kéo dài không cần thiết. Đề xuất chuyển sang `npm run --workspaces` hoặc công cụ chạy song song.
-
-### 4.9. ESLint Cho phép Khối Catch Rỗng Toàn cục
-
-`eslint.config.mjs:38` đặt `allowEmptyCatch: true` trên phạm vi toàn repo. Dù chú thích giải thích đây là "fail-open có chủ đích", việc nuốt lỗi im lặng gây khó khăn khi truy vết sự cố.
-
-### 4.10. Định danh "Genspark" Còn sót trong API Nội bộ
-
-Các hằng số nội bộ vẫn dùng tên `GENSPARK_LLM_BASE_URLS`, `GENSPARK_AGENT_TYPE`, tiền tố `gsk` trong `ai-search`, trong khi sản phẩm đã được whitelabel thành VuaOffice. Không ảnh hưởng chức năng nhưng gây nhầm lẫn khi bảo trì và tiềm ẩn rủi ro lộ thương hiệu gốc.
+**Khuyến nghị**: dùng `path.sep` thay cho `'/'` — sửa một dòng.
 
 ---
 
-## 5. Điểm mạnh Ghi nhận (Strengths)
+## 4. Vấn đề Mức Trung bình
 
-1. **Cấu hình bảo mật Electron chuẩn mực** — Toàn bộ `BrowserWindow`/`WebContentsView` đều đặt `contextIsolation: true`, `nodeIntegration: false`, phần lớn có `sandbox: true`.
-2. **Kiểm soát liên kết ngoài chặt chẽ** — Mọi lệnh `shell.openExternal` đều đi qua `safeExternalUrl()` với danh sách giao thức cho phép.
-3. **Không tồn tại secret hardcode** — Toàn bộ bí mật trong CI đều tham chiếu qua `${{ secrets.* }}`; không có tệp `.env` bị commit.
-4. **Ranh giới package sạch tuyệt đối** — 0 trường hợp app import chéo sang app khác; mã dùng chung nằm đúng trong `packages/`.
-5. **Ranh giới IPC được tôn trọng** — 0 thao tác tệp đồng bộ trong tiến trình Renderer.
-6. **Độ bao phủ kiểm thử engine xuất sắc** — `docx-engine` (60 test) và `pptx-engine` (58 test) bảo vệ tốt phần lõi xử lý định dạng OOXML.
-7. **Hệ thống token theme thiết kế bài bản** — Hơn 35 token ngữ nghĩa với cấu trúc light/dark/system-dark đầy đủ, kèm công cụ CI `check-theme-colors.mjs` tự động cưỡng chế tuân thủ.
-8. **Kiến trúc AI đa nhà cung cấp linh hoạt** — Trừu tượng hóa provider gọn gàng, hỗ trợ `AbortController` để hủy yêu cầu, xử lý SSE ổn định, hàm `repairUnescapedQuotes` xử lý khéo các lỗi output thực tế từ LLM.
+### 4.1. Lint tăng từ 29 lên 48 lỗi
 
----
+Chín tệp mới có lỗi, phần lớn là component Mail vừa thêm: `CalendarView`, `MailList`, `ProfileView`, `SettingsModal`, `ImportExportModal`, cùng `docs-main.ts`, `docs/App.tsx`, `sheets-main.ts`, `slides/ai-ipc.ts`.
 
-## 6. Lộ trình Khắc phục Đề xuất (Priority Roadmap)
+Cổng lint đang chặn **Bước 4** của bảng kiểm phát hành trong `RELEASE_PROTOCOL.md`.
 
-| # | Hành động | Ưu tiên | Ước tính | Tác động |
-| :---: | :--- | :---: | :---: | :--- |
-| 1 | Kiểm duyệt HTML email — tích hợp DOMPurify vào `ReadingPane` | 🔴 P0 | 2 giờ | Chặn khai thác XSS |
-| 2 | Kiểm duyệt HTML từ tài liệu — lọc script trong pipeline Docs | 🔴 P0 | 4 giờ | Chặn XSS qua tệp `.docx` |
-| 3 | Kiểm soát phạm vi đường dẫn cho IPC tệp tin | 🟠 P1 | 4 giờ | Ngăn truy cập tệp trái phép |
-| 4 | Bật trigger `pull_request` cho `ci.yml` *(cần Sếp duyệt)* | 🟠 P1 | 10 phút | Cưỡng chế cổng chất lượng |
-| 5 | Bổ sung kiểm thử cho app Mail | 🟠 P1 | 1 ngày | Lấp khoảng trống rủi ro cao nhất |
-| 6 | Bổ sung token dark mode cho `--color-error*` | 🔵 P2 | 30 phút | Sửa hiển thị chế độ tối |
-| 7 | Chuyển `mail-theme.css` sang dùng token ngữ nghĩa | 🔵 P2 | 2 giờ | Tuân thủ quy tắc theme |
-| 8 | Thêm retry exponential backoff cho tầng AI | 🔵 P2 | 4 giờ | Tăng độ tin cậy trải nghiệm AI |
-| 9 | Tách nhỏ các tệp `App.tsx` trên 3.000 dòng | 🔵 P2 | 2–3 ngày | Khả năng bảo trì |
-| 10 | Cấu hình Husky + lint-staged cho pre-commit | 🔵 P2 | 1 giờ | Cưỡng chế chất lượng tại máy dev |
+### 4.2. Một quy tắc whitelabel phụ thuộc đúng 8 dấu cách thụt đầu dòng
+
+```json
+{ "from": "Genspark\n        </span>", "to": "VuaOffice AI\n        </span>" }
+```
+
+Prettier chạy lại, đổi cấp lồng JSX, hay thêm một thuộc tính là quy tắc **im lặng hết tác dụng** — thương hiệu upstream quay lại mà không cổng nào báo.
+
+**Khuyến nghị**: khớp theo tên thuộc tính như quy tắc `aiPanelTitle: 'Genspark'` ngay bên cạnh, thay vì khớp theo khoảng trắng.
+
+### 4.3. Tệp cấu hình máy cá nhân được commit vào kho công khai
+
+`.claude/` nằm trong `.gitignore` dòng 21 nhưng **5 tệp vẫn được track** — git chỉ bỏ qua tệp *chưa* track. Trong đó `settings.local.json` chứa đường dẫn máy cá nhân `/Volumes/DATA/DEV/…`, và `.claude/CLAUDE.md` chỉ agent tới một tệp `graph.json` không tồn tại trên máy nào khác.
+
+Không phải rò rỉ bí mật, nhưng trái với ý định của `.gitignore` và đẩy bố cục thư mục của một người lên mọi máy.
 
 ---
 
-## 7. Phương pháp Kiểm toán (Methodology)
+## 5. Tám Bài Kiểm thử Đỏ — Phân loại
 
-Đợt kiểm toán được thực hiện trên bản checkout sạch của nhánh `main` tại commit `88969c3` (v0.7.0), bao gồm:
+| Workspace | Đỏ | Nguyên nhân | Cần xử lý? |
+| :--- | :---: | :--- | :--- |
+| `docs` | 3 | Test kỳ vọng alias font `GenOffice`; alias nay đã trả về `GenOffice` — cần chạy lại xác nhận | ⚠️ Xác nhận lại |
+| `electron-utils` | 1 | Test tạo thư mục read-only; container chạy `root` nên vẫn ghi được | ⚪ Môi trường |
+| `markdown` | 1 | Test chờ cảnh báo khi bị chặn ghi; `root` không bị chặn | ⚪ Môi trường |
+| `font-metrics` | 1 | Giả định không font nào map `U+0378`; máy này có | ⚪ Môi trường |
+| `pdf` | 1 | Giả định không có font phủ ký tự; máy này có | ⚪ Môi trường |
+| `sheets` | 1 | LibreOffice headless convert — đã tái hiện y hệt trên v0.7.0 | ⚪ Có sẵn |
 
-- **Phân tích tĩnh mã nguồn**: Quét mẫu (pattern scan) trên toàn bộ 1.066 tệp `.ts`/`.tsx`/`.vue` tìm các dấu hiệu rủi ro bảo mật, vi phạm quy tắc theme và anti-pattern hiệu năng.
-- **Đối chiếu cấu hình**: Rà soát `tsconfig.*`, `eslint.config.mjs`, `vitest.config.ts`, `.github/workflows/*` so với thực trạng mã nguồn.
-- **Kiểm chứng thủ công**: Toàn bộ phát hiện mức Nghiêm trọng và Cao đều được mở tệp xác minh trực tiếp tại số dòng cụ thể trước khi đưa vào báo cáo.
-- **Đối chiếu quy định nội bộ**: So sánh thực trạng với các quy tắc bắt buộc trong `CLAUDE.md` (theming, release, whitelabel) và cam kết trong `docs/SECURITY.md`.
+> ⚠️ Bốn bài xếp loại “môi trường” **chưa được xác minh trên máy khác** — vì CI của dự án chưa từng chạy tự động. Không loại trừ khả năng chúng cũng đỏ trên máy Sếp.
+
+---
+
+## 6. Ghi nhận: Đã Cải thiện trong Kỳ
+
+### 6.1. ✅ Lớp cưỡng chế whitelabel sống sót qua merge upstream
+
+Bảy lệnh npm, chín dòng `merge=ours` trong `.gitattributes`, cổng thật trong cả `ci.yml` và `release.yml`, ba tài liệu quy chế — tất cả còn nguyên sau đợt merge upstream. Luật song ánh vẫn đạt trên 552 tệp, không rò rỉ thương hiệu nào.
+
+### 6.2. ✅ Chín pre-hook tự động áp thương hiệu trước mọi lệnh build
+
+`predev`, `prebuild`, `prebuild:all`, `predist:*` — tất cả gọi `whitelabel:apply`. Đây là cải tiến đúng hướng: đóng khả năng quên bước thay vì dựa vào kỷ luật con người.
+
+### 6.3. ✅ Namespace font đã nhất quán trở lại
+
+Đợt merge upstream trước đó làm hai alias mới (`Gothic KR`, `Tamil`) bị quy tắc bao trùm đổi thành VuaOffice, tạo ra namespace nửa đổi nửa không. Nay `Gothic|Tamil` đã được thêm vào danh sách miễn trừ và **cả 19 alias đều trở về `GenOffice`** — nhất quán.
+
+> **Bài học còn lại**: danh sách miễn trừ font vẫn là **liệt kê tên cụ thể**, nên sẽ tiếp tục trôi mỗi lần upstream thêm font mới. Nên đổi sang quy tắc theo ngữ cảnh (mọi chuỗi trong `fonts.css` và `line-metrics.ts` đều là alias) thay vì liệt kê.
+
+### 6.4. ✅ Bản vá cách ly HTML email đã được khôi phục
+
+Bản vá này từng bị gỡ trong đợt viết lại giao diện Mail và lọt ra bản phát hành v1.0.9. Bộ kiểm thử chống hồi quy đã bắt đúng lỗi, và nay `ReadingPane` dùng lại `EmailHtmlFrame`.
+
+---
+
+## 7. Đề xuất Thứ tự Xử lý
+
+| # | Việc | Quy mô | Lý do ưu tiên |
+| :---: | :--- | :--- | :--- |
+| 1 | Thay bộ lọc MathML bằng `DOMParser` + allowlist, hoặc iframe sandbox | ~1 giờ | Lỗ hổng Nghiêm trọng duy nhất còn lại |
+| 2 | Kiểm tra đường dẫn trong `toggleStar` | ~30 phút | Đóng đường vòng làm vô hiệu bản vá sandbox |
+| 3 | `'/'` → `path.sep` trong `isPathInside` | 1 dòng | Sửa hành vi trên Windows |
+| 4 | **Bật CI trên `pull_request`** | 10 phút | Xem ghi chú bên dưới |
+| 5 | Dọn 19 lỗi lint mới | ~2 giờ | Khôi phục cổng chất lượng phát hành |
+| 6 | Sửa quy tắc whitelabel mong manh (§4.2) | ~15 phút | Chống trôi ở lần đồng bộ upstream tới |
+| 7 | Gỡ `.claude/` khỏi git index (§4.3) | 5 phút | `git rm --cached -r .claude/` |
+
+> ### Việc số 4 là việc có đòn bẩy lớn nhất
+>
+> Lỗ hổng XSS trong Mail bị gỡ ở v1.0.9 **đã được bộ kiểm thử của chính dự án bắt được** — bài “ReadingPane không còn dùng dangerouslySetInnerHTML” báo đỏ ngay. Test đã nằm sẵn trong `npm test` gốc. Nó vẫn lọt ra bản phát hành chỉ vì `ci.yml` đặt `on: workflow_dispatch`, tức không ai chạy.
+>
+> Bộ kiểm thử đã đủ tốt. Vấn đề là nó không được chạy.
+>
+> **Về tuân thủ `CLAUDE.md`**: quy định “CI/Build runner tuyệt đối KHÔNG được tự động chạy” nhắm vào workflow **đóng gói/phát hành** (`release.yml`, vốn chỉ chạy trên tag `v*` — đã đúng). `ci.yml` chỉ chạy kiểm thử, không tạo artifact cài đặt. Bật `pull_request` cho riêng nó không vi phạm quy định về build release. Đề xuất này **cần Sếp phê duyệt** trước khi áp dụng.
 
 ---
 
 ## 8. Tài liệu Liên quan
 
-- [`docs/SECURITY.md`](/Volumes/DATA/DEV/vuaoffice/docs/SECURITY.md) — Chính sách bảo mật hệ thống
-- [`docs/ARCH.md`](/Volumes/DATA/DEV/vuaoffice/docs/ARCH.md) — Kiến trúc tổng thể
-- [`docs/CONTRIBUTING.md`](/Volumes/DATA/DEV/vuaoffice/docs/CONTRIBUTING.md) — Hướng dẫn đóng góp
-- [`docs/WHITELABEL_STRATEGY.md`](/Volumes/DATA/DEV/vuaoffice/docs/WHITELABEL_STRATEGY.md) — Quy chế Bắt buộc về Whitelabel & Đồng bộ Upstream
-- [`docs/RELEASE_PROTOCOL.md`](/Volumes/DATA/DEV/vuaoffice/docs/RELEASE_PROTOCOL.md) — Quy chế Phát hành VuaOffice
-- [`docs/REQUIREMENTS.md`](/Volumes/DATA/DEV/vuaoffice/docs/REQUIREMENTS.md) — Đặc tả Yêu cầu Hệ thống
-- [`docs/SPEC.md`](/Volumes/DATA/DEV/vuaoffice/docs/SPEC.md) — Đặc tả Kỹ thuật
-- [`docs/CHANGELOGS.md`](/Volumes/DATA/DEV/vuaoffice/docs/CHANGELOGS.md) — Nhật ký Phát triển VuaOffice Whitelabel
-- [`CLAUDE.md`](/Volumes/DATA/DEV/vuaoffice/CLAUDE.md) — Quy tắc cốt lõi cho AI agent & lập trình viên
+- [`WHITELABEL_STRATEGY.md`](./WHITELABEL_STRATEGY.md) — Quy chế whitelabel & đồng bộ upstream
+- [`RELEASE_PROTOCOL.md`](./RELEASE_PROTOCOL.md) — Bảng kiểm 9 bước khi phát hành
+- [`SECURITY.md`](./SECURITY.md) — Chính sách bảo mật *(mục 2.2 vẫn khẳng định mọi payload IPC được xác thực schema nghiêm ngặt; thực tế chỉ đúng với Sheets — cần đồng bộ)*
+- [`../CLAUDE.md`](../CLAUDE.md) — Quy tắc bắt buộc cho AI agent
