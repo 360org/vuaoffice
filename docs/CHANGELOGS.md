@@ -3,13 +3,19 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.9] - 2026-08-22
+## [1.0.10] - 2026-08-23
 
 ### Core & Document Routing
-- **Hỗ trợ định dạng Word 97-2003 (`.doc`) song song với `.docx`**:
+- **Hỗ trợ toàn diện định dạng Word 97-2003 (`.doc`) song song với `.docx`**:
   - Bổ sung adapter chuyển đổi `docToDocx` trong `@genoffice/file-parse` sử dụng `word-extractor` và `@genoffice/docx-engine`.
   - Cập nhật router tài liệu trong `apps/shell/src/main/index.ts` và `apps/docs/src/main/docs-main.ts` để nhận diện và mở trực tiếp các tệp tin `.doc` vào tab Docs.
   - Cập nhật bộ lọc tệp tin Open Dialog và giao diện Quick Cards Home để người dùng mở cả 2 định dạng `.docx` và `.doc`.
+
+### Whitelabel & Build System
+- Cập nhật cấu hình bảo vệ định danh font (`Gothic KR`, `Tamil`) trong `whitelabel/brand-config.json`.
+- Hoàn thiện toàn bộ các gói Rollup cross-platform trong `package-lock.json` cho hạ tầng CI multi-runner.
+
+## [1.0.9] - 2026-08-22
 
 ### UI & Architecture
 - **Tái thiết kế giao diện Cài đặt & Hồ sơ (Settings & Profile View)**:
