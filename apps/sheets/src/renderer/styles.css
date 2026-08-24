@@ -57,6 +57,9 @@
    * #1f5aa8 arrows in trace-arrows.tsx) and page-break preview lines */
   --sheets-excel-blue: #1f5aa8;
   --sheets-excel-blue-bg: rgb(31 90 168 / 6%);
+  /* Cross-highlight ("reading mode") bands over the active row/column */
+  --sheets-crosshair-bg: rgb(31 90 168 / 7%);
+  --sheets-crosshair-line: rgb(31 90 168 / 30%);
   --sheets-el-selected: #107c41;
   --sheets-float-btn-bg: rgb(255 255 255 / 92%);
   --sheets-shape-border: #aeb4b8;
@@ -124,6 +127,8 @@
   --sheets-chip-bg: #24312a;
   --sheets-member-bg: #2f2f2f;
   --sheets-member-ink: #a9b2ac;
+  --sheets-crosshair-bg: rgb(96 165 250 / 12%);
+  --sheets-crosshair-line: rgb(96 165 250 / 35%);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -152,6 +157,8 @@
     --sheets-chip-bg: #24312a;
     --sheets-member-bg: #2f2f2f;
     --sheets-member-ink: #a9b2ac;
+    --sheets-crosshair-bg: rgb(96 165 250 / 12%);
+    --sheets-crosshair-line: rgb(96 165 250 / 35%);
   }
 }
 
@@ -2319,6 +2326,24 @@ textarea:focus {
   border: 1.5px solid var(--sheets-excel-blue);
   background: var(--sheets-excel-blue-bg);
   pointer-events: none;
+}
+
+/* Cross-highlight bands over the active row and column (View tab toggle);
+ * pass-through float DOM so cell clicks and edits land on the grid */
+.sheets-crosshair-band {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  background: var(--sheets-crosshair-bg);
+  pointer-events: none;
+}
+
+.sheets-crosshair-band.crosshair-row {
+  border-bottom: 1px solid var(--sheets-crosshair-line);
+}
+
+.sheets-crosshair-band.crosshair-column {
+  border-right: 1px solid var(--sheets-crosshair-line);
 }
 
 .trace-arrow-layer {

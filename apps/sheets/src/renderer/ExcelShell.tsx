@@ -201,6 +201,8 @@ interface ExcelShellProps {
   /// Effective workbook structure lock (null = no file open).
   readonly onGetWorkbookProtection: () => boolean | null
   readonly formulaBarVisible: boolean
+  /// Cross-highlight ("reading mode") of the active row/column, echoed by the View checkbox.
+  readonly crossHighlightVisible: boolean
   /// Allow-edit ranges of the active sheet, read when the dialog opens.
   readonly onGetProtectedRanges: () => {
     ranges: readonly { name: string; sqref: string; hasPassword: boolean }[]
@@ -288,6 +290,7 @@ export function ExcelShell({
   onGetSheetProtection,
   onGetWorkbookProtection,
   formulaBarVisible,
+  crossHighlightVisible,
   onGetProtectedRanges,
   onApplyProtectedRanges,
   onGetDefinedNames,
@@ -510,6 +513,7 @@ export function ExcelShell({
           sheetProtected={onGetSheetProtection()}
           workbookProtected={onGetWorkbookProtection()}
           formulaBarVisible={formulaBarVisible}
+          crossHighlightVisible={crossHighlightVisible}
           pageLayout={pageLayout}
           selectedChart={selectedChart}
           onListNames={() => {
@@ -1145,6 +1149,7 @@ function Ribbon({
   sheetProtected,
   workbookProtected,
   formulaBarVisible,
+  crossHighlightVisible,
   pageLayout,
   selectedChart,
   onCommand,
@@ -1163,6 +1168,7 @@ function Ribbon({
   readonly workbookProtected: boolean | null
   /// View > Show echo for the formula bar toggle (app-level, not per sheet).
   readonly formulaBarVisible: boolean
+  readonly crossHighlightVisible: boolean
   readonly pageLayout: PageLayoutEcho
   readonly selectedChart: SelectedChartRibbon | null
   readonly onCommand: (command: string) => void
@@ -2245,6 +2251,14 @@ function Ribbon({
             >
               <i className="check-box">{pageLayout.showHeadings ? '✓' : ''}</i>
               {t('appHeadings')}
+            </button>
+            <button
+              className="check-item"
+              data-tip={t('appCrossHighlight')}
+              onClick={() => onCommand('toggle-cross-highlight')}
+            >
+              <i className="check-box">{crossHighlightVisible ? '✓' : ''}</i>
+              {t('appCrossHighlight')}
             </button>
           </div>
         </RibbonGroup>

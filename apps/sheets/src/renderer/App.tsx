@@ -146,6 +146,12 @@ import {
 import { InMemoryWorkbookAdapter } from '../domain/in-memory-workbook'
 import { cfRuleUnsaveableReason, iconSetSaveable } from '../gateway/xlsx-cf'
 import { installLazyFindBridge } from './lazy-find'
+import {
+  installCrossHighlight,
+  loadCrossHighlightPreference,
+  storeCrossHighlightPreference,
+  type CrossHighlightHandle,
+} from './cross-highlight'
 import type { ApplyOutcome, ChangePlan } from '../domain/workbook.types'
 import { createElectronTransport } from './ai/transport'
 import { MAX_READ_RANGE_CELLS, type ActiveSheetInfo, type SheetsSkillDeps } from './ai/tools'
@@ -401,6 +407,10 @@ export function App(): React.JSX.Element {
   /// App-level setting, Excel-style: not stored in the file, kept across
   /// workbook switches.
   const [formulaBarVisible, setFormulaBarVisible] = useState(true)
+  /// Cross-highlight ("reading mode") of the active row/column, persisted in
+  /// localStorage like the auto-save flag; off until the user opts in.
+  const [crossHighlightVisible, setCrossHighlightVisible] = useState(loadCrossHighlightPreference)
+  const crossHighlightRef = useRef<CrossHighlightHandle | null>(null)
   const visualInstallTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const sparklineDisposablesRef = useRef<{ dispose(): void }[]>([])
   const sparklineTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -1479,6 +1489,32 @@ export function App(): React.JSX.Element {
     // Ctrl+F covers every row of a streamed workbook, not just the loaded
     // window: the bridge pages the underlying file for out-of-window hits.
     const lazyFindDisposable = installLazyFindBridge({ runtime, lazyWorkbookRef, setMessage })
+    // Cross-highlight bands track the active cell while the View toggle is on.
+    crossHighlightRef.current = installCrossHighlight(runtime, {
+      extents: () => {
+        // Mirror page-break preview: bands must reach past the data extent,
+        // so take the max of the file-backed numbers (shifted through the
+        // journal's structural ops) and whatever has already streamed in —
+        // clicking a legitimate grid cell beyond the last data row keeps its
+        // row/column highlighted.
+        const state = lazyWorkbookRef.current
+        const worksheet = univerRef.current?.univerAPI.getActiveWorkbook()?.getActiveSheet()
+        if (!worksheet) return null
+        const sheetId = worksheet.getSheetId()
+        const loadedRows = worksheet.getLastRow() + 1
+        const loadedColumns = worksheet.getLastColumn() + 1
+        const fileSheet = state?.file.sheets.find((sheet) => sheet.id === sheetId)
+        if (!state || !fileSheet) {
+          return { rows: loadedRows, columns: loadedColumns }
+        }
+        const ops = state.editJournal.structuralOps.get(sheetId) ?? []
+        return {
+          rows: Math.max(fileSheet.rowCount + netAxisDelta(ops, 'row'), loadedRows),
+          columns: Math.max(fileSheet.columnCount + netAxisDelta(ops, 'column'), loadedColumns),
+        }
+      },
+    })
+    crossHighlightRef.current.setVisible(crossHighlightVisible)
     const scrollDisposable = runtime.univerAPI.addEvent(
       runtime.univerAPI.Event.Scroll,
       (params) => {
@@ -2333,6 +2369,8 @@ export function App(): React.JSX.Element {
       dataValidationArrowDisposable.dispose()
       ruleDetailDisposable()
       lazyFindDisposable.dispose()
+      crossHighlightRef.current?.dispose()
+      crossHighlightRef.current = null
       scrollDisposable.dispose()
       zoomDisposable.dispose()
       editStartDisposable.dispose()
@@ -2359,6 +2397,11 @@ export function App(): React.JSX.Element {
       univerRef.current = null
     }
   }, [])
+
+  // The bands live outside React; mirror the toggle into the installer.
+  useEffect(() => {
+    crossHighlightRef.current?.setVisible(crossHighlightVisible)
+  }, [crossHighlightVisible])
 
   function handleSend(
     overrideInstruction?: string,
@@ -3627,6 +3670,13 @@ export function App(): React.JSX.Element {
       togglePageBreakPreview()
       return
     }
+    if (command === 'toggle-cross-highlight') {
+      const next = !crossHighlightVisible
+      setCrossHighlightVisible(next)
+      storeCrossHighlightPreference(next)
+      setMessage(t(next ? 'appCrossHighlightOn' : 'appCrossHighlightOff'))
+      return
+    }
     if (command === 'toggle-formula-bar') {
       const next = !formulaBarVisible
       document.getElementById('univer-container')?.classList.toggle('formula-bar-hidden', !next)
@@ -4261,6 +4311,7 @@ export function App(): React.JSX.Element {
         onGetSheetProtection={sheetProtectionEcho}
         onGetWorkbookProtection={workbookProtectionEcho}
         formulaBarVisible={formulaBarVisible}
+        crossHighlightVisible={crossHighlightVisible}
         onGetProtectedRanges={protectedRangesSnapshot}
         onApplyProtectedRanges={applyProtectedRanges}
         onGetDefinedNames={definedNameRows}
