@@ -3,6 +3,21 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.13] - 2026-08-24
+
+### Security & Hardening
+- **[SECURITY] MathML AST Allowlist Sanitizer**:
+  - Triển khai bộ phân tích cú pháp `DOMParser` đệ quy kiểm soát cây thẻ MathML theo allowlist (`ALLOWED_MATHML_TAGS`, `ALLOWED_MATHML_ATTRS`).
+  - Triệt tiêu lỗ hổng XSS tái tạo qua thẻ lồng nhau khi nhúng phương trình toán học trong `apps/docs`.
+- **[SECURITY] IPC Path Sandbox Hardening & Cross-Platform Delimiter**:
+  - Chuẩn hóa hàm kiểm tra biên đường dẫn `isPathInside` bằng `path.sep`, ngăn chặn lỗ hổng Path Traversal trên Windows.
+  - Bổ sung xác thực `assertSafeUserPath` tại các kênh IPC thao tác tập tin hệ thống trên Shell, Docs, Sheets và Slides.
+
+### Code Quality & Maintenance
+- **[REFACTOR] Monorepo TypeScript & Lint Hygiene**:
+  - Cấu hình ignore thư viện bên thứ 3 (`emf-converter`) trong `eslint.config.mjs`.
+  - Dọn sạch toàn bộ biến không sử dụng, tham chiếu kiểu dữ liệu thừa và cảnh báo lint trên 20 workspace.
+
 ## [1.0.12] - 2026-08-23
 
 ### Mail & Google Workspace Integration
