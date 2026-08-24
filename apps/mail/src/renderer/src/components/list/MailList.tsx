@@ -9,15 +9,12 @@ import {
   IconTrash,
   IconArchive,
   IconFlag,
-  IconPin,
   IconReply,
   IconReplyAll,
   IconForward,
   IconExternalLink,
   IconPrinter,
   IconDownload,
-  IconCheckSquare,
-  IconSquare,
 } from '../common/MailIcons'
 
 interface MailListProps {
@@ -370,6 +367,31 @@ export const MailList: React.FC<MailListProps> = ({
             <IconRefresh size={14} />
           </button>
         </div>
+      </div>
+
+      {/* Search Input Bar */}
+      <div
+        style={{
+          padding: '6px 12px',
+          borderBottom: '1px solid var(--border-subtle, #efefef)',
+          backgroundColor: 'var(--surface, #ffffff)',
+        }}
+      >
+        <input
+          type="text"
+          value={filterQuery}
+          onChange={(e) => setFilterQuery(e.target.value)}
+          placeholder="Tìm kiếm thư..."
+          style={{
+            width: '100%',
+            padding: '4px 8px',
+            fontSize: '12px',
+            borderRadius: '4px',
+            border: '1px solid var(--border, #e3e6ea)',
+            outline: 'none',
+            backgroundColor: 'var(--surface-subtle, #f8f9fa)',
+          }}
+        />
       </div>
 
       {/* Outlook Parity: Focused (Ưu tiên) / Other (Khác) Tab Switcher */}

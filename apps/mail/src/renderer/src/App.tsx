@@ -621,7 +621,7 @@ export const App: React.FC = () => {
           // Execute rules immediately on currently loaded emails (Outlook Parity)
           setEmails((prev) =>
             prev.map((email) => {
-              let updated = { ...email }
+              const updated = { ...email }
               for (const rule of rulesToRun) {
                 if (!rule.enabled) continue
                 const condMatches = rule.conditions.map((cond) => {

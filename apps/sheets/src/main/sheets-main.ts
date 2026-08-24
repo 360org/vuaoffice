@@ -70,7 +70,6 @@ import {
 } from '@genoffice/ai-provider'
 import { csvToXlsxBuffer, decodeCsvBuffer } from '../gateway/csv-import'
 import {
-  ensureGenofficeLogin,
   gskApiKey,
   gskLoginInfo,
   hasGskAuth,

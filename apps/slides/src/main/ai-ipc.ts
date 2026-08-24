@@ -27,7 +27,6 @@ import { fetchRemoteImage } from '@genoffice/electron-utils'
 import {
   webSearch,
   imageSearch,
-  ensureGenofficeLogin,
   gskApiKey,
   gskGenerateImage,
   gskAnalyzeMedia,

@@ -8,7 +8,7 @@ import {
   renameSync,
   writeFileSync,
 } from 'node:fs'
-import { basename, dirname, extname, isAbsolute, join, resolve } from 'node:path'
+import { basename, dirname, extname, isAbsolute, join, resolve, sep } from 'node:path'
 import {
   BrowserWindow,
   Menu,
@@ -61,13 +61,9 @@ import {
   LAST_RUN_VERSION_KEY,
   STAR_PROMPT_KEY,
   asStarPromptState,
-  isUpgradeLaunch,
-  shouldShowStarPrompt,
-  shouldShowUpgradeStarPrompt,
   withDocOpen,
   withFirstRun,
   withResolved,
-  withShown,
 } from './star-prompt'
 import {
   clearCloudProjectsStore,
@@ -410,15 +406,6 @@ const readStarPrompt = () =>
   asStarPromptState(readAppSettings(APP_SETTINGS_PATH())[STAR_PROMPT_KEY])
 const writeStarPrompt = (state: ReturnType<typeof readStarPrompt>) =>
   writeAppSetting(APP_SETTINGS_PATH(), STAR_PROMPT_KEY, state)
-
-/** set at startup when this is the first launch after an upgrade; consumed by
- * the first starPromptShouldShow query of the session */
-let upgradeStarPromptPending = false
-
-/** a granted show, cached for the session: repeated queries (React StrictMode
- * double-effects, AppFrame remounts) must return the same answer instead of
- * burning another lifetime show or flipping to a snoozed "false" */
-let starPromptSessionGrant: StarPromptShow | null = null
 
 /** every successful document open counts toward the prompt's value threshold */
 function recordStarPromptDocOpen(): void {
@@ -2707,7 +2694,7 @@ function startQueuedWorkbookNudge(): void {
 function isPathInside(childPath: string, parentDir: string): boolean {
   const rel = resolve(childPath)
   const root = resolve(parentDir)
-  return rel === root || (rel.startsWith(root) && rel.charAt(root.length) === '/')
+  return rel === root || (rel.startsWith(root) && rel.charAt(root.length) === sep)
 }
 
 function assertSafeUserPath(targetPath: string): boolean {
@@ -2806,7 +2793,7 @@ function registerHomeIpc(): void {
   )
 
   ipcMain.handle(HOME_CHANNELS.toggleStar, (_event, path: unknown) => {
-    if (typeof path === 'string') toggleStarredFile(path)
+    if (typeof path === 'string' && assertSafeUserPath(path)) toggleStarredFile(path)
   })
 
   ipcMain.handle(HOME_CHANNELS.openPath, (_event, path: unknown) => {
@@ -3063,9 +3050,6 @@ function registerHomeIpc(): void {
 
   ipcMain.handle(HOME_CHANNELS.starPromptAction, (_event, action: unknown) => {
     if (action !== 'starred' && action !== 'later') return
-    // the card was reacted to — drop the session grant so a later query (new
-    // shell window on macOS) re-evaluates the real rules (snooze / resolved)
-    starPromptSessionGrant = null
     // 'later' needs no write: the display was already counted by the query
     if (action === 'starred') writeStarPrompt(withResolved(readStarPrompt()))
   })
@@ -4049,9 +4033,6 @@ function installDockMenu(): void {
 // Prefer proxy env vars (terminal launch); a packaged app launched from Finder inherits no shell
 // env vars, so fall back to the system HTTP proxy. The renderer uses Chromium's system proxy and
 // is unaffected. Same bootstrap as slides-main startSlidesStandalone.
-// awaited by login IPC so the first status probe / login click cannot race the proxy resolution
-let proxyBootstrap: Promise<void> = Promise.resolve()
-
 async function installMainProcessProxy(): Promise<void> {
   let proxyUrl = [
     process.env.HTTPS_PROXY,
@@ -4248,7 +4229,7 @@ app.whenReady().then(async () => {
     }
   }
 
-  proxyBootstrap = installMainProcessProxy()
+  void installMainProcessProxy()
   app.setAccessibilitySupportEnabled(true)
   // Settle the shared uiLang from saved settings BEFORE any tab renderer can
   // ask 'app:get-language': the editor handlers return the i18n module's
@@ -4270,11 +4251,6 @@ app.whenReady().then(async () => {
         ? (settings[LAST_RUN_VERSION_KEY] as string)
         : null
     const currentVersion = app.getVersion()
-    upgradeStarPromptPending = isUpgradeLaunch(
-      prevVersion,
-      currentVersion,
-      settings.onboardingSeen === true,
-    )
     if (prevVersion !== currentVersion)
       writeAppSetting(APP_SETTINGS_PATH(), LAST_RUN_VERSION_KEY, currentVersion)
   } catch {

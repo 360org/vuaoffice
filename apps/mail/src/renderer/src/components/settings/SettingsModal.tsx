@@ -10,7 +10,6 @@ import {
   IconGoogle,
   IconGlobe,
   IconApple,
-  IconYahoo,
   IconServer,
   IconBell,
   IconTag,
@@ -21,8 +20,6 @@ import {
   IconCalendar,
   IconContact,
   IconShield,
-  IconChevronRight,
-  IconCheck,
   IconPlus,
   IconTrash,
 } from '../common/MailIcons'
@@ -867,6 +864,47 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           </select>
                         </div>
                       </div>
+
+                      {provider === 'custom_imap' && (
+                        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 2fr 1fr', gap: '6px' }}>
+                          <div>
+                            <label style={{ fontSize: '10px', fontWeight: 500 }}>Máy chủ IMAP:</label>
+                            <input
+                              type="text"
+                              value={imapHost}
+                              onChange={(e) => setImapHost(e.target.value)}
+                              style={{ width: '100%', padding: '4px 6px', fontSize: '10.5px', boxSizing: 'border-box' }}
+                            />
+                          </div>
+                          <div>
+                            <label style={{ fontSize: '10px', fontWeight: 500 }}>Cổng:</label>
+                            <input
+                              type="number"
+                              value={imapPort}
+                              onChange={(e) => setImapPort(Number(e.target.value))}
+                              style={{ width: '100%', padding: '4px 6px', fontSize: '10.5px', boxSizing: 'border-box' }}
+                            />
+                          </div>
+                          <div>
+                            <label style={{ fontSize: '10px', fontWeight: 500 }}>Máy chủ SMTP:</label>
+                            <input
+                              type="text"
+                              value={smtpHost}
+                              onChange={(e) => setSmtpHost(e.target.value)}
+                              style={{ width: '100%', padding: '4px 6px', fontSize: '10.5px', boxSizing: 'border-box' }}
+                            />
+                          </div>
+                          <div>
+                            <label style={{ fontSize: '10px', fontWeight: 500 }}>Cổng:</label>
+                            <input
+                              type="number"
+                              value={smtpPort}
+                              onChange={(e) => setSmtpPort(Number(e.target.value))}
+                              style={{ width: '100%', padding: '4px 6px', fontSize: '10.5px', boxSizing: 'border-box' }}
+                            />
+                          </div>
+                        </div>
+                      )}
 
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', marginTop: '4px' }}>
                         <button type="button" onClick={() => setAddStep('choose_provider')} style={{ padding: '4px 10px', fontSize: '11px', border: '1px solid var(--border)', borderRadius: '3px', cursor: 'pointer' }}>

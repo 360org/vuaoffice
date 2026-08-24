@@ -54,7 +54,6 @@ import {
   type LegacyAiSettings,
 } from '@genoffice/ai-provider'
 import {
-  ensureGenofficeLogin,
   gskApiKey,
   gskLoginInfo,
   hasGskAuth,

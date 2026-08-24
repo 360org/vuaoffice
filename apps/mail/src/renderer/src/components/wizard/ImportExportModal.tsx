@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { parseEml, buildEml, PstContainerReader } from '@genoffice/mail-engine'
+import { parseEml, PstContainerReader } from '@genoffice/mail-engine'
 import { IconX } from '../common/MailIcons'
 
 interface ImportExportModalProps {

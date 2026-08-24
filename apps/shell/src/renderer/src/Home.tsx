@@ -33,16 +33,6 @@ declare global {
 /** page size of the home list; scrolling to the bottom auto-loads the next page */
 const PAGE_SIZE = 50
 
-/** greeting sublines on the home page: one is picked at random on entry */
-const GREET_ASK_KEYS = [
-  'greetAsk1',
-  'greetAsk2',
-  'greetAsk3',
-  'greetAsk4',
-  'greetAsk5',
-  'greetAsk6',
-] as const satisfies readonly StringKey[]
-
 const FILE_ICONS: Record<string, string> = {
   docx: iconDocx,
   xlsx: iconXlsx,
@@ -1612,9 +1602,6 @@ export function Home() {
     const name = on ? (s?.email ?? '').split('@')[0] : ''
     setAccountName(name ? name[0].toUpperCase() + name.slice(1) : '')
   }, [])
-  const [greetAskKey] = useState(
-    () => GREET_ASK_KEYS[Math.floor(Math.random() * GREET_ASK_KEYS.length)]!,
-  )
 
   // ── Project state ──
   const [projects, setProjects] = useState<ProjectSummaryEntry[]>([])

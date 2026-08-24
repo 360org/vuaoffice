@@ -54,6 +54,5 @@ if (process.contextIsolated) {
     console.error('Failed to expose vuaMail via contextBridge', error)
   }
 } else {
-  // @ts-ignore
   window.vuaMail = api
 }

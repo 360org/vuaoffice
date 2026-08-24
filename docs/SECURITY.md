@@ -24,9 +24,10 @@ Toàn bộ các cửa sổ và tab tài liệu của VuaOffice Suite vận hành
      - `contextIsolation: true`
      - `nodeIntegration: false`
      - `sandbox: true`
-2. **Kênh Giao tiếp IPC An toàn & Typed Validation**:
-   - Tiến trình Renderer chỉ có thể giao tiếp với Main Process thông qua các API có kiểu dữ liệu rõ ràng được công bố qua `contextBridge` (`window.aiOffice`).
-   - Mọi payload truyền qua IPC đều được kiểm tra tính hợp lệ và xác thực schema nghiêm ngặt trước khi xử lý (ví dụ: Sheets sử dụng `zod` xác thực end-to-end).
+2. **Kênh Giao tiếp IPC An toàn & Kiểm soát Đường dẫn / Schema**:
+   - Tiến trình Renderer chỉ có thể giao tiếp với Main Process thông qua các API có kiểu dữ liệu rõ ràng được công bố qua `contextBridge` (`window.aiOffice`, `window.vuaMail`).
+   - Các payload IPC được kiểm tra kiểu, sanitize và kiểm soát biên an toàn: Sheets áp dụng xác thực schema end-to-end bằng `zod`, trong khi Shell/Docs/Slides kiểm tra sandbox đường dẫn người dùng (`assertSafeUserPath`, `isPathInside` với `path.sep` chuẩn đa nền tảng), cho phép chỉ truy cập các vùng hợp lệ.
+   - Các định dạng markup nhúng (MathML, HTML email) được kiểm soát qua bộ phân tích `DOMParser` với danh sách thẻ/thuộc tính cho phép (allowlist) hoặc cách ly trong `<iframe sandbox>`.
 3. **Cổng Kiểm soát Liên kết Ngoài (`safeExternalUrl`)**:
    - Mọi thao tác mở URL bên ngoài (`shell.openExternal`) bắt buộc phải đi qua cổng kiểm duyệt tập trung `@genoffice/electron-utils` → `safeExternalUrl`.
    - Chỉ cho phép các giao thức an toàn trong whitelist (`http:`, `https:`, riêng chú thích PDF cho phép thêm `mailto:`).

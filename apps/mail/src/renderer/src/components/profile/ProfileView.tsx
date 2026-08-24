@@ -14,13 +14,10 @@ import {
   IconServer,
   IconBox,
   IconTemplate,
-  IconCheck,
-  IconShield,
   IconBell,
   IconMail,
   IconSparkles,
   IconPlus,
-  IconTrash,
 } from '../common/MailIcons'
 import {
   getStoredSignatures,
@@ -910,20 +907,22 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                       type="button"
                       onClick={() => {
                         if (!sigNameInput.trim()) return
-                        let updated: EmailSignature[] = []
-                        if (editingSigId === 'new') {
-                          const newSig: EmailSignature = {
-                            id: `sig-${Date.now()}`,
-                            name: sigNameInput.trim(),
-                            contentHtml: sigHtmlInput,
-                            isDefault: signatures.length === 0,
-                          }
-                          updated = [...signatures, newSig]
-                        } else {
-                          updated = signatures.map((s) =>
-                            s.id === editingSigId ? { ...s, name: sigNameInput.trim(), contentHtml: sigHtmlInput } : s
-                          )
-                        }
+                        const updated: EmailSignature[] =
+                          editingSigId === 'new'
+                            ? [
+                                ...signatures,
+                                {
+                                  id: `sig-${Date.now()}`,
+                                  name: sigNameInput.trim(),
+                                  contentHtml: sigHtmlInput,
+                                  isDefault: signatures.length === 0,
+                                },
+                              ]
+                            : signatures.map((s) =>
+                                s.id === editingSigId
+                                  ? { ...s, name: sigNameInput.trim(), contentHtml: sigHtmlInput }
+                                  : s
+                              )
                         setSignatures(updated)
                         saveStoredSignatures(updated)
                         setEditingSigId(null)
@@ -1102,23 +1101,29 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                       type="button"
                       onClick={() => {
                         if (!tplTitleInput.trim()) return
-                        let updated: EmailTemplate[] = []
-                        if (editingTplId === 'new') {
-                          const newTpl: EmailTemplate = {
-                            id: `tpl-${Date.now()}`,
-                            title: tplTitleInput.trim(),
-                            subject: tplSubjectInput.trim(),
-                            category: tplCategoryInput.trim() || 'Công việc',
-                            bodyHtml: tplBodyInput,
-                          }
-                          updated = [...templates, newTpl]
-                        } else {
-                          updated = templates.map((t) =>
-                            t.id === editingTplId
-                              ? { ...t, title: tplTitleInput.trim(), subject: tplSubjectInput.trim(), category: tplCategoryInput.trim() || 'Công việc', bodyHtml: tplBodyInput }
-                              : t
-                          )
-                        }
+                        const updated: EmailTemplate[] =
+                          editingTplId === 'new'
+                            ? [
+                                ...templates,
+                                {
+                                  id: `tpl-${Date.now()}`,
+                                  title: tplTitleInput.trim(),
+                                  subject: tplSubjectInput.trim(),
+                                  category: tplCategoryInput.trim() || 'Công việc',
+                                  bodyHtml: tplBodyInput,
+                                },
+                              ]
+                            : templates.map((t) =>
+                                t.id === editingTplId
+                                  ? {
+                                      ...t,
+                                      title: tplTitleInput.trim(),
+                                      subject: tplSubjectInput.trim(),
+                                      category: tplCategoryInput.trim() || 'Công việc',
+                                      bodyHtml: tplBodyInput,
+                                    }
+                                  : t
+                              )
                         setTemplates(updated)
                         saveStoredTemplates(updated)
                         setEditingTplId(null)

@@ -8,8 +8,6 @@ import {
   IconTrash,
   IconChevronDown,
   IconChevronRight,
-  IconCheckSquare,
-  IconUsers,
 } from '../common/MailIcons'
 
 const DEMO_EVENTS: CalendarEvent[] = [

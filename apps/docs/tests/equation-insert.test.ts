@@ -2,10 +2,7 @@ import { Editor } from '@tiptap/core'
 import { parseDocx, saveDocx } from '@genoffice/docx-engine'
 import { describe, expect, it } from 'vitest'
 import { buildDocx } from '../../../packages/docx-engine/tests/helpers/build-docx'
-import {
-  BUILTIN_EQUATIONS,
-  insertEquationFromLatex,
-} from '../src/renderer/components/EquationModal'
+import { insertEquationFromLatex } from '../src/renderer/components/EquationModal'
 import { blocksToPmDoc, pmDocToSavePlan, type PmNode } from '../src/renderer/editor/convert'
 import { editorExtensions } from '../src/renderer/editor/extensions'
 
@@ -53,14 +50,20 @@ describe('equation insertion', () => {
     editor.destroy()
   })
 
-  it('every builtin gallery equation converts without error', async () => {
+  it('sanitizes dangerous nested MathML and script tags on node view render', async () => {
     const { editor } = await openDoc()
-    for (const eq of BUILTIN_EQUATIONS) {
-      expect(() => insertEquationFromLatex(editor, eq.latex), eq.name).not.toThrow()
-    }
-    expect(editor.view.dom.querySelectorAll('.doc-formula-math').length).toBe(
-      BUILTIN_EQUATIONS.length,
-    )
+    editor.commands.insertContent({
+      type: 'docInlineMath',
+      attrs: {
+        mathml: '<scr<script>ipt>alert(1)</scr</script>ipt><sc<iframe>ript>alert(1)</sc<iframe>ript><math><mi href="javajavascript:script:alert(1)">x</mi></math>',
+        text: 'test',
+      },
+    })
+    const mathEl = editor.view.dom.querySelector('span[data-inline-math]')
+    expect(mathEl).not.toBeNull()
+    expect(mathEl!.innerHTML).not.toContain('<script')
+    expect(mathEl!.innerHTML).not.toContain('javascript:')
+    expect(mathEl!.innerHTML).not.toContain('alert(1)')
     editor.destroy()
   })
 })

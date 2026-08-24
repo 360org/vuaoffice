@@ -682,13 +682,72 @@ export const DocInlineImage = Node.create({
   },
 })
 
+const ALLOWED_MATHML_TAGS = new Set([
+  'math', 'maction', 'maligngroup', 'malignmark', 'menclose', 'merror', 'mfenced', 'mfrac',
+  'mglyph', 'mi', 'mlabeledtr', 'mlongdiv', 'mmultiscripts', 'mn', 'mo', 'mover', 'mpadded',
+  'mphantom', 'mroot', 'mrow', 'ms', 'mscarries', 'mscarry', 'msgroup', 'msline', 'mspace',
+  'msqrt', 'msrow', 'mstack', 'mstyle', 'msub', 'msubsup', 'msup', 'mtable', 'mtd', 'mtext',
+  'mtr', 'munder', 'munderover', 'semantics', 'annotation', 'annotation-xml',
+])
+
+const ALLOWED_MATHML_ATTRS = new Set([
+  'display', 'alttext', 'mathsize', 'mathcolor', 'mathbackground', 'mathvariant',
+  'dir', 'columnalign', 'rowalign', 'columnspacing', 'rowspacing', 'columnlines',
+  'rowlines', 'frame', 'framespacing', 'equalrows', 'equalcolumns', 'displaystyle',
+  'scriptlevel', 'lspace', 'rspace', 'stretchy', 'symmetric', 'largeop', 'movablelimits',
+  'accent', 'accentunder', 'fence', 'separator', 'form', 'width', 'height', 'depth',
+  'lquote', 'rquote', 'linethickness', 'denomalign', 'numalign', 'bevelled',
+  'open', 'close', 'separators', 'subscriptshift', 'superscriptshift', 'selection',
+  'id', 'class', 'style', 'encoding',
+])
+
+function sanitizeMathMlNode(node: globalThis.Node): void {
+  if (node.nodeType === 3) return
+  if (node.nodeType !== 1) {
+    node.parentNode?.removeChild(node)
+    return
+  }
+  const el = node as HTMLElement
+  const tag = el.tagName.toLowerCase().replace(/^m:/, '')
+  if (!ALLOWED_MATHML_TAGS.has(tag)) {
+    el.parentNode?.removeChild(el)
+    return
+  }
+  const attrs = Array.from(el.attributes)
+  for (const attr of attrs) {
+    const name = attr.name.toLowerCase()
+    const val = attr.value
+    if (name.startsWith('on') || !ALLOWED_MATHML_ATTRS.has(name) || /javascript:/i.test(val) || /data:/i.test(val)) {
+      el.removeAttribute(attr.name)
+    }
+  }
+  if (el.hasAttribute('style')) {
+    const style = el.getAttribute('style') || ''
+    if (/expression|javascript|url\(/i.test(style)) {
+      el.removeAttribute('style')
+    }
+  }
+  const children = Array.from(el.childNodes)
+  for (const child of children) {
+    sanitizeMathMlNode(child)
+  }
+}
+
 function sanitizeMathMlMarkup(raw: string): string {
   if (!raw) return ''
-  // Strip dangerous tags and event handlers to prevent XSS in innerHTML
-  return raw
-    .replace(/<\/?(script|iframe|object|embed|form|input|button|svg|link|meta|style)[\s\S]*?>/gi, '')
-    .replace(/\son\w+\s*=\s*(["'][^"']*["']|[^\s>]+)/gi, '')
-    .replace(/javascript:/gi, '')
+  try {
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(`<div id="root">${raw}</div>`, 'text/html')
+    const root = doc.getElementById('root')
+    if (!root) return ''
+    const nodes = Array.from(root.childNodes)
+    for (const n of nodes) {
+      sanitizeMathMlNode(n)
+    }
+    return root.innerHTML
+  } catch {
+    return ''
+  }
 }
 
 /**
