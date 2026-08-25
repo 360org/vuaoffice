@@ -73,8 +73,11 @@ function sheetInfo(xlsx) {
       maxBuffer: 64e6,
       stdio: ['ignore', 'pipe', 'ignore'],
     }).toString()
+    // Attribute order varies by writer (some put Target before Id).
     const relTargets = Object.fromEntries(
-      [...rels.matchAll(/Id="([^"]+)"[^>]*Target="([^"]+)"/g)].map((m) => [m[1], m[2]]),
+      [...rels.matchAll(/<Relationship [^>]*>/g)]
+        .map((m) => [m[0].match(/ Id="([^"]+)"/)?.[1], m[0].match(/ Target="([^"]+)"/)?.[1]])
+        .filter(([id, target]) => id && target),
     )
     const sheets = [...wb.matchAll(/<sheet [^>]*>/g)].map((m) => ({
       name: m[0]
@@ -102,7 +105,21 @@ function sheetInfo(xlsx) {
       }
     }
     const target = sheets.find((s) => s.visible && hasCells(s)) ?? sheets.find((s) => s.visible)
-    if (target) target.active = true
+    if (target) {
+      target.active = true
+      const part = relTargets[target.relId]?.replace(/^\/?(xl\/)?/, 'xl/').replace('xl/./', 'xl/')
+      if (part) {
+        try {
+          const xml = execFileSync('unzip', ['-p', xlsx, part], {
+            maxBuffer: 256e6,
+            stdio: ['ignore', 'pipe', 'ignore'],
+          }).toString()
+          target.rightToLeft = /<sheetView [^>]*rightToLeft="(1|true)"/.test(xml)
+        } catch {
+          /* keep undefined */
+        }
+      }
+    }
     return sheets
   } catch {
     return []
@@ -157,6 +174,8 @@ function exportRef(xlsx, dir) {
 async function shootOurs(xlsx, dir, sheets) {
   const names = sheets.map((s) => s.name)
   const firstVisible = sheets.find((s) => s.active)?.name
+  // RTL sheets put the row-header strip on the RIGHT — crop that side instead.
+  const rightToLeft = sheets.find((s) => s.active)?.rightToLeft === true
   fs.mkdirSync(dir, { recursive: true })
   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'genoffice-fidelity-'))
   const app = await electron.launch({
@@ -203,7 +222,39 @@ async function shootOurs(xlsx, dir, sheets) {
     // The app can activate a later sheet moments AFTER load looks done, overriding an
     // early click (and an early "already active" read is equally untrustworthy), so
     // keep clicking until the tab reads active on two consecutive one-second checks.
-    if (firstVisible) {
+    // Clicking a sheet tab while the workbook is still indexing desyncs the tab
+    // highlight from the grid canvas (the tab reads active but the canvas keeps the
+    // stored activeTab). The lazy loader's status line reads "Indexing …" while the
+    // worksheet part streams in and flips to a lingering "Streaming …" once indexing
+    // completes, so wait for that flip — with a short stability grace because the
+    // first status can appear a beat after load looks done, and non-lazy books never
+    // show either marker.
+    let calm = 0
+    for (let i = 0; i < 120 && calm < 3; i++) {
+      const status = await page
+        .evaluate(() => {
+          const text = document.body.textContent
+          return text.includes('Streaming') ? 'done' : text.includes('Indexing') ? 'busy' : 'idle'
+        })
+        .catch(() => 'idle')
+      if (status === 'done') break
+      calm = status === 'idle' ? calm + 1 : 0
+      if (calm < 3) await sleep(500)
+    }
+    // Sheet names can carry trailing spaces in workbook.xml while the tab DOM trims
+    // them, so compare both sides trimmed.
+    const wanted = firstVisible?.trim()
+    const isActive = () =>
+      page
+        .evaluate((n) => {
+          const tab = [...document.querySelectorAll('span.univer-truncate')].find(
+            (el) => el.textContent.trim() === n,
+          )
+          const holder = tab?.closest('[class*="cursor-pointer"]')
+          return !!holder && /univer-bg-white/.test(holder.className)
+        }, wanted)
+        .catch(() => false)
+    const settle = async () => {
       let settled = 0
       for (let attempt = 0; attempt < 10 && settled < 2; attempt++) {
         const active = await page
@@ -218,43 +269,81 @@ async function shootOurs(xlsx, dir, sheets) {
             holder?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))
             target.click()
             return false
-          }, firstVisible)
+          }, wanted)
           .catch(() => false)
         settled = active ? settled + 1 : 0
         if (settled < 2) await sleep(1_000)
       }
     }
-    await sleep(3_000) // canvas paint, chart/image async render
+    if (wanted) {
+      // A slow workbook can self-activate its stored activeTab long after the settle
+      // loop passed, flipping the sheet mid-wait — hold until the target tab survives
+      // a full paint wait, so every settle is followed by one before the shot.
+      for (let round = 0; round < 5; round++) {
+        await settle()
+        await sleep(3_000) // canvas paint, chart/image async render
+        if (await isActive()) break
+      }
+    } else {
+      await sleep(3_000) // canvas paint, chart/image async render
+    }
     // park the selection in the viewport's bottom-right corner so the A1 highlight
-    // doesn't sit on top of the content being compared
+    // doesn't sit on top of the content being compared. The point must hit the
+    // grid canvas itself: a drawing overlay (picture/chart DOM) would swallow
+    // the click, select the drawing, and leave the load-time selection behind.
     {
       const box = await page
-        .evaluate(() => {
+        .evaluate((rtl) => {
           const c = [...document.querySelectorAll('#univer-container canvas')].find(
             (x) => x.width > 200 && x.height > 200,
           )
           if (!c) return null
           const r = c.getBoundingClientRect()
-          return { x: r.right - 50, y: r.bottom - 50 }
-        })
+          for (let dx = 50; dx < r.width - 100; dx += 120) {
+            for (const dy of [50, 170, 290]) {
+              // The far corner is bottom-left on a mirrored sheet (and the
+              // right edge hosts the header strip + scrollbar there).
+              const x = rtl ? r.left + dx : r.right - dx
+              const y = r.bottom - dy
+              const hit = document.elementFromPoint(x, y)
+              // Univer stacks several canvases; any of them means "the grid".
+              if (hit && hit.tagName === 'CANVAS' && hit.closest('#univer-container')) {
+                return { x, y }
+              }
+            }
+          }
+          return null
+        }, rightToLeft)
         .catch(() => null)
       if (box) {
         await page.mouse.click(box.x, box.y).catch(() => {})
         await sleep(400)
       }
     }
+    // Last line of defense: a late self-activation can land between the settle
+    // rounds and the shot (it cost prod_008 a whole run) — re-check the tab
+    // right before the screenshot and re-settle once if it flipped.
+    if (wanted && !(await isActive())) {
+      await settle()
+      await sleep(3_000)
+    }
     // Native screenshot clipped to the grid area. Charts, pictures, shapes
     // and text boxes render as a DOM overlay (WorkbookVisuals), not into the
     // Univer canvases — a canvas-only composite silently drops the whole
     // drawing layer (run1/run5 mis-triaged it as "never rendered").
-    const clip = await page.evaluate(() => {
+    const clip = await page.evaluate((rtl) => {
       const c = [...document.querySelectorAll('#univer-container canvas')].find(
         (x) => x.width > 200 && x.height > 200,
       )
       if (!c) return null
       const r = c.getBoundingClientRect()
-      return { x: r.left + 46, y: r.top + 24, width: r.width - 46, height: r.height - 24 }
-    })
+      return {
+        x: r.left + (rtl ? 0 : 46),
+        y: r.top + 24,
+        width: r.width - 46,
+        height: r.height - 24,
+      }
+    }, rightToLeft)
     if (!clip) throw new Error('grid canvas not found')
     const f = path.join(dir, 'ours-1.png')
     await page.screenshot({ path: f, clip })

@@ -12,8 +12,10 @@ import { tableRowGridCols } from './table-grid'
 import { type Theme, resolveFontRef, resolveSchemeColor } from './theme'
 import { resolveColorNode as resolveColorNodeShared } from './color'
 import {
+  resolvePlaceholderPresetGeom,
   resolvePlaceholderTransform,
   resolvePlaceholderAnchor,
+  resolvePlaceholderInsets,
   resolvePlaceholderFillSpPr,
   parseLstStyleLevels,
   placeholderStyleChain,
@@ -83,6 +85,9 @@ const parser = new XMLParser({
 })
 
 const EMU_PER_PT = 12700
+
+/** <a:bodyPr> inset defaults (EMU): 0.1" left/right, 0.05" top/bottom. */
+export const DEFAULT_BODY_INSETS = { l: 91440, t: 45720, r: 91440, b: 45720 }
 
 export interface ParseContext {
   theme?: Theme
@@ -244,6 +249,21 @@ export function parseBackground(xml: string, ctx: ParseContext): Fill | undefine
   return undefined
 }
 
+const NV_PR_KEYS: Record<string, string> = {
+  'p:sp': 'p:nvSpPr',
+  'p:pic': 'p:nvPicPr',
+  'p:grpSp': 'p:nvGrpSpPr',
+  'p:graphicFrame': 'p:nvGraphicFramePr',
+  'p:cxnSp': 'p:nvCxnSpPr',
+}
+
+function isHiddenElement(node: any, tagName: string): boolean {
+  const nvKey = NV_PR_KEYS[tagName]
+  if (!nvKey) return false
+  const hidden = node?.[nvKey]?.['p:cNvPr']?.['@_hidden']
+  return hidden === '1' || hidden === 'true'
+}
+
 function parseShapeFragment(
   sp: SpElement,
   fragXml: string,
@@ -265,13 +285,23 @@ function parseShapeFragment(
   const node = doc[sp.name] ? (Array.isArray(doc[sp.name]) ? doc[sp.name][0] : doc[sp.name]) : null
   if (!node) return null
 
+  // <p:cNvPr hidden="1">: PowerPoint never paints the shape (slideshow, PDF export,
+  // or editing canvas) — consulting templates hide whole scaffold layers this way.
+  // Keep the bytes (silent passthrough) so saves replay them verbatim.
+  if (isHiddenElement(node, sp.name)) {
+    const silent = passthrough(anchor, 'unknown', node)
+    silent.noChip = true
+    return silent
+  }
+
   switch (sp.name) {
     case 'p:sp':
       // fragXml explicitly: decoration anchors carry an empty originalXml, and custGeom
       // parses from raw bytes — without it master/layout freeforms degrade to rects
       return parseSpShape(node, anchor, ctx, fragXml)
     case 'p:pic':
-      return parsePicture(node, anchor, ctx)
+      // fragXml for the same reason as p:sp: pic custGeom parses from raw bytes
+      return parsePicture(node, anchor, ctx, fragXml)
     case 'p:grpSp':
       return parseGroup(node, anchor, ctx, fragXml)
     case 'p:graphicFrame':
@@ -360,7 +390,10 @@ function parseSpShape(
   // master txStyles color — PowerPoint behavior, bnc904423)
   const fontRefColor = resolveColorNode(node['p:style']?.['a:fontRef'], ctx)
   const chainLayers = fontRefColor ? [{ levels: [{ color: fontRefColor }] }, ...phChain] : phChain
-  const text = txBody ? parseTextBody(txBody, ctx, chainLayers) : undefined
+  const phInsets = ph
+    ? resolvePlaceholderInsets(ctx.layoutPlaceholders, ctx.masterPlaceholders, phType, phIdx)
+    : undefined
+  const text = txBody ? parseTextBody(txBody, ctx, chainLayers, phInsets) : undefined
   // bodyPr anchor inherits along the placeholder chain (e.g. master titles anchor="ctr")
   if (ph && text && !text.anchor) {
     const inherited = resolvePlaceholderAnchor(
@@ -375,6 +408,7 @@ function parseSpShape(
   let stroke = parseStroke(spPr, ctx)
   let shadow = parseShadow(spPr, ctx)
   let glow = parseGlow(spPr, ctx)
+  const reflection = parseReflection(spPr)
   const scene3d = parseScene3D(spPr, ctx)
   // <a:fillOverlay> holds a second fill element directly (a:gradFill/…), so parseFill reads it like an spPr
   const overlayNode = spPr?.['a:effectLst']?.['a:fillOverlay']
@@ -446,6 +480,7 @@ function parseSpShape(
     transform,
     // <p:ph> without a type (content placeholder) defaults to body per ECMA
     placeholder: ph ? (phType ?? 'body') : undefined,
+    ...(nv?.['p:cNvSpPr']?.['@_txBox'] === '1' ? { txBox: true } : {}),
     name,
     presetGeometry,
     ...(adjust ? { adjust } : {}),
@@ -456,6 +491,7 @@ function parseSpShape(
     ...(stroke ? { stroke } : {}),
     ...(shadow ? { shadow } : {}),
     ...(glow ? { glow } : {}),
+    ...(reflection ? { reflection } : {}),
     ...(scene3d ? { scene3d } : {}),
     text,
   }
@@ -604,16 +640,39 @@ function parseGlow(spPr: any, ctx: ParseContext): import('./types').GlowEffect |
   return { color, radius: Number.isFinite(rad) ? rad : 0 }
 }
 
+/** <a:effectLst><a:reflection> element-level reflection (flipped fading copy). */
+function parseReflection(spPr: any): import('./types').ReflectionEffect | undefined {
+  const r = spPr?.['a:effectLst']?.['a:reflection']
+  if (!r || typeof r !== 'object') return undefined
+  return {
+    blurRad: intOr(r['@_blurRad'], 0),
+    startA: r['@_stA'] != null ? intOr(r['@_stA'], 100000) / 100000 : 1,
+    endPos: r['@_endPos'] != null ? intOr(r['@_endPos'], 100000) / 100000 : 1,
+    dist: intOr(r['@_dist'], 0),
+  }
+}
+
 function parseShadow(spPr: any, ctx: ParseContext): ShadowEffect | undefined {
-  const shdw = spPr?.['a:effectLst']?.['a:outerShdw']
+  const outer = spPr?.['a:effectLst']?.['a:outerShdw']
+  const shdw = outer ?? spPr?.['a:effectLst']?.['a:innerShdw']
   if (!shdw || typeof shdw !== 'object') return undefined
   const color = resolveColorNode(shdw, ctx)
   if (!color) return undefined
+  const sx = shdw['@_sx'] != null ? intOr(shdw['@_sx'], 100000) / 100000 : undefined
+  const sy = shdw['@_sy'] != null ? intOr(shdw['@_sy'], 100000) / 100000 : undefined
+  const kx = shdw['@_kx'] != null ? intOr(shdw['@_kx'], 0) / 60000 : undefined
+  const ky = shdw['@_ky'] != null ? intOr(shdw['@_ky'], 0) / 60000 : undefined
   return {
     color,
     blurRad: intOr(shdw['@_blurRad'], 0),
     dist: intOr(shdw['@_dist'], 0),
     dirDeg: intOr(shdw['@_dir'], 0) / 60000,
+    ...(outer ? {} : { inner: true }),
+    ...(sx != null ? { sx } : {}),
+    ...(sy != null ? { sy } : {}),
+    ...(kx ? { kxDeg: kx } : {}),
+    ...(ky ? { kyDeg: ky } : {}),
+    ...(typeof shdw['@_algn'] === 'string' ? { algn: shdw['@_algn'] } : {}),
   }
 }
 
@@ -738,13 +797,14 @@ function parseGroupChild(
 ): SlideElement | null {
   // Child byte anchor: no independent byte roundtrip inside a group (whole group passes through), so use an empty anchor.
   const childAnchor: ByteAnchor = { spIndex: -1, originalXml: '', range: [0, 0] }
+  if (isHiddenElement(child, tag)) return null
   let el: SlideElement | null
   switch (tag) {
     case 'p:sp':
       el = parseSpShape(child, childAnchor, ctx, rawXml)
       break
     case 'p:pic':
-      el = parsePicture(child, childAnchor, ctx)
+      el = parsePicture(child, childAnchor, ctx, rawXml)
       break
     case 'p:grpSp':
       el = parseGroup(child, childAnchor, ctx, rawXml)
@@ -848,7 +908,12 @@ function blipEmbedId(blip: any): string | undefined {
   return undefined
 }
 
-function parsePicture(node: any, anchor: ByteAnchor, ctx: ParseContext): PictureElement {
+function parsePicture(
+  node: any,
+  anchor: ByteAnchor,
+  ctx: ParseContext,
+  rawXml?: string,
+): PictureElement {
   const spPr = node['p:spPr'] ?? {}
   let transform = parseXfrm(spPr['a:xfrm'])
   // Pictures dropped into a placeholder may omit <a:xfrm> entirely; geometry comes from layout/master
@@ -870,8 +935,28 @@ function parsePicture(node: any, anchor: ByteAnchor, ctx: ParseContext): Picture
   const descr = node['p:nvPicPr']?.['p:cNvPr']?.['@_descr']
   const srcRect = parseSrcRect(blipFill?.['a:srcRect'])
   // picture styles outline geometry (ellipse avatars/rounded-corner frames etc.); rect is the default and not recorded
-  const picGeom = spPr['a:prstGeom']?.['@_prst']
-  const picAdjust = parseAvLst(spPr['a:prstGeom']?.['a:avLst'])
+  let picGeom = spPr['a:prstGeom']?.['@_prst']
+  let picAdjust = parseAvLst(spPr['a:prstGeom']?.['a:avLst'])
+  // Placeholder pictures without their own geometry clip to the layout/master
+  // placeholder's shape (e.g. a parallelogram picture placeholder)
+  if (!picGeom && !spPr['a:custGeom'] && picPh) {
+    const inheritedGeom = resolvePlaceholderPresetGeom(
+      ctx.layoutPlaceholders,
+      ctx.masterPlaceholders,
+      picPh['@_type'],
+      picPh['@_idx'] != null ? String(picPh['@_idx']) : undefined,
+    )
+    if (inheritedGeom) {
+      picGeom = inheritedGeom.prst
+      picAdjust = parseAvLst(inheritedGeom.avLstRaw)
+    }
+  }
+  // custGeom picture frame (photo clipped to a freeform path, e.g. diagonal hero images)
+  const customGeometry =
+    spPr['a:custGeom'] != null
+      ? parseCustGeom(rawXml || anchor.originalXml, transform.offset.cx, transform.offset.cy)
+      : undefined
+  const scene3d = parseScene3D(spPr, ctx)
   const softEdgeRad = spPr['a:effectLst']?.['a:softEdge']?.['@_rad']
   const alphaAmt = blip?.['a:alphaModFix']?.['@_amt']
   const opacity =
@@ -879,6 +964,7 @@ function parsePicture(node: any, anchor: ByteAnchor, ctx: ParseContext): Picture
   const stroke = parseStroke(spPr, ctx)
   const shadow = parseShadow(spPr, ctx)
   const glow = parseGlow(spPr, ctx)
+  const reflection = parseReflection(spPr)
   // Pic's own spPr fill: PowerPoint draws it as a backdrop behind the (possibly translucent) blip
   const fill = parseFill(spPr, ctx)
   const duotone = parseDuotone(blip, ctx)
@@ -909,6 +995,8 @@ function parsePicture(node: any, anchor: ByteAnchor, ctx: ParseContext): Picture
     ...(picGeom && picGeom !== 'rect'
       ? { presetGeometry: picGeom, ...(picAdjust ? { adjust: picAdjust } : {}) }
       : {}),
+    ...(customGeometry ? { customGeometry } : {}),
+    ...(scene3d ? { scene3d } : {}),
     ...(opacity != null && opacity < 1 ? { opacity } : {}),
     ...(softEdgeRad != null ? { softEdge: intOr(softEdgeRad, 0) } : {}),
     ...(media ? { media } : {}),
@@ -919,6 +1007,7 @@ function parsePicture(node: any, anchor: ByteAnchor, ctx: ParseContext): Picture
     ...(stroke ? { stroke } : {}),
     ...(shadow ? { shadow } : {}),
     ...(glow ? { glow } : {}),
+    ...(reflection ? { reflection } : {}),
   }
 }
 
@@ -2904,7 +2993,14 @@ function resolveColorNode(node: any, ctx: ParseContext): string | undefined {
 
 // ── Text ─────────────────────────────────────────────────────────────
 
-function parseTextBody(txBody: any, ctx: ParseContext, phChain: TextStyleLevels[] = []): TextBody {
+function parseTextBody(
+  txBody: any,
+  ctx: ParseContext,
+  phChain: TextStyleLevels[] = [],
+  // Per-attribute bodyPr inset inheritance from the placeholder chain (layout over master);
+  // only attrs absent on this bodyPr fall through to it (then to the spec defaults)
+  inheritedInsets?: { l?: number; t?: number; r?: number; b?: number },
+): TextBody {
   const bodyPrRaw = txBody['a:bodyPr']
   const bodyPr = bodyPrRaw && typeof bodyPrRaw === 'object' ? bodyPrRaw : {}
   const anchorMap: Record<string, TextBody['anchor']> = { t: 'top', ctr: 'middle', b: 'bottom' }
@@ -2959,10 +3055,10 @@ function parseTextBody(txBody: any, ctx: ParseContext, phChain: TextStyleLevels[
     paragraphs,
     anchor: bodyPr['@_anchor'] ? anchorMap[bodyPr['@_anchor']] : undefined,
     insets: {
-      l: intOr(bodyPr['@_lIns'], 91440),
-      t: intOr(bodyPr['@_tIns'], 45720),
-      r: intOr(bodyPr['@_rIns'], 91440),
-      b: intOr(bodyPr['@_bIns'], 45720),
+      l: intOr(bodyPr['@_lIns'], inheritedInsets?.l ?? DEFAULT_BODY_INSETS.l),
+      t: intOr(bodyPr['@_tIns'], inheritedInsets?.t ?? DEFAULT_BODY_INSETS.t),
+      r: intOr(bodyPr['@_rIns'], inheritedInsets?.r ?? DEFAULT_BODY_INSETS.r),
+      b: intOr(bodyPr['@_bIns'], inheritedInsets?.b ?? DEFAULT_BODY_INSETS.b),
     },
     autofit,
     ...(fontScale != null ? { fontScale } : {}),
@@ -3018,6 +3114,15 @@ function parseParagraph(
     const run = parseRun(f, ctx, dflt)
     if (f?.['@_type']) run.field = String(f['@_type'])
     runs.push(run)
+  }
+
+  // Empty paragraph: line height comes from <a:endParaRPr> (the paragraph mark) and
+  // overrides even an empty run's own rPr (probe-measured; Google Slides exports lean
+  // on this with 80pt marks between text blocks). Parsed as a textless marker run.
+  const endPr = p['a:endParaRPr']
+  if (endPr && typeof endPr === 'object' && runs.every((r) => !r.text)) {
+    const mark = parseRun({ 'a:rPr': endPr, 'a:t': '' }, ctx, dflt)
+    runs.splice(0, runs.length, mark)
   }
 
   // Line spacing: spcPct (%) or spcPts (absolute pt); space before/after: spcPts / spcPct (as % of single line height).
@@ -3154,14 +3259,51 @@ function parseRun(r: any, ctx: ParseContext, dflt?: LevelTextStyle): TextRun {
   // not the latin font; applied when the run is entirely PUA (the common single-glyph case)
   const puaOnly =
     sym != null && /^[\uf000-\uf0ff]+$/.test(text.replace(/\s+/g, '')) && !!text.trim()
+  // Substitution script hint (PowerPoint order): run altLang/lang CJK tag first,
+  // then the @charset declared on the bucket the family came from (own rPr only)
+  const CHARSET_SCRIPT: Record<number, 'ja' | 'ko' | 'sc' | 'tc'> = {
+    128: 'ja', // SHIFTJIS
+    129: 'ko', // HANGUL
+    130: 'ko', // JOHAB
+    134: 'sc', // GB2312
+    136: 'tc', // CHINESEBIG5
+  }
+  const langScript = (tag: unknown): 'ja' | 'ko' | 'sc' | 'tc' | undefined => {
+    const t = String(tag ?? '').toLowerCase()
+    if (t.startsWith('ja')) return 'ja'
+    if (t.startsWith('ko')) return 'ko'
+    if (/^zh(-(tw|hk|mo|hant))/.test(t)) return 'tc'
+    if (t.startsWith('zh')) return 'sc'
+    return undefined
+  }
+  const runLangScript = langScript(rPr['@_altLang']) ?? langScript(rPr['@_lang'])
+  const charsetOf = (bucket: string): ('ja' | 'ko' | 'sc' | 'tc') | undefined => {
+    if (runLangScript) return runLangScript
+    if (rPr[bucket]?.['@_typeface'] == null) return undefined
+    const v = rPr[bucket]['@_charset']
+    if (v == null) return undefined
+    const n = parseInt(String(v), 10)
+    return Number.isFinite(n) ? CHARSET_SCRIPT[n & 0xff] : undefined
+  }
   // Pick the bucket by script: complex script → a:cs, CJK → a:ea, otherwise → a:latin; fall back through buckets when missing
-  const fontFamily = puaOnly
-    ? sym
+  const csPair = cs != null ? { f: cs, cset: charsetOf('a:cs') } : undefined
+  const eaPair = ea != null ? { f: ea, cset: charsetOf('a:ea') } : undefined
+  const latinPair = latin != null ? { f: latin, cset: charsetOf('a:latin') } : undefined
+  const picked = puaOnly
+    ? sym != null
+      ? { f: sym, cset: undefined }
+      : undefined
     : ((CS_RE.test(text)
-        ? (cs ?? latin ?? ea)
+        ? (csPair ?? latinPair ?? eaPair)
         : CJK_RE.test(text)
-          ? (ea ?? latin)
-          : (latin ?? ea)) ?? ctx.theme?.minorFont)
+          ? (eaPair ?? latinPair)
+          : (latinPair ?? eaPair)) ??
+      (ctx.theme?.minorFont != null ? { f: ctx.theme.minorFont, cset: undefined } : undefined))
+  const fontFamily = picked?.f
+  // The hint steers CJK-glyph substitution only: latin-text runs substitute as western
+  // even when the run carries a CJK altLang (prod_043's "Rakuten Sans" ko-KR runs render
+  // with a latin substitute in PPT, not Malgun)
+  const fontScriptHint = CJK_RE.test(text) ? picked?.cset : undefined
   const bAttr = rPr['@_b']
   const iAttr = rPr['@_i']
   // Text outline <a:rPr><a:ln> (WordArt): only solid-color outlines are modeled, kept by the rebuild path
@@ -3204,8 +3346,10 @@ function parseRun(r: any, ctx: ParseContext, dflt?: LevelTextStyle): TextRun {
     fontSize: rPr['@_sz'] ? parseInt(rPr['@_sz'], 10) / 100 : dflt?.fontSize,
     ...(rPr['@_sz'] ? {} : { fontSizeImplicit: true }),
     ...(rPr['@_spc'] ? { letterSpacing: parseInt(rPr['@_spc'], 10) / 100 } : {}),
+    ...(rPr['@_kern'] != null ? { kern: (parseInt(rPr['@_kern'], 10) || 0) / 100 } : {}),
     ...(rPr['@_baseline'] ? { baseline: parseInt(rPr['@_baseline'], 10) / 1000 } : {}),
     fontFamily,
+    ...(fontScriptHint != null ? { fontScriptHint } : {}),
     color,
     ...(colorFollowsTheme ? { colorFollowsTheme } : {}),
     ...(colorInherited ? { colorInherited } : {}),

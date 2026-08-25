@@ -46,6 +46,8 @@ import {
   recordPageSetup,
   recordSheetProtection,
   recordSparklineAdd,
+  recordStructuralOp,
+  removeStructuralOp,
   recordWorkbookProtection,
   removeSparklineAdd,
 } from './edit-journal'
@@ -63,8 +65,12 @@ import {
   absRangeRef,
   applyFormatPatchToRange,
   characterWidthToPixels,
+  attachVisualUndoToLastStep,
+  getScrollAnchor,
   normalizeLinkTarget,
+  topUndoElement,
   pushVisualUndo,
+  revealCellBelowFreeze,
   queueSparklineInstall,
   workbookStructureLocked,
 } from './univer-sync'
@@ -577,7 +583,7 @@ export function handleRibbonCommand(ctx: RibbonCommandContext, command: string):
             notes[notes.length - 1])
       if (!target) return
       sheet.getRange(target.row, target.col, 1, 1).activate()
-      sheet.scrollToCell(target.row, target.col)
+      void revealCellBelowFreeze(sheet, target.row, target.col)
       void runtime.univerAPI.executeCommand('sheet.operation.add-note-popup')
       return
     }
@@ -1031,12 +1037,107 @@ export function handleRibbonCommand(ctx: RibbonCommandContext, command: string):
     }
     return
   }
+  // Excel's PageUp/PageDown (Alt+ = one screen left/right): move the active
+  // cell by one viewport of rows/columns and scroll the view with it, keeping
+  // the cell's on-screen position (alpha ledger r126).
+  if (command.startsWith('page-row:') || command.startsWith('page-col:')) {
+    const horizontal = command.startsWith('page-col:')
+    const direction = command.endsWith(':-1') ? -1 : 1
+    const workbook = runtime.univerAPI.getActiveWorkbook()
+    const sheet = workbook?.getActiveSheet()
+    const active = workbook?.getActiveRange()
+    if (!workbook || !sheet || !active) return
+    // typing in a cell: PageUp/Down belongs to the editor, not navigation
+    const editing = workbook as unknown as { isCellEditing?(): boolean }
+    if (editing.isCellEditing?.()) return
+    let visible: {
+      startRow: number
+      endRow: number
+      startColumn: number
+      endColumn: number
+    } | null = null
+    try {
+      visible = sheet.getVisibleRange()
+    } catch {
+      /* no scroll render controller yet (still booting) */
+    }
+    if (!visible) return
+    const page = horizontal
+      ? Math.max(1, visible.endColumn - visible.startColumn)
+      : Math.max(1, visible.endRow - visible.startRow)
+    const maxRow = sheet.getMaxRows() - 1
+    const maxColumn = sheet.getMaxColumns() - 1
+    const clamp = (value: number, max: number): number => Math.min(max, Math.max(0, value))
+    const row = horizontal ? active.getRow() : clamp(active.getRow() + direction * page, maxRow)
+    const column = horizontal
+      ? clamp(active.getColumn() + direction * page, maxColumn)
+      : active.getColumn()
+    // Anchor from the scroll state, not visible.start*: on RTL sheets
+    // getVisibleRange().startColumn is not what scrollToCell anchors, and a
+    // vertical page must keep the horizontal scroll bit-exact (and vice
+    // versa). Paging keeps logical direction, like the arrow keys.
+    const rtl = sheet.getSheet().getConfig().rightToLeft === BooleanNumber.TRUE
+    const anchor = getScrollAnchor(workbook, sheet) ?? {
+      row: visible.startRow,
+      column: rtl ? visible.endColumn : visible.startColumn,
+    }
+    // The RTL scroll state records home as a flush-right sentinel (column 0).
+    // scrollToCell round-trips it absolutely (vertical pages keep it so the
+    // horizontal position stays capped at exactly flush), but horizontal page
+    // arithmetic needs the true visually-left column.
+    const anchorColumn =
+      rtl && horizontal ? Math.max(anchor.column, visible.endColumn) : anchor.column
+    const viewRow = horizontal ? anchor.row : clamp(anchor.row + direction * page, maxRow)
+    const viewColumn = horizontal
+      ? clamp(anchorColumn + direction * page, maxColumn)
+      : anchor.column
+    workbook.setActiveRange(sheet.getRange(row, column))
+    sheet.scrollToCell(viewRow, viewColumn)
+    return
+  }
   const range = runtime.univerAPI.getActiveWorkbook()?.getActiveRange()
   if (!range) {
     ctx.setMessage(t('appSelectRangeFirst'))
     return
   }
   const { name, argument, extra } = parseStyleCommand(command)
+  // Excel persists select-all / full-column formatting as the columns'
+  // DEFAULT format: new cells inherit it at any row, forever. Univer only
+  // materializes styles onto cells within the current grid bounds, so
+  // without this a reopened workbook types in the theme font again (r124).
+  const recordFullHeightColumnStyle = (delta: WorkbookStyleEdit, undoTopBefore: unknown): void => {
+    const state = ctx.lazyWorkbookRef.current
+    const sheet = runtime.univerAPI.getActiveWorkbook()?.getActiveSheet()
+    const sheetId = sheet?.getSheetId()
+    if (!state || !sheet || !sheetId || isSheetRemoved(state.editJournal, sheetId)) return
+    if (range.getRow() !== 0 || range.getHeight() < sheet.getMaxRows()) return
+    const op = {
+      kind: 'set-col-style' as const,
+      start: range.getColumn(),
+      end: range.getColumn() + range.getWidth() - 1,
+      style: delta,
+    }
+    recordStructuralOp(state.editJournal, sheetId, op)
+    ctx.setPendingEdits(journalSize(state.editJournal))
+    // ⌘Z must also retract the column default, or a save after undo would
+    // still write <col style> and new cells would inherit the undone format.
+    // Attached to the font command's own undo entry: one press reverts the
+    // whole action, and no extra undo-carry truncation point appears (bugbot)
+    attachVisualUndoToLastStep(
+      runtime,
+      {
+        undo: () => {
+          removeStructuralOp(state.editJournal, sheetId, op)
+          ctx.setPendingEdits(journalSize(state.editJournal))
+        },
+        redo: () => {
+          recordStructuralOp(state.editJournal, sheetId, op)
+          ctx.setPendingEdits(journalSize(state.editJournal))
+        },
+      },
+      undoTopBefore,
+    )
+  }
   try {
     const style = selectionStyle(range)
     switch (name) {
@@ -1176,12 +1277,23 @@ export function handleRibbonCommand(ctx: RibbonCommandContext, command: string):
       case 'format':
         range.setNumberFormat(argument)
         break
-      case 'font-family':
+      case 'font-family': {
+        const undoTopBefore = topUndoElement(runtime)
         range.setFontFamily(argument)
+        if (argument.length > 0 && argument.length <= 128) {
+          recordFullHeightColumnStyle({ fontFamily: argument }, undoTopBefore)
+        }
         break
-      case 'font-size':
-        range.setFontSize(Number(argument))
+      }
+      case 'font-size': {
+        const sizePt = Number(argument)
+        const undoTopBefore = topUndoElement(runtime)
+        range.setFontSize(sizePt)
+        if (Number.isFinite(sizePt) && sizePt > 0 && sizePt <= 409) {
+          recordFullHeightColumnStyle({ fontSize: sizePt }, undoTopBefore)
+        }
         break
+      }
       case 'fill':
         // The facade types demand a string, but null is the documented way
         // to clear the background (mirrors setFontWeight(null) above).
@@ -1468,7 +1580,6 @@ export function handleRibbonCommand(ctx: RibbonCommandContext, command: string):
             ctx.lazyWorkbookRef,
             ctx.sparklineDisposablesRef,
             ctx.sparklineTimerRef,
-            sheetId,
           )
         }
         pushVisualUndo(runtime, {

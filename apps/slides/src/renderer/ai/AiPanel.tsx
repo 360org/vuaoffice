@@ -17,10 +17,25 @@ import {
   type PageProgressItem,
 } from './slides-skill'
 import { extractJsonObject, parseOutlineJson } from './outline-json'
+import { EditQueueCard } from './EditQueueCard'
+import {
+  buildPageInstruction,
+  groupByPage,
+  resolveQueue,
+  type EditQueueItem,
+  type ResolveFailure,
+} from './edit-queue'
 import { createFilesSkill } from './files-skill'
 import { createElectronTransport } from './transport'
 import { renderSlidesToPngBase64 } from '../export-render'
-import { isQcEnabled, mergeQcPages, qcSlidePage, QC_MAX_PAGES } from './slide-qc'
+import {
+  isQcEnabled,
+  isUnsupportedImageInputError,
+  mergeQcPages,
+  qcSlidePage,
+  QC_MAX_PAGES,
+  settingsSupportVision,
+} from './slide-qc'
 import { useI18n, t as tGlobal, aiLangDirective, type TFunc } from '../i18n/locale'
 import { Markdown } from '@genoffice/ui'
 import { GensparkMark } from '../components/icons'
@@ -69,7 +84,7 @@ const PASTE_MIME_EXT: Record<string, string> = {
  *  attachment allowlist doesn't accept yet are mapped ahead so they light up when added */
 const ATTACHMENT_CARD_ICON_GROUPS: [icon: string, exts: string[]][] = [
   [fileWordIcon, ['doc', 'docx']],
-  [fileExcelIcon, ['xls', 'xlsx', 'csv', 'tsv']],
+  [fileExcelIcon, ['xls', 'xlsx', 'xlsm', 'csv', 'tsv']],
   [filePptIcon, ['ppt', 'pptx']],
   [filePdfIcon, ['pdf']],
   [fileImageIcon, ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg', 'tiff', 'heic']],
@@ -230,8 +245,6 @@ interface ChatEntry {
   text: string
   error?: string
   streaming?: boolean
-  /** the run failed and this user message was rolled back out of the model context */
-  undelivered?: boolean
   /** the run failed because Genspark is signed out — render an inline sign-in button */
   loginRequired?: boolean
   tools?: ToolActivity[]
@@ -285,6 +298,15 @@ interface AiPanelProps {
   onDeckProgress?: (event: DeckProgressEvent | null) => void
   /** Absolute path of the currently open file (for chat history persistence) */
   currentFilePath?: string | null
+  /** Pending element-scoped edits; owned by App, which also holds selection/navigation */
+  editQueue?: EditQueueItem[]
+  onQueueEditInstruction?: (key: string, instruction: string) => void
+  onQueueRemove?: (key: string) => void
+  onQueueClear?: () => void
+  /** Jump to the item's page and select its elements */
+  onQueueFocus?: (key: string) => void
+  /** Drop the items a submission finished with (successful and unrunnable alike) */
+  onQueueConsume?: (keys: string[]) => void
 }
 
 /** Some locales already end the label with an ellipsis — normalize to exactly one. */
@@ -363,6 +385,12 @@ export function AiPanel({
   onPathChange,
   onDeckProgress,
   currentFilePath,
+  editQueue,
+  onQueueEditInstruction,
+  onQueueRemove,
+  onQueueClear,
+  onQueueFocus,
+  onQueueConsume,
 }: AiPanelProps) {
   const { t } = useI18n()
   const [input, setInput] = useState('')
@@ -523,6 +551,8 @@ export function AiPanel({
   const runToolsRef = useRef<
     Array<{ name: string; summary: string; isError?: boolean; input?: string; output?: string }>
   >([])
+  /** Last streamed text of the current turn: the only copy left when a run dies before onDone */
+  const streamedTextRef = useRef('')
 
   // ── Chat history persistence ──────────────────────────────────────────────
   /** Resolve chatId and load history on first mount (AiPanel resets by key; no need to watch currentFilePath changes) */
@@ -626,6 +656,30 @@ export function AiPanel({
       })
   }
 
+  /**
+   * Record a run that ended without a usable reply. Deliberately not the chat
+   * history: agent-core rolls a failed turn out of the model context, so storing
+   * it there would feed it straight back on the next reopen.
+   */
+  const logRunFailure = (kind: 'error' | 'stopped', error?: string) => {
+    void window.slidesApi
+      .aiLogRunFailure({
+        kind,
+        instruction: instructionRef.current,
+        streamed: streamedTextRef.current,
+        ...(error ? { error } : {}),
+        ...(runToolsRef.current.length > 0
+          ? { tools: runToolsRef.current.map((tl) => tl.name) }
+          : {}),
+        ...(runStartedAtRef.current > 0
+          ? { durationMs: Date.now() - runStartedAtRef.current }
+          : {}),
+      })
+      .catch(() => {
+        /* Diagnostics are best-effort */
+      })
+  }
+
   // Resolved when the user submits/cancels; the AI takes the answer and continues.
   const [activeClarify, setActiveClarify] = useState<ClarifyQuestion[] | null>(null)
   const clarifyResolverRef = useRef<((r: { answers: string; cancelled?: boolean }) => void) | null>(
@@ -634,6 +688,11 @@ export function AiPanel({
 
   /** Synchronous re-entry guard between runWith trigger and loop.run (see the comment inside runWith) */
   const runStartingRef = useRef(false)
+  /**
+   * Resolves the in-flight queue page run: AgentLoop reports completion through
+   * events rather than a promise, so onDone/onError hand the outcome back here.
+   */
+  const queueRunResolverRef = useRef<((ok: boolean) => void) | null>(null)
   /** Pages landed by this run's generation calls, pending the post-generation layout QC pass */
   const qcPagesRef = useRef<number[]>([])
   const qcAbortRef = useRef<AbortController | null>(null)
@@ -844,18 +903,20 @@ export function AiPanel({
     const access: DeckAccess = {
       getSlides: () => slidesRef.current,
       getCurrent: () => currentRef.current,
-      getSelectedIds: () => selectedRef.current,
+      // A queue run names its targets explicitly; whatever is selected on the
+      // canvas right now is unrelated and would only compete with them
+      getSelectedIds: () => (queueRunResolverRef.current ? [] : selectedRef.current),
       applySlide: (i, updated) => applySlideRef.current(i, updated),
       applyDeck: (all, goTo) => applyDeckRef.current(all, goTo),
-      generateFromHtml: async (
-        pagesHtml: string[],
+      landGeneratedPages: async (
+        pageMarkers: string[],
         mode?: 'replace' | 'append' | 'insert_at',
         deckName?: string,
         insertAt?: number,
       ) => {
         try {
-          const res = await window.slidesApi.htmlToPptx(
-            pagesHtml,
+          const res = await window.slidesApi.landGeneratedPages(
+            pageMarkers,
             fitWidthPx,
             mode,
             insertAt,
@@ -904,10 +965,10 @@ export function AiPanel({
           return { ok: false, error: e instanceof Error ? e.message : String(e) }
         }
       },
-      regenerateSlide: async (slideIndex: number, html: string) => {
+      regenerateSlide: async (slideIndex: number, marker: string) => {
         try {
-          const res = await window.slidesApi.htmlToPptx(
-            [html],
+          const res = await window.slidesApi.landGeneratedPages(
+            [marker],
             fitWidthPx,
             'replace_at',
             slideIndex,
@@ -1255,7 +1316,10 @@ export function AiPanel({
       // Page-by-page deck generation needs more tool rounds
       maxTurns: 24,
       events: {
-        onText: (text) => patchLastAssistant({ text }),
+        onText: (text) => {
+          streamedTextRef.current = text
+          patchLastAssistant({ text })
+        },
         onToolStart: (call) => {
           // Live "running" chip: replaced in place by onToolExecuted
           const activity: ToolActivity = {
@@ -1328,25 +1392,25 @@ export function AiPanel({
             // Post-generation layout QC: only after a completed run that landed generated pages
             if (cancelled) qcPagesRef.current = []
             else if (qcPagesRef.current.length > 0) void runQcPassRef.current()
+            // After the batch closes, so the next queued page opens a fresh one
+            const resolveQueueRun = queueRunResolverRef.current
+            queueRunResolverRef.current = null
+            resolveQueueRun?.(!cancelled)
           })
           // Persist the assistant message (deckProgress not stored; tools store the whole run's full activity) —
           // side effects outside the updater (StrictMode double-invokes updaters, duplicating history writes)
           if (finalText && !cancelled) {
             persistMessage('assistant', finalText, runToolsRef.current)
           }
+          // A stop with nothing streamed is just the user changing their mind; a stop
+          // over half-written output is the case worth keeping (runaway repetition)
+          if (cancelled && streamedTextRef.current) logRunFailure('stopped')
         },
         onError: (error) => {
+          logRunFailure('error', error)
           qcPagesRef.current = []
           setChat((prev) => {
             const next = [...prev]
-            // the loop rolled this run's user message out of the model context — surface that
-            for (let i = next.length - 1; i >= 0; i--) {
-              const entry = next[i]!
-              if (entry.role === 'user') {
-                next[i] = { ...entry, undelivered: true }
-                break
-              }
-            }
             const last = next.at(-1)
             if (last?.role === 'assistant') {
               next[next.length - 1] = {
@@ -1374,7 +1438,12 @@ export function AiPanel({
               })
             })
             .catch(() => {})
-          void finishHistoryBatch().finally(() => setBusy(false))
+          void finishHistoryBatch().finally(() => {
+            setBusy(false)
+            const resolveQueueRun = queueRunResolverRef.current
+            queueRunResolverRef.current = null
+            resolveQueueRun?.(false)
+          })
         },
       },
     })
@@ -1500,6 +1569,7 @@ export function AiPanel({
     lastDisplayTextRef.current = displayText
     lastTurnToolsRef.current = []
     runToolsRef.current = []
+    streamedTextRef.current = ''
     runSnapshotIdRef.current = null
     stickToBottomRef.current = true
     // Internal orchestration prompts (like generate_deck step notes) skip the chat bubble and go only to the model
@@ -1519,7 +1589,7 @@ export function AiPanel({
         // AI Beautify sends the current slide's rendering along, so the model sees what it edits;
         // the note rides on the model instruction only — the chat bubble stays the localized preset text
         let modelInstruction = instruction
-        if (opts?.slideShot) {
+        if (opts?.slideShot && settingsSupportVision(settingsRef.current)) {
           const shot = await captureSlideShot(currentRef.current)
           if (shot) {
             images.push(shot)
@@ -1537,11 +1607,111 @@ export function AiPanel({
       })
   }
 
+  /** One page of a queue submission — runWith's bookkeeping minus the composer and the user bubble */
+  const runQueuePage = (instruction: string) =>
+    new Promise<boolean>((resolve) => {
+      const loop = loopRef.current
+      if (!loop || loop.busy || runStartingRef.current || qcRunningRef.current) {
+        resolve(false)
+        return
+      }
+      runStartingRef.current = true
+      instructionRef.current = instruction
+      lastInstructionRef.current = instruction
+      lastDisplayTextRef.current = undefined
+      lastTurnToolsRef.current = []
+      runToolsRef.current = []
+      streamedTextRef.current = ''
+      runSnapshotIdRef.current = null
+      stickToBottomRef.current = true
+      setChat((prev) => [
+        ...prev.map((e) =>
+          e.role === 'assistant' && e.streaming ? { ...e, streaming: false } : e,
+        ),
+        { role: 'assistant', text: '', streaming: true },
+      ])
+      runStartedAtRef.current = Date.now()
+      setBusy(true)
+      queueRunResolverRef.current = resolve
+      void window.slidesApi
+        .beginHistoryBatch()
+        .then((ok) => {
+          if (ok) historyBatchActiveRef.current = true
+          runStartingRef.current = false
+          loop.run(instruction)
+        })
+        .catch(() => {
+          runStartingRef.current = false
+          queueRunResolverRef.current = null
+          void finishHistoryBatch().finally(() => setBusy(false))
+          resolve(false)
+        })
+    })
+
+  const SKIP_REASON_KEY: Record<
+    ResolveFailure,
+    'aiQueueSkipDeleted' | 'aiQueueSkipAmbiguous' | 'aiQueueSkipNested'
+  > = {
+    deleted: 'aiQueueSkipDeleted',
+    ambiguous: 'aiQueueSkipAmbiguous',
+    nested: 'aiQueueSkipNested',
+  }
+
   /**
-   * Post-generation layout QC: each page landed by this run gets one focused vision pass in a
-   * fresh AgentLoop (screenshot + inventory → constrained fixes via execute_slide_script).
-   * Each page's edits sit in their own history batch; if the deterministic audit says the page
-   * got worse, that batch is rolled back. Progress streams into one assistant chat entry.
+   * Submit the whole queue. Anchors are resolved now, not when they were
+   * queued, so deletions and page moves in between are absorbed here. Each page
+   * is its own run (and its own undo batch): the agent keeps a workable turn
+   * budget per page, and a failure leaves the untouched pages queued.
+   */
+  const sendEditQueue = async () => {
+    const items = editQueue ?? []
+    const loop = loopRef.current
+    if (items.length === 0 || !loop || loop.busy || runStartingRef.current || qcRunningRef.current)
+      return
+    const resolved = resolveQueue(slidesRef.current, items)
+    const groups = groupByPage(resolved)
+    const skipped = resolved.filter((r) => !r.ok)
+    const runnableCount = resolved.length - skipped.length
+
+    const lines = [
+      t('aiQueueSubmitted', { count: runnableCount }),
+      ...groups.flatMap((g) =>
+        g.entries.map(
+          (e) => `${t('aiScopeSlide', { n: g.slideIndex + 1 })} · ${e.item.instruction}`,
+        ),
+      ),
+      ...skipped.map(
+        (r) =>
+          `${t('aiScopeSlide', { n: r.item.slideIndex + 1 })} · ${r.item.instruction} — ${t(
+            SKIP_REASON_KEY[r.reason],
+          )}`,
+      ),
+    ]
+    const shown = lines.join('\n')
+    stickToBottomRef.current = true
+    setChat((prev) => [
+      ...prev.map((e) => (e.role === 'assistant' && e.streaming ? { ...e, streaming: false } : e)),
+      { role: 'user', text: shown },
+    ])
+    persistMessage('user', shown)
+
+    // Unrunnable entries leave the queue right away: re-resolving them would fail
+    // the same way, and the transcript already explains why
+    if (skipped.length > 0) onQueueConsume?.(skipped.map((r) => r.item.key))
+    for (let i = 0; i < groups.length; i++) {
+      const group = groups[i]!
+      const ok = await runQueuePage(buildPageInstruction(group, groups.length, i + 1))
+      if (!ok) break // stopped or failed: the remaining pages stay queued for a retry
+      onQueueConsume?.(group.entries.map((e) => e.item.key))
+    }
+  }
+
+  /**
+   * Post-generation layout QC: each page landed by this run gets one focused pass in a fresh
+   * AgentLoop. Vision models receive screenshot + inventory; text-only models receive only
+   * deterministic geometry evidence. Each page's edits sit in their own history batch; if the
+   * deterministic audit says the page got worse, that batch is rolled back. Progress streams
+   * into one assistant chat entry.
    */
   const runQcPass = async () => {
     const pages = qcPagesRef.current
@@ -1570,16 +1740,20 @@ export function AiPanel({
     // First kept QC batch — the run's own batch takes precedence (it is earlier,
     // so restoring it rewinds past the QC edits too)
     let qcSnapshotId: number | null = null
+    // A custom endpoint may claim generic OpenAI-compatible vision support but reject the
+    // first image. Fall back for that page and keep the rest of this pass geometry-only.
+    let forceGeometryOnly = false
     try {
       for (const page of capped) {
         if (controller.signal.aborted) break
-        const shot = await captureSlideShot(page)
-        if (!shot) {
+        const useScreenshot = !forceGeometryOnly && settingsSupportVision(settingsRef.current)
+        const shot = useScreenshot ? await captureSlideShot(page) : null
+        if (useScreenshot && !shot) {
           if (slidesRef.current[page]) lines.push(tGlobal('aiQcPageSkipped', { n: page + 1 }))
           continue
         }
         const batchOpened = await window.slidesApi.beginHistoryBatch()
-        const result = await qcSlidePage({
+        let result = await qcSlidePage({
           access,
           transport,
           pageIndex: page,
@@ -1587,10 +1761,24 @@ export function AiPanel({
           systemSuffix: aiLangDirective,
           signal: controller.signal,
         })
+        if (shot && result.error && isUnsupportedImageInputError(result.error)) {
+          forceGeometryOnly = true
+          result = await qcSlidePage({
+            access,
+            transport,
+            pageIndex: page,
+            screenshot: null,
+            systemSuffix: aiLangDirective,
+            signal: controller.signal,
+          })
+        }
         const batchId = batchOpened ? await window.slidesApi.endHistoryBatch() : null
         if (controller.signal.aborted) break
         if (result.error) {
-          lines.push(tGlobal('aiQcPageFailed', { n: page + 1, error: result.error }))
+          // QC is optional polish. Keep provider/network details in diagnostics instead of
+          // exposing a noisy raw API error in the completed generation transcript.
+          console.warn(`[slides-qc] page ${page + 1} skipped:`, result.error)
+          lines.push(tGlobal('aiQcPageSkipped', { n: page + 1 }))
         } else if (result.edited && result.postIssues > result.preIssues) {
           // The fix made the deterministic audit worse — undo this page's batch
           if (typeof batchId === 'number') {
@@ -1898,9 +2086,6 @@ export function AiPanel({
               ) : (
                 entry.text
               )}
-              {entry.role === 'user' && entry.undelivered && (
-                <div className="ai-msg-undelivered">{t('aiUndelivered')}</div>
-              )}
               {entry.tools && entry.tools.length > 0 && <ToolChipList tools={entry.tools} />}
               {entry.error && (
                 <div className="ai-msg-error">{t('aiMsgError', { error: entry.error })}</div>
@@ -2027,6 +2212,18 @@ export function AiPanel({
         </div>
       ) : (
         <div className="ai-composer">
+          {editQueue && editQueue.length > 0 && (
+            <EditQueueCard
+              items={editQueue}
+              slides={slides}
+              busy={busy}
+              onEditInstruction={(key, instruction) => onQueueEditInstruction?.(key, instruction)}
+              onRemove={(key) => onQueueRemove?.(key)}
+              onDiscardAll={() => onQueueClear?.()}
+              onFocus={(key) => onQueueFocus?.(key)}
+              onSend={() => void sendEditQueue()}
+            />
+          )}
           {attachNotice && <div className="ai-attach-notice">{attachNotice}</div>}
           <div className="ai-input-box">
             {attachments.length > 0 && (

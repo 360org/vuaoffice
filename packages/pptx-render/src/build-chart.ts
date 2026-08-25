@@ -501,7 +501,10 @@ function buildChartNodeInner(
   // Category label mode: an explicit txPr rotation wins; otherwise crowded labels wrap
   // to ≤3 horizontal lines when the words fit the slot, and rotate ~45° as a last resort
   // (PowerPoint thins labels only after that)
-  const heuristicSlotW = Math.max(plotR - plotX, 10) / nCats
+  // Explicit c:tickLblSkip thins the labels: crowding decisions (wrap/rotate/reserve)
+  // size against the labeled slot, not the raw per-category slot
+  const lblSkip = model.catAxis?.tickLblSkip ?? 1
+  const heuristicSlotW = (Math.max(plotR - plotX, 10) / nCats) * lblSkip
   const catRotDeg = model.catAxis?.labelRotDeg
   const catWrapLines = (slotW: number): string[][] | null => {
     if (model.categories.length < 2 || maxCatW <= slotW * 1.05) return null
@@ -799,7 +802,10 @@ function buildChartNodeInner(
       ? Math.max(emuToPx(model.catAxis.minorGridWidthEmu, vp.scale), 0.75)
       : undefined
     const gy = plot.y - depth3d
-    for (let i = 0; i <= n; i++) {
+    // c:tickMarkSkip: ticks (and their gridlines) land every Nth slot boundary only —
+    // dense axes (1400+ samples) otherwise flood the plot with one hairline per category
+    const markSkip = model.catAxis?.tickMarkSkip ?? 1
+    for (let i = 0; i <= n; i += markSkip) {
       const gx = plot.x + depth3d * 0.5 + i * slotW
       if (catGrid && i > 0) {
         node.gridLines.push({
@@ -827,11 +833,15 @@ function buildChartNodeInner(
     }
   }
   const catBold = model.catAxis?.labelBold ? { bold: true as const } : {}
-  // Re-derive the mode from the final plot width (a manual plot layout can differ from the heuristic frame)
-  const drawWrap = catRotDeg == null ? catWrapLines(slotW) : null
+  // Re-derive the mode from the final plot width (a manual plot layout can differ from the
+  // heuristic frame); the labeled slot spans lblSkip raw slots
+  const drawWrap = catRotDeg == null ? catWrapLines(slotW * lblSkip) : null
   const drawRotate =
     (catRotDeg != null && catRotDeg !== 0) ||
-    (catRotDeg == null && !drawWrap && model.categories.length > 1 && maxCatW > slotW * rotFactor)
+    (catRotDeg == null &&
+      !drawWrap &&
+      model.categories.length > 1 &&
+      maxCatW > slotW * lblSkip * rotFactor)
   const rotCos = Math.cos((Math.abs(catRotUsed) * Math.PI) / 180)
   const rotSin = Math.sin((Math.abs(catRotUsed) * Math.PI) / 180)
   // Labels hang off the category axis (the zero line when the range spans it, the plot
@@ -839,6 +849,7 @@ function buildChartNodeInner(
   const catLabelBase = catAtZero ? crossY : plot.y + plot.h
   if (!catLabelsOff)
     model.categories.forEach((cat, i) => {
+      if (i % lblSkip) return
       const cx = plot.x + (catSlot(i) + 0.5) * slotW
       if (drawRotate) {
         // Rotation is about the text's origin (left end). Negative angles slant up-right:
@@ -1275,7 +1286,16 @@ function buildPieNode(
   const explAt = (i: number) =>
     Math.max(ser.pointExplosionPct?.[i] ?? ser.explosionPct ?? 0, 0) / 100
   const maxExpl = vals.reduce((m, v, i) => (v > 0 ? Math.max(m, explAt(i)) : m), 0)
-  const outerR = Math.max(Math.min(plotW, plotH) / 2, 5) / (1 + 2 * maxExpl)
+  // PowerPoint reserves a constant 4mm ring around the pie regardless of chart size
+  // (probe: frames 0.9"–4.5", margin 0.152–0.160" in every case, labels on or off).
+  // The ring is frame-relative (pad added back); frame-edge legends keep the clearance
+  // by construction, but 'l'/'t' legends sit pad inside the frame — cap so the pie
+  // keeps the same gap to their inner edge on large charts (pad > reserve).
+  const pieReservePx = emuToPx(144000, vp.scale)
+  let pieHalfPx = Math.min(plotW, plotH) / 2 + pad
+  if (legendPos === 'l') pieHalfPx = Math.min(pieHalfPx, plotW / 2)
+  if (legendPos === 't') pieHalfPx = Math.min(pieHalfPx, plotH / 2)
+  const outerR = Math.max(pieHalfPx - pieReservePx, 5) / (1 + 2 * maxExpl)
   const cx = plotX + plotW / 2
   let cy = plotY + plotH / 2
   const innerR = (outerR * Math.min(Math.max(model.holePct ?? 0, 0), 90)) / 100

@@ -7,18 +7,21 @@ import {
   type Run,
 } from '@genoffice/docx-engine'
 import { useI18n } from '../i18n/locale'
-import { hfTabSegments, hfUsesLegacyHash, paraBorderCss } from '../editor/hf-dom'
-import { cssDualFontFamily, cssFontFamily } from '../line-metrics'
+import {
+  hfLeadIndentCss,
+  hfSegLeftCss,
+  hfTabSegments,
+  hfUsesLegacyHash,
+  paraBorderCss,
+} from '../editor/hf-dom'
+import { applyHfText, hfEditText, hfParasOf, PAGE_TOKEN } from '../editor/hf-text'
+import { cssRunFontFamily, runLetterSpacingCss } from '../line-metrics'
 
 export interface HfValue {
   text: string
   pageNumber?: boolean
   paras?: HfParagraph[]
 }
-
-/** visible edit-surface stand-ins for the invisible private-use field sentinels */
-const PAGE_TOKEN = '{PAGE}'
-const TOTAL_TOKEN = '{NUMPAGES}'
 
 function runStyle(run: Run): React.CSSProperties {
   const style: React.CSSProperties = {}
@@ -28,8 +31,9 @@ function runStyle(run: Run): React.CSSProperties {
   if (run.strike) style.textDecoration = `${style.textDecoration ?? ''} line-through`.trim()
   if (run.color) style.color = `#${run.color}`
   if (run.sizeHalfPoints) style.fontSize = `${run.sizeHalfPoints / 2}pt`
-  if (run.font && run.fontAscii) style.fontFamily = cssDualFontFamily(run.fontAscii, run.font)
-  else if (run.font || run.fontAscii) style.fontFamily = cssFontFamily((run.font ?? run.fontAscii)!)
+  const letterSpacing = runLetterSpacingCss(run)
+  if (letterSpacing) style.letterSpacing = letterSpacing
+  if (run.font || run.fontAscii) style.fontFamily = cssRunFontFamily(run.fontAscii, run.font)
   if (run.caps === 'all') style.textTransform = 'uppercase'
   else if (run.caps === 'small') style.fontVariantCaps = 'small-caps'
   return style
@@ -59,16 +63,6 @@ function paraStyle(para: HfParagraph): React.CSSProperties {
   return style
 }
 
-/** effective paragraphs: rich paras when present, else the legacy single line */
-function parasOf(value: HfValue): HfParagraph[] {
-  if (value.paras?.length) return value.paras
-  const runs: Run[] = value.text ? [{ text: value.text }] : []
-  if (value.pageNumber && !value.text.includes('#') && !value.text.includes(PAGE_MARK)) {
-    runs.push({ text: runs.length > 0 ? ` ${PAGE_MARK}` : PAGE_MARK })
-  }
-  return [{ align: 'center', runs }]
-}
-
 /**
  * Header / footer zone on the page: renders the rich paragraphs,
  * double-click enters in-place editing (plain text per paragraph; each line
@@ -83,6 +77,7 @@ export function HeaderFooterArea({
   onCommit,
   pageNo,
   pageTotal,
+  style,
 }: {
   kind: 'header' | 'footer'
   value: HfValue
@@ -94,13 +89,15 @@ export function HeaderFooterArea({
   pageNo?: number | string
   /** Total page count shown for TOTAL_PAGES_MARK (NUMPAGES field), defaults to 1 */
   pageTotal?: number
+  /** geometry override: on differing-width sections the strip is pinned to its own section's box */
+  style?: React.CSSProperties
 }) {
   const { t } = useI18n()
   const [editing, setEditing] = useState(false)
   const editRef = useRef<HTMLDivElement>(null)
   const cancelRef = useRef(false)
   const initialTextRef = useRef('')
-  const paras = parasOf(value)
+  const paras = hfParasOf(value)
 
   // The editing surface is a standalone element: content is injected here and React
   // does not manage its children; after commit the whole element unmounts, so text
@@ -110,12 +107,7 @@ export function HeaderFooterArea({
     const el = editRef.current
     if (!el) return
     // table-row (cells) paragraphs stay out of the text editing flow
-    el.innerText = paras
-      .filter((p) => !p.cells)
-      .map((p) => p.runs.map((r) => r.text).join(''))
-      .join('\n')
-      .replaceAll(PAGE_MARK, PAGE_TOKEN)
-      .replaceAll(TOTAL_PAGES_MARK, TOTAL_TOKEN)
+    el.innerText = hfEditText(value)
     cancelRef.current = false
     initialTextRef.current = el.innerText
     el.focus()
@@ -136,29 +128,7 @@ export function HeaderFooterArea({
       return
     }
     if (el.innerText === initialTextRef.current) return
-    const lines = el.innerText
-      .replace(/\n+$/, '')
-      .replaceAll(PAGE_TOKEN, PAGE_MARK)
-      .replaceAll(TOTAL_TOKEN, TOTAL_PAGES_MARK)
-      .split('\n')
-    const textParas = paras.filter((p) => !p.cells)
-    const templates: HfParagraph[] =
-      textParas.length > 0 ? textParas : [{ align: 'center', runs: [] }]
-    const edited: HfParagraph[] = lines.map((line, i) => {
-      const template = templates[Math.min(i, templates.length - 1)]
-      const style = template.runs[0] ?? {}
-      return { ...template, runs: line === '' ? [] : [{ ...style, text: line }] }
-    })
-    // splice cells rows back at their original positions among the text paragraphs
-    const nextParas: HfParagraph[] = []
-    let ei = 0
-    for (const p of paras) {
-      if (p.cells) nextParas.push(p)
-      else if (ei < edited.length) nextParas.push(edited[ei++])
-    }
-    nextParas.push(...edited.slice(ei))
-    const text = edited.map((p) => p.runs.map((r) => r.text).join('')).join('')
-    onCommit({ ...value, text, paras: nextParas })
+    onCommit(applyHfText(value, el.innerText))
   }
 
   const display = (text: string) => {
@@ -171,6 +141,7 @@ export function HeaderFooterArea({
   return (
     <div
       className={`page-hf page-hf-${kind}${editing ? ' page-hf-editing' : ''}`}
+      style={style}
       data-tip={
         readOnly
           ? undefined
@@ -295,7 +266,7 @@ function HfContent({
           </div>
         ) : (
           (() => {
-            const tabbed = hfTabSegments(para)
+            const tabbed = hfTabSegments(para, display)
             if (!tabbed) {
               return (
                 <div
@@ -312,6 +283,7 @@ function HfContent({
                 </div>
               )
             }
+            const leadIndent = hfLeadIndentCss(tabbed)
             return (
               <div
                 key={i}
@@ -319,6 +291,9 @@ function HfContent({
                 style={{
                   ...paraStyle(para),
                   ...(tabbed.minHeightPt ? { minHeight: `${tabbed.minHeightPt}pt` } : {}),
+                  // tab layout happens in left-aligned space; w:jc becomes an explicit shift
+                  textAlign: 'left',
+                  ...(leadIndent ? { textIndent: leadIndent } : {}),
                 }}
               >
                 {tabbed.lead.map((run, j) => (
@@ -330,7 +305,7 @@ function HfContent({
                   <span
                     key={`t${k}`}
                     className={`page-hf-tabseg page-hf-tabseg-${seg.anchor}`}
-                    style={{ left: 'px' in seg.left ? seg.left.px : `${seg.left.pct}%` }}
+                    style={{ left: hfSegLeftCss(seg, tabbed) }}
                   >
                     {seg.runs.map((run, j) => (
                       <span key={j} style={runStyle(run)}>

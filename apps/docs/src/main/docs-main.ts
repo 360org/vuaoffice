@@ -8,16 +8,29 @@ import {
   unlinkSync,
   writeFileSync,
 } from 'node:fs'
-import { copyFile, mkdir, readFile, readdir, stat, unlink } from 'node:fs/promises'
+import { copyFile, mkdir, readFile, readdir, stat, unlink, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
-import { BrowserWindow, Menu, WebContentsView, app, dialog, ipcMain, net, shell } from 'electron'
+import {
+  BrowserWindow,
+  Menu,
+  WebContentsView,
+  app,
+  clipboard,
+  dialog,
+  ipcMain,
+  nativeImage,
+  net,
+  shell,
+} from 'electron'
 import {
   appMenuLabels,
+  buildPrintableHtml,
   configuredDefaultSaveDir,
   contextMenuLabels,
   fetchRemoteImage,
   installContextMenu,
   installNavigationGuard,
+  printHtmlToPdf,
   safeExternalUrl,
   showOpenDialogWithMemory,
   showSaveDialogWithMemory,
@@ -55,16 +68,20 @@ import {
 } from '@genoffice/ai-provider'
 import {
   gskApiKey,
+  gskGenerateImage,
   gskLoginInfo,
   hasGskAuth,
   webSearch,
   imageSearch,
 } from '@genoffice/ai-search'
 import type {
+  AiDocContent,
   AttachmentAddResult,
   AttachmentImageResult,
   AttachmentMeta,
   AttachmentReadResult,
+  CreateDocumentRequest,
+  CreateDocumentResult,
   DecryptOpenResult,
   DocsTabInfo,
   MenuCommand,
@@ -193,7 +210,12 @@ const tMain = createI18n({
     menuAiProofread: 'AI 校对',
     menuWindow: '窗口',
     menuHelp: '帮助',
+<<<<<<< HEAD
     menuDocsHelp: 'VuaOffice Docs 帮助',
+=======
+    menuShortcuts: '键盘快捷键',
+    menuDocsHelp: 'GenOffice Docs 帮助',
+>>>>>>> upstream/main
   },
   en: {
     dlgOpenDoc: 'Open Document',
@@ -286,7 +308,12 @@ const tMain = createI18n({
     menuAiProofread: 'AI Proofread',
     menuWindow: 'Window',
     menuHelp: 'Help',
+<<<<<<< HEAD
     menuDocsHelp: 'VuaOffice Docs Help',
+=======
+    menuShortcuts: 'Keyboard Shortcuts',
+    menuDocsHelp: 'GenOffice Docs Help',
+>>>>>>> upstream/main
   },
   ja: {
     dlgOpenDoc: '文書を開く',
@@ -379,7 +406,12 @@ const tMain = createI18n({
     menuAiProofread: 'AI 校正',
     menuWindow: 'ウィンドウ',
     menuHelp: 'ヘルプ',
+<<<<<<< HEAD
     menuDocsHelp: 'VuaOffice Docs ヘルプ',
+=======
+    menuShortcuts: 'キーボードショートカット',
+    menuDocsHelp: 'GenOffice Docs ヘルプ',
+>>>>>>> upstream/main
   },
   ko: {
     dlgOpenDoc: '문서 열기',
@@ -473,7 +505,12 @@ const tMain = createI18n({
     menuAiProofread: 'AI 교정',
     menuWindow: '창',
     menuHelp: '도움말',
+<<<<<<< HEAD
     menuDocsHelp: 'VuaOffice Docs 도움말',
+=======
+    menuShortcuts: '키보드 바로 가기',
+    menuDocsHelp: 'GenOffice Docs 도움말',
+>>>>>>> upstream/main
   },
   fr: {
     dlgOpenDoc: 'Ouvrir un document',
@@ -568,7 +605,12 @@ const tMain = createI18n({
     menuAiProofread: 'Relecture IA',
     menuWindow: 'Fenêtre',
     menuHelp: 'Aide',
+<<<<<<< HEAD
     menuDocsHelp: 'Aide VuaOffice Docs',
+=======
+    menuShortcuts: 'Raccourcis clavier',
+    menuDocsHelp: 'Aide GenOffice Docs',
+>>>>>>> upstream/main
   },
   de: {
     dlgOpenDoc: 'Dokument öffnen',
@@ -663,7 +705,12 @@ const tMain = createI18n({
     menuAiProofread: 'KI-Korrektur',
     menuWindow: 'Fenster',
     menuHelp: 'Hilfe',
+<<<<<<< HEAD
     menuDocsHelp: 'VuaOffice Docs-Hilfe',
+=======
+    menuShortcuts: 'Tastenkombinationen',
+    menuDocsHelp: 'GenOffice Docs-Hilfe',
+>>>>>>> upstream/main
   },
   es: {
     dlgOpenDoc: 'Abrir documento',
@@ -757,7 +804,8 @@ const tMain = createI18n({
     menuAiProofread: 'Corrección con IA',
     menuWindow: 'Ventana',
     menuHelp: 'Ayuda',
-    menuDocsHelp: 'Ayuda de VuaOffice Docs',
+    menuShortcuts: 'Atajos de teclado',
+    menuDocsHelp: 'Ayuda de GenOffice Docs',
   },
   th: {
     dlgOpenDoc: 'เปิดเอกสาร',
@@ -850,7 +898,12 @@ const tMain = createI18n({
     menuAiProofread: 'พิสูจน์อักษรด้วย AI',
     menuWindow: 'หน้าต่าง',
     menuHelp: 'วิธีใช้',
+<<<<<<< HEAD
     menuDocsHelp: 'วิธีใช้ VuaOffice Docs',
+=======
+    menuShortcuts: 'แป้นพิมพ์ลัด',
+    menuDocsHelp: 'วิธีใช้ GenOffice Docs',
+>>>>>>> upstream/main
   },
   id: {
     dlgOpenDoc: 'Buka Dokumen',
@@ -943,7 +996,12 @@ const tMain = createI18n({
     menuAiProofread: 'Koreksi AI',
     menuWindow: 'Jendela',
     menuHelp: 'Bantuan',
+<<<<<<< HEAD
     menuDocsHelp: 'Bantuan VuaOffice Docs',
+=======
+    menuShortcuts: 'Pintasan Papan Ketik',
+    menuDocsHelp: 'Bantuan GenOffice Docs',
+>>>>>>> upstream/main
   },
   ru: {
     dlgOpenDoc: 'Открыть документ',
@@ -1037,7 +1095,12 @@ const tMain = createI18n({
     menuAiProofread: 'ИИ-корректура',
     menuWindow: 'Окно',
     menuHelp: 'Справка',
+<<<<<<< HEAD
     menuDocsHelp: 'Справка VuaOffice Docs',
+=======
+    menuShortcuts: 'Сочетания клавиш',
+    menuDocsHelp: 'Справка GenOffice Docs',
+>>>>>>> upstream/main
   },
   ar: {
     dlgOpenDoc: 'فتح مستند',
@@ -1131,7 +1194,12 @@ const tMain = createI18n({
     menuAiProofread: 'تدقيق بالذكاء الاصطناعي',
     menuWindow: 'نافذة',
     menuHelp: 'تعليمات',
+<<<<<<< HEAD
     menuDocsHelp: 'تعليمات VuaOffice Docs',
+=======
+    menuShortcuts: 'اختصارات لوحة المفاتيح',
+    menuDocsHelp: 'تعليمات GenOffice Docs',
+>>>>>>> upstream/main
   },
   pt: {
     dlgOpenDoc: 'Abrir Documento',
@@ -1225,7 +1293,12 @@ const tMain = createI18n({
     menuAiProofread: 'Revisão com IA',
     menuWindow: 'Janela',
     menuHelp: 'Ajuda',
+<<<<<<< HEAD
     menuDocsHelp: 'Ajuda do VuaOffice Docs',
+=======
+    menuShortcuts: 'Atalhos de Teclado',
+    menuDocsHelp: 'Ajuda do GenOffice Docs',
+>>>>>>> upstream/main
   },
   it: {
     dlgOpenDoc: 'Apri documento',
@@ -1319,7 +1392,12 @@ const tMain = createI18n({
     menuAiProofread: 'Correzione IA',
     menuWindow: 'Finestra',
     menuHelp: 'Aiuto',
+<<<<<<< HEAD
     menuDocsHelp: 'Guida di VuaOffice Docs',
+=======
+    menuShortcuts: 'Scelte rapide da tastiera',
+    menuDocsHelp: 'Guida di GenOffice Docs',
+>>>>>>> upstream/main
   },
   pl: {
     dlgOpenDoc: 'Otwórz dokument',
@@ -1413,7 +1491,12 @@ const tMain = createI18n({
     menuAiProofread: 'Korekta AI',
     menuWindow: 'Okno',
     menuHelp: 'Pomoc',
+<<<<<<< HEAD
     menuDocsHelp: 'Pomoc VuaOffice Docs',
+=======
+    menuShortcuts: 'Skróty klawiaturowe',
+    menuDocsHelp: 'Pomoc GenOffice Docs',
+>>>>>>> upstream/main
   },
   nl: {
     dlgOpenDoc: 'Document openen',
@@ -1507,7 +1590,12 @@ const tMain = createI18n({
     menuAiProofread: 'AI-proeflezen',
     menuWindow: 'Venster',
     menuHelp: 'Help',
+<<<<<<< HEAD
     menuDocsHelp: 'VuaOffice Docs Help',
+=======
+    menuShortcuts: 'Sneltoetsen',
+    menuDocsHelp: 'GenOffice Docs Help',
+>>>>>>> upstream/main
   },
   ms: {
     dlgOpenDoc: 'Buka Dokumen',
@@ -1601,7 +1689,12 @@ const tMain = createI18n({
     menuAiProofread: 'Pembacaan Pruf AI',
     menuWindow: 'Tetingkap',
     menuHelp: 'Bantuan',
+<<<<<<< HEAD
     menuDocsHelp: 'Bantuan VuaOffice Docs',
+=======
+    menuShortcuts: 'Pintasan Papan Kekunci',
+    menuDocsHelp: 'Bantuan GenOffice Docs',
+>>>>>>> upstream/main
   },
   he: {
     dlgOpenDoc: 'פתיחת מסמך',
@@ -1693,7 +1786,12 @@ const tMain = createI18n({
     menuAiProofread: 'הגהת AI',
     menuWindow: 'חלון',
     menuHelp: 'עזרה',
+<<<<<<< HEAD
     menuDocsHelp: 'עזרה של VuaOffice Docs',
+=======
+    menuShortcuts: 'קיצורי מקלדת',
+    menuDocsHelp: 'עזרה של GenOffice Docs',
+>>>>>>> upstream/main
   },
   hi: {
     dlgOpenDoc: 'दस्तावेज़ खोलें',
@@ -1787,7 +1885,12 @@ const tMain = createI18n({
     menuAiProofread: 'AI प्रूफ़रीडिंग',
     menuWindow: 'विंडो',
     menuHelp: 'सहायता',
+<<<<<<< HEAD
     menuDocsHelp: 'VuaOffice Docs सहायता',
+=======
+    menuShortcuts: 'कीबोर्ड शॉर्टकट',
+    menuDocsHelp: 'GenOffice Docs सहायता',
+>>>>>>> upstream/main
   },
   'zh-TW': {
     dlgOpenDoc: '開啟文件',
@@ -1878,7 +1981,12 @@ const tMain = createI18n({
     menuAiProofread: 'AI 校對',
     menuWindow: '視窗',
     menuHelp: '說明',
+<<<<<<< HEAD
     menuDocsHelp: 'VuaOffice Docs 說明',
+=======
+    menuShortcuts: '鍵盤快速鍵',
+    menuDocsHelp: 'GenOffice Docs 說明',
+>>>>>>> upstream/main
   },
 })
 const tm = (key: Parameters<typeof tMain>[1], params?: Parameters<typeof tMain>[2]) =>
@@ -1920,6 +2028,14 @@ const pendingNewBlankIds = new Set<number>()
 /** mark a docs webContents as "open blank on first consume" (called by the shell for home:new-doc) */
 export function markDocsNewBlank(wcId: number): void {
   pendingNewBlankIds.add(wcId)
+}
+
+/** AI-authored content waiting for its create_document tab, keyed by webContents id */
+const pendingAiDocContents = new Map<number, AiDocContent>()
+
+/** queue AI content for a fresh blank docs tab (called by the shell right after creating the view) */
+export function queueDocsAiContent(wcId: number, content: AiDocContent): void {
+  pendingAiDocContents.set(wcId, content)
 }
 
 /** the single real BrowserWindow hosting the tab strip, used as dialog parent in tab mode */
@@ -2409,6 +2525,7 @@ const ATTACHMENT_EXTS = new Set([
   'pptx',
   'ppt',
   'xlsx',
+  'xlsm',
   'xls',
   ...ATTACHMENT_IMAGE_EXTS,
 ])
@@ -2700,6 +2817,34 @@ export function registerAiIpc(): void {
         return { base64: buf.toString('base64'), mime }
       } catch {
         return null
+      }
+    },
+  )
+
+  // docs-owned (like pdf:generate-image): slides' ai:generate-image is only
+  // registered once a slides view exists, so docs needs its own channel
+  ipcMain.handle(
+    'docs:ai-generate-image',
+    async (_event, op: { prompt?: unknown; aspectRatio?: unknown }) => {
+      if (!hasGskAuth())
+        return {
+          error: 'Genspark account is not logged in on this machine; ask the user to log in first',
+        }
+      if (!gskCloudToolsOn())
+        return {
+          error:
+            'Genspark cloud tools are turned off in Settings (AI Model); enable them to use this tool',
+        }
+      const prompt = String(op?.prompt ?? '').trim()
+      if (!prompt) return { error: 'prompt must not be empty' }
+      try {
+        const r = await gskGenerateImage({
+          prompt,
+          aspectRatio: op?.aspectRatio ? String(op.aspectRatio) : undefined,
+        })
+        return { url: r.url }
+      } catch (err) {
+        return { error: err instanceof Error ? err.message : String(err) }
       }
     },
   )
@@ -3040,6 +3185,13 @@ export function registerDocsIpc(): void {
     return false
   })
 
+  /** one-shot AI content queued by create_document for this tab; null when none */
+  ipcMain.handle('docs:consume-ai-doc-content', (event): AiDocContent | null => {
+    const content = pendingAiDocContents.get(event.sender.id) ?? null
+    pendingAiDocContents.delete(event.sender.id)
+    return content
+  })
+
   ipcMain.handle(
     'docs:save',
     async (event, filePath: string, data: ArrayBuffer, auto?: boolean) => {
@@ -3213,6 +3365,12 @@ export function registerDocsIpc(): void {
     }
   })
 
+  ipcMain.handle(
+    'docs:create-document',
+    (_event, request: CreateDocumentRequest): Promise<CreateDocumentResult> =>
+      createAiDocument(request),
+  )
+
   ipcMain.handle('docs:recent', () =>
     readJson<string[]>(RECENT_PATH(), []).filter((p) => existsSync(p)),
   )
@@ -3309,6 +3467,44 @@ export function registerDocsIpc(): void {
     },
   )
 
+  // r136: copying an embedded picture must yield a real bitmap for external
+  // apps (Gmail pasted blank) plus plain <img> html for cross-document paste
+  // (the protected wrapper round-tripped as a "protected content" shell).
+  ipcMain.handle(
+    'docs:copy-image-to-clipboard',
+    (_event, dataUrl: unknown, meta: unknown): boolean => {
+      if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/')) return false
+      const base64 = dataUrl.slice(dataUrl.indexOf(',') + 1)
+      // createFromBuffer, not createFromDataURL — the latter returns an empty
+      // image for valid PNGs in this Electron
+      const image = nativeImage.createFromBuffer(Buffer.from(base64, 'base64'))
+      if (image.isEmpty()) return false
+      // the html flavor carries the DISPLAY size + layout meta so an in-app
+      // paste keeps size/align/wrap instead of falling back to bitmap pixels
+      let width = image.getSize().width
+      let height = image.getSize().height
+      let metaAttr = ''
+      if (typeof meta === 'string' && meta.length <= 2048) {
+        try {
+          const parsed = JSON.parse(meta) as Record<string, unknown>
+          if (typeof parsed.imageWidthPx === 'number' && parsed.imageWidthPx > 0)
+            width = Math.round(parsed.imageWidthPx)
+          if (typeof parsed.imageHeightPx === 'number' && parsed.imageHeightPx > 0)
+            height = Math.round(parsed.imageHeightPx)
+          const escaped = meta.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
+          metaAttr = ` data-image-meta="${escaped}"`
+        } catch {
+          /* malformed payload: plain img */
+        }
+      }
+      clipboard.write({
+        image,
+        html: `<img src="${dataUrl}" width="${width}" height="${height}"${metaAttr}>`,
+      })
+      return true
+    },
+  )
+
   ipcMain.handle('docs:print', async (event) => {
     // print the calling tab's own content; zero margins — the docx page padding provides them.
     // Resolves when the system dialog is dismissed; the print dialog stays open on cancel
@@ -3358,6 +3554,7 @@ export function registerDocsIpc(): void {
           margins: { top: 0, bottom: 0, left: 0, right: 0 },
         })
         writeFileSync(filePath, data)
+        openGeneratedFile(filePath)
         return { ok: true, path: filePath }
       } catch (err) {
         return { ok: false, error: String(err) }
@@ -3412,6 +3609,7 @@ export function registerDocsIpc(): void {
           for (const page of pages) merged.addPage(page)
         }
         writeFileSync(filePath, Buffer.from(await merged.save()))
+        openGeneratedFile(filePath)
         return { ok: true, path: filePath }
       } catch (err) {
         return { ok: false, error: String(err) }
@@ -3455,14 +3653,90 @@ export function registerDocsIpc(): void {
  * and falls back to real multi-BrowserWindow behavior. */
 interface DocsShellHooks {
   openTab(openPath?: string, options?: { newBlank?: boolean }): void
+  /** open a blank docs tab that consumes the queued AI content on boot (create_document) */
+  openAiDocTab?(content: AiDocContent): void
   listTabs(): DocsTabInfo[]
   focusTab(id: string): void
   /** closes the calling tab instead of the whole shell window (Cmd+W / role:'close') */
   closeActiveTab(): void
+  /** Shell router used to open exported PDFs in a new GenOffice tab. */
+  openGeneratedPath?(path: string): boolean
 }
 let shellHooks: DocsShellHooks | null = null
 export function setDocsShellHooks(hooks: DocsShellHooks | null): void {
   shellHooks = hooks
+}
+
+/** After writing an exported/AI-generated file: open it in the right tab
+ * (shell) or reveal it in the folder (standalone). Tab-opening failure must
+ * not report the write itself as failed — the file is already persisted. */
+function openGeneratedFile(path: string): void {
+  try {
+    if (shellHooks?.openGeneratedPath?.(path)) return
+  } catch (err) {
+    console.warn('[docs] Failed to open generated file:', err)
+  }
+  shell.showItemInFolder(path)
+}
+
+/** Pick a safe file-name stem for an AI-created document. */
+export function sanitizeAiDocFileBase(title: string): string {
+  // Control characters are intentionally rejected from generated file names.
+  const cleaned = String(title ?? '')
+    // eslint-disable-next-line no-control-regex
+    .replace(/[/\\:*?"<>|\u0000-\u001f]/g, '_')
+    .trim()
+    .slice(0, 80)
+    .trim()
+  return cleaned && cleaned !== '.' && cleaned !== '..' ? cleaned : 'Untitled'
+}
+
+/**
+ * AI create_document: build a new standalone file in the default folder and
+ * open it in a new tab. docx routes through a fresh blank docs tab that
+ * inserts the queued content on boot and saves itself (the full-fidelity
+ * HTML → docx conversion lives in the docs renderer); pdf and md are written
+ * directly here. Also called by other apps' mains via shell-wired hooks.
+ */
+export async function createAiDocument(
+  request: CreateDocumentRequest,
+): Promise<CreateDocumentResult> {
+  const type = request?.type
+  const title = sanitizeAiDocFileBase(request?.title)
+  const content = String(request?.content ?? '')
+  if (!content.trim()) return { ok: false, error: 'content must not be empty' }
+  try {
+    if (type === 'docx') {
+      const payload: AiDocContent = { title, html: content }
+      if (shellHooks?.openAiDocTab) shellHooks.openAiDocTab(payload)
+      else {
+        const win = createDocsWindow(undefined)
+        markDocsNewBlank(win.webContents.id)
+        queueDocsAiContent(win.webContents.id, payload)
+      }
+      return { ok: true }
+    }
+    if (type === 'pdf') {
+      const bytes = await printHtmlToPdf(
+        buildPrintableHtml(title, content),
+        () =>
+          new BrowserWindow({ show: false, webPreferences: { sandbox: true, javascript: false } }),
+      )
+      const filePath = uniquePathIn(defaultSaveDir(), `${title}.pdf`)
+      await writeFile(filePath, bytes)
+      openGeneratedFile(filePath)
+      return { ok: true, path: filePath }
+    }
+    if (type === 'md') {
+      const filePath = uniquePathIn(defaultSaveDir(), `${title}.md`)
+      await writeFile(filePath, content, 'utf8')
+      openGeneratedFile(filePath)
+      return { ok: true, path: filePath }
+    }
+    return { ok: false, error: `unsupported document type: ${String(type)}` }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) }
+  }
 }
 
 // ---- application menu ----
@@ -3657,6 +3931,9 @@ export function buildDocsMenu(): void {
       submenu: [
         { label: tm('menuInsertTable'), click: () => sendCommand('insert-table') },
         { label: tm('menuInsertImage'), click: () => sendCommand('insert-image') },
+        // no CmdOrCtrl+Enter accelerator: a menu accelerator would intercept
+        // the key before renderer inputs (comments panel / prompt modal use
+        // Cmd+Enter to submit); the editor keymap handles it instead
         { label: tm('menuInsertPageBreak'), click: () => sendCommand('insert-page-break') },
         {
           label: tm('menuInsertLink'),
@@ -3715,7 +3992,15 @@ export function buildDocsMenu(): void {
     {
       label: tm('menuHelp'),
       role: 'help',
-      submenu: [{ label: tm('menuDocsHelp'), enabled: false }],
+      submenu: [
+        {
+          label: tm('menuShortcuts'),
+          accelerator: 'CmdOrCtrl+/',
+          click: () => sendCommand('shortcuts'),
+        },
+        { type: 'separator' },
+        { label: tm('menuDocsHelp'), enabled: false },
+      ],
     },
   ]
 

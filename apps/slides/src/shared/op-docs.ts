@@ -84,6 +84,14 @@ export const OP_DOCS: Record<string, OpDoc> = {
     group: 'element',
   },
   setTextAnchor: { sig: '{anchor:"top"|"middle"|"bottom"}', group: 'element' },
+  setTextBodyProps: {
+    sig: '{props:{vert?:"horz"|"eaVert"|"vert"|"vert270"|"wordArtVert",autofit?:"none"|"shrink"|"resize",insets?:{l?,t?,r?,b?} (EMU),wrap?:boolean}}',
+    group: 'element',
+  },
+  setEffects: {
+    sig: '{effects:{shadow?:{color:"#RRGGBB(AA)",blurRad,dist,dirDeg,inner?,sx?,sy?,kxDeg?}|null,glow?:{color,radius}|null,reflection?:{blurRad,startA(0..1),endPos(0..1),dist}|null,softEdge?:EMU|null}} — null clears; EMU distances (12700/pt)',
+    group: 'element',
+  },
   setLink: {
     sig: '{link:{kind:"url",url}|{kind:"slide",slideIndex}|null}',
     group: 'element',
@@ -159,6 +167,11 @@ export const OP_DOCS: Record<string, OpDoc> = {
   },
   pasteSlide: {
     sig: '{afterIndex,bundle|png,mode?} — clipboard payload',
+    group: 'slide',
+    aiCallable: false,
+  },
+  insertSlidePptx: {
+    sig: '{source,at?,replace?} — generated-page landing payload (use generate_deck/regenerate_slide)',
     group: 'slide',
     aiCallable: false,
   },

@@ -110,7 +110,19 @@ export interface GlowEffect {
   radius: number
 }
 
-/** Outer shadow <a:outerShdw> (the most common effectLst entry) */
+/** Reflection <a:reflection>: flipped fading copy below the shape */
+export interface ReflectionEffect {
+  /** Blur radius (EMU) */
+  blurRad: number
+  /** Opacity at the touching edge (0..1, <a:reflection stA>) */
+  startA: number
+  /** Fade extent as a fraction of the shape (0..1, <a:reflection endPos>) */
+  endPos: number
+  /** Offset distance (EMU) */
+  dist: number
+}
+
+/** Outer or inner shadow (<a:outerShdw> / <a:innerShdw>; the most common effectLst entries) */
 export interface ShadowEffect {
   color: ResolvedColor
   /** Blur radius (EMU) */
@@ -119,6 +131,16 @@ export interface ShadowEffect {
   dist: number
   /** Direction (degrees, clockwise, 0 = right) */
   dirDeg: number
+  /** <a:innerShdw> (shadow cast inside the shape edges) instead of <a:outerShdw> */
+  inner?: boolean
+  /** Perspective outerShdw silhouette scale (1 = 100%; sy may be negative = flipped) */
+  sx?: number
+  sy?: number
+  /** Perspective outerShdw silhouette skew (degrees) */
+  kxDeg?: number
+  kyDeg?: number
+  /** Shadow alignment anchor (<a:outerShdw algn>, e.g. 'b', 'bl', 'br') */
+  algn?: string
 }
 
 // ── Text ───────────────────────────────────────────────────────────────
@@ -140,8 +162,19 @@ export interface TextRun {
   fontSizeImplicit?: boolean
   /** Letter spacing <a:rPr spc> (pt, may be negative; PowerPoint stores 1/100pt) */
   letterSpacing?: number
+  /** Kerning threshold <a:rPr kern> (pt): kern pairs apply only at fontSize ≥ this; 0 = never.
+   *  Absent = PowerPoint's 12 pt default (probe-measured: 18 pt kerns, 10 pt does not). */
+  kern?: number
   /** Font family (final font name after theme inheritance, for render/editor display) */
   fontFamily?: string
+  /**
+   * CJK script hint for substituting fontFamily when it is missing, mirroring
+   * PowerPoint: the run's altLang/lang CJK tag wins (prod_043: KR font declared
+   * charset=134 but altLang="ko-KR" → Malgun), else the @charset declared on the
+   * picked rPr font bucket (prod_079: JP-named font, no altLang, charset=134
+   * GB2312 → Microsoft YaHei). Name classification is only the last resort.
+   */
+  fontScriptHint?: 'ja' | 'ko' | 'sc' | 'tc'
   /**
    * Original <a:latin>/<a:ea> typeface text (incl. +mj-lt/+mn-ea theme refs).
    * Present = the user has not changed the font: patches keep the original bytes
@@ -327,6 +360,8 @@ interface ElementBase {
   dirtyPPr?: PPrDirty
   /** Placeholder type (title/body/…), located via layout/master inheritance */
   placeholder?: string
+  /** <p:cNvSpPr txBox="1">: an Insert > Text Box, which stays top-left where an autoshape centers */
+  txBox?: boolean
   name?: string
   /**
    * <p:cNvPr descr="…">: editor-owned metadata payload (e.g. vector points of
@@ -404,6 +439,7 @@ export interface TextElement extends ElementBase {
   stroke?: Stroke
   shadow?: ShadowEffect
   glow?: GlowEffect
+  reflection?: ReflectionEffect
   scene3d?: Scene3D
   text?: TextBody
 }
@@ -428,6 +464,10 @@ export interface PictureElement extends ElementBase {
   /** Picture outline geometry <a:prstGeom> (ellipse avatars/rounded-corner frames etc. from picture styles; rect omitted) */
   presetGeometry?: string
   adjust?: Record<string, number>
+  /** Picture outline <a:custGeom> (the image is clipped to the custom path; mutually exclusive with presetGeometry) */
+  customGeometry?: CustomGeometry
+  /** <a:scene3d> on the pic: a flat 180° camera rotation mirrors the bitmap */
+  scene3d?: Scene3D
   /** Shape fill from the pic's own spPr, drawn as a backdrop behind the image */
   fill?: Fill
   /** <a:blip><a:duotone> on the picture blip */
@@ -439,6 +479,7 @@ export interface PictureElement extends ElementBase {
   stroke?: Stroke
   shadow?: ShadowEffect
   glow?: GlowEffect
+  reflection?: ReflectionEffect
 }
 
 export interface GroupElement extends ElementBase {

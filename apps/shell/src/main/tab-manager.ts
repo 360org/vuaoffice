@@ -6,18 +6,26 @@ import {
   createDocsView,
   docsQueryDirty,
   markDocsNewBlank,
+  queueDocsAiContent,
   requestDocsClose,
   setActiveDocsResolver,
   teardownDocsRenderer,
 } from '../../../docs/src/main/docs-main'
+import type { AiDocContent } from '../../../docs/src/shared/ipc'
 import {
   createMarkdownView,
   markdownIsDirty,
   requestMarkdownClose,
 } from '../../../markdown/src/main/markdown-main'
-import { createPdfView, pdfIsDirty, requestPdfClose } from '../../../pdf/src/main/pdf-main'
+import {
+  createPdfView,
+  clearPdfDirty,
+  pdfIsDirty,
+  requestPdfClose,
+} from '../../../pdf/src/main/pdf-main'
 import {
   createSheetsView,
+  queueWorkbookForView,
   requestSheetsClose,
   setActiveSheetsWebContents,
   setSheetsNewBlank,
@@ -145,10 +153,14 @@ export class TabManager {
     this.activateTab(HOME_ID)
   }
 
-  openDocsTab(openPath?: string, options?: { newBlank?: boolean }): string {
+  openDocsTab(
+    openPath?: string,
+    options?: { newBlank?: boolean; aiContent?: AiDocContent },
+  ): string {
     const view = createDocsView(openPath)
     const id = `t${this.nextId++}`
     if (options?.newBlank) markDocsNewBlank(view.webContents.id)
+    if (options?.aiContent) queueDocsAiContent(view.webContents.id, options.aiContent)
     this.shellWindow.contentView.addChildView(view)
     view.setVisible(false)
     this.trackHtmlFullScreen(id, view)
@@ -166,6 +178,10 @@ export class TabManager {
   openSheetsTab(openPath?: string, options?: { newBlank?: boolean }): string {
     if (options?.newBlank) setSheetsNewBlank()
     const view = createSheetsView({ includeAiHandlers: false })
+    // bind the path to this tab's webContents: a multi-select Open creates
+    // several sheets tabs in one loop, so a single global path would be
+    // overwritten before the earlier tabs consume it
+    if (openPath) queueWorkbookForView(view.webContents, openPath)
     const id = `t${this.nextId++}`
     this.shellWindow.contentView.addChildView(view)
     view.setVisible(false)
@@ -207,6 +223,15 @@ export class TabManager {
     this.tabs.push({ id, kind: 'pdf', view, title: basename(openPath), filePath: openPath })
     this.activateTab(id)
     return id
+  }
+
+  /** Remount the tab's renderer so it re-reads its file from disk (View > Reload). */
+  reloadTab(id: string): void {
+    const tab = this.tabs.find((t) => t.id === id)
+    const wc = tab?.view?.webContents
+    if (!wc || wc.isDestroyed()) return
+    if (tab.kind === 'pdf') clearPdfDirty(wc.id)
+    wc.reload()
   }
 
   openMarkdownTab(openPath?: string): string {
@@ -253,11 +278,21 @@ export class TabManager {
     for (const t of this.tabs) t.view?.setVisible(t.id === id)
     if (target.view) target.view.setBounds(this.contentBounds())
     this.activeId = id
+    this.refreshActiveTargets()
+    this.onChanged()
+  }
+
+  /** Re-point the process-global active-editor targets and the app menu at this
+   *  window's active tab. Called on every activation and on shell-window focus:
+   *  a detached editor window ("Open in New Window") claims the same globals
+   *  while it is focused. */
+  refreshActiveTargets(): void {
+    const target = this.tabs.find((t) => t.id === this.activeId)
+    if (!target) return
     setActiveDocsResolver(target.kind === 'docs' ? () => target.view!.webContents : () => null)
     if (target.kind === 'sheets' && target.view) setActiveSheetsWebContents(target.view.webContents)
     if (target.kind === 'slides' && target.view) setActiveSlidesWebContents(target.view.webContents)
     this.applyMenuFor(target.kind)
-    this.onChanged()
   }
 
   /** move a tab to a new index in the strip; Home is pinned at index 0 */

@@ -19,9 +19,11 @@ import { Plugin, PluginKey } from '@tiptap/pm/state'
 
 /// Only pending FORMATTING survives; structural/annotation marks (comments,
 /// links, revisions) must never re-materialize from a caret memory.
-const FORMAT_MARKS = new Set(['bold', 'italic', 'underline', 'strike', 'docTextStyle'])
+/** the caret carries FORMATTING only — annotation marks (comment, link,
+ *  ins/del revisions) must never extend onto new typing */
+export const FORMAT_MARKS = new Set(['bold', 'italic', 'underline', 'strike', 'docTextStyle'])
 
-const serializeMarks = (marks: readonly Mark[]): string | null => {
+export const serializeMarks = (marks: readonly Mark[]): string | null => {
   const kept = marks
     .filter((mark) => FORMAT_MARKS.has(mark.type.name))
     .map((mark) => ({ type: mark.type.name, attrs: mark.attrs }))

@@ -22,11 +22,14 @@ import { NameManagerDialog, type DefinedNameAction, type DefinedNameRow } from '
 import { categoryOptionForPattern, numberFormatCategories } from './number-format'
 import { type SelectionFormat } from './selection-format'
 import { fontFamilyGroups, useSystemFontFamilies } from './system-fonts'
+import { shouldInterceptClearSelection } from './clear-selection-keyboard'
 
 import type { ChartSeriesVisualState } from '../domain/chart-visual'
 import type { ChangePlan } from '../domain/workbook.types'
 import type { AttachmentMeta } from '../shared/desktop-api'
 import { AiChatPanel, type AiChatMessage } from './ai/AiChatPanel'
+import { AiSelectionAsk } from './ai/AiSelectionAsk'
+import type { SelectionAskAnchor } from './ai/selection-ask'
 import {
   PivotDialog,
   type PivotEditSeed,
@@ -167,7 +170,24 @@ interface ExcelShellProps {
   readonly onStop: () => void
   readonly onNewChat: () => void
   readonly onUndo: (steps?: number) => void
+  /// A1 notation of the multi-cell selection the AI composer offers as this
+  /// run's scope, or null when the resting single-cell selection carries none.
+  readonly aiScopeRange: string | null
+  /// Header names when that scope covers whole columns: they label the chip in
+  /// place of the range, because a column is a name to the user, not a letter.
+  readonly aiScopeColumns: readonly string[] | null
+  /// The range above belongs to a run in flight and can no longer be dropped.
+  readonly aiScopeLocked: boolean
+  /// Drag endpoint and viewport bounds used to place the localized trigger.
+  readonly aiSelectionAskAnchor: SelectionAskAnchor | null
+  readonly onAiSelectionAskDismiss: () => void
+  readonly onAiScopeDismiss: () => void
+  /// Citation link in an AI answer: jumps the grid to the cited cell/range.
+  readonly onAiCitation: (href: string) => void
   readonly onCommand: (command: string) => void
+  /// True while Univer's in-cell editor is open (Backspace must delete
+  /// characters, not clear the selection).
+  readonly onIsCellEditing: () => boolean
   /// Left side of the status bar (ready / streaming / AI progress messages).
   readonly statusMessage: string
   /// Zoom of the active sheet in percent, echoed by the status-bar slider.
@@ -197,6 +217,8 @@ interface ExcelShellProps {
   /// Effective workbook structure lock (null = no file open).
   readonly onGetWorkbookProtection: () => boolean | null
   readonly formulaBarVisible: boolean
+  /// Cross-highlight ("reading mode") of the active row/column, echoed by the View checkbox.
+  readonly crossHighlightVisible: boolean
   /// Allow-edit ranges of the active sheet, read when the dialog opens.
   readonly onGetProtectedRanges: () => {
     ranges: readonly { name: string; sqref: string; hasPassword: boolean }[]
@@ -284,6 +306,7 @@ export function ExcelShell({
   onGetSheetProtection,
   onGetWorkbookProtection,
   formulaBarVisible,
+  crossHighlightVisible,
   onGetProtectedRanges,
   onApplyProtectedRanges,
   onGetDefinedNames,
@@ -310,7 +333,15 @@ export function ExcelShell({
   onStop,
   onNewChat,
   onUndo,
+  aiScopeRange,
+  aiScopeColumns,
+  aiScopeLocked,
+  aiSelectionAskAnchor,
+  onAiSelectionAskDismiss,
+  onAiScopeDismiss,
+  onAiCitation,
   onCommand,
+  onIsCellEditing,
   statusMessage,
   zoomPercent,
   canSave,
@@ -354,6 +385,10 @@ export function ExcelShell({
   const [showAllowEditRanges, setShowAllowEditRanges] = useState(false)
   /// Non-null while the Chart Design → Add Chart Element text prompt is open.
   const [chartTextTarget, setChartTextTarget] = useState<ChartTextTarget | null>(null)
+  const onCommandRef = useRef(onCommand)
+  const onIsCellEditingRef = useRef(onIsCellEditing)
+  onCommandRef.current = onCommand
+  onIsCellEditingRef.current = onIsCellEditing
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       if ((event.metaKey || event.ctrlKey) && event.key === '1') {
@@ -370,10 +405,46 @@ export function ExcelShell({
         event.preventDefault()
         onCommand('toggle-show-formulas')
       }
+      // Excel's PageUp/PageDown; Alt+ pages horizontally. Univer parks grid
+      // focus on a hidden editable host, so app fields are told apart by
+      // sitting OUTSIDE the grid container; in-cell editing is checked in the
+      // command handler via the workbook's own editing state.
+      if (
+        (event.key === 'PageDown' || event.key === 'PageUp') &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.shiftKey &&
+        !event.defaultPrevented
+      ) {
+        const target = event.target as HTMLElement | null
+        const inAppField =
+          !!target?.closest?.('input, textarea, [contenteditable="true"]') &&
+          !target?.closest?.('[data-u-comp], .univer-app-container, [class*="univer"]')
+        if (!inAppField) {
+          event.preventDefault()
+          const axis = event.altKey ? 'page-col' : 'page-row'
+          onCommand(`${axis}:${event.key === 'PageDown' ? 1 : -1}`)
+        }
+      }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [onCommand])
+  // Univer's shortcut dispatcher captures keydown and binds Backspace to
+  // "delete-and-start-editing" (active cell only). Register on window
+  // capture *here* (child effect runs before App creates Univer) so we
+  // win the race and clear the whole selection instead. Keep the listener
+  // mounted once: re-binding after Univer starts would lose capture order.
+  useEffect(() => {
+    const onKeyDownCapture = (event: KeyboardEvent): void => {
+      if (!shouldInterceptClearSelection(event, onIsCellEditingRef.current())) return
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      onCommandRef.current('clear-contents')
+    }
+    window.addEventListener('keydown', onKeyDownCapture, true)
+    return () => window.removeEventListener('keydown', onKeyDownCapture, true)
+  }, [])
   // Deselecting while on the contextual tab lands back on Home.
   useEffect(() => {
     if (!selectedChart && activeTab === 'Chart Design') setActiveTab('Home')
@@ -465,6 +536,7 @@ export function ExcelShell({
           sheetProtected={onGetSheetProtection()}
           workbookProtected={onGetWorkbookProtection()}
           formulaBarVisible={formulaBarVisible}
+          crossHighlightVisible={crossHighlightVisible}
           pageLayout={pageLayout}
           selectedChart={selectedChart}
           onListNames={() => {
@@ -536,6 +608,11 @@ export function ExcelShell({
           onStop={onStop}
           onNewChat={onNewChat}
           onUndo={onUndo}
+          scopeRange={aiScopeRange}
+          scopeColumns={aiScopeColumns}
+          scopeLocked={aiScopeLocked}
+          onScopeDismiss={onAiScopeDismiss}
+          onCitation={onAiCitation}
           onExpand={() => setIsCopilotOpen(true)}
           onCollapse={() => setIsCopilotOpen(false)}
         />
@@ -555,6 +632,17 @@ export function ExcelShell({
           <section className="workbook-area">
             <div id="univer-container" className="spreadsheet" />
           </section>
+          {aiSelectionAskAnchor && aiScopeRange && !aiBusy && (
+            <AiSelectionAsk
+              anchor={aiSelectionAskAnchor}
+              range={aiScopeRange}
+              onDismiss={onAiSelectionAskDismiss}
+              onSend={(instruction) => {
+                setIsCopilotOpen(true)
+                onSend(instruction)
+              }}
+            />
+          )}
 
           {/* Status bar spans the sheet column only — the AI dock keeps the full window height (unified with docs/slides). */}
           <footer className="status-bar">
@@ -1100,6 +1188,7 @@ function Ribbon({
   sheetProtected,
   workbookProtected,
   formulaBarVisible,
+  crossHighlightVisible,
   pageLayout,
   selectedChart,
   onCommand,
@@ -1118,6 +1207,7 @@ function Ribbon({
   readonly workbookProtected: boolean | null
   /// View > Show echo for the formula bar toggle (app-level, not per sheet).
   readonly formulaBarVisible: boolean
+  readonly crossHighlightVisible: boolean
   readonly pageLayout: PageLayoutEcho
   readonly selectedChart: SelectedChartRibbon | null
   readonly onCommand: (command: string) => void
@@ -2200,6 +2290,14 @@ function Ribbon({
             >
               <i className="check-box">{pageLayout.showHeadings ? '✓' : ''}</i>
               {t('appHeadings')}
+            </button>
+            <button
+              className="check-item"
+              data-tip={t('appCrossHighlight')}
+              onClick={() => onCommand('toggle-cross-highlight')}
+            >
+              <i className="check-box">{crossHighlightVisible ? '✓' : ''}</i>
+              {t('appCrossHighlight')}
             </button>
           </div>
         </RibbonGroup>

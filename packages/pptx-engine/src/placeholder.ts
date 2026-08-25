@@ -89,8 +89,12 @@ export interface PlaceholderGeom {
   textStyle?: TextStyleLevels
   /** Vertical anchor from this placeholder's <a:bodyPr anchor=""> */
   anchor?: 'top' | 'middle' | 'bottom'
+  /** Explicit bodyPr inset attrs (EMU); slide bodyPr attrs missing these inherit per-attribute */
+  insets?: { l?: number; t?: number; r?: number; b?: number }
   /** Raw spPr node when it carries an explicit fill (parse.ts resolves it with the part's rels) */
   fillSpPr?: unknown
+  /** Non-rect <a:prstGeom>: placeholder pictures inherit it as their clip shape */
+  presetGeom?: { prst: string; avLstRaw?: unknown }
 }
 
 /** Placeholder geometry table for one layer (layout or master). */
@@ -157,17 +161,29 @@ export function parsePlaceholderMap(layoutOrMasterXml: string, theme?: Theme): P
     const spPr = asXmlNode(sp['p:spPr'])
     const transform = parseXfrmNode(spPr['a:xfrm'])
     const textStyle = parseLstStyleLevels(asXmlNode(sp['p:txBody'])['a:lstStyle'], theme)
-    const anchorAttr = asXmlNode(asXmlNode(sp['p:txBody'])['a:bodyPr'])['@_anchor']
-    const anchor = ANCHOR_MAP[String(anchorAttr ?? '')]
+    const bodyPrNode = asXmlNode(asXmlNode(sp['p:txBody'])['a:bodyPr'])
+    const anchor = ANCHOR_MAP[String(bodyPrNode['@_anchor'] ?? '')]
+    const insEntries = (['l', 't', 'r', 'b'] as const).flatMap((k) => {
+      const v = bodyPrNode[`@_${k}Ins`]
+      const n = v != null ? parseInt(String(v), 10) : NaN
+      return Number.isFinite(n) ? [[k, n] as const] : []
+    })
+    const insets = insEntries.length ? Object.fromEntries(insEntries) : undefined
     const hasFill = FILL_TAGS.some((tag) => tag in spPr)
-    if (!transform && !textStyle && !anchor && !hasFill) continue
+    const prstGeomNode = asXmlNode(spPr['a:prstGeom'])
+    const prst = prstGeomNode['@_prst'] != null ? String(prstGeomNode['@_prst']) : undefined
+    const presetGeom =
+      prst && prst !== 'rect' ? { prst, avLstRaw: prstGeomNode['a:avLst'] } : undefined
+    if (!transform && !textStyle && !anchor && !insets && !hasFill && !presetGeom) continue
     entries.push({
       type,
       idx,
       transform,
       ...(textStyle ? { textStyle } : {}),
       ...(anchor ? { anchor } : {}),
+      ...(insets ? { insets } : {}),
       ...(hasFill ? { fillSpPr: spPr } : {}),
+      ...(presetGeom ? { presetGeom } : {}),
     })
   }
   return { entries }
@@ -369,6 +385,40 @@ function findAnchorInMap(
   return hit?.anchor
 }
 
+/** Same matching as findAnchorInMap for bodyPr insets (no idx-only step, see above). */
+function findInsetsInMap(
+  map: PlaceholderMap | undefined,
+  type: string | undefined,
+  idx: string | undefined,
+): PlaceholderGeom['insets'] {
+  if (!map || map.entries.length === 0) return undefined
+  const t = type ?? 'body'
+  const i = idx ?? ''
+  const carriers = map.entries.filter((e) => e.insets)
+  let hit = carriers.find((e) => e.type === t && e.idx === i)
+  if (!hit) hit = carriers.find((e) => e.type === t)
+  if (!hit && TITLE_TYPES.has(t)) hit = carriers.find((e) => TITLE_TYPES.has(e.type))
+  if (!hit && BODY_TYPES.has(t)) hit = carriers.find((e) => BODY_TYPES.has(e.type))
+  return hit?.insets
+}
+
+/**
+ * Resolve a placeholder's inherited bodyPr insets, merged per-attribute (layout wins
+ * over master). PowerPoint inherits each unspecified inset attr along the ph chain —
+ * a master body with lIns=0 reaches slides whose layout bodyPr only sets numCol.
+ */
+export function resolvePlaceholderInsets(
+  layout: PlaceholderMap | undefined,
+  master: PlaceholderMap | undefined,
+  type: string | undefined,
+  idx: string | undefined,
+): PlaceholderGeom['insets'] {
+  const fromLayout = findInsetsInMap(layout, type, idx)
+  const fromMaster = findInsetsInMap(master, type, idx)
+  if (!fromLayout || !fromMaster) return fromLayout ?? fromMaster
+  return { ...fromMaster, ...fromLayout }
+}
+
 /** Resolve a placeholder's inherited vertical anchor: layout first, master as fallback. */
 export function resolvePlaceholderAnchor(
   layout: PlaceholderMap | undefined,
@@ -544,4 +594,32 @@ export function resolvePlaceholderTransform(
   idx: string | undefined,
 ): Transform | undefined {
   return findInMap(layout, type, idx) ?? findInMap(master, type, idx)
+}
+
+/**
+ * Placeholder preset-geometry inheritance (layout first, master as fallback).
+ * Matches the placeholder first (same order as fill inheritance) so an unrelated
+ * sibling never donates its shape.
+ */
+export function resolvePlaceholderPresetGeom(
+  layout: PlaceholderMap | undefined,
+  master: PlaceholderMap | undefined,
+  type: string | undefined,
+  idx: string | undefined,
+): PlaceholderGeom['presetGeom'] | undefined {
+  const t = type ?? 'body'
+  const i = idx ?? ''
+  for (const map of [layout, master]) {
+    if (!map) continue
+    const entries = map.entries
+    const hit =
+      entries.find((e) => e.type === t && e.idx === i) ??
+      (i !== '' ? entries.find((e) => e.idx === i) : undefined) ??
+      entries.find((e) => e.type === t) ??
+      (TITLE_TYPES.has(t) ? entries.find((e) => TITLE_TYPES.has(e.type)) : undefined) ??
+      (BODY_TYPES.has(t) ? entries.find((e) => BODY_TYPES.has(e.type)) : undefined)
+    if (hit?.presetGeom) return hit.presetGeom
+    if (hit) return undefined
+  }
+  return undefined
 }

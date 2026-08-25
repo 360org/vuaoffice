@@ -16,6 +16,10 @@ import {
   setElementImageFill,
   setElementLink,
   setElementTextAnchor,
+  setElementTextBodyProps,
+  type TextBodyPropsPatch,
+  setElementEffects,
+  type EffectsPatch,
   setPictureOpacity,
   setShapePresetGeometry,
   setGroupChildShapePresetGeometry,
@@ -441,6 +445,60 @@ register({
       throw new GuidedError(`op "setTextAnchor": element "${el.id}" has no text body.`)
     }
     return { op, after: op.anchor }
+  },
+})
+
+register({
+  name: 'setTextBodyProps',
+  validate(op, ctx) {
+    resolveElement(ctx, op)
+    const props = op.props as TextBodyPropsPatch | undefined
+    if (!props || (!props.vert && !props.autofit && !props.insets && props.wrap === undefined)) {
+      throw new GuidedError(
+        'op "setTextBodyProps" needs "props" with at least one of vert/autofit/insets/wrap.',
+      )
+    }
+    if (props.vert && !['horz', 'eaVert', 'vert', 'vert270', 'wordArtVert'].includes(props.vert)) {
+      throw new GuidedError(
+        'op "setTextBodyProps": "vert" must be horz/eaVert/vert/vert270/wordArtVert.',
+      )
+    }
+    if (props.autofit && !['none', 'shrink', 'resize'].includes(props.autofit)) {
+      throw new GuidedError('op "setTextBodyProps": "autofit" must be none/shrink/resize.')
+    }
+  },
+  apply(op, ctx): OpRecord {
+    const { slide, el } = resolveElement(ctx, op)
+    if (!setElementTextBodyProps(slide, el.id, op.props as TextBodyPropsPatch)) {
+      throw new GuidedError(`op "setTextBodyProps": element "${el.id}" has no text body.`)
+    }
+    return { op, after: op.props }
+  },
+})
+
+register({
+  name: 'setEffects',
+  validate(op, ctx) {
+    resolveElement(ctx, op)
+    const p = op.effects as EffectsPatch | undefined
+    if (
+      !p ||
+      (p.shadow === undefined &&
+        p.glow === undefined &&
+        p.reflection === undefined &&
+        p.softEdge === undefined)
+    ) {
+      throw new GuidedError(
+        'op "setEffects" needs "effects" with at least one of shadow/glow/reflection/softEdge (null clears).',
+      )
+    }
+  },
+  apply(op, ctx): OpRecord {
+    const { slide, el } = resolveElement(ctx, op)
+    if (!setElementEffects(slide, el.id, op.effects as EffectsPatch)) {
+      throw new GuidedError(`op "setEffects": element "${el.id}" does not support effects.`)
+    }
+    return { op, after: op.effects }
   },
 })
 
