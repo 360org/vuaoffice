@@ -5,6 +5,11 @@ Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaO
 
 ## [1.0.15] - 2026-08-25
 
+### Auto-Update & Packaging Reliability
+- **[FIX] Khắc phục Lỗi Nâng cấp Tự động trên Windows (Issue #2)**:
+  - Cấu hình NSIS `perMachine: false` và `deleteAppDataOnUninstall: false` trong `electron-builder.cjs`.
+  - Đảm bảo trình nâng cấp chạy mượt mà per-user trong `AppData`, không bị nghẽn quyền UAC Administrator khi thực hiện chế độ nền và bảo vệ an toàn toàn bộ dữ liệu cấu hình của người dùng.
+
 ### Comprehensive Vietnamese Localization (Zero Upstream Conflict)
 - **[NEW] Bản dịch Tiếng Việt Toàn diện cho Toàn bộ Bộ ứng dụng VuaOffice**:
   - **Core i18n & Type-Safe Architecture**: Đăng ký locale `vi` (`vi-VN`) vào `@genoffice/i18n` với đầy đủ định dạng số, ngày tháng và prompt chỉ dẫn hệ thống AI (`aiLangDirective`).

@@ -355,7 +355,9 @@ const config = {
   },
   nsis: {
     oneClick: false,
+    perMachine: false,
     allowToChangeInstallationDirectory: true,
+    deleteAppDataOnUninstall: false,
   },
   beforePack: async (context) => {
     assertModuleTreesPresent()
