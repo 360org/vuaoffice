@@ -25,6 +25,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync } from 'node:fs'
 import { userInfo } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
+import { cleanupExpiredGeneratedPages } from './generated-page-temp'
 import { gskApiKey, gskSlideGenerate, setGskProxyUrl } from '@genoffice/ai-search'
 import {
   appMenuLabels,
@@ -996,6 +997,11 @@ let ipcRegistered = false
 export function registerSlidesIpc(): void {
   if (ipcRegistered) return
   ipcRegistered = true
+
+  // AI-generated slide pages land in app-owned temp directories; sweep
+  // expired ones at startup (never at land time — markers can be redeemed
+  // more than once), mirroring the sheets pasted-file cleanup.
+  void cleanupExpiredGeneratedPages(app.getPath('temp'))
 
   // shared with the other editor modules — last (identical) registration wins
   ipcMain.removeHandler('app:get-language')
