@@ -3,7 +3,7 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.15] - 2026-08-25
+## [1.0.16] - 2026-08-25
 
 ### Auto-Update & Packaging Reliability
 - **[FIX] Khắc phục Lỗi Nâng cấp Tự động trên Windows (Issue #2)**:
@@ -20,6 +20,8 @@ Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaO
   - **VuaOffice PDF & Markdown**: Dịch toàn bộ công cụ xem/chỉnh sửa PDF, ký số, biểu mẫu, chuyển đổi sang Word/Excel/PPT và trình soạn thảo Markdown WYSIWYG.
   - **Electron Main Process Dialogs**: Đồng bộ bản dịch tiếng Việt cho toàn bộ hộp thoại mở/lưu tệp, cảnh báo chưa lưu và menu native đa nền tảng (macOS / Windows / Linux).
   - **Whitelabel & Upstream Safe**: Khớp 100% key compile-time `defineStrings`/`createI18n`, vượt qua `brand:gate` và không làm thay đổi cấu trúc mã nguồn lõi khi sync upstream.
+
+## [1.0.15] - 2026-08-25
 
 ## [1.0.14] - 2026-08-25
 
