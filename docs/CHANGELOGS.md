@@ -3,6 +3,20 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.14] - 2026-08-25
+
+### 360 CORP SSO & Upstream Synchronization
+- **[NEW] 360 CORP SSO 1-Click Authentication**:
+  - Tích hợp luồng đăng nhập 1-click trực tiếp qua Identity Provider Odoo tại `https://vuahethong.net/vuaoffice/auth`.
+  - Tự động bắt Deep Link `vuaoffice://auth/callback` chuyển giao token HMAC-SHA256, lưu an toàn vào `auth.json` và cập nhật tức thì trạng thái người dùng (0 lỗi, 0 pending, 0 polling).
+- **[MIGRATE] Upstream Snapshot Sync (v0.8.155)**:
+  - Đồng bộ toàn diện các cải tiến và bản vá lỗi mới nhất từ core upstream `genoffice`:
+    - Docs: Hỗ trợ queue tác vụ AI, điều hướng văn bản, và bộ phím tắt nâng cao.
+    - Sheets: Hỗ trợ tìm kiếm lười (lazy find), tối ưu hóa bộ lọc dòng ẩn (filter-hidden rows) và cross-highlight ô hoạt động.
+    - Slides: Dọn dẹp tệp tạm khởi tạo và tối ưu hóa xử lý layout QC.
+    - PDF2Docx & OCR: Tích hợp OCR native cho văn bản quét trên macOS/Windows và cải tiến pipeline chuyển đổi bảng biểu sang XLSX.
+    - AI Provider: Cập nhật danh mục model và tinh chỉnh tự động cấu hình gateway 360 CORP.
+
 ## [1.0.13] - 2026-08-24
 
 ### Security & Hardening
