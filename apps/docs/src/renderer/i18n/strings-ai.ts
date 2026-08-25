@@ -9,15 +9,9 @@ export const aiStrings = defineStrings({
     aiStarterSummarize: '总结这篇文档的要点',
     aiStarterPolishAll: '润色全文,使语气更专业',
     aiStarterContinue: '接着现有内容往下写',
-<<<<<<< HEAD
-    aiGskLoginBtn: '登录 VuaOffice',
-    aiUndelivered: '未发送成功',
-    aiPanelTitle: 'VuaOffice AI',
-=======
     aiStarterFillTemplate: '找出并填写文档里的占位符',
     aiGskLoginBtn: '登录 Genspark',
-    aiPanelTitle: 'Genspark',
->>>>>>> upstream/main
+    aiPanelTitle: 'VuaOffice AI',
     aiOpenAssistant: '打开 AI 助手',
     aiSummarizeBtn: 'AI 总结',
     aiSummarizePrompt: '总结这篇文档的主要内容和要点',
@@ -160,15 +154,9 @@ export const aiStrings = defineStrings({
     aiStarterSummarize: 'Summarize the key points of this document',
     aiStarterPolishAll: 'Polish the whole document for a more professional tone',
     aiStarterContinue: 'Continue writing from where the document leaves off',
-<<<<<<< HEAD
-    aiGskLoginBtn: 'Sign in to VuaOffice',
-    aiUndelivered: 'Not sent',
-    aiPanelTitle: 'VuaOffice AI',
-=======
     aiStarterFillTemplate: 'Find and fill in the placeholders in this document',
     aiGskLoginBtn: 'Sign in to Genspark',
-    aiPanelTitle: 'Genspark',
->>>>>>> upstream/main
+    aiPanelTitle: 'VuaOffice AI',
     aiOpenAssistant: 'Open AI assistant',
     aiSummarizeBtn: 'AI Summarize',
     aiSummarizePrompt: 'Summarize the main content and key points of this document',
@@ -319,15 +307,9 @@ export const aiStrings = defineStrings({
     aiStarterSummarize: 'このドキュメントの要点をまとめて',
     aiStarterPolishAll: '全文を推敲してよりプロフェッショナルな文体に',
     aiStarterContinue: '今の内容の続きを書いて',
-<<<<<<< HEAD
-    aiGskLoginBtn: 'VuaOffice にサインイン',
-    aiUndelivered: '送信できませんでした',
-    aiPanelTitle: 'VuaOffice AI',
-=======
     aiStarterFillTemplate: '文書内のプレースホルダーを見つけて埋めて',
     aiGskLoginBtn: 'Genspark にサインイン',
-    aiPanelTitle: 'Genspark',
->>>>>>> upstream/main
+    aiPanelTitle: 'VuaOffice AI',
     aiOpenAssistant: 'AI アシスタントを開く',
     aiSummarizeBtn: 'AI 要約',
     aiSummarizePrompt: 'この文書の主な内容と要点を要約してください',
@@ -478,15 +460,9 @@ export const aiStrings = defineStrings({
     aiStarterSummarize: '이 문서의 요점을 요약해 줘',
     aiStarterPolishAll: '전체 문서를 더 전문적인 어조로 다듬어 줘',
     aiStarterContinue: '지금 내용에 이어서 계속 써 줘',
-<<<<<<< HEAD
-    aiGskLoginBtn: 'VuaOffice 로그인',
-    aiUndelivered: '전송되지 않았습니다',
-    aiPanelTitle: 'VuaOffice AI',
-=======
     aiStarterFillTemplate: '문서의 자리 표시자를 찾아 채워 줘',
     aiGskLoginBtn: 'Genspark 로그인',
-    aiPanelTitle: 'Genspark',
->>>>>>> upstream/main
+    aiPanelTitle: 'VuaOffice AI',
     aiOpenAssistant: 'AI 도우미 열기',
     aiSummarizeBtn: 'AI 요약',
     aiSummarizePrompt: '이 문서의 주요 내용과 핵심 사항을 요약해 주세요',
@@ -637,15 +613,9 @@ export const aiStrings = defineStrings({
     aiStarterSummarize: 'Résumer les points clés de ce document',
     aiStarterPolishAll: 'Peaufiner tout le document pour un ton plus professionnel',
     aiStarterContinue: 'Continuer la rédaction là où le document s’arrête',
-<<<<<<< HEAD
-    aiGskLoginBtn: 'Se connecter à VuaOffice',
-    aiUndelivered: 'Non envoyé',
-    aiPanelTitle: 'VuaOffice AI',
-=======
     aiStarterFillTemplate: 'Trouver et remplir les espaces réservés du document',
     aiGskLoginBtn: 'Se connecter à Genspark',
-    aiPanelTitle: 'Genspark',
->>>>>>> upstream/main
+    aiPanelTitle: 'VuaOffice AI',
     aiOpenAssistant: "Ouvrir l'assistant IA",
     aiSummarizeBtn: 'Résumé IA',
     aiSummarizePrompt: 'Résumez le contenu principal et les points clés de ce document',
@@ -803,7 +773,7 @@ export const aiStrings = defineStrings({
     aiStarterContinue: 'Dort weiterschreiben, wo das Dokument aufhört',
     aiStarterFillTemplate: 'Platzhalter im Dokument finden und ausfüllen',
     aiGskLoginBtn: 'Bei Genspark anmelden',
-    aiPanelTitle: 'Genspark',
+    aiPanelTitle: 'VuaOffice AI',
     aiOpenAssistant: 'KI-Assistenten öffnen',
     aiSummarizeBtn: 'KI-Zusammenfassung',
     aiSummarizePrompt: 'Fasse den Hauptinhalt und die Kernpunkte dieses Dokuments zusammen',
@@ -958,15 +928,9 @@ export const aiStrings = defineStrings({
     aiStarterSummarize: 'Resume los puntos clave de este documento',
     aiStarterPolishAll: 'Pulir todo el documento para un tono más profesional',
     aiStarterContinue: 'Continúa escribiendo desde donde termina el documento',
-<<<<<<< HEAD
-    aiGskLoginBtn: 'Iniciar sesión en VuaOffice',
-    aiUndelivered: 'No enviado',
-    aiPanelTitle: 'VuaOffice AI',
-=======
     aiStarterFillTemplate: 'Encuentra y completa los marcadores de posición del documento',
     aiGskLoginBtn: 'Iniciar sesión en Genspark',
-    aiPanelTitle: 'Genspark',
->>>>>>> upstream/main
+    aiPanelTitle: 'VuaOffice AI',
     aiOpenAssistant: 'Abrir el asistente de IA',
     aiSummarizeBtn: 'Resumen IA',
     aiSummarizePrompt: 'Resume el contenido principal y los puntos clave de este documento',
@@ -1120,15 +1084,9 @@ export const aiStrings = defineStrings({
     aiStarterSummarize: 'สรุปประเด็นสำคัญของเอกสารนี้',
     aiStarterPolishAll: 'ขัดเกลาทั้งเอกสารให้น้ำเสียงเป็นมืออาชีพยิ่งขึ้น',
     aiStarterContinue: 'เขียนต่อจากเนื้อหาที่มีอยู่',
-<<<<<<< HEAD
-    aiGskLoginBtn: 'ลงชื่อเข้าใช้ VuaOffice',
-    aiUndelivered: 'ส่งไม่สำเร็จ',
-    aiPanelTitle: 'VuaOffice AI',
-=======
     aiStarterFillTemplate: 'ค้นหาและกรอกตัวยึดตำแหน่งในเอกสาร',
     aiGskLoginBtn: 'ลงชื่อเข้าใช้ Genspark',
-    aiPanelTitle: 'Genspark',
->>>>>>> upstream/main
+    aiPanelTitle: 'VuaOffice AI',
     aiOpenAssistant: 'เปิดผู้ช่วย AI',
     aiSummarizeBtn: 'สรุปด้วย AI',
     aiSummarizePrompt: 'สรุปเนื้อหาหลักและประเด็นสำคัญของเอกสารนี้',
@@ -1277,15 +1235,9 @@ export const aiStrings = defineStrings({
     aiStarterSummarize: 'Rangkum poin-poin utama dokumen ini',
     aiStarterPolishAll: 'Perhalus seluruh dokumen agar nadanya lebih profesional',
     aiStarterContinue: 'Lanjutkan menulis dari bagian akhir dokumen',
-<<<<<<< HEAD
-    aiGskLoginBtn: 'Masuk ke VuaOffice',
-    aiUndelivered: 'Tidak terkirim',
-    aiPanelTitle: 'VuaOffice AI',
-=======
     aiStarterFillTemplate: 'Temukan dan isi placeholder di dokumen ini',
     aiGskLoginBtn: 'Masuk ke Genspark',
-    aiPanelTitle: 'Genspark',
->>>>>>> upstream/main
+    aiPanelTitle: 'VuaOffice AI',
     aiOpenAssistant: 'Buka asisten AI',
     aiSummarizeBtn: 'Ringkasan AI',
     aiSummarizePrompt: 'Ringkas isi utama dan poin-poin penting dokumen ini',
@@ -1436,15 +1388,9 @@ export const aiStrings = defineStrings({
     aiStarterSummarize: 'Кратко изложи ключевые пункты этого документа',
     aiStarterPolishAll: 'Отшлифуй весь документ, сделав тон более профессиональным',
     aiStarterContinue: 'Продолжи текст с того места, где он обрывается',
-<<<<<<< HEAD
-    aiGskLoginBtn: 'Войти в VuaOffice',
-    aiUndelivered: 'Не отправлено',
-    aiPanelTitle: 'VuaOffice AI',
-=======
     aiStarterFillTemplate: 'Найди и заполни местозаполнители в документе',
     aiGskLoginBtn: 'Войти в Genspark',
-    aiPanelTitle: 'Genspark',
->>>>>>> upstream/main
+    aiPanelTitle: 'VuaOffice AI',
     aiOpenAssistant: 'Открыть ИИ-помощника',
     aiSummarizeBtn: 'ИИ-резюме',
     aiSummarizePrompt: 'Кратко изложите основное содержание и ключевые моменты этого документа',
@@ -1596,15 +1542,9 @@ export const aiStrings = defineStrings({
     aiStarterSummarize: 'لخّص النقاط الرئيسية في هذا المستند',
     aiStarterPolishAll: 'حسّن صياغة المستند كاملًا بنبرة أكثر احترافية',
     aiStarterContinue: 'تابع الكتابة من حيث انتهى المستند',
-<<<<<<< HEAD
-    aiGskLoginBtn: 'تسجيل الدخول إلى VuaOffice',
-    aiUndelivered: 'لم يتم الإرسال',
-    aiPanelTitle: 'VuaOffice AI',
-=======
     aiStarterFillTemplate: 'اعثر على العناصر النائبة في المستند واملأها',
     aiGskLoginBtn: 'تسجيل الدخول إلى Genspark',
-    aiPanelTitle: 'Genspark',
->>>>>>> upstream/main
+    aiPanelTitle: 'VuaOffice AI',
     aiOpenAssistant: 'فتح مساعد الذكاء الاصطناعي',
     aiSummarizeBtn: 'تلخيص AI',
     aiSummarizePrompt: 'لخّص المحتوى الرئيسي والنقاط الأساسية لهذا المستند',
@@ -1753,15 +1693,9 @@ export const aiStrings = defineStrings({
     aiStarterSummarize: 'Resuma os pontos principais deste documento',
     aiStarterPolishAll: 'Aprimore o documento inteiro com um tom mais profissional',
     aiStarterContinue: 'Continue escrevendo de onde o documento parou',
-<<<<<<< HEAD
-    aiGskLoginBtn: 'Entrar no VuaOffice',
-    aiUndelivered: 'Não enviado',
-    aiPanelTitle: 'VuaOffice AI',
-=======
     aiStarterFillTemplate: 'Encontre e preencha os espaços reservados do documento',
     aiGskLoginBtn: 'Entrar no Genspark',
-    aiPanelTitle: 'Genspark',
->>>>>>> upstream/main
+    aiPanelTitle: 'VuaOffice AI',
     aiOpenAssistant: 'Abrir assistente de IA',
     aiSummarizeBtn: 'Resumo IA',
     aiSummarizePrompt: 'Resuma o conteúdo principal e os pontos-chave deste documento',
@@ -1915,15 +1849,9 @@ export const aiStrings = defineStrings({
     aiStarterSummarize: 'Riassumi i punti chiave di questo documento',
     aiStarterPolishAll: "Rifinisci l'intero documento con un tono più professionale",
     aiStarterContinue: 'Continua a scrivere da dove il documento si interrompe',
-<<<<<<< HEAD
-    aiGskLoginBtn: 'Accedi a VuaOffice',
-    aiUndelivered: 'Non inviato',
-    aiPanelTitle: 'VuaOffice AI',
-=======
     aiStarterFillTemplate: 'Trova e compila i segnaposto nel documento',
     aiGskLoginBtn: 'Accedi a Genspark',
-    aiPanelTitle: 'Genspark',
->>>>>>> upstream/main
+    aiPanelTitle: 'VuaOffice AI',
     aiOpenAssistant: "Apri l'assistente IA",
     aiSummarizeBtn: 'Riassunto IA',
     aiSummarizePrompt: 'Riassumi il contenuto principale e i punti chiave di questo documento',
@@ -2079,15 +2007,9 @@ export const aiStrings = defineStrings({
     aiStarterSummarize: 'Podsumuj kluczowe punkty tego dokumentu',
     aiStarterPolishAll: 'Dopracuj cały dokument, nadając mu bardziej profesjonalny ton',
     aiStarterContinue: 'Kontynuuj pisanie od miejsca, w którym kończy się dokument',
-<<<<<<< HEAD
-    aiGskLoginBtn: 'Zaloguj się do VuaOffice',
-    aiUndelivered: 'Nie wysłano',
-    aiPanelTitle: 'VuaOffice AI',
-=======
     aiStarterFillTemplate: 'Znajdź i uzupełnij symbole zastępcze w dokumencie',
     aiGskLoginBtn: 'Zaloguj się do Genspark',
-    aiPanelTitle: 'Genspark',
->>>>>>> upstream/main
+    aiPanelTitle: 'VuaOffice AI',
     aiOpenAssistant: 'Otwórz asystenta AI',
     aiSummarizeBtn: 'Podsumowanie AI',
     aiSummarizePrompt: 'Podsumuj główną treść i kluczowe punkty tego dokumentu',
@@ -2239,15 +2161,9 @@ export const aiStrings = defineStrings({
     aiStarterSummarize: 'Vat de kernpunten van dit document samen',
     aiStarterPolishAll: 'Werk het hele document bij naar een professionelere toon',
     aiStarterContinue: 'Schrijf verder waar het document ophoudt',
-<<<<<<< HEAD
-    aiGskLoginBtn: 'Aanmelden bij VuaOffice',
-    aiUndelivered: 'Niet verzonden',
-    aiPanelTitle: 'VuaOffice AI',
-=======
     aiStarterFillTemplate: 'Zoek en vul de tijdelijke aanduidingen in het document in',
     aiGskLoginBtn: 'Aanmelden bij Genspark',
-    aiPanelTitle: 'Genspark',
->>>>>>> upstream/main
+    aiPanelTitle: 'VuaOffice AI',
     aiOpenAssistant: 'AI-assistent openen',
     aiSummarizeBtn: 'AI-samenvatting',
     aiSummarizePrompt: 'Vat de hoofdinhoud en kernpunten van dit document samen',
@@ -2400,15 +2316,9 @@ export const aiStrings = defineStrings({
     aiStarterSummarize: 'Ringkaskan perkara utama dokumen ini',
     aiStarterPolishAll: 'Perhalusi keseluruhan dokumen dengan nada lebih profesional',
     aiStarterContinue: 'Teruskan menulis dari bahagian akhir dokumen',
-<<<<<<< HEAD
-    aiGskLoginBtn: 'Log masuk ke VuaOffice',
-    aiUndelivered: 'Tidak dihantar',
-    aiPanelTitle: 'VuaOffice AI',
-=======
     aiStarterFillTemplate: 'Cari dan isi ruang letak dalam dokumen ini',
     aiGskLoginBtn: 'Log masuk ke Genspark',
-    aiPanelTitle: 'Genspark',
->>>>>>> upstream/main
+    aiPanelTitle: 'VuaOffice AI',
     aiOpenAssistant: 'Buka pembantu AI',
     aiSummarizeBtn: 'Ringkasan AI',
     aiSummarizePrompt: 'Ringkaskan kandungan utama dan perkara penting dokumen ini',
@@ -2559,15 +2469,9 @@ export const aiStrings = defineStrings({
     aiStarterSummarize: 'סכם את הנקודות המרכזיות של המסמך הזה',
     aiStarterPolishAll: 'לטש את כל המסמך לטון מקצועי יותר',
     aiStarterContinue: 'המשך לכתוב מהנקודה שבה המסמך נעצר',
-<<<<<<< HEAD
-    aiGskLoginBtn: 'התחבר ל-VuaOffice',
-    aiUndelivered: 'לא נשלח',
-    aiPanelTitle: 'VuaOffice AI',
-=======
     aiStarterFillTemplate: 'מצא ומלא את מצייני המיקום במסמך',
     aiGskLoginBtn: 'התחבר ל-Genspark',
-    aiPanelTitle: 'Genspark',
->>>>>>> upstream/main
+    aiPanelTitle: 'VuaOffice AI',
     aiOpenAssistant: 'פתיחת עוזר ה-AI',
     aiSummarizeBtn: 'סיכום AI',
     aiSummarizePrompt: 'סכם את התוכן העיקרי ואת הנקודות המרכזיות של מסמך זה',
@@ -2713,15 +2617,9 @@ export const aiStrings = defineStrings({
     aiStarterSummarize: 'इस दस्तावेज़ के मुख्य बिंदु सारांशित करें',
     aiStarterPolishAll: 'पूरे दस्तावेज़ को अधिक पेशेवर लहजे में निखारें',
     aiStarterContinue: 'दस्तावेज़ जहाँ रुका है वहाँ से आगे लिखें',
-<<<<<<< HEAD
-    aiGskLoginBtn: 'VuaOffice में साइन इन करें',
-    aiUndelivered: 'भेजा नहीं गया',
-    aiPanelTitle: 'VuaOffice AI',
-=======
     aiStarterFillTemplate: 'दस्तावेज़ के प्लेसहोल्डर ढूँढ़कर भरें',
     aiGskLoginBtn: 'Genspark में साइन इन करें',
-    aiPanelTitle: 'Genspark',
->>>>>>> upstream/main
+    aiPanelTitle: 'VuaOffice AI',
     aiOpenAssistant: 'AI सहायक खोलें',
     aiSummarizeBtn: 'AI सारांश',
     aiSummarizePrompt: 'इस दस्तावेज़ की मुख्य सामग्री और प्रमुख बिंदुओं का सारांश दें',
@@ -2873,15 +2771,9 @@ export const aiStrings = defineStrings({
     aiStarterSummarize: '總結這篇文件的要點',
     aiStarterPolishAll: '潤飾全文,使語氣更專業',
     aiStarterContinue: '接著現有內容往下寫',
-<<<<<<< HEAD
-    aiGskLoginBtn: '登入 VuaOffice',
-    aiUndelivered: '未傳送成功',
-    aiPanelTitle: 'VuaOffice AI',
-=======
     aiStarterFillTemplate: '找出並填寫文件裡的佔位符',
     aiGskLoginBtn: '登入 Genspark',
-    aiPanelTitle: 'Genspark',
->>>>>>> upstream/main
+    aiPanelTitle: 'VuaOffice AI',
     aiOpenAssistant: '開啟 AI 助手',
     aiSummarizeBtn: 'AI 總結',
     aiSummarizePrompt: '總結這篇文件的主要內容和要點',

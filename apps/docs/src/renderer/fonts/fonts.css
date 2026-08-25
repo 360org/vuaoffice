@@ -162,7 +162,7 @@
  * generated font (tools/build-pua-blank-font.py) maps all of U+E000-F8FF to a
  * blank 1em glyph so PUA stays invisible in the chains that carry it. */
 @font-face {
-  font-family: 'GenOffice PUA Blank';
+  font-family: 'VuaOffice PUA Blank';
   src: url('./GenOfficePUABlank.woff2') format('woff2');
   unicode-range: U+E000-F8FF;
   font-weight: normal;
@@ -246,7 +246,7 @@
  * Sans KR outlines reshaped to DotumChe ink boxes); hangul falls through to
  * the KR chains. */
 @font-face {
-  font-family: 'GenOffice Che Latin KR';
+  font-family: 'VuaOffice Che Latin KR';
   src: url('./GenOfficeCheLatinKR.woff2') format('woff2');
   unicode-range: U+0020-007E;
   font-weight: normal;

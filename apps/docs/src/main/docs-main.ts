@@ -47,7 +47,7 @@ import type {
   SaveDialogOptions,
   WebContents,
 } from 'electron'
-import { docToDocx, parseFileToText } from '@genoffice/file-parse'
+import { parseFileToText } from '@genoffice/file-parse'
 import {
   AiCreditsError,
   AiTimeoutError,
@@ -67,6 +67,7 @@ import {
   type LegacyAiSettings,
 } from '@genoffice/ai-provider'
 import {
+  ensureGenofficeLogin,
   gskApiKey,
   gskGenerateImage,
   gskLoginInfo,
@@ -154,7 +155,7 @@ const tMain = createI18n({
     errParseFailed: '文件解析失败',
     errImageNoText: '图片附件不提供文本,已作为图像随用户消息发送,直接看图即可',
     errNotImage: '不是支持的图片类型',
-    errGskNotLoggedIn: '未登录 VuaOffice:请点击下方「登录 VuaOffice」完成登录后重试',
+    errGskNotLoggedIn: '未登录 Genspark:请点击下方「登录 Genspark」完成登录后重试',
     errNoApiKey: '未配置 {provider} 的 API Key',
     errNoModel: '未配置模型名称',
     menuFile: '文件',
@@ -210,12 +211,8 @@ const tMain = createI18n({
     menuAiProofread: 'AI 校对',
     menuWindow: '窗口',
     menuHelp: '帮助',
-<<<<<<< HEAD
-    menuDocsHelp: 'VuaOffice Docs 帮助',
-=======
     menuShortcuts: '键盘快捷键',
-    menuDocsHelp: 'GenOffice Docs 帮助',
->>>>>>> upstream/main
+    menuDocsHelp: 'VuaOffice Docs 帮助',
   },
   en: {
     dlgOpenDoc: 'Open Document',
@@ -252,7 +249,7 @@ const tMain = createI18n({
     errImageNoText: 'Image attachments have no text; the image is sent along with the user message',
     errNotImage: 'not a supported image type',
     errGskNotLoggedIn:
-      'Not signed in to VuaOffice: click “Sign in to VuaOffice” below, sign in, then retry',
+      'Not signed in to Genspark: click “Sign in to Genspark” below, sign in, then retry',
     errNoApiKey: 'No API key configured for {provider}',
     errNoModel: 'No model name configured',
     menuFile: 'File',
@@ -308,12 +305,8 @@ const tMain = createI18n({
     menuAiProofread: 'AI Proofread',
     menuWindow: 'Window',
     menuHelp: 'Help',
-<<<<<<< HEAD
-    menuDocsHelp: 'VuaOffice Docs Help',
-=======
     menuShortcuts: 'Keyboard Shortcuts',
-    menuDocsHelp: 'GenOffice Docs Help',
->>>>>>> upstream/main
+    menuDocsHelp: 'VuaOffice Docs Help',
   },
   ja: {
     dlgOpenDoc: '文書を開く',
@@ -350,7 +343,7 @@ const tMain = createI18n({
       '画像の添付ファイルはテキストを提供しません。画像としてユーザーメッセージと一緒に送信されるため、そのまま画像をご確認ください',
     errNotImage: 'サポートされていない画像形式です',
     errGskNotLoggedIn:
-      'VuaOffice にサインインしていません。下の「VuaOffice にサインイン」からサインインして再試行してください',
+      'Genspark にサインインしていません。下の「Genspark にサインイン」からサインインして再試行してください',
     errNoApiKey: '{provider} の API キーが設定されていません',
     errNoModel: 'モデル名が設定されていません',
     menuFile: 'ファイル',
@@ -406,12 +399,8 @@ const tMain = createI18n({
     menuAiProofread: 'AI 校正',
     menuWindow: 'ウィンドウ',
     menuHelp: 'ヘルプ',
-<<<<<<< HEAD
-    menuDocsHelp: 'VuaOffice Docs ヘルプ',
-=======
     menuShortcuts: 'キーボードショートカット',
-    menuDocsHelp: 'GenOffice Docs ヘルプ',
->>>>>>> upstream/main
+    menuDocsHelp: 'VuaOffice Docs ヘルプ',
   },
   ko: {
     dlgOpenDoc: '문서 열기',
@@ -449,7 +438,7 @@ const tMain = createI18n({
       '이미지 첨부 파일은 텍스트를 제공하지 않으며, 이미지 형태로 사용자 메시지와 함께 전송되므로 이미지를 직접 확인하면 됩니다',
     errNotImage: '지원되지 않는 이미지 형식입니다',
     errGskNotLoggedIn:
-      'VuaOffice에 로그인되어 있지 않습니다. 아래 "VuaOffice 로그인"을 눌러 로그인한 뒤 다시 시도하세요',
+      'Genspark에 로그인되어 있지 않습니다. 아래 "Genspark 로그인"을 눌러 로그인한 뒤 다시 시도하세요',
     errNoApiKey: '{provider}의 API 키가 설정되지 않았습니다',
     errNoModel: '모델 이름이 설정되지 않았습니다',
     menuFile: '파일',
@@ -505,12 +494,8 @@ const tMain = createI18n({
     menuAiProofread: 'AI 교정',
     menuWindow: '창',
     menuHelp: '도움말',
-<<<<<<< HEAD
-    menuDocsHelp: 'VuaOffice Docs 도움말',
-=======
     menuShortcuts: '키보드 바로 가기',
-    menuDocsHelp: 'GenOffice Docs 도움말',
->>>>>>> upstream/main
+    menuDocsHelp: 'VuaOffice Docs 도움말',
   },
   fr: {
     dlgOpenDoc: 'Ouvrir un document',
@@ -549,7 +534,7 @@ const tMain = createI18n({
       "Les pièces jointes image ne fournissent pas de texte ; l'image est envoyée avec le message de l'utilisateur, consultez-la directement",
     errNotImage: "type d'image non pris en charge",
     errGskNotLoggedIn:
-      'Non connecté à VuaOffice : cliquez sur « Se connecter à VuaOffice » ci-dessous, connectez-vous puis réessayez',
+      'Non connecté à Genspark : cliquez sur « Se connecter à Genspark » ci-dessous, connectez-vous puis réessayez',
     errNoApiKey: 'Aucune clé API configurée pour {provider}',
     errNoModel: 'Aucun nom de modèle configuré',
     menuFile: 'Fichier',
@@ -605,12 +590,8 @@ const tMain = createI18n({
     menuAiProofread: 'Relecture IA',
     menuWindow: 'Fenêtre',
     menuHelp: 'Aide',
-<<<<<<< HEAD
-    menuDocsHelp: 'Aide VuaOffice Docs',
-=======
     menuShortcuts: 'Raccourcis clavier',
-    menuDocsHelp: 'Aide GenOffice Docs',
->>>>>>> upstream/main
+    menuDocsHelp: 'Aide VuaOffice Docs',
   },
   de: {
     dlgOpenDoc: 'Dokument öffnen',
@@ -649,7 +630,7 @@ const tMain = createI18n({
       'Bildanlagen liefern keinen Text; das Bild wird mit der Benutzernachricht gesendet und kann direkt betrachtet werden',
     errNotImage: 'kein unterstütztes Bildformat',
     errGskNotLoggedIn:
-      'Nicht bei VuaOffice angemeldet: Klicken Sie unten auf „Bei VuaOffice anmelden“, melden Sie sich an und versuchen Sie es erneut',
+      'Nicht bei Genspark angemeldet: Klicken Sie unten auf „Bei Genspark anmelden“, melden Sie sich an und versuchen Sie es erneut',
     errNoApiKey: 'Kein API-Schlüssel für {provider} konfiguriert',
     errNoModel: 'Kein Modellname konfiguriert',
     menuFile: 'Datei',
@@ -705,12 +686,8 @@ const tMain = createI18n({
     menuAiProofread: 'KI-Korrektur',
     menuWindow: 'Fenster',
     menuHelp: 'Hilfe',
-<<<<<<< HEAD
-    menuDocsHelp: 'VuaOffice Docs-Hilfe',
-=======
     menuShortcuts: 'Tastenkombinationen',
-    menuDocsHelp: 'GenOffice Docs-Hilfe',
->>>>>>> upstream/main
+    menuDocsHelp: 'VuaOffice Docs-Hilfe',
   },
   es: {
     dlgOpenDoc: 'Abrir documento',
@@ -748,7 +725,7 @@ const tMain = createI18n({
       'Las imágenes adjuntas no proporcionan texto; la imagen se envía junto con el mensaje del usuario, puedes verla directamente',
     errNotImage: 'no es un tipo de imagen compatible',
     errGskNotLoggedIn:
-      'No has iniciado sesión en VuaOffice: pulsa «Iniciar sesión en VuaOffice» abajo, inicia sesión y vuelve a intentarlo',
+      'No has iniciado sesión en Genspark: pulsa «Iniciar sesión en Genspark» abajo, inicia sesión y vuelve a intentarlo',
     errNoApiKey: 'No hay clave de API configurada para {provider}',
     errNoModel: 'No se ha configurado el nombre del modelo',
     menuFile: 'Archivo',
@@ -805,7 +782,7 @@ const tMain = createI18n({
     menuWindow: 'Ventana',
     menuHelp: 'Ayuda',
     menuShortcuts: 'Atajos de teclado',
-    menuDocsHelp: 'Ayuda de GenOffice Docs',
+    menuDocsHelp: 'Ayuda de VuaOffice Docs',
   },
   th: {
     dlgOpenDoc: 'เปิดเอกสาร',
@@ -842,7 +819,7 @@ const tMain = createI18n({
       'สิ่งที่แนบเป็นรูปภาพไม่มีข้อความ รูปจะถูกส่งไปพร้อมข้อความของผู้ใช้ ดูรูปได้โดยตรง',
     errNotImage: 'ไม่ใช่ชนิดรูปภาพที่รองรับ',
     errGskNotLoggedIn:
-      'ยังไม่ได้ลงชื่อเข้าใช้ VuaOffice: แตะ “ลงชื่อเข้าใช้ VuaOffice” ด้านล่าง แล้วลองอีกครั้ง',
+      'ยังไม่ได้ลงชื่อเข้าใช้ Genspark: แตะ “ลงชื่อเข้าใช้ Genspark” ด้านล่าง แล้วลองอีกครั้ง',
     errNoApiKey: 'ยังไม่ได้ตั้งค่า API Key ของ {provider}',
     errNoModel: 'ยังไม่ได้ตั้งค่าชื่อโมเดล',
     menuFile: 'ไฟล์',
@@ -898,12 +875,8 @@ const tMain = createI18n({
     menuAiProofread: 'พิสูจน์อักษรด้วย AI',
     menuWindow: 'หน้าต่าง',
     menuHelp: 'วิธีใช้',
-<<<<<<< HEAD
-    menuDocsHelp: 'วิธีใช้ VuaOffice Docs',
-=======
     menuShortcuts: 'แป้นพิมพ์ลัด',
-    menuDocsHelp: 'วิธีใช้ GenOffice Docs',
->>>>>>> upstream/main
+    menuDocsHelp: 'วิธีใช้ VuaOffice Docs',
   },
   id: {
     dlgOpenDoc: 'Buka Dokumen',
@@ -940,7 +913,7 @@ const tMain = createI18n({
     errImageNoText:
       'Lampiran gambar tidak menyediakan teks; gambar dikirim bersama pesan pengguna dan dapat dilihat langsung',
     errNotImage: 'bukan jenis gambar yang didukung',
-    errGskNotLoggedIn: 'Belum masuk ke VuaOffice: klik “Masuk ke VuaOffice” di bawah, lalu coba lagi',
+    errGskNotLoggedIn: 'Belum masuk ke Genspark: klik “Masuk ke Genspark” di bawah, lalu coba lagi',
     errNoApiKey: 'API Key untuk {provider} belum dikonfigurasi',
     errNoModel: 'Nama model belum dikonfigurasi',
     menuFile: 'File',
@@ -996,12 +969,8 @@ const tMain = createI18n({
     menuAiProofread: 'Koreksi AI',
     menuWindow: 'Jendela',
     menuHelp: 'Bantuan',
-<<<<<<< HEAD
-    menuDocsHelp: 'Bantuan VuaOffice Docs',
-=======
     menuShortcuts: 'Pintasan Papan Ketik',
-    menuDocsHelp: 'Bantuan GenOffice Docs',
->>>>>>> upstream/main
+    menuDocsHelp: 'Bantuan VuaOffice Docs',
   },
   ru: {
     dlgOpenDoc: 'Открыть документ',
@@ -1039,7 +1008,7 @@ const tMain = createI18n({
       'Вложенные изображения не содержат текста; изображение отправляется вместе с сообщением пользователя, смотрите его напрямую',
     errNotImage: 'неподдерживаемый тип изображения',
     errGskNotLoggedIn:
-      'Вы не вошли в VuaOffice: нажмите «Войти в VuaOffice» ниже, войдите и повторите попытку',
+      'Вы не вошли в Genspark: нажмите «Войти в Genspark» ниже, войдите и повторите попытку',
     errNoApiKey: 'API-ключ для {provider} не настроен',
     errNoModel: 'Не указано имя модели',
     menuFile: 'Файл',
@@ -1095,12 +1064,8 @@ const tMain = createI18n({
     menuAiProofread: 'ИИ-корректура',
     menuWindow: 'Окно',
     menuHelp: 'Справка',
-<<<<<<< HEAD
-    menuDocsHelp: 'Справка VuaOffice Docs',
-=======
     menuShortcuts: 'Сочетания клавиш',
-    menuDocsHelp: 'Справка GenOffice Docs',
->>>>>>> upstream/main
+    menuDocsHelp: 'Справка VuaOffice Docs',
   },
   ar: {
     dlgOpenDoc: 'فتح مستند',
@@ -1138,7 +1103,7 @@ const tMain = createI18n({
       'مرفقات الصور لا توفر نصًا؛ تُرسل الصورة مع رسالة المستخدم ويمكن الاطلاع عليها مباشرة',
     errNotImage: 'ليس نوع صورة مدعومًا',
     errGskNotLoggedIn:
-      'لم تسجّل الدخول إلى VuaOffice: انقر على «تسجيل الدخول إلى VuaOffice» أدناه ثم أعد المحاولة',
+      'لم تسجّل الدخول إلى Genspark: انقر على «تسجيل الدخول إلى Genspark» أدناه ثم أعد المحاولة',
     errNoApiKey: 'لم يتم تكوين مفتاح API لـ {provider}',
     errNoModel: 'لم يتم تكوين اسم النموذج',
     menuFile: 'ملف',
@@ -1194,12 +1159,8 @@ const tMain = createI18n({
     menuAiProofread: 'تدقيق بالذكاء الاصطناعي',
     menuWindow: 'نافذة',
     menuHelp: 'تعليمات',
-<<<<<<< HEAD
-    menuDocsHelp: 'تعليمات VuaOffice Docs',
-=======
     menuShortcuts: 'اختصارات لوحة المفاتيح',
-    menuDocsHelp: 'تعليمات GenOffice Docs',
->>>>>>> upstream/main
+    menuDocsHelp: 'تعليمات VuaOffice Docs',
   },
   pt: {
     dlgOpenDoc: 'Abrir Documento',
@@ -1237,7 +1198,7 @@ const tMain = createI18n({
       'Anexos de imagem não fornecem texto; a imagem é enviada junto com a mensagem do usuário, basta vê-la diretamente',
     errNotImage: 'não é um tipo de imagem suportado',
     errGskNotLoggedIn:
-      'Não conectado ao VuaOffice: clique em “Entrar no VuaOffice” abaixo, entre e tente novamente',
+      'Não conectado ao Genspark: clique em “Entrar no Genspark” abaixo, entre e tente novamente',
     errNoApiKey: 'Nenhuma chave de API configurada para {provider}',
     errNoModel: 'Nenhum nome de modelo configurado',
     menuFile: 'Arquivo',
@@ -1293,12 +1254,8 @@ const tMain = createI18n({
     menuAiProofread: 'Revisão com IA',
     menuWindow: 'Janela',
     menuHelp: 'Ajuda',
-<<<<<<< HEAD
-    menuDocsHelp: 'Ajuda do VuaOffice Docs',
-=======
     menuShortcuts: 'Atalhos de Teclado',
-    menuDocsHelp: 'Ajuda do GenOffice Docs',
->>>>>>> upstream/main
+    menuDocsHelp: 'Ajuda do VuaOffice Docs',
   },
   it: {
     dlgOpenDoc: 'Apri documento',
@@ -1336,7 +1293,7 @@ const tMain = createI18n({
       "Gli allegati immagine non forniscono testo; l'immagine viene inviata insieme al messaggio dell'utente, basta guardarla direttamente",
     errNotImage: 'tipo di immagine non supportato',
     errGskNotLoggedIn:
-      'Accesso a VuaOffice non effettuato: fai clic su “Accedi a VuaOffice” qui sotto, accedi e riprova',
+      'Accesso a Genspark non effettuato: fai clic su “Accedi a Genspark” qui sotto, accedi e riprova',
     errNoApiKey: 'Nessuna chiave API configurata per {provider}',
     errNoModel: 'Nessun nome di modello configurato',
     menuFile: 'File',
@@ -1392,12 +1349,8 @@ const tMain = createI18n({
     menuAiProofread: 'Correzione IA',
     menuWindow: 'Finestra',
     menuHelp: 'Aiuto',
-<<<<<<< HEAD
-    menuDocsHelp: 'Guida di VuaOffice Docs',
-=======
     menuShortcuts: 'Scelte rapide da tastiera',
-    menuDocsHelp: 'Guida di GenOffice Docs',
->>>>>>> upstream/main
+    menuDocsHelp: 'Guida di VuaOffice Docs',
   },
   pl: {
     dlgOpenDoc: 'Otwórz dokument',
@@ -1435,7 +1388,7 @@ const tMain = createI18n({
       'Załączniki graficzne nie zawierają tekstu; obraz jest wysyłany razem z wiadomością użytkownika, wystarczy na niego spojrzeć',
     errNotImage: 'nieobsługiwany typ obrazu',
     errGskNotLoggedIn:
-      'Nie zalogowano do VuaOffice: kliknij „Zaloguj się do VuaOffice” poniżej, zaloguj się i spróbuj ponownie',
+      'Nie zalogowano do Genspark: kliknij „Zaloguj się do Genspark” poniżej, zaloguj się i spróbuj ponownie',
     errNoApiKey: 'Nie skonfigurowano klucza API dla {provider}',
     errNoModel: 'Nie skonfigurowano nazwy modelu',
     menuFile: 'Plik',
@@ -1491,12 +1444,8 @@ const tMain = createI18n({
     menuAiProofread: 'Korekta AI',
     menuWindow: 'Okno',
     menuHelp: 'Pomoc',
-<<<<<<< HEAD
-    menuDocsHelp: 'Pomoc VuaOffice Docs',
-=======
     menuShortcuts: 'Skróty klawiaturowe',
-    menuDocsHelp: 'Pomoc GenOffice Docs',
->>>>>>> upstream/main
+    menuDocsHelp: 'Pomoc VuaOffice Docs',
   },
   nl: {
     dlgOpenDoc: 'Document openen',
@@ -1590,12 +1539,8 @@ const tMain = createI18n({
     menuAiProofread: 'AI-proeflezen',
     menuWindow: 'Venster',
     menuHelp: 'Help',
-<<<<<<< HEAD
-    menuDocsHelp: 'VuaOffice Docs Help',
-=======
     menuShortcuts: 'Sneltoetsen',
-    menuDocsHelp: 'GenOffice Docs Help',
->>>>>>> upstream/main
+    menuDocsHelp: 'VuaOffice Docs Help',
   },
   ms: {
     dlgOpenDoc: 'Buka Dokumen',
@@ -1689,12 +1634,8 @@ const tMain = createI18n({
     menuAiProofread: 'Pembacaan Pruf AI',
     menuWindow: 'Tetingkap',
     menuHelp: 'Bantuan',
-<<<<<<< HEAD
-    menuDocsHelp: 'Bantuan VuaOffice Docs',
-=======
     menuShortcuts: 'Pintasan Papan Kekunci',
-    menuDocsHelp: 'Bantuan GenOffice Docs',
->>>>>>> upstream/main
+    menuDocsHelp: 'Bantuan VuaOffice Docs',
   },
   he: {
     dlgOpenDoc: 'פתיחת מסמך',
@@ -1730,7 +1671,7 @@ const tMain = createI18n({
     errImageNoText:
       'קבצים מצורפים מסוג תמונה אינם מספקים טקסט; התמונה נשלחת יחד עם הודעת המשתמש וניתן לצפות בה ישירות',
     errNotImage: 'סוג תמונה שאינו נתמך',
-    errGskNotLoggedIn: 'לא מחובר ל-VuaOffice: לחץ על "התחבר ל-VuaOffice" למטה, התחבר ונסה שוב',
+    errGskNotLoggedIn: 'לא מחובר ל-Genspark: לחץ על "התחבר ל-Genspark" למטה, התחבר ונסה שוב',
     errNoApiKey: 'לא הוגדר מפתח API עבור {provider}',
     errNoModel: 'לא הוגדר שם מודל',
     menuFile: 'קובץ',
@@ -1786,12 +1727,8 @@ const tMain = createI18n({
     menuAiProofread: 'הגהת AI',
     menuWindow: 'חלון',
     menuHelp: 'עזרה',
-<<<<<<< HEAD
-    menuDocsHelp: 'עזרה של VuaOffice Docs',
-=======
     menuShortcuts: 'קיצורי מקלדת',
-    menuDocsHelp: 'עזרה של GenOffice Docs',
->>>>>>> upstream/main
+    menuDocsHelp: 'עזרה של VuaOffice Docs',
   },
   hi: {
     dlgOpenDoc: 'दस्तावेज़ खोलें',
@@ -1885,12 +1822,8 @@ const tMain = createI18n({
     menuAiProofread: 'AI प्रूफ़रीडिंग',
     menuWindow: 'विंडो',
     menuHelp: 'सहायता',
-<<<<<<< HEAD
-    menuDocsHelp: 'VuaOffice Docs सहायता',
-=======
     menuShortcuts: 'कीबोर्ड शॉर्टकट',
-    menuDocsHelp: 'GenOffice Docs सहायता',
->>>>>>> upstream/main
+    menuDocsHelp: 'VuaOffice Docs सहायता',
   },
   'zh-TW': {
     dlgOpenDoc: '開啟文件',
@@ -1925,7 +1858,7 @@ const tMain = createI18n({
     errParseFailed: '檔案解析失敗',
     errImageNoText: '圖片附件不提供文字,已作為影像隨使用者訊息傳送,直接看圖即可',
     errNotImage: '不是支援的圖片類型',
-    errGskNotLoggedIn: '未登入 VuaOffice:請點擊下方「登入 VuaOffice」完成登入後重試',
+    errGskNotLoggedIn: '未登入 Genspark:請點擊下方「登入 Genspark」完成登入後重試',
     errNoApiKey: '未設定 {provider} 的 API Key',
     errNoModel: '未設定模型名稱',
     menuFile: '檔案',
@@ -1981,12 +1914,8 @@ const tMain = createI18n({
     menuAiProofread: 'AI 校對',
     menuWindow: '視窗',
     menuHelp: '說明',
-<<<<<<< HEAD
-    menuDocsHelp: 'VuaOffice Docs 說明',
-=======
     menuShortcuts: '鍵盤快速鍵',
-    menuDocsHelp: 'GenOffice Docs 說明',
->>>>>>> upstream/main
+    menuDocsHelp: 'VuaOffice Docs 說明',
   },
 })
 const tm = (key: Parameters<typeof tMain>[1], params?: Parameters<typeof tMain>[2]) =>
@@ -2087,7 +2016,7 @@ export function uniquePathIn(dir: string, fileName: string): string {
 }
 
 export function openExternalDocx(filePath: string | null): void {
-  if (!filePath || !/\.(docx|doc)$/i.test(filePath)) return
+  if (!filePath || !/\.docx$/i.test(filePath)) return
   const win = BrowserWindow.getFocusedWindow() ?? mainWindow
   if (!rendererReady || !win) {
     pendingOpenPath = filePath
@@ -2424,16 +2353,14 @@ async function loadDocx(
   wcId: number,
   password?: string,
 ): Promise<OpenDocxResult> {
-  if (typeof filePath !== 'string' || !/\.(docx|doc)$/i.test(filePath)) return null
+  if (typeof filePath !== 'string' || !/\.docx$/i.test(filePath)) return null
   if (!existsSync(filePath)) return null
-  const isDocBinary = /\.doc$/i.test(filePath)
-  const rawBytes = await readFile(filePath)
-  const original = isDocBinary ? Buffer.from(await docToDocx(rawBytes)) : rawBytes
+  const original = await readFile(filePath)
   // Password-protected docx (ECMA-376 CFB container): without a password, hand
   // back a marker — the renderer prompts and retries via docs:open-decrypt.
   // No side effects (recents/write grant) until the password checks out.
   let plainBytes: Buffer = original
-  const encrypted = !isDocBinary && isEncryptedDocx(original)
+  const encrypted = isEncryptedDocx(original)
   if (encrypted) {
     const pwd = password ?? docPasswordFor(wcId, filePath)
     if (!pwd) return { needsPassword: true, path: filePath, name: basename(filePath) }
@@ -2444,7 +2371,7 @@ async function loadDocx(
   }
   // the archive keeps the on-disk original as-is (encrypted ones included: they
   // reopen with the user's password), so a bad save never loses the source file
-  const hash = await archiveOriginal(filePath, rawBytes)
+  const hash = await archiveOriginal(filePath, original)
   const recovery = await maybeRecoverDocBytes(filePath, plainBytes)
   let bytes = recovery.bytes
   let recovered = recovery.recovered
@@ -2463,7 +2390,7 @@ async function loadDocx(
   if (fileOpenedHook) fileOpenedHook(wcId, filePath)
   markDiskEncrypted(wcId, filePath, encrypted)
   // record the on-disk file, not the recovery copy: what matters is what save would overwrite
-  await rememberDiskState(wcId, filePath, rawBytes)
+  await rememberDiskState(wcId, filePath, original)
   return {
     path: filePath,
     name: basename(filePath),
@@ -2688,7 +2615,7 @@ export function registerAiIpc(): void {
   )
 
   ipcMain.handle('ai:gsk-login', () => {
-    void shell.openExternal('https://vuahethong.net/web/login?redirect=/vuaoffice/auth/desktop_callback')
+    ensureGenofficeLogin((url) => void shell.openExternal(url))
   })
 
   ipcMain.handle('ai:set-settings', (_event, settings: AiSettings) => {
@@ -2704,10 +2631,6 @@ export function registerAiIpc(): void {
     // the genspark key never enters the settings file; requests take it from the gsk login state
     if (provider === 'genspark' && config && !config.apiKey) {
       config = { ...config, apiKey: gskApiKey() }
-    }
-    // gateway ninerouter (VuaAi Provider) defaults to system key when none is supplied in settings
-    if (provider === 'ninerouter' && config && !config.apiKey) {
-      config = { ...config, apiKey: 'vuaai-default-key' }
     }
     const send = (chunk: AiStreamChunk) => {
       if (!event.sender.isDestroyed()) event.sender.send('ai:stream-chunk', chunk)
@@ -2855,9 +2778,6 @@ export function registerAiIpc(): void {
     let config = settings.providers?.[provider]
     if (provider === 'genspark' && config && !config.apiKey) {
       config = { ...config, apiKey: gskApiKey() }
-    }
-    if (provider === 'ninerouter' && config && !config.apiKey) {
-      config = { ...config, apiKey: 'vuaai-default-key' }
     }
     if (!config?.apiKey) {
       return {
@@ -3093,7 +3013,7 @@ export function registerDocsIpc(): void {
   ipcMain.handle('docs:open', async (event) => {
     const result = await openDialog(event, {
       title: tm('dlgOpenDoc'),
-      filters: [{ name: tm('filterWord'), extensions: ['docx', 'doc'] }],
+      filters: [{ name: tm('filterWord'), extensions: ['docx'] }],
       properties: ['openFile'],
     })
     if (result.canceled || result.filePaths.length === 0) return null
