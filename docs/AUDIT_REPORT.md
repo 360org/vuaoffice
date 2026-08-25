@@ -32,14 +32,14 @@ npm run audit:check
 
 Cổng `tools/check-audit-immutable.mjs` sẽ **báo đỏ và chặn** nếu phát hiện:
 
-| Hành vi | Kết quả |
-| :--- | :--- |
-| Sửa một tệp trong `docs/audits/` đã tồn tại | ❌ Chặn |
-| Xoá một bản kiểm toán | ❌ Chặn |
-| Đổi tên một bản kiểm toán | ❌ Chặn |
-| Thêm tệp sai quy ước tên | ❌ Chặn |
-| Thêm tệp thiếu banner `<!-- AUDIT-IMMUTABLE -->` | ❌ Chặn |
-| Thêm bản kiểm toán mới đúng quy ước | ✅ Cho qua |
+| Hành vi                                          | Kết quả    |
+| :----------------------------------------------- | :--------- |
+| Sửa một tệp trong `docs/audits/` đã tồn tại      | ❌ Chặn    |
+| Xoá một bản kiểm toán                            | ❌ Chặn    |
+| Đổi tên một bản kiểm toán                        | ❌ Chặn    |
+| Thêm tệp sai quy ước tên                         | ❌ Chặn    |
+| Thêm tệp thiếu banner `<!-- AUDIT-IMMUTABLE -->` | ❌ Chặn    |
+| Thêm bản kiểm toán mới đúng quy ước              | ✅ Cho qua |
 
 Cổng chạy trong CI và nằm trong `npm run brand:gate`, nên mọi agent đều gặp nó trước khi commit.
 
@@ -49,10 +49,11 @@ Cổng chạy trong CI và nằm trong `npm run brand:gate`, nên mọi agent đ
 
 Sắp theo thời gian, mới nhất ở trên.
 
-| Ngày | Phiên bản | Bản ghi | Tóm tắt |
-| :--- | :--- | :--- | :--- |
-| 2026-08-23 | `v1.0.12` | [AUDIT-2026-08-23-v1.0.12.md](./audits/AUDIT-2026-08-23-v1.0.12.md) | Lớp cưỡng chế whitelabel sống sót qua merge upstream; XSS Mail và namespace font đã vá. Còn 1 Nghiêm trọng (bộ lọc MathML vượt qua được) và 2 Cao (allowlist IPC tự nạp, đường dẫn hỏng trên Windows). |
-| 2026-08-16 | `v0.7.0` | [AUDIT-2026-08-16-v0.7.0.md](./audits/AUDIT-2026-08-16-v0.7.0.md) | Kiểm toán nền đầu tiên: 2 Nghiêm trọng, 5 Cao, 10 Trung bình. Có cập nhật trạng thái của maintainer tại `bf51b87`. |
+| Ngày       | Phiên bản | Bản ghi                                                             | Tóm tắt                                                                                                                                                                                                                                         |
+| :--------- | :-------- | :------------------------------------------------------------------ | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-25 | `v1.0.16` | [AUDIT-2026-08-25-v1.0.16.md](./audits/AUDIT-2026-08-25-v1.0.16.md) | Cơ chế bất biến đã đứng vững qua merge upstream + 4 lần phát hành. Cả 3 tồn đọng của v1.0.12 đã vá. Mới: 1 Nghiêm trọng (deep link SSO không xác thực), 3 Cao (mất hỗ trợ `.doc`, đăng nhập lệch giữa các app, `main` đỏ lint khi tag v1.0.16). |
+| 2026-08-23 | `v1.0.12` | [AUDIT-2026-08-23-v1.0.12.md](./audits/AUDIT-2026-08-23-v1.0.12.md) | Lớp cưỡng chế whitelabel sống sót qua merge upstream; XSS Mail và namespace font đã vá. Còn 1 Nghiêm trọng (bộ lọc MathML vượt qua được) và 2 Cao (allowlist IPC tự nạp, đường dẫn hỏng trên Windows).                                          |
+| 2026-08-16 | `v0.7.0`  | [AUDIT-2026-08-16-v0.7.0.md](./audits/AUDIT-2026-08-16-v0.7.0.md)   | Kiểm toán nền đầu tiên: 2 Nghiêm trọng, 5 Cao, 10 Trung bình. Có cập nhật trạng thái của maintainer tại `bf51b87`.                                                                                                                              |
 
 ---
 
