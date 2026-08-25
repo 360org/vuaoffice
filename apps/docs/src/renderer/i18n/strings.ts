@@ -28,4 +28,10 @@ export const strings = {
     ...editorStrings['zh-TW'],
     ...aiStrings['zh-TW'],
   },
+  vi: {
+    ...appStrings.vi,
+    ...ribbonStrings.vi,
+    ...editorStrings.vi,
+    ...aiStrings.vi,
+  },
 }

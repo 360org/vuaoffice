@@ -162,7 +162,7 @@
  * generated font (tools/build-pua-blank-font.py) maps all of U+E000-F8FF to a
  * blank 1em glyph so PUA stays invisible in the chains that carry it. */
 @font-face {
-  font-family: 'VuaOffice PUA Blank';
+  font-family: 'GenOffice PUA Blank';
   src: url('./GenOfficePUABlank.woff2') format('woff2');
   unicode-range: U+E000-F8FF;
   font-weight: normal;

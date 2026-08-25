@@ -5,6 +5,17 @@ Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaO
 
 ## [1.0.14] - 2026-08-25
 
+### Comprehensive Vietnamese Localization (Zero Upstream Conflict)
+- **[NEW] Bản dịch Tiếng Việt Toàn diện cho Toàn bộ Bộ ứng dụng VuaOffice**:
+  - **Core i18n & Type-Safe Architecture**: Đăng ký locale `vi` (`vi-VN`) vào `@genoffice/i18n` với đầy đủ định dạng số, ngày tháng và prompt chỉ dẫn hệ thống AI (`aiLangDirective`).
+  - **Shell & Cửa sổ chính**: Dịch 100% giao diện Trang chủ (Home), Cài đặt (Settings), Quản lý tài khoản 360 CORP SSO, Lịch sử mở tệp, Hộp thoại cập nhật phần mềm và Menu Native của hệ thống.
+  - **VuaOffice Docs**: Dịch hơn 1.200 thuật ngữ soạn thảo văn bản Word/Docs (Thanh Ribbon, Layout, Phông chữ tiếng Việt tối ưu line-height, Bảng biểu, Chú thích chân trang, Theo dõi thay đổi & Trợ lý AI).
+  - **VuaOffice Sheets**: Dịch hơn 1.650 thuật ngữ bảng tính Excel/Sheets (Hàm tính toán, Bảng Pivot, Slicer, Goal Seek, Lọc nâng cao, Định dạng có điều kiện, Biểu đồ & Công cụ phân tích AI).
+  - **VuaOffice Slides**: Dịch hơn 1.400 thuật ngữ trình chiếu PowerPoint/Slides (Chuyển trang Transitions, Hiệu ứng Animations, Bảng thiết kế hình dạng Shape/Table/Chart Panes & Trình tạo slide AI).
+  - **VuaOffice PDF & Markdown**: Dịch toàn bộ công cụ xem/chỉnh sửa PDF, ký số, biểu mẫu, chuyển đổi sang Word/Excel/PPT và trình soạn thảo Markdown WYSIWYG.
+  - **Electron Main Process Dialogs**: Đồng bộ bản dịch tiếng Việt cho toàn bộ hộp thoại mở/lưu tệp, cảnh báo chưa lưu và menu native đa nền tảng (macOS / Windows / Linux).
+  - **Whitelabel & Upstream Safe**: Khớp 100% key compile-time `defineStrings`/`createI18n`, vượt qua `brand:gate` và không làm thay đổi cấu trúc mã nguồn lõi khi sync upstream.
+
 ### 360 CORP SSO & Upstream Synchronization
 - **[NEW] 360 CORP SSO 1-Click Authentication**:
   - Tích hợp luồng đăng nhập 1-click trực tiếp qua Identity Provider Odoo tại `https://vuahethong.net/vuaoffice/auth`.

@@ -562,7 +562,7 @@ export function cssFontFamily(font: string, followAltName = true): string {
   // 'GenOffice PUA Blank' keeps AI-residue PUA tokens invisible like Word
   // (Calibri/Carlito would otherwise supply a box .notdef for them).
   if (f.includes('aptos')) {
-    return `${chain(font, 'Calibri', 'Carlito GO', 'VuaOffice PUA Blank', CJK_SANS)},sans-serif`
+    return `${chain(font, 'Calibri', 'Carlito GO', 'GenOffice PUA Blank', CJK_SANS)},sans-serif`
   }
   // math faces would fall to the unknown-name sans fallback; STIX Two Math ships with macOS,
   // and on Windows the declared name resolves natively
@@ -812,7 +812,7 @@ export function cssFontFamily(font: string, followAltName = true): string {
       : CJK_SANS
   // the GO aliases exclude PUA, so the blank face keeps those codepoints
   // invisible (the full subsets' blank .notdef used to catch them)
-  const pua = latinNamed ? ['VuaOffice PUA Blank'] : []
+  const pua = latinNamed ? ['GenOffice PUA Blank'] : []
   return `${chain(font, tail, ...pua)},${serifLike ? 'serif' : 'sans-serif'}`
 }
 

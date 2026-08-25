@@ -168,6 +168,13 @@ const tUpd = createI18n({
     updInstall: '立即重新啟動安裝',
     updLater: '稍後再說',
   },
+  vi: {
+    updTitle: 'Cập nhật phần mềm',
+    updHeadline: 'Đã có phiên bản mới',
+    updDesc: 'Bản cập nhật này bao gồm các cải tiến hiệu năng và sửa lỗi. Khuyến nghị cập nhật ngay.',
+    updInstall: 'Khởi động lại & Cài đặt',
+    updLater: 'Nhắc tôi sau',
+  },
 })
 
 const FIRST_CHECK_DELAY_MS = 15_000

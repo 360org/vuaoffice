@@ -408,6 +408,23 @@ const tDlg = createI18n({
     btnDontSave: '不儲存',
     btnCancel: '取消',
   },
+  vi: {
+    dlgExportImages: 'Xuất hình ảnh ra thư mục',
+    dlgExtract: 'Trích xuất các trang thành PDF',
+    dlgInsert: 'Chọn PDF để nhập',
+    dlgSplit: 'Tách PDF vào thư mục',
+    dlgMerge: 'Chọn các tệp PDF để gộp',
+    dlgMergeSave: 'Lưu tệp PDF đã gộp thành',
+    dlgMergePages: 'Lưu các trang đã ghép thành',
+    dlgReplace: 'Chọn tệp PDF để thay thế',
+    dlgSplitPages: 'Lưu các trang đã chia nhỏ thành',
+    filterPdf: 'Tài liệu PDF',
+    closeUnsavedMsg: 'Tệp PDF này có các thay đổi chưa được lưu.',
+    closeUnsavedDetail: 'Bạn có muốn lưu trước khi đóng không?',
+    btnSave: 'Lưu',
+    btnDontSave: 'Không lưu',
+    btnCancel: 'Hủy',
+  },
 })
 type DlgKey =
   | 'dlgExportImages'

@@ -51,6 +51,8 @@ describe('normalizeLang', () => {
     expect(normalizeLang('he-IL')).toBe('he')
     expect(normalizeLang('iw-IL')).toBe('he')
     expect(normalizeLang('hi-IN')).toBe('hi')
+    expect(normalizeLang('vi-VN')).toBe('vi')
+    expect(normalizeLang('vi')).toBe('vi')
   })
 
   it('maps everything else (and missing) to en', () => {
@@ -83,6 +85,7 @@ describe('isLang', () => {
     expect(isLang('he')).toBe(true)
     expect(isLang('hi')).toBe(true)
     expect(isLang('zh-TW')).toBe(true)
+    expect(isLang('vi')).toBe(true)
     expect(isLang('zh-CN')).toBe(false)
     expect(isLang(42)).toBe(false)
   })
@@ -178,6 +181,7 @@ describe('createI18n', () => {
     he: { hello: 'שלום {name}', plain: 'קבצים' },
     hi: { hello: 'नमस्ते {name}', plain: 'फ़ाइलें' },
     'zh-TW': { hello: '你好 {name}', plain: '檔案' },
+    vi: { hello: 'Xin chào {name}', plain: 'Tệp' },
   })
 
   it('translates per language with interpolation', () => {

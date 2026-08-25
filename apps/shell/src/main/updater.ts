@@ -310,6 +310,19 @@ const tUpd = createI18n({
     updManual: '自動更新失敗，請從下載頁面取得最新版本並手動安裝。',
     updOpenDownload: '前往下載頁面',
   },
+  vi: {
+    updTitle: 'Cập nhật phần mềm',
+    updHeadline: 'Đã có phiên bản mới',
+    updDesc: 'Bản cập nhật này bao gồm các cải tiến hiệu năng và sửa lỗi. Khuyến nghị cập nhật ngay.',
+    updDownload: 'Cập nhật ngay',
+    updLater: 'Nhắc tôi sau',
+    updInstall: 'Khởi động lại & Cài đặt',
+    updDownloading: 'Đang tải bản cập nhật…',
+    updFailed: 'Tải bản cập nhật thất bại. Vui lòng kiểm tra kết nối mạng và thử lại.',
+    updRetry: 'Thử lại',
+    updManual: 'Cập nhật tự động thất bại. Vui lòng tải phiên bản mới nhất từ trang tải xuống và cài đặt thủ công.',
+    updOpenDownload: 'Mở trang tải xuống',
+  },
 })
 
 const FIRST_CHECK_DELAY_MS = 15_000

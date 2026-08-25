@@ -98,8 +98,8 @@
       "reason": "Tên package workspace — 299 tệp import. Đổi = xung đột mọi dòng import mỗi lần merge upstream. Người dùng không thấy."
     },
     {
-      "pattern": "GenOffice (Sans|Serif|Songti|Fullwidth|Box|Hiragino|MS|Heiti|Ethiopic|Mincho|Batang|Myungjo|MingLiU|Fixture|Gothic|Tamil)",
-      "reason": "Khóa định danh font dùng so khớp local() alias trong fonts.css (CJK: Hàn/Nhật/Trung phồn-giản, Gothic KR, Tamil). Đổi = vỡ fallback font CJK/Tamil. Danh sách lấy từ toàn bộ alias thực tế trong apps/**/fonts.css và line-metrics.ts."
+      "pattern": "GenOffice (Sans|Serif|Songti|Fullwidth|Box|Hiragino|MS|Heiti|Ethiopic|Mincho|Batang|Myungjo|MingLiU|Fixture|Gothic|Tamil|PUA Blank)",
+      "reason": "Khóa định danh font dùng so khớp local() alias trong fonts.css (CJK: Hàn/Nhật/Trung phồn-giản, Gothic KR, Tamil, PUA Blank). Đổi = vỡ fallback font. Danh sách lấy từ toàn bộ alias thực tế trong apps/**/fonts.css và line-metrics.ts."
     },
     {
       "pattern": "\\.genoffice",

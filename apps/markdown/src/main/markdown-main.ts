@@ -282,6 +282,18 @@ const tDlg = createI18n({
     btnDontSave: '不儲存',
     btnCancel: '取消',
   },
+  vi: {
+    dlgSaveTitle: 'Lưu tài liệu Markdown',
+    filterMarkdown: 'Tài liệu Markdown',
+    dlgPickImage: 'Chọn hình ảnh',
+    filterImages: 'Hình ảnh',
+    untitledFile: 'Tài liệu không tên',
+    closeUnsavedMsg: 'Tài liệu này có những thay đổi chưa được lưu.',
+    closeUnsavedDetail: 'Bạn có muốn lưu lại trước khi đóng không?',
+    btnSave: 'Lưu',
+    btnDontSave: 'Không lưu',
+    btnCancel: 'Hủy',
+  },
 })
 type DlgKey =
   | 'dlgSaveTitle'
