@@ -1060,7 +1060,7 @@ const tMain = createI18n({
       'Tệp đính kèm hình ảnh không cung cấp văn bản; hình ảnh được gửi kèm theo tin nhắn của người dùng',
     errNotImage: 'Không phải định dạng hình ảnh được hỗ trợ',
     errGskNotLoggedIn:
-      'Chưa đăng nhập VuaOffice: Vui lòng nhấp vào \"Đăng nhập VuaOffice\" bên dưới để hoàn tất đăng nhập rồi thử lại',
+      'Chưa đăng nhập VuaOffice: Vui lòng nhấp vào "Đăng nhập VuaOffice" bên dưới để hoàn tất đăng nhập rồi thử lại',
     errNoApiKey: 'Chưa cấu hình Khóa API cho {provider}',
     errNoModel: 'Chưa cấu hình tên mô hình',
     errImgAbsPath: 'Đường dẫn hình ảnh phải là đường dẫn tuyệt đối.',

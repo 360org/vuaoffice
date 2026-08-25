@@ -7743,7 +7743,7 @@ export const dialogStrings = defineStrings({
     dlgIconsColor: 'Màu sắc:',
     dlgIconsNoResults: 'Không tìm thấy biểu tượng nào.',
     dlgEquationTitle: 'Chèn công thức toán học (LaTeX)',
-    dlgEquationPlaceholder: 'vd. E = mc^2 hoặc \frac{-b \pm \sqrt{b^2-4ac}}{2a}',
+    dlgEquationPlaceholder: 'vd. E = mc^2 hoặc \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}',
     dlgEquationHint: 'Nhập công thức toán học theo cú pháp LaTeX tiêu chuẩn.',
     dlgIconsCatArrows: 'Mũi tên',
     dlgIconsCatShapes: 'Hình dạng',

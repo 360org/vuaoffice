@@ -304,6 +304,10 @@
   --ui-cjk: 'Apple SD Gothic Neo', 'Malgun Gothic';
 }
 
+:root:lang(vi) {
+  --ui-cjk: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
 :root:lang(zh-TW) {
   --ui-cjk: 'PingFang TC', 'Microsoft JhengHei';
 }

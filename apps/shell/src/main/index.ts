@@ -82,7 +82,6 @@ import {
   resolveGskEntry,
   saveGenofficeAuth,
   setGskProxyUrl,
-  startGenofficeLogin,
 } from '@genoffice/ai-search'
 
 import {

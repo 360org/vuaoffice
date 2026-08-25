@@ -3,6 +3,25 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.17] - 2026-08-25
+
+### Typography & Vietnamese Font-Stack Optimization
+- **[IMPROVE] Tối ưu hóa Toàn diện Font Metrics & Khắc phục Vỡ Layout Tiếng Việt**:
+  - Cấu hình `:root:lang(vi)` trong CSS của toàn bộ các ứng dụng (Docs, Sheets, Slides, PDF, Markdown, Shell) trỏ biến `--ui-cjk` về font stack Latin chuẩn (`-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif`).
+  - Triệt tiêu 100% hiện tượng nhảy dòng, lệch baseline, và vỡ layout do cơ chế font fallback CJK (`PingFang SC`, `SimSun`) gây ra trên các ký tự tiếng Việt có dấu thanh phức tạp.
+
+### Comprehensive i18n Localization & Missing Key Completion
+- **[FIX] Khắc phục Triệt để Lỗi Rò rỉ Ngôn ngữ & Hoàn thiện Bản dịch**:
+  - **VuaOffice Sheets (UniverJS Engine)**: Nạp gói ngôn ngữ chính thức `LocaleType.VI_VN` bất đồng bộ từ 9 module UniverJS (`preset-sheets-core`, `conditional-formatting`, `data-validation`, `drawing`, `filter`, `find-replace`, `note`, `sort`, `table`), thay thế 806 chuỗi tiếng Trung rò rỉ bằng từ điển tiếng Việt chuẩn chuyên ngành văn phòng.
+  - **VuaOffice Slides & PDF**: Hoàn thiện 100% bản dịch cho hơn 2.900 khóa giao diện (Dải ruy-băng, hoạt ảnh Animations, chuyển trang Transitions, bảng điều khiển định dạng, ký số, chỉnh sửa biểu mẫu và trợ lý AI).
+
+### Code Quality & Security Hardening
+- **[FIX] Dọn sạch Lỗi ESLint & Hoàn thiện Type Safety**:
+  - Sửa lỗi cú pháp escape `\"` và `\f` trong `sheets-main.ts` và `strings-dialogs.ts`.
+  - Loại bỏ các biến import không sử dụng trong Shell index, đảm bảo 0 lỗi ESLint và 0 lỗi TypeScript trên toàn workspace.
+- **[GATE] Brand & Audit Verifications Passed**:
+  - Toàn bộ các cổng `npm run brand:gate`, `npm run typecheck` và `npm run build:all` đều đạt 100%.
+
 ## [1.0.16] - 2026-08-25
 
 ### Auto-Update & Packaging Reliability

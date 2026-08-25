@@ -126,7 +126,7 @@ export function AiAskPopover({
       <div className="ai-ask-pop-chips">
         {chips.map((key) => (
           <button
-            key={key}
+            key={String(key)}
             className="ai-ask-chip"
             // filling rather than submitting: the shorthand almost always wants a qualifier
             onClick={() => {
