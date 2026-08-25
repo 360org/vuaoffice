@@ -69,10 +69,24 @@
 - **Định dạng Hỗ trợ**: `.md`, `.markdown`.
 - **Tính năng Soạn thảo**: Tiptap Editor hỗ trợ GitHub Flavored Markdown (GFM), công thức toán học KaTeX, sơ đồ tư duy/kiến trúc Mermaid, Task Lists và xuất bản sang HTML/PDF.
 
-### 2.7 Ứng dụng Email Doanh nghiệp AI Mail (`apps/mail`)
-- **Kiến trúc & Lưu trữ**: SQLite cục bộ lưu trữ metadata, full-text search index và hàng đợi ngoại tuyến OpQueue.
-- **Giao diện**: Giao diện Fluent UI Ribbon 3 cột theo chuẩn Microsoft Outlook.
-- **Khả năng AI**: Tóm tắt chuỗi email dài, gợi ý trả lời nhanh (Smart Reply), hỗ trợ soạn thảo thư doanh nghiệp.
+### 2.8 Hệ sinh thái Mở rộng 360-Office & Universal File Creator (`360/packages/file-creator`)
+- **Tạo & Lưu File Cục bộ Đa định dạng (Universal File Creation & Local Save)**:
+  - Cho phép AI Assistant tại **bất kỳ ứng dụng nào** (PDF, Docs, Sheets, Slides, Markdown, Mail) tạo tệp tin mới độc lập theo các định dạng chuẩn: DOCX, XLSX, PPTX, PDF, Markdown (`.md`), Plain Text (`.txt`).
+  - Ghi file an toàn trực tiếp xuống đĩa cục bộ (Desktop/Downloads hoặc mở hộp thoại Save Dialog của hệ điều hành).
+- **Thẻ Tệp Tương tác (Interactive Artifact Card)**:
+  - Hiển thị Artifact Card trực quan ngay trong khung chat AI sau khi tạo file.
+  - Hỗ trợ các hành động nhanh 1-click: `Mở thư mục chứa file trong Finder/Explorer`, `Mở xem ngay trong tab mới của VuaOffice`.
+- **Kiến trúc Plugin Độc lập (Zero-Conflict Extension)**:
+  - Đóng gói toàn bộ logic trong thư mục tách biệt `360/`, bảo đảm không gây xung đột mã nguồn khi đồng bộ cập nhật từ upstream `genoffice`.
+
+### 2.9 Xác thực Đơn điểm 360 CORP Odoo Auth Provider (1-Click SSO & Deep Link)
+- **Luồng Người dùng 1-Click Login (Non-blocking & Zero-pending)**:
+  - Nút đăng nhập "Đăng nhập bằng 360 CORP" tại Home Launcher mở trực tiếp trình duyệt tới Odoo Auth Portal (`https://vuahethong.net/vuaoffice/auth`).
+  - Người dùng đăng nhập hoặc đăng ký tài khoản (bắt buộc 3 trường: Họ & Tên `name`, Email `email`, Số điện thoại `phone`).
+  - Odoo tự động chuyển hướng về VuaOffice Desktop qua Custom Protocol `vuaoffice://auth/callback?token=...&name=...&email=...&phone=...`.
+- **Deep Link Protocol Handler & State Management**:
+  - Electron Main Process bắt sự kiện `open-url` (macOS) / `second-instance` (Windows) và xử lý lưu token tức thì vào `~/.genoffice/auth.json`.
+  - Phát sự kiện IPC `accountLoginEvent` (`{ phase: 'success' }`) tới toàn bộ Renderer, cập nhật trạng thái người dùng tức thì không qua polling.
 
 ---
 

@@ -2732,32 +2732,28 @@ function registerHomeIpc(): void {
     }
   })
 
-  // login progress is streamed to the requesting renderer; the auth URL is
-  // kept main-side so the "open manually" rescue never opens a renderer-supplied URL
+  // 360 CORP SSO 1-Click Login: opens browser directly to Odoo Auth SSO endpoint
+  // When completed, Odoo redirects to vuaoffice://auth/callback?token=...&name=...&email=...&phone=...
   let pendingLoginUrl = ''
   ipcMain.handle(HOME_CHANNELS.accountLogin, async (event) => {
     analytics.track('login_click')
     const sender = event.sender
-    const loginUrl = 'https://vuahethong.net/web/login?redirect=/vuaoffice/auth/desktop_callback'
+    const loginUrl = 'https://vuahethong.net/vuaoffice/auth?redirect_uri=vuaoffice://auth/callback'
     pendingLoginUrl = loginUrl
     const send = (payload: AccountLoginEvent) => {
       if (!sender.isDestroyed()) sender.send(HOME_CHANNELS.accountLoginEvent, payload)
     }
-    // open the browser on the first url event only; later events refresh the rescue URL
-    let opened = false
-    const launched = startGenofficeLogin((progress) => {
-      if (progress.url) {
-        pendingLoginUrl = progress.url
-        if (!opened) {
-          opened = true
-          void shell.openExternal(progress.url)
-        }
-      }
-      if (progress.phase === 'success') analytics.track('login_success')
-      send(progress)
-    })
-    if (launched) send({ phase: 'launched' })
-    return launched
+
+    send({ phase: 'url', url: loginUrl, expiresInSec: 600 })
+    try {
+      await shell.openExternal(loginUrl)
+      send({ phase: 'launched' })
+      return true
+    } catch (err) {
+      console.error('[auth] Failed to open external browser for login:', err)
+      send({ phase: 'error', error: 'launch' })
+      return false
+    }
   })
 
   ipcMain.handle(HOME_CHANNELS.accountLoginOpenUrl, () => {

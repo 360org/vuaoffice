@@ -39,9 +39,15 @@ graph TD
     end
 
     subgraph "Whitelabel & Distribution Layer"
-        BrandCfg["whitelabel/brand-config.json"]
-        BrandScript["scripts/whitelabel.js"]
+        BrandCfg["360/whitelabel/brand-config.json"]
+        BrandScript["360/whitelabel/scripts/whitelabel.js"]
         CiBuild["GitHub Actions CI/CD<br/>(release.yml)"]
+    end
+
+    subgraph "360-Office Extension Layer (360/packages/*)"
+        FileCreator["@360/file-creator<br/>(Universal File Generator & Artifacts)"]
+        Seams["Capability Seams<br/>(IFileGenerator, IStorageService)"]
+        ArtifactUi["Artifact Card UI<br/>(Download, Finder, Tab Open)"]
     end
 
     HomeRenderer --> PreloadBridge
@@ -54,6 +60,11 @@ graph TD
     PdfApp --> FileParse & UiLib & I18nLib & AiProvider & AgentCore
     MdApp --> UiLib & I18nLib & AiProvider & AgentCore
     MailApp --> UiLib & I18nLib & AiProvider & AgentCore
+
+    AgentCore -.-> FileCreator
+    FileCreator --> Seams & ArtifactUi
+    FileCreator -.-> DocxEng & PptxRnd
+    MainProcess -.-> FileCreator
 
     BrandCfg & BrandScript -.-> Desktop Shell Layer & Application Suite Layer
 ```

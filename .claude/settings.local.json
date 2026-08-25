@@ -8,12 +8,16 @@
     "additionalDirectories": [
       "/Volumes/DATA/DEV/vuaoffice",
       "/Volumes/DATA/DEV/VuaMail",
-      "/Volumes/DATA/DEV/aiac"
+      "/Volumes/DATA/DEV/aiac",
+      "/Volumes/DATA/DEV/SKILL_SOURCES/deepseek-harness",
+      "/Volumes/DATA/DEV/backend_base"
     ],
     "allowedWorkspaces": [
       "/Volumes/DATA/DEV/vuaoffice",
       "/Volumes/DATA/DEV/VuaMail",
-      "/Volumes/DATA/DEV/aiac"
+      "/Volumes/DATA/DEV/aiac",
+      "/Volumes/DATA/DEV/SKILL_SOURCES/deepseek-harness",
+      "/Volumes/DATA/DEV/backend_base"
     ]
   }
 }

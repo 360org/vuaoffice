@@ -12,6 +12,10 @@ Dự án sử dụng mô hình npm workspaces với cấu trúc chuẩn hóa:
 
 ```text
 vuaoffice/
+├── 360/                    # 🌟 Hệ sinh thái Độc quyền 360 CORP (Zero Upstream Conflict)
+│   ├── whitelabel/         # Cấu hình thương hiệu và tài nguyên đồ họa VuaOffice
+│   └── packages/
+│       └── file-creator/   # Package @360/file-creator (Sinh file đa định dạng & Artifacts)
 ├── apps/
 │   ├── docs/               # Ứng dụng Soạn thảo Văn bản (.docx)
 │   ├── sheets/             # Ứng dụng Bảng tính & Phân tích Dữ liệu (.xlsx)
@@ -34,14 +38,13 @@ vuaoffice/
 │   ├── project-store/      # Quản lý cấu trúc thư mục dự án cục bộ
 │   └── electron-utils/     # Tiện ích IPC và tương tác hệ điều hành
 ├── docs/                   # Toàn bộ tài liệu kiến trúc, đặc tả, hướng dẫn
-├── whitelabel/             # Cấu hình thương hiệu và tài nguyên đồ họa VuaOffice
 ├── scripts/                # Kịch bản tự động hóa Whitelabel & Sync
 └── tools/                  # Công cụ kiểm tra lint, theme colors, licenses
 ```
 
 ---
 
-## 2. Đặc tả Cấu hình Whitelabel (`whitelabel/brand-config.json`)
+## 2. Đặc tả Cấu hình Whitelabel (`360/whitelabel/brand-config.json`)
 
 ```json
 {
@@ -191,6 +194,41 @@ Hệ thống cung cấp cơ chế thu thập và báo cáo lỗi trực tiếp v
 
 ---
 
+## 7. Đặc tả Giao thức Xác thực 360 CORP Odoo Auth Provider & Deep Link SSO
+
+### 7.1 Luồng Xác thực 1-Click SSO Web-to-App
+
+1. **Khởi chạy từ Desktop**:
+   - Khi người dùng bấm **"Đăng nhập bằng 360 CORP"** trên màn hình Home Launcher, Electron kích hoạt `shell.openExternal(odooAuthUrl)`.
+   - `odooAuthUrl`: `https://vuahethong.net/vuaoffice/auth?redirect_uri=vuaoffice://auth/callback&state=<NONCE>`
+
+2. **Xác thực / Đăng ký trên Odoo Portal (`backend_base` / `vuaoffice_auth`)**:
+   - Giao diện Odoo Auth Portal yêu cầu người dùng cung cấp tối thiểu 3 trường thông tin:
+     - **Họ & Tên (`name`)**
+     - **Email (`email` / `login`)**
+     - **Số điện thoại (`phone` / `mobile`)**
+   - Nếu tài khoản đã tồn tại: Tiến hành đăng nhập.
+   - Nếu chưa có tài khoản: Tự động đăng ký người dùng mới trong hệ thống Odoo.
+   - Khi xác thực thành công, Odoo redirect về:
+     `vuaoffice://auth/callback?token=<JWT_OR_API_TOKEN>&name=<NAME>&email=<EMAIL>&phone=<PHONE>&state=<NONCE>`
+
+3. **Xử lý Deep Link tại Tiến trình Electron Shell (`apps/shell/src/main/index.ts`)**:
+   - Đăng ký scheme: `app.setAsDefaultProtocolClient('vuaoffice')`.
+   - Bắt sự kiện:
+     - macOS: `app.on('open-url', (event, url) => handleDeepLinkAuth(url))`
+     - Windows/Linux: `app.on('second-instance', (event, argv) => handleDeepLinkAuth(extractDeepLinkUrl(argv)))`
+   - Phân tích URL và lưu trữ:
+     - Trích xuất `token`, `name`, `email`, `phone`.
+     - Lưu thông tin an toàn vào `~/.genoffice/auth.json` (mode `0o600`).
+     - Phát event IPC `HOME_CHANNELS.accountLoginEvent` với payload `{ phase: 'success', name, email, phone }`.
+
+4. **Trạng thái Giao diện Renderer (`Home.tsx`)**:
+   - Cập nhật tức thì trạng thái Đã Đăng Nhập kèm Tên & Email người dùng.
+   - Không thực hiện polling, không gây pending hay treo ứng dụng.
+
+---
+
 **Chủ quản**: 360 CORP  
 **Trạng thái**: Đã phê duyệt (Approved)  
-**Ngày cập nhật**: 2026-08-16
+**Ngày cập nhật**: 2026-08-25
+
