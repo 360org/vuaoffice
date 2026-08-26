@@ -194,7 +194,12 @@ function ProjectPanel({ projects, selectedId, onSelect, onRefresh }: ProjectPane
     setCreating(false)
     setNewName('')
     if (!name) return
-    await window.aiOfficeProject?.createProject(name)
+    try {
+      await window.aiOfficeProject?.createProject(name)
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : String(error))
+      return
+    }
     onRefresh()
   }
 
@@ -204,7 +209,12 @@ function ProjectPanel({ projects, selectedId, onSelect, onRefresh }: ProjectPane
     const id = renaming.id
     setRenaming(null)
     if (!name) return
-    await window.aiOfficeProject?.renameProject(id, name)
+    try {
+      await window.aiOfficeProject?.renameProject(id, name)
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : String(error))
+      return
+    }
     onRefresh()
   }
 
@@ -220,7 +230,12 @@ function ProjectPanel({ projects, selectedId, onSelect, onRefresh }: ProjectPane
     const id = confirmDeleteId
     setConfirmDeleteId(null)
     if (!id) return
-    await window.aiOfficeProject?.deleteProject(id)
+    try {
+      await window.aiOfficeProject?.deleteProject(id)
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : String(error))
+      return
+    }
     if (selectedId === id) onSelect(null)
     onRefresh()
   }
