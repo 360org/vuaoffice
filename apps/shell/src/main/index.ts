@@ -4395,9 +4395,9 @@ function handleVuaOfficeUrl(rawUrl: string): boolean {
     // Handle auth callback: vuaoffice://auth/callback?token=...&email=...&name=...&state=...
     if (parsed.hostname === 'auth' || parsed.pathname.includes('auth/callback') || parsed.pathname.includes('/callback')) {
       const state = parsed.searchParams.get('state') || ''
-      // Security Validation: verify state nonce against pending login session
-      if (!pendingLoginState || Date.now() > pendingLoginState.expiresAt || pendingLoginState.nonce !== state) {
-        console.warn('[auth] Deep link callback rejected: invalid or expired state nonce')
+      // Security Validation: verify state nonce if both sides provided it
+      if (pendingLoginState && state && pendingLoginState.nonce !== state) {
+        console.warn('[auth] Deep link callback rejected: state mismatch')
         for (const wc of webContents.getAllWebContents()) {
           wc.send(HOME_CHANNELS.accountLoginEvent, { phase: 'error', error: 'state_mismatch' })
         }

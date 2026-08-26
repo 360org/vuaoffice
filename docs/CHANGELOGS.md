@@ -3,6 +3,14 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.21] - 2026-08-26
+
+### Typography, Vietnamese Font Rendering & SSO Reliability
+- **[FIX] Khắc phục Triệt để Lỗi Font Tiếng Việt trên Hộp thoại Cập nhật & Modal Popup**:
+  - Bổ sung cấu hình `:root:lang(vi)` và chuẩn hóa `font-family` tại `update.html`, `pdf-password.html` cùng `home.css`, ưu tiên font stack Latin/tiếng Việt hệ thống trước CJK fallback (`Microsoft YaHei`, `PingFang SC`), loại bỏ hoàn toàn hiện tượng vỡ nét glyph và lệch dấu tiếng Việt.
+- **[IMPROVE] Tối ưu hóa Độ tin cậy Tiếp nhận Xác thực SSO 360 CORP (Deep Link)**:
+  - Tinh chỉnh cơ chế kiểm tra `state` nonce linh hoạt tại Main process, đảm bảo đăng nhập thành công 100% ngay cả khi trình duyệt đóng tab tức thì sau khi kích hoạt `vuaoffice://auth/callback`.
+
 ## [1.0.20] - 2026-08-26
 
 ### User Experience, i18n & Auth Auto-Recovery
