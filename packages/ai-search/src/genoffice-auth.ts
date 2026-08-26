@@ -124,19 +124,44 @@ export interface GenofficeAuth {
 
 let cachedAuth: GenofficeAuth | null | undefined
 
+function parseJwtPayload(token?: string): Record<string, unknown> | null {
+  if (!token || !token.includes('.')) return null
+  try {
+    const parts = token.split('.')
+    // Standard JWT has 3 parts (header.payload.signature), 360 SSO token has 2 parts (payload.signature)
+    const payloadPart = parts.length >= 3 ? parts[1] : parts[0]
+    if (!payloadPart) return null
+    const jsonStr = Buffer.from(payloadPart, 'base64').toString('utf-8')
+    return asRecord(JSON.parse(jsonStr))
+  } catch {
+    return null
+  }
+}
+
 function readAuthFile(): GenofficeAuth | null {
   try {
     const raw = asRecord(JSON.parse(readFileSync(genofficeAuthPath(), 'utf-8')))
     if (typeof raw.api_key !== 'string' || !raw.api_key) return null
+    const jwt = parseJwtPayload(
+      typeof raw.access_token === 'string' && raw.access_token ? raw.access_token : raw.api_key,
+    )
+    const jwtName = typeof jwt?.name === 'string' && jwt.name ? jwt.name : undefined
+    const jwtEmail = typeof jwt?.email === 'string' && jwt.email ? jwt.email : undefined
+    const jwtAvatar = typeof jwt?.avatar_url === 'string' && jwt.avatar_url ? jwt.avatar_url : undefined
+
+    const email = (typeof raw.email === 'string' && raw.email ? raw.email : jwtEmail)
+    const name = (typeof raw.name === 'string' && raw.name ? raw.name : jwtName)
+    const avatarUrl = (typeof raw.avatar_url === 'string' && raw.avatar_url ? raw.avatar_url : jwtAvatar)
+
     return {
       apiKey: raw.api_key,
       ...(typeof raw.key_id === 'string' && raw.key_id ? { keyId: raw.key_id } : {}),
       ...(typeof raw.access_token === 'string' && raw.access_token
         ? { accessToken: raw.access_token }
         : {}),
-      ...(typeof raw.email === 'string' && raw.email ? { email: raw.email } : {}),
-      ...(typeof raw.name === 'string' && raw.name ? { name: raw.name } : {}),
-      ...(typeof raw.avatar_url === 'string' && raw.avatar_url ? { avatarUrl: raw.avatar_url } : {}),
+      ...(email ? { email } : {}),
+      ...(name ? { name } : {}),
+      ...(avatarUrl ? { avatarUrl } : {}),
     }
   } catch {
     return null
