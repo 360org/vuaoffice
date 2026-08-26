@@ -10,16 +10,25 @@ export async function* sseLines(
   let buffer = ''
   const stream = body as ReadableStream<Uint8Array>
   const reader = stream.getReader()
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    onBytes?.()
-    buffer += decoder.decode(value, { stream: true })
-    const lines = buffer.split('\n')
-    buffer = lines.pop() ?? ''
-    for (const line of lines) yield line
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      onBytes?.()
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() ?? ''
+      for (const line of lines) yield line
+    }
+    if (buffer) yield buffer
+  } finally {
+    // The consumer may abandon this generator mid-stream (an in-band gateway
+    // error thrown inside the for-await loop calls .return()). Without this
+    // cleanup the reader stays locked and the underlying socket is not
+    // returned to the pool until GC nondeterministically finalizes it.
+    await reader.cancel().catch(() => undefined)
+    reader.releaseLock()
   }
-  if (buffer) yield buffer
 }
 
 export interface StreamCallbacks {
