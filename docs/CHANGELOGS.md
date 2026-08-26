@@ -3,16 +3,21 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.20] - 2026-08-26
+
+### User Experience, i18n & Auth Auto-Recovery
+- **[FIX] Bản dịch Toàn diện Hộp thoại Lưu & Trạng thái trong Docs (i18n)**:
+  - Chuẩn hóa toàn bộ các nút và thông báo hộp thoại chưa lưu trong tiến trình Docs (`Không lưu`, `Hủy`, `Ghi đè`, `Khôi phục`...).
+- **[NEW] Tự động Giải mã Token JWT Trích xuất Profile (SSO)**:
+  - Bổ sung cơ chế giải mã JWT payload tự động khôi phục Profile (Name, Email, Avatar) ngay cả với các phiên lưu trữ chỉ chứa raw JWT token.
+
 ## [1.0.19] - 2026-08-26
 
 ### SSO Profile, User Experience & Navigation
 - **[NEW] Hoàn thiện Hiển thị Thông tin SSO Profile & Avatar Người dùng**:
   - Tích hợp trích xuất và hiển thị Họ tên thật (`status.name` / Full Name) cùng ảnh đại diện (`status.avatarUrl`) từ tài khoản 360 CORP SSO (`vuahethong.net`).
-  - Hỗ trợ giải mã JWT token tự động khôi phục Profile (Name, Email, Avatar) ngay cả với các phiên lưu trữ chỉ chứa raw JWT string.
   - Hỗ trợ avatar tròn với cơ chế fallback thông minh (hiển thị ký tự viết hoa từ Họ tên/Email) khi tài khoản chưa có ảnh.
   - Cập nhật câu chào trang chủ (`greeting`) cá nhân hóa theo Full Name của người dùng đăng nhập.
-- **[FIX] Bản dịch Toàn diện Hộp thoại Lưu & Trạng thái trong Docs (i18n)**:
-  - Bản dịch tiếng Việt hoàn chỉnh cho tất cả các nút và thông điệp hộp thoại chưa lưu (`Không lưu`, `Hủy`, `Ghi đè`, `Khôi phục`...).
 - **[IMPROVE] Trải nghiệm Xác thực SSO Tự động Đóng Tab Trình duyệt**:
   - Trang xác thực SSO trên server (`auth_sso_center.sso_redirect_page`) tự động đếm ngược 3 giây và thực thi `window.close()` sau khi bắn deep link `vuaoffice://auth/callback`, không để tab treo trên trình duyệt.
 - **[SECURITY] Auth Guard Bảo vệ Mục Cài đặt (Settings)**:
