@@ -1,4 +1,5 @@
 import { execSync, spawn } from 'node:child_process'
+import { randomBytes } from 'node:crypto'
 import {
   copyFileSync,
   cpSync,
@@ -2463,6 +2464,7 @@ const tm = (key: Parameters<typeof tMain>[1], params?: Parameters<typeof tMain>[
 
 let shellWindow: BrowserWindow | null = null
 let tabManager: TabManager | null = null
+let pendingLoginState: { nonce: string; expiresAt: number } | null = null
 
 /**
  * When the user creates a file from a specific project view, remember which
@@ -3000,12 +3002,18 @@ function registerHomeIpc(): void {
   })
 
   // 360 CORP SSO 1-Click Login: opens browser directly to Odoo Auth SSO endpoint
-  // When completed, Odoo redirects to vuaoffice://auth/callback?token=...&name=...&email=...&phone=...
+  // When completed, Odoo redirects to vuaoffice://auth/callback?token=...&name=...&email=...&phone=...&state=...
   let pendingLoginUrl = ''
+
   ipcMain.handle(HOME_CHANNELS.accountLogin, async (event) => {
     analytics.track('login_click')
     const sender = event.sender
-    const loginUrl = 'https://vuahethong.net/vuaoffice/auth?redirect_uri=vuaoffice://auth/callback'
+    const nonce = randomBytes(32).toString('hex')
+    pendingLoginState = {
+      nonce,
+      expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes TTL
+    }
+    const loginUrl = `https://vuahethong.net/vuaoffice/auth?redirect_uri=vuaoffice://auth/callback&state=${encodeURIComponent(nonce)}`
     pendingLoginUrl = loginUrl
     const send = (payload: AccountLoginEvent) => {
       if (!sender.isDestroyed()) sender.send(HOME_CHANNELS.accountLoginEvent, payload)
@@ -4383,8 +4391,21 @@ function handleVuaOfficeUrl(rawUrl: string): boolean {
   if (!rawUrl || !rawUrl.startsWith('vuaoffice://')) return false
   try {
     const parsed = new URL(rawUrl)
-    // Handle auth callback: vuaoffice://auth/callback?token=...&email=...&name=...
+    // Handle auth callback: vuaoffice://auth/callback?token=...&email=...&name=...&state=...
     if (parsed.hostname === 'auth' || parsed.pathname.includes('auth/callback') || parsed.pathname.includes('/callback')) {
+      const state = parsed.searchParams.get('state') || ''
+      // Security Validation: verify state nonce against pending login session
+      if (!pendingLoginState || Date.now() > pendingLoginState.expiresAt || pendingLoginState.nonce !== state) {
+        console.warn('[auth] Deep link callback rejected: invalid or expired state nonce')
+        for (const wc of webContents.getAllWebContents()) {
+          wc.send(HOME_CHANNELS.accountLoginEvent, { phase: 'error', error: 'state_mismatch' })
+        }
+        revealShellWindow()
+        return false
+      }
+      // Consume nonce (one-time use)
+      pendingLoginState = null
+
       const token =
         parsed.searchParams.get('token') ||
         parsed.searchParams.get('apiKey') ||

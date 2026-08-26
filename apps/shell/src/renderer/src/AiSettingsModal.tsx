@@ -81,7 +81,7 @@ interface AiSettingsModalProps {
 export function AiSettingsModal({ onClose, initialDevMode = false }: AiSettingsModalProps) {
   const { lang, t } = useI18n()
   const [settings, setSettings] = useState<AiSettings | null>(null)
-  const [activeTab, setActiveTab] = useState<AiProviderId>('ninerouter')
+  const [activeTab, setActiveTab] = useState<AiProviderId>('vuaairouter')
   const [customModelOverrides, setCustomModelOverrides] = useState<Record<AiProviderId, string>>({} as Record<AiProviderId, string>)
   const [isCustomModelActive, setIsCustomModelActive] = useState<Record<AiProviderId, boolean>>({} as Record<AiProviderId, boolean>)
   const [showPassword, setShowPassword] = useState(false)
@@ -192,7 +192,7 @@ export function AiSettingsModal({ onClose, initialDevMode = false }: AiSettingsM
     }
 
     const nextSettings: AiSettings = {
-      provider: isDeveloperMode ? activeTab : 'ninerouter',
+      provider: isDeveloperMode ? activeTab : 'vuaairouter',
       providers: finalizedProviders,
       developerMode: isDeveloperMode,
     }

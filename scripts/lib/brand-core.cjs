@@ -16,7 +16,7 @@ const fs = require('fs')
 const path = require('path')
 
 const ROOT = path.join(__dirname, '../..')
-const CONFIG_PATH = path.join(ROOT, 'whitelabel/brand-config.json')
+const CONFIG_PATH = path.join(ROOT, '360/brand-config.json')
 
 // ---------------------------------------------------------------------------
 // Cấu hình

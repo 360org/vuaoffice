@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 /**
- * VuaOffice Whitelabel Engine
+ * VuaOffice 360 Brand Engine
  * ---------------------------------------------------------------------------
- * Nguồn chân lý DUY NHẤT: whitelabel/brand-config.json
+ * Nguồn chân lý DUY NHẤT: 360/brand-config.json
  * TUYỆT ĐỐI không hardcode quy tắc thương hiệu trong tệp này.
  *
- *   node scripts/whitelabel.js apply     # upstream -> VuaOffice
- *   node scripts/whitelabel.js restore   # VuaOffice -> upstream (để merge sạch)
- *   node scripts/whitelabel.js status    # báo cáo, không ghi tệp, exit 1 nếu chưa sạch
+ *   node scripts/360-brand.js apply     # upstream -> VuaOffice
+ *   node scripts/360-brand.js restore   # VuaOffice -> upstream (để merge sạch)
+ *   node scripts/360-brand.js status    # báo cáo, không ghi tệp, exit 1 nếu chưa sạch
  *
  * Zero-dependency: chỉ dùng module lõi Node, chạy được TRƯỚC `npm ci`.
- * Bắt buộc đọc docs/WHITELABEL_STRATEGY.md trước khi sửa tệp này.
+ * Bắt buộc đọc docs/360_BRAND_STRATEGY.md trước khi sửa tệp này.
  */
 
 const fs = require('fs')

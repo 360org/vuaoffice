@@ -16,7 +16,7 @@ export type AiProviderId =
   | 'openrouter'
   | 'custom'
   | 'omirouter'
-  | 'ninerouter'
+  | 'vuaairouter'
   | 'hermes'
 
 /** Genspark account status (gsk login state; the sole auth source for AI features) */

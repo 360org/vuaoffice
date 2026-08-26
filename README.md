@@ -37,13 +37,13 @@ Tất cả các bản build phát hành được đóng gói và kiểm tra tự
 
 Để đảm bảo bộ ứng dụng **VuaOffice** luôn cập nhật các tính năng và bản sửa lỗi mới nhất từ dự án gốc (`genspark-ai/genoffice`) mà **KHÔNG BỊ ĐÈ** hoặc làm mất các tùy chỉnh thương hiệu & AI Provider của 360 CORP, nhà phát triển BẮT BUỘC tuân thủ quy trình sau:
 
-### 1. Cơ chế Whitelabel độc lập (`scripts/whitelabel.js`)
+### 1. Cơ chế Thương hiệu 360 CORP (`scripts/360-brand.js`)
 
-Mọi cấu hình thương hiệu VuaOffice được lưu tập trung tại `whitelabel/brand-config.json`.
+Mọi cấu hình thương hiệu VuaOffice được lưu tập trung tại `360/brand-config.json`.
 
-- Lệnh áp dụng branding: `npm run whitelabel:apply`
-- Lệnh hoàn tác về codebase gốc: `npm run whitelabel:restore`
-- Lệnh kiểm tra trạng thái: `npm run whitelabel:status`
+- Lệnh áp dụng branding: `npm run brand:apply` (hoặc `npm run whitelabel:apply`)
+- Lệnh hoàn tác về codebase gốc: `npm run brand:restore` (hoặc `npm run whitelabel:restore`)
+- Lệnh kiểm tra trạng thái: `npm run brand:status` (hoặc `npm run whitelabel:status`)
 - Lệnh kiểm tra cổng: `npm run brand:gate`
 
 ### 2. Các bước Pull & Merge không conflict
@@ -57,13 +57,13 @@ git fetch upstream main
 
 # Bước 2: Tạo nhánh sync riêng biệt và restore về chuỗi gốc upstream
 git checkout -b sync/upstream-YYYYMMDD
-npm run whitelabel:restore
+npm run brand:restore
 
 # Bước 3: Tiến hành 3-way merge
 git merge upstream/main
 
 # Bước 4: Giải quyết xung đột và áp dụng lại nhận diện VuaOffice
-npm run whitelabel:apply
+npm run brand:apply
 npm run brand:gate
 
 # Bước 5: Kiểm tra và hoàn tất merge vào main
@@ -71,94 +71,48 @@ npm run typecheck
 git commit
 ```
 
-<<<<<<< HEAD
 ---
 
-## 🧠 Cấu hình AI Provider (OmiRouter / 9Router / Hermes / Custom)
+## 🧠 Cấu hình AI Provider (OmiRouter / VuaAIRouter / Hermes / Custom)
 
 VuaOffice hỗ trợ kết nối trực tiếp đến các AI Gateway của 360 CORP hoặc nhà cung cấp tùy chỉnh mà không phụ thuộc vào tài khoản Genspark mặc định:
 
-- **OmiRouter AI**: Cấu hình mặc định với Base URL `https://api.omirouter.com/v1`
-- **9Router AI**: Cấu hình với Base URL `https://api.9router.com/v1`
+- **VuaAIRouter AI**: AI Gateway mặc định với Base URL `https://ai-router.vuahethong.com/v1`
+- **OmiRouter AI**: Cấu hình với Base URL `https://api.omirouter.com/v1`
 - **Hermes Agent**: Cấu hình với Base URL `https://hermes.vuahethong.com/v1`
 - **Custom Provider**: Cho phép người dùng tự nhập OpenAI-compatible Endpoint & API Key tùy chọn ngay tại màn hình **AI Settings** trong menu tài khoản.
 
 ---
 
 ## 🛠️ Hướng dẫn Phát triển Local (Development)
-=======
-On Fedora / RHEL-family / openSUSE, install the rpm instead:
 
 ```bash
-sudo dnf install ./genoffice-<version>.x86_64.rpm     # Fedora / RHEL family
-sudo zypper install ./genoffice-<version>.x86_64.rpm  # openSUSE
+# Cài đặt phụ thuộc
+npm install
+
+# Tạo dữ liệu test .docx fixtures
+npm run fixtures
+
+# Khởi chạy toàn bộ môi trường phát triển (Shell + 6 Sub-apps)
+npm run dev
+
+# Kiểm tra chất lượng và loại bỏ lỗi kiểu dữ liệu
+npm run typecheck
+npm run lint
+
+# Đóng gói bản cài đặt (Distribution)
+npm run dist:mac:arm64   # macOS Apple Silicon
+npm run dist:mac:x64     # macOS Intel
+npm run dist:win         # Windows x64
+npm run dist:linux       # Linux (.deb, .rpm, .AppImage)
 ```
 
-The AppImage instead runs in place: install the FUSE 2 runtime
-(`sudo apt install libfuse2`; on Ubuntu 24.04 the package is `libfuse2t64`),
-make the file executable, then run it:
+---
 
-```bash
-chmod +x GenOffice-<version>.AppImage
-./GenOffice-<version>.AppImage
-```
+## ⚖️ Giấy phép Bản quyền (License)
 
-## Apps
-
-| App             | Product                | What it is                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| --------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/docs`     | **GenOffice Docs**     | `.docx` word processor. Byte-preserving round trip: only dirty paragraphs are regenerated (paragraph patch), everything else in the original file is kept byte-for-byte, so opening and saving never breaks layout in Word. Paginated view whose line metrics reproduce the original document's layout, tracked changes, comments, styles, equations, ink.                                                                                                                                                                                                                                                                                                                                                                               |
-| `apps/sheets`   | **GenOffice Sheets**   | `.xlsx` spreadsheet. UI built on the open-source [Univer](https://github.com/dream-num/univer) core (Apache-2.0) with a large layer of in-house extensions; `.xlsx` import/export runs through an in-house Rust sidecar (calamine + IronCalc), charts are rendered in-house (Konva), plus pivot tables, slicers, conditional formatting, and formula tracing.                                                                                                                                                                                                                                                                                                                                                                            |
-| `apps/slides`   | **GenOffice Slides**   | `.pptx` presentations. In-house `.pptx` parse/render/edit engine with masters, charts, cropping, ink, and text shaping (HarfBuzz metrics).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| `apps/pdf`      | **GenOffice PDF**      | `.pdf` viewer/editor on [pdf.js](https://github.com/mozilla/pdf.js) (Apache-2.0) + [pdf-lib](https://github.com/Hopding/pdf-lib) (MIT): annotations, forms, outlines, stamps, signatures, page operations, and printing support. True text editing — paragraph selection with in-block reflow, alignment restoration, original-font preservation — and content-stream image insert/edit, all rewriting page content streams through [PDFium](https://pdfium.googlesource.com/pdfium/) wasm (BSD-3-Clause) with subset-embedded fonts — no cover-up annotations. Converts PDFs into editable Word, PowerPoint, and Excel files fully locally (`packages/pdf2docx`), with OCR support for scanned pages (system OCR on macOS and Windows). |
-| `apps/markdown` | **GenOffice Markdown** | `.md` / `.markdown` editor: Tiptap block editor over plain Markdown files — headings, lists, tables, images, code blocks — saved back as plain Markdown, hosted in shell tabs.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `apps/shell`    | **GenOffice**          | The suite shell: home screen, tabbed hosting of the five editors, light/dark/system theme, auto-update.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-
-Every app embeds the same AI panel: block-granular AI editing with version
-snapshots and diffs in docs, a tool-calling agent over workbook/slide/PDF
-state in the others.
-
-The whole suite ships light / dark / system UI themes built on shared design
-tokens (`packages/ui`), with a CI guard that keeps chrome colors on the token
-system. Document surfaces stay light in dark mode — Word-style dark chrome
-around white paper — so files render and export identically in both themes.
-
-**AI backends — Genspark sign-in or bring your own key.** By default the
-apps sign in to a Genspark account through a device-code flow — no model API
-key to enter — and model calls route through the Genspark proxy (Claude,
-GPT, and Gemini families). Or bring your own key (BYOK) in the AI settings:
-Claude, OpenAI, Gemini, DeepSeek, Kimi, GLM, Qwen, Doubao, MiniMax, Grok,
-Mistral, and OpenRouter are built in, plus a custom provider slot for any
-OpenAI-compatible endpoint (base URL + key), local servers included. A
-Genspark account also unlocks the Genspark ("gsk") tool endpoints the agents
-build on — web and image search, image generation and editing,
-image/audio/video analysis, and audio transcription — all reachable through
-`packages/ai-search` for anyone extending the agent layer.
-
-## Engine packages
-
-All pure TypeScript, no Electron dependency, unit-tested (except the UI kit):
-
-- `packages/docx-engine` — docx parsing → block tree (with `docxIndex`
-  anchors and passthrough), OOXML fragment generation, byte-level paragraph
-  patching.
-- `packages/pptx-engine` / `packages/pptx-render` — pptx model and rendering.
-- `packages/pdf2docx` — local PDF → DOCX conversion: PDFium character-level
-  extraction, pure-geometry layout analysis, rebuild through `docx-engine`;
-  the same analysis drives the PDF app's PowerPoint and Excel exports.
-- `packages/file-parse` — text extraction for AI attachments (office formats,
-  text formats).
-- `packages/agent-core` — the AI agent loop and skill composition shared by
-  every app.
-- `packages/ai-provider` — provider abstraction and streaming for the model
-  backends.
-- `packages/ai-search` — Genspark auth + web/image search tools.
-- `packages/i18n`, `packages/ui`, `packages/project-store`,
-  `packages/electron-utils` — shared i18n core, React UI kit, recent-files
-  store, and Electron main-process helpers.
-
-## Development
->>>>>>> upstream/main
+Dự án được phát hành theo Giấy phép **Apache License 2.0**. Xem chi tiết tại tệp [LICENSE](LICENSE).  
+Copyright (c) 360 CORP. Dựa trên dự án mã nguồn mở GenOffice (Copyright (c) Mainfunc, Inc.).
 
 ```bash
 # Cài đặt phụ thuộc

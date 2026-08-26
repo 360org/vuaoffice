@@ -3,6 +3,32 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.18] - 2026-08-26
+
+### Upstream Synchronization & Core Updates
+- **[MIGRATE] Đồng bộ Upstream v0.8.262 (`genspark-ai/genoffice`)**:
+  - Hợp nhất toàn bộ các bản vá lỗi và tính năng mới nhất từ upstream mà không làm xung đột nhận diện thương hiệu.
+  - Tích hợp các cải tiến mới nhất về bộ máy xử lý bảng tính UniverJS, trình dựng Slides và xử lý tài liệu PDF.
+
+### Brand Architecture & 360 Ecosystem Modernization
+- **[REFACTOR] Tái cấu trúc Hệ thống Thương hiệu sang `360/*`**:
+  - Tái cấu trúc toàn bộ kiến trúc Whitelabel từ `whitelabel/` sang `360/`, cập nhật engine `scripts/360-brand.js` và thư viện lõi `brand-core.cjs`.
+  - Cập nhật `.gitattributes` với merge driver `ours` bảo vệ tài sản thương hiệu `360/**`, tài liệu `docs/360_BRAND_STRATEGY.md`, quy chuẩn phát hành `docs/RELEASE_PROTOCOL.md` và quy trình CI/CD `.github/workflows/release.yml`.
+  - Đồng bộ lệnh npm: `brand:apply`, `brand:restore`, `brand:status`, `brand:selftest`, `brand:gate` (giữ alias `whitelabel:*` để tương thích ngược).
+- **[IMPROVE] Đổi tên Định danh AI Gateway thành `vuaairouter`**:
+  - Cập nhật định danh provider AI sang `vuaairouter` trên toàn bộ hệ thống (UI Settings, AI Provider Registry, Stream Handler).
+  - Thiết lập model mặc định `vuaai-daily` kết nối trực tiếp đến hạ tầng `https://ai-router.vuahethong.com/v1`.
+
+### Security Hardening & Technical Debt Resolution
+- **[SECURITY] Gia cố Bảo mật SSO Deep Link (Chống Tấn công Session Fixation)**:
+  - Sinh nonce ngẫu nhiên 256-bit cryptographically secure (`pendingLoginState`) khi mở trình duyệt đăng nhập, áp dụng TTL 10 phút và cơ chế hủy nonce ngay sau 1 lần sử dụng (One-Time-Use).
+  - Bắt buộc kiểm tra khớp `state` khi ứng dụng nhận Deep Link `vuaoffice://auth/callback`, ngăn chặn triệt để tấn công tiêm nhiễm token từ bên ngoài.
+- **[FIX] Khôi phục Trình chuyển đổi Tệp Word Cũ `.doc` (Word 97-2003)**:
+  - Tích hợp bộ chuyển đổi nhị phân `docToDocx` cho phép mở trực tiếp các tệp `.doc` cũ trên bộ nhớ RAM mà không cần công cụ bên ngoài.
+- **[FIX] Khắc phục Hoàn toàn Lỗi Test & SSR Guard**:
+  - Thêm guard kiểm tra `localStorage` và xử lý an toàn lỗi môi trường jsdom trong `AiPanel.tsx`.
+  - Mở rộng regex nhận diện font hệ thống macOS (`Hiragino Mincho ProN` / `YuMincho`) trong bộ test `system-fonts.test.ts`.
+
 ## [1.0.17] - 2026-08-25
 
 ### Typography & Vietnamese Font-Stack Optimization

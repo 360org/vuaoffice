@@ -1,5 +1,5 @@
 {
-  "_doc": "NGUỒN CHÂN LÝ DUY NHẤT cho whitelabel. Mọi công cụ (scripts/whitelabel.js, tools/check-brand.mjs) đều đọc tệp này. TUYỆT ĐỐI không hardcode quy tắc thương hiệu ở nơi khác. Xem docs/WHITELABEL_STRATEGY.md.",
+  "_doc": "NGUỒN CHÂN LÝ DUY NHẤT cho thương hiệu 360 CORP. Mọi công cụ (scripts/360-brand.js, tools/check-brand.mjs) đều đọc tệp này. TUYỆT ĐỐI không hardcode quy tắc thương hiệu ở nơi khác. Xem docs/360_BRAND_STRATEGY.md.",
 
   "brand": {
     "appName": "VuaOffice",
@@ -8,11 +8,11 @@
     "vendor": "360 CORP",
     "repoSlug": "360org/vuaoffice",
     "releasesUrl": "https://vuahethong.net/#download-desktop-app",
-    "defaultProvider": "ninerouter",
+    "defaultProvider": "vuaairouter",
     "omirouterUrl": "https://api.omirouter.com/v1",
-    "ninerouterLabel": "vuaofficerouter",
-    "ninerouterUrl": "https://ai-router.vuahethong.com/v1",
-    "ninerouterModel": "vuaai-daily"
+    "vuaairouterLabel": "vuaairouter",
+    "vuaairouterUrl": "https://ai-router.vuahethong.com/v1",
+    "vuaairouterModel": "vuaai-daily"
   },
 
   "upstream": {
@@ -178,13 +178,13 @@
   "assets": {
     "_doc": "Tài sản đồ họa sao chép khi apply.",
     "icons": {
-      "from": "whitelabel/assets",
+      "from": "360/assets",
       "to": "apps/shell/build",
       "files": ["icon.png", "icon.icns", "icon.ico"],
       "aliases": { "icon.icns": "app.icns", "icon.ico": "app.ico" }
     },
     "logos": {
-      "from": "whitelabel/Logo",
+      "from": "360/Logo",
       "to": "apps/shell/src/renderer/src/assets",
       "files": ["vuaoffice-logo.svg", "vuaoffice-icon.svg"]
     }

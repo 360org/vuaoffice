@@ -4875,6 +4875,8 @@ export const aiStrings = defineStrings({
     aiSumChartEdit: 'Đã chỉnh sửa biểu đồ trên trang {n}',
     aiSumBackgroundAll: 'Đặt hình nền trên tất cả các trang',
     aiSumBackground: 'Đặt hình nền trên trang {n}',
+    aiSumSpeakerNotes: 'Ghi chú cho người thuyết trình trên trang {n}',
+    aiFailSpeakerNotes: 'Đặt ghi chú cho người thuyết trình',
     aiSumDeleteElement: 'Đã xóa phần tử trên trang {n}',
     aiSumSaveTemplate: 'Đã lưu mẫu phong cách "{name}"',
     aiSumTemplatesEmpty: 'Mẫu phong cách (trống)',

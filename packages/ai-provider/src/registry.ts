@@ -175,8 +175,8 @@ export const AI_PROVIDER_ADAPTERS: Record<AiProviderId, ProviderAdapter> = {
     capabilities: { auth: 'api-key', vision: true },
     resolveEndpoint: fixedEndpoint('openai-compatible', 'https://api.omirouter.com/v1'),
   },
-  ninerouter: {
-    meta: metaOf('ninerouter'),
+  vuaairouter: {
+    meta: metaOf('vuaairouter'),
     capabilities: { auth: 'api-key', vision: true },
     resolveEndpoint: fixedEndpoint('openai-compatible', 'https://ai-router.vuahethong.com/v1'),
   },

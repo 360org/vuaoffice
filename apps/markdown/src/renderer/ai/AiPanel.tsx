@@ -46,12 +46,16 @@ function clampPanelWidth(w: number): number {
 }
 
 function loadPanelWidth(): number {
-  const saved = Number(localStorage.getItem(PANEL_WIDTH_KEY))
-  // static bounds only — clamping against the window here would bake a
-  // transiently small viewport into the restored preference
-  return Number.isFinite(saved) && saved > 0
-    ? Math.min(Math.max(saved, PANEL_WIDTH_MIN), 720)
-    : PANEL_WIDTH_DEFAULT
+  try {
+    const saved = Number(typeof localStorage !== 'undefined' ? localStorage.getItem(PANEL_WIDTH_KEY) : null)
+    // static bounds only — clamping against the window here would bake a
+    // transiently small viewport into the restored preference
+    return Number.isFinite(saved) && saved > 0
+      ? Math.min(Math.max(saved, PANEL_WIDTH_MIN), 720)
+      : PANEL_WIDTH_DEFAULT
+  } catch {
+    return PANEL_WIDTH_DEFAULT
+  }
 }
 
 interface ToolActivity {

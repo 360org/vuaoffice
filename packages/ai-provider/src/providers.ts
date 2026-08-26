@@ -187,7 +187,7 @@ export const AI_PROVIDERS: AiProviderMeta[] = [
     needsBaseUrl: true,
   },
   {
-    id: 'ninerouter',
+    id: 'vuaairouter',
     label: 'VuaAi Provider',
     models: ['claude-3-5-sonnet', 'gpt-4o', 'gemini-1.5-pro', 'deepseek-chat'],
     defaultModel: 'vuaai-daily',
@@ -207,10 +207,10 @@ export const AI_PROVIDERS: AiProviderMeta[] = [
 /** preset endpoints for providers whose baseUrl has a known default */
 const DEFAULT_BASE_URLS: Partial<Record<AiProviderId, string>> = {
   omirouter: 'https://api.omirouter.com/v1',
-  ninerouter: 'https://ai-router.vuahethong.com/v1',
+  vuaairouter: 'https://ai-router.vuahethong.com/v1',
   hermes: 'https://hermes.vuahethong.com/v1',
 }
-const LEGACY_NINEROUTER_BASE_URL = 'https://api.9router.com/v1'
+const LEGACY_VUAAIROUTER_BASE_URL = 'https://api.9router.com/v1'
 
 /**
  * Fresh settings with every provider's default model and an empty key,
@@ -229,7 +229,7 @@ export function defaultAiSettings(
       baseUrl: meta.needsBaseUrl ? (DEFAULT_BASE_URLS[meta.id] ?? '') : undefined,
     }
   }
-  return { provider: 'ninerouter', providers, gskToolsEnabled: true }
+  return { provider: 'vuaairouter', providers, gskToolsEnabled: true }
 }
 
 /** false only on an explicit opt-out; absent (pre-toggle settings files) means on */
@@ -242,7 +242,7 @@ export function cloudToolsEnabled(settings: Pick<AiSettings, 'gskToolsEnabled'>)
  * (api-key providers need a key and a model id; providers flagged
  * needsBaseUrl also need a base URL). Anything else — including unknown
  * ids from a hand-edited
- * settings file — falls back to ninerouter, so a half-filled setup degrades
+ * settings file — falls back to vuaairouter, so a half-filled setup degrades
  * to the signed-in default instead of silently disabling AI.
  */
 export function activeProvider(settings: AiSettings): AiProviderId {
@@ -250,8 +250,8 @@ export function activeProvider(settings: AiSettings): AiProviderId {
   if (provider === 'genspark') return 'genspark'
   const meta = AI_PROVIDERS.find((m) => m.id === provider)
   const config = settings.providers?.[provider]
-  if (!meta || !config?.apiKey || !config.model) return 'ninerouter'
-  if (meta.needsBaseUrl && !config.baseUrl) return 'ninerouter'
+  if (!meta || !config?.apiKey || !config.model) return 'vuaairouter'
+  if (meta.needsBaseUrl && !config.baseUrl) return 'vuaairouter'
   return provider
 }
 
@@ -313,11 +313,11 @@ export function resolveAiSettings(
     return defaults
   }
   const providers = { ...defaults.providers, ...stored.providers }
-  if (providers.ninerouter.baseUrl === LEGACY_NINEROUTER_BASE_URL) {
-    providers.ninerouter = {
-      ...providers.ninerouter,
-      baseUrl: DEFAULT_BASE_URLS.ninerouter,
-      model: providers.ninerouter.model === 'claude-3-5-sonnet' ? 'vuaai-daily' : providers.ninerouter.model,
+  if (providers.vuaairouter.baseUrl === LEGACY_VUAAIROUTER_BASE_URL) {
+    providers.vuaairouter = {
+      ...providers.vuaairouter,
+      baseUrl: DEFAULT_BASE_URLS.vuaairouter,
+      model: providers.vuaairouter.model === 'claude-3-5-sonnet' ? 'vuaai-daily' : providers.vuaairouter.model,
     }
   }
   return {

@@ -199,7 +199,7 @@ const LOGOS: Record<AiProviderId, ReactNode> = {
       <path d="M12 6v12M6 12h12" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" />
     </svg>
   ),
-  ninerouter: (
+  vuaairouter: (
     <svg viewBox="0 0 24 24" fill="currentColor" fillRule="evenodd" aria-hidden="true">
       <rect width="24" height="24" rx="6" fill="#7C3AED" />
       <text x="12" y="17" fill="#fff" fontSize="14" fontWeight="bold" textAnchor="middle">9</text>

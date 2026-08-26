@@ -47,7 +47,7 @@ import type {
   SaveDialogOptions,
   WebContents,
 } from 'electron'
-import { parseFileToText } from '@genoffice/file-parse'
+import { docToDocx, parseFileToText } from '@genoffice/file-parse'
 import {
   AiCreditsError,
   AiTimeoutError,
@@ -67,7 +67,6 @@ import {
   type LegacyAiSettings,
 } from '@genoffice/ai-provider'
 import {
-  ensureGenofficeLogin,
   gskApiKey,
   gskGenerateImage,
   gskLoginInfo,
@@ -2108,7 +2107,7 @@ export function uniquePathIn(dir: string, fileName: string): string {
 }
 
 export function openExternalDocx(filePath: string | null): void {
-  if (!filePath || !/\.docx$/i.test(filePath)) return
+  if (!filePath || !/\.(docx|doc)$/i.test(filePath)) return
   const win = BrowserWindow.getFocusedWindow() ?? mainWindow
   if (!rendererReady || !win) {
     pendingOpenPath = filePath
@@ -2445,14 +2444,16 @@ async function loadDocx(
   wcId: number,
   password?: string,
 ): Promise<OpenDocxResult> {
-  if (typeof filePath !== 'string' || !/\.docx$/i.test(filePath)) return null
+  if (typeof filePath !== 'string' || !/\.(docx|doc)$/i.test(filePath)) return null
   if (!existsSync(filePath)) return null
-  const original = await readFile(filePath)
+  const isDocBinary = /\.doc$/i.test(filePath)
+  const rawBytes = await readFile(filePath)
+  const original = isDocBinary ? Buffer.from(await docToDocx(rawBytes)) : rawBytes
   // Password-protected docx (ECMA-376 CFB container): without a password, hand
   // back a marker — the renderer prompts and retries via docs:open-decrypt.
   // No side effects (recents/write grant) until the password checks out.
   let plainBytes: Buffer = original
-  const encrypted = isEncryptedDocx(original)
+  const encrypted = !isDocBinary && isEncryptedDocx(original)
   if (encrypted) {
     const pwd = password ?? docPasswordFor(wcId, filePath)
     if (!pwd) return { needsPassword: true, path: filePath, name: basename(filePath) }
@@ -2463,7 +2464,7 @@ async function loadDocx(
   }
   // the archive keeps the on-disk original as-is (encrypted ones included: they
   // reopen with the user's password), so a bad save never loses the source file
-  const hash = await archiveOriginal(filePath, original)
+  const hash = await archiveOriginal(filePath, rawBytes)
   const recovery = await maybeRecoverDocBytes(filePath, plainBytes)
   let bytes = recovery.bytes
   let recovered = recovery.recovered
@@ -2482,7 +2483,7 @@ async function loadDocx(
   if (fileOpenedHook) fileOpenedHook(wcId, filePath)
   markDiskEncrypted(wcId, filePath, encrypted)
   // record the on-disk file, not the recovery copy: what matters is what save would overwrite
-  await rememberDiskState(wcId, filePath, original)
+  await rememberDiskState(wcId, filePath, rawBytes)
   return {
     path: filePath,
     name: basename(filePath),
@@ -2707,7 +2708,7 @@ export function registerAiIpc(): void {
   )
 
   ipcMain.handle('ai:gsk-login', () => {
-    ensureGenofficeLogin((url) => void shell.openExternal(url))
+    void shell.openExternal('https://vuahethong.net/web/login?redirect=/vuaoffice/auth/desktop_callback')
   })
 
   ipcMain.handle('ai:set-settings', (_event, settings: AiSettings) => {
@@ -2723,6 +2724,9 @@ export function registerAiIpc(): void {
     // the genspark key never enters the settings file; requests take it from the gsk login state
     if (provider === 'genspark' && config && !config.apiKey) {
       config = { ...config, apiKey: gskApiKey() }
+    }
+    if (provider === 'vuaairouter' && config && !config.apiKey) {
+      config = { ...config, apiKey: 'vuaai-default-key' }
     }
     const send = (chunk: AiStreamChunk) => {
       if (!event.sender.isDestroyed()) event.sender.send('ai:stream-chunk', chunk)
@@ -2870,6 +2874,9 @@ export function registerAiIpc(): void {
     let config = settings.providers?.[provider]
     if (provider === 'genspark' && config && !config.apiKey) {
       config = { ...config, apiKey: gskApiKey() }
+    }
+    if (provider === 'vuaairouter' && config && !config.apiKey) {
+      config = { ...config, apiKey: 'vuaai-default-key' }
     }
     if (!config?.apiKey) {
       return {
@@ -3105,7 +3112,7 @@ export function registerDocsIpc(): void {
   ipcMain.handle('docs:open', async (event) => {
     const result = await openDialog(event, {
       title: tm('dlgOpenDoc'),
-      filters: [{ name: tm('filterWord'), extensions: ['docx'] }],
+      filters: [{ name: tm('filterWord'), extensions: ['docx', 'doc'] }],
       properties: ['openFile'],
     })
     if (result.canceled || result.filePaths.length === 0) return null

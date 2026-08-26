@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   version_and_sync:
-    name: 0. Verify Sync & Whitelabel Integrity
+    name: 0. Verify Sync & 360 Brand Integrity
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.release.outputs.tag }}
@@ -42,31 +42,30 @@ jobs:
 
           echo "Sync check against origin/main passed without conflicts."
 
-      - name: Verify Whitelabel Apply & Integrity
+      - name: Verify 360 Brand Apply & Integrity
         shell: bash
         run: |
-          echo "=== 2. Verifying Whitelabel engine application ==="
+          echo "=== 2. Verifying 360 Brand engine application ==="
           npm ci
 
           # 2a. Bộ quy tắc phải SONG ÁNH. Một mẫu `protected` chặn một chiều mà
           #     thiếu cặp đối xứng sẽ làm hỏng mã nguồn vĩnh viễn sau một chu kỳ
           #     restore->apply (vd VuaOfficeIcon -> GenOfficeIcon, không đảo lại được).
-          node scripts/whitelabel.js selftest
+          node scripts/360-brand.js selftest
 
-          node scripts/whitelabel.js apply
+          node scripts/360-brand.js apply
 
           # 2b. Sau apply, engine phải báo SẠCH. Đây là kiểm chứng THỰC CHẤT rằng
-          #     quy trình whitelabel đã chạy đúng.
-          #
-          #     Cổng cũ dùng `grep -q "VuaOffice" electron-builder.cjs` cho kết quả
-          #     DƯƠNG TÍNH GIẢ: nó PASS nhờ chuỗi đã hardcode sẵn trong tệp, nên vẫn
-          #     báo xanh kể cả khi engine whitelabel hỏng hoàn toàn.
-          node scripts/whitelabel.js status
+          #     quy trình 360 brand đã chạy đúng.
+          node scripts/360-brand.js status
 
           # 2c. Không chuỗi thương hiệu upstream nào được lọt ra bề mặt người dùng.
           node tools/check-brand.mjs
 
-          echo "Whitelabel integrity check passed."
+          # 2d. Kiểm tra tính bất biến của bản ghi audit.
+          node tools/check-audit-immutable.mjs
+
+          echo "360 Brand integrity check passed."
 
       - id: release
         name: Validate Release Version Tag
@@ -103,10 +102,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-apple-darwin,aarch64-apple-darwin
-      - name: Install dependencies & Apply Whitelabel
+      - name: Install dependencies & Apply 360 Brand
         run: |
           npm ci
-          node scripts/whitelabel.js apply
+          node scripts/360-brand.js apply
       - name: Build macOS Intel (x64)
         run: |
           npm run notices
@@ -142,10 +141,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-apple-darwin,x86_64-apple-darwin
-      - name: Install dependencies & Apply Whitelabel
+      - name: Install dependencies & Apply 360 Brand
         run: |
           npm ci
-          node scripts/whitelabel.js apply
+          node scripts/360-brand.js apply
       - name: Build macOS Silicon (arm64)
         run: |
           npm run notices
@@ -181,10 +180,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-pc-windows-msvc
-      - name: Install dependencies & Apply Whitelabel
+      - name: Install dependencies & Apply 360 Brand
         run: |
           npm ci
-          node scripts/whitelabel.js apply
+          node scripts/360-brand.js apply
       - name: Build Windows (x64)
         run: |
           npm run notices
@@ -214,10 +213,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: i686-pc-windows-msvc
-      - name: Install dependencies & Apply Whitelabel
+      - name: Install dependencies & Apply 360 Brand
         run: |
           npm ci
-          node scripts/whitelabel.js apply
+          node scripts/360-brand.js apply
       - name: Build Windows (x86)
         run: |
           npm run notices
@@ -244,10 +243,10 @@ jobs:
           node-version: 22
           cache: npm
       - uses: dtolnay/rust-toolchain@stable
-      - name: Install dependencies & Apply Whitelabel
+      - name: Install dependencies & Apply 360 Brand
         run: |
           npm ci
-          node scripts/whitelabel.js apply
+          node scripts/360-brand.js apply
       - name: Build Linux (AppImage & deb)
         run: |
           npm run notices

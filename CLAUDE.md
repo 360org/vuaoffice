@@ -45,23 +45,23 @@ system mode).
   launch.
 - `useI18n()`'s `t` is not referentially stable; never put it in a hook
   dependency array. Store the key and translate at render time.
-## Whitelabel Rules (mandatory)
+## 360 Brand & Whitelabel Rules (mandatory)
 
-> 📕 **Quy chế đầy đủ, bắt buộc đọc: [`docs/WHITELABEL_STRATEGY.md`](docs/WHITELABEL_STRATEGY.md)**
+> 📕 **Quy chế đầy đủ, bắt buộc đọc: [`docs/360_BRAND_STRATEGY.md`](docs/360_BRAND_STRATEGY.md)**
 > Phần dưới chỉ là bản rút gọn. Khi có mâu thuẫn, tài liệu quy chế là chuẩn.
 
 VuaOffice là bản phái sinh whitelabel của dự án mã nguồn mở `genspark-ai/genoffice`.
 Nguyên tắc nền tảng:
 
 > **Thương hiệu là DỮ LIỆU CẤU HÌNH, không phải mã nguồn.**
-> Mọi thay đổi thương hiệu đi qua `whitelabel/brand-config.json`. Không có ngoại lệ.
+> Mọi thay đổi thương hiệu đi qua `360/brand-config.json`. Không có ngoại lệ.
 
 1. **KHÔNG hardcode chuỗi thương hiệu vào mã nguồn.** Không sửa tay
    `'GenOffice Docs'` → `'VuaOffice Docs'` trong `.ts`/`.tsx`/`.html`. Thay vào
    đó thêm cặp vào `replacements` trong `brand-config.json` rồi chạy
-   `npm run whitelabel:apply`.
-2. **`whitelabel/brand-config.json` là nguồn chân lý DUY NHẤT.** Cấm hardcode
-   quy tắc thương hiệu trong `scripts/whitelabel.js`, `tools/check-brand.mjs`
+   `npm run brand:apply`.
+2. **`360/brand-config.json` là nguồn chân lý DUY NHẤT.** Cấm hardcode
+   quy tắc thương hiệu trong `scripts/360-brand.js`, `tools/check-brand.mjs`
    hay bất kỳ đâu khác. (Đây chính là khiếm khuyết đã giết chết cơ chế cũ.)
 3. **KHÔNG đổi tên định danh kỹ thuật.** `@genoffice/*` (299 tệp import), alias
    font (`GenOffice Sans KR`…), tên tệp font trên đĩa, khóa từ điển PDF
@@ -77,7 +77,7 @@ Nguyên tắc nền tảng:
    nói dối người dùng. Chỉ whitelabel chỗ sản phẩm **tự xưng** sai thương hiệu.
 7. **Luật song ánh**: `apply(restore(apply(x))) === apply(x)`. Mọi mẫu
    `protected` chặn một chiều PHẢI có cặp đối xứng. Sau mọi thay đổi config,
-   bắt buộc chạy `npm run whitelabel:selftest`.
+   bắt buộc chạy `npm run brand:selftest`.
 8. **Trước mọi commit**: `npm run brand:gate` phải ĐẠT (selftest + status +
    check-brand + audit:check). Cấm vô hiệu hóa cổng, cấm `continue-on-error`,
    cấm `--no-verify`.
@@ -89,21 +89,21 @@ Nguyên tắc nền tảng:
    `.gitattributes` im lặng vô tác dụng). Luôn merge qua nhánh
    `sync/upstream-YYYYMMDD` + Pull Request, **cấm merge thẳng vào `main`**.
    Quy trình đầy đủ: quy chế §7.
-10. **Branding assets**: Nguồn logo là `whitelabel/Logo/` (**chữ `L` hoa**) — đây là
+10. **Branding assets**: Nguồn logo là `360/Logo/` (**chữ `L` hoa**) — đây là
     thư mục `brand-config.json` sao chép vào `apps/shell/src/renderer/src/assets/` và
     là tệp app thực sự import: `vuaoffice-logo.svg` (lockup, dùng ở Home) và
     `vuaoffice-icon.svg` (icon 28x28px, dùng ở Onboarding). Thư mục
-    `whitelabel/logo/` chữ thường **không được mã nguồn nào tham chiếu** — sửa tệp
+    `360/logo/` chữ thường **không được mã nguồn nào tham chiếu** — sửa tệp
     trong đó không có tác dụng gì.
 
-### Lệnh whitelabel
+### Lệnh thương hiệu 360
 
 | Lệnh | Tác dụng |
 | :--- | :--- |
-| `npm run whitelabel:apply` | upstream → VuaOffice |
-| `npm run whitelabel:restore` | VuaOffice → upstream (trước khi merge) |
-| `npm run whitelabel:status` | Báo cáo, không ghi tệp, exit 1 nếu chưa sạch |
-| `npm run whitelabel:selftest` | Kiểm chứng luật song ánh |
+| `npm run brand:apply` (alias: `whitelabel:apply`) | upstream → VuaOffice |
+| `npm run brand:restore` (alias: `whitelabel:restore`) | VuaOffice → upstream (trước khi merge) |
+| `npm run brand:status` (alias: `whitelabel:status`) | Báo cáo, không ghi tệp, exit 1 nếu chưa sạch |
+| `npm run brand:selftest` (alias: `whitelabel:selftest`) | Kiểm chứng luật song ánh |
 | `npm run brand:check` | Cổng phát hiện rò rỉ (2 tầng) |
 | `npm run audit:check` | Chặn sửa/xoá/đổi tên bản ghi kiểm toán |
 | `npm run brand:gate` | Gộp cả bốn cổng — chạy trước mọi commit |

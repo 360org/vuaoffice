@@ -11,12 +11,12 @@ import type { AiProviderId } from '../src/types'
 describe('defaultAiSettings', () => {
   it('gives every provider its default model and an empty key by default', () => {
     const settings = defaultAiSettings()
-    expect(settings.provider).toBe('ninerouter')
+    expect(settings.provider).toBe('vuaairouter')
     for (const meta of AI_PROVIDERS) {
       expect(settings.providers[meta.id].apiKey).toBe('')
       expect(settings.providers[meta.id].model).toBe(meta.defaultModel)
     }
-    expect(settings.providers.ninerouter).toMatchObject({
+    expect(settings.providers.vuaairouter).toMatchObject({
       baseUrl: 'https://ai-router.vuahethong.com/v1',
       model: 'vuaai-daily',
     })
@@ -80,9 +80,9 @@ describe('resolveAiSettings', () => {
   it('migrates the legacy 9Router endpoint to the vuaofficerouter gateway', () => {
     const resolved = resolveAiSettings(
       {
-        provider: 'ninerouter',
+        provider: 'vuaairouter',
         providers: {
-          ninerouter: {
+          vuaairouter: {
             apiKey: 'stored-key',
             model: 'claude-3-5-sonnet',
             baseUrl: 'https://api.9router.com/v1',
@@ -91,7 +91,7 @@ describe('resolveAiSettings', () => {
       },
       defaultAiSettings(),
     )
-    expect(resolved.providers.ninerouter).toEqual({
+    expect(resolved.providers.vuaairouter).toEqual({
       apiKey: 'stored-key',
       model: 'vuaai-daily',
       baseUrl: 'https://ai-router.vuahethong.com/v1',
@@ -150,10 +150,10 @@ describe('resolveAiSettings', () => {
 describe('activeProvider', () => {
   it('honors a configured BYOK provider and falls back to default router otherwise', () => {
     const settings = defaultAiSettings()
-    expect(activeProvider(settings)).toBe('ninerouter')
+    expect(activeProvider(settings)).toBe('vuaairouter')
 
     settings.provider = 'kimi'
-    expect(activeProvider(settings)).toBe('ninerouter') // no key yet
+    expect(activeProvider(settings)).toBe('vuaairouter') // no key yet
     settings.providers.kimi.apiKey = 'sk-user'
     expect(activeProvider(settings)).toBe('kimi')
   })
@@ -162,9 +162,9 @@ describe('activeProvider', () => {
     const settings = defaultAiSettings()
     settings.provider = 'custom'
     settings.providers.custom.apiKey = 'k'
-    expect(activeProvider(settings)).toBe('ninerouter')
+    expect(activeProvider(settings)).toBe('vuaairouter')
     settings.providers.custom.baseUrl = 'http://localhost:1234/v1'
-    expect(activeProvider(settings)).toBe('ninerouter') // custom's default model is empty
+    expect(activeProvider(settings)).toBe('vuaairouter') // custom's default model is empty
     settings.providers.custom.model = 'my-model'
     expect(activeProvider(settings)).toBe('custom')
   })
@@ -172,7 +172,7 @@ describe('activeProvider', () => {
   it('falls back to default router for unknown ids from a hand-edited settings file', () => {
     const settings = defaultAiSettings()
     settings.provider = 'nonsense' as AiProviderId
-    expect(activeProvider(settings)).toBe('ninerouter')
+    expect(activeProvider(settings)).toBe('vuaairouter')
   })
 
   it('genspark never requires a key (injected from the gsk login at request time)', () => {
