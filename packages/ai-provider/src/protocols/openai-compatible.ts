@@ -204,19 +204,26 @@ async function openAiCompatibleTurn(
     const payload = line.slice(5).trim()
     if (!payload) continue
     if (payload === '[DONE]') break
-    const event = JSON.parse(payload) as {
-      choices?: Array<{
-        delta?: {
-          content?: string
-          tool_calls?: Array<{
-            index: number
-            id?: string
-            function?: { name?: string; arguments?: string }
-          }>
-        }
-        finish_reason?: string | null
-      }>
-      error?: { message?: string } | string
+    // A truncated frame or a non-JSON keep-alive from a proxy should skip
+    // that event, not kill the entire AI turn with a parser error.
+    let event
+    try {
+      event = JSON.parse(payload) as {
+        choices?: Array<{
+          delta?: {
+            content?: string
+            tool_calls?: Array<{
+              index: number
+              id?: string
+              function?: { name?: string; arguments?: string }
+            }>
+          }
+          finish_reason?: string | null
+        }>
+        error?: { message?: string } | string
+      }
+    } catch {
+      continue
     }
     if (event.error) throw new Error(sseErrorText(event.error, 'Model stream error'))
     const choice = event.choices?.[0]
