@@ -19,6 +19,16 @@ Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaO
   - Cập nhật định danh provider AI sang `vuaairouter` trên toàn bộ hệ thống (UI Settings, AI Provider Registry, Stream Handler).
   - Thiết lập model mặc định `vuaai-daily` kết nối trực tiếp đến hạ tầng `https://ai-router.vuahethong.com/v1`.
 
+### SSO Profile, User Experience & Navigation
+- **[NEW] Hoàn thiện Hiển thị Thông tin SSO Profile & Avatar Người dùng**:
+  - Tích hợp trích xuất và hiển thị Họ tên thật (`status.name` / Full Name) cùng ảnh đại diện (`status.avatarUrl`) từ tài khoản 360 CORP SSO (`vuahethong.net`).
+  - Hỗ trợ avatar tròn với cơ chế fallback thông minh (hiển thị ký tự viết hoa từ Họ tên/Email) khi tài khoản chưa có ảnh.
+  - Cập nhật câu chào trang chủ (`greeting`) cá nhân hóa theo Full Name của người dùng đăng nhập.
+- **[IMPROVE] Trải nghiệm Xác thực SSO Tự động Đóng Tab Trình duyệt**:
+  - Trang xác thực SSO trên server (`auth_sso_center.sso_redirect_page`) tự động đếm ngược 3 giây và thực thi `window.close()` sau khi bắn deep link `vuaoffice://auth/callback`, không để tab treo trên trình duyệt.
+- **[SECURITY] Auth Guard Bảo vệ Mục Cài đặt (Settings)**:
+  - Bổ sung Auth Guard cho menu tài khoản: Chỉ hiển thị nút "Cài đặt" khi người dùng đã đăng nhập thành công (`loggedIn === true`).
+
 ### Security Hardening & Technical Debt Resolution
 - **[SECURITY] Gia cố Bảo mật SSO Deep Link (Chống Tấn công Session Fixation)**:
   - Sinh nonce ngẫu nhiên 256-bit cryptographically secure (`pendingLoginState`) khi mở trình duyệt đăng nhập, áp dụng TTL 10 phút và cơ chế hủy nonce ngay sau 1 lần sử dụng (One-Time-Use).

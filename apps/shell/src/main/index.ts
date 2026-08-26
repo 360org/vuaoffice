@@ -2998,6 +2998,7 @@ function registerHomeIpc(): void {
       loggedIn: true,
       email: auth.email || undefined,
       name: auth.name || undefined,
+      avatarUrl: auth.avatarUrl || undefined,
     }
   })
 
@@ -4413,6 +4414,7 @@ function handleVuaOfficeUrl(rawUrl: string): boolean {
         ''
       const email = parsed.searchParams.get('email') || ''
       const name = parsed.searchParams.get('name') || ''
+      const avatarUrl = parsed.searchParams.get('avatar_url') || parsed.searchParams.get('avatar') || ''
       const keyId = parsed.searchParams.get('key_id') || parsed.searchParams.get('keyId') || undefined
 
       if (token || email) {
@@ -4421,6 +4423,7 @@ function handleVuaOfficeUrl(rawUrl: string): boolean {
           accessToken: token || undefined,
           email: email || undefined,
           name: name || undefined,
+          avatarUrl: avatarUrl || undefined,
           keyId,
         })
 

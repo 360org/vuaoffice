@@ -622,7 +622,14 @@ function AccountEntry({
 
   const loggedIn = status?.loggedIn ?? false
   const email = status?.email ?? ''
-  const initial = email ? email[0].toUpperCase() : loggedIn ? 'G' : '?'
+  const displayName = status?.name || (email ? email.split('@')[0] : '')
+  const initial = status?.name
+    ? status.name.trim()[0].toUpperCase()
+    : email
+      ? email[0].toUpperCase()
+      : loggedIn
+        ? 'V'
+        : '?'
   const errorText = loginError
     ? {
         timeout: t('loginTimeout'),
@@ -785,6 +792,11 @@ function AccountEntry({
         <div className="account-menu" role="menu">
           {loggedIn ? (
             <div className="account-menu-info">
+              {status?.name && (
+                <div className="account-menu-name" title={status.name}>
+                  {status.name}
+                </div>
+              )}
               <span className="account-menu-email" title={email}>
                 {email || t('loggedIn')}
               </span>
@@ -1068,25 +1080,27 @@ function AccountEntry({
             )}
           </div>
           <div className="account-menu-divider" />
-          <button
-            className="account-menu-item lang-row"
-            role="menuitem"
-            onClick={() => {
-              closeMenu()
-              onOpenAiSettings?.()
-            }}
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path
-                d="M6.5 1.5h3l.4 1.6a5.5 5.5 0 0 1 1.3.8l1.6-.6 1.5 2.6-1.2 1.1a5.7 5.7 0 0 1 0 1.6l1.2 1.1-1.5 2.6-1.6-.6a5.5 5.5 0 0 1-1.3.8l-.4 1.6h-3l-.4-1.6a5.5 5.5 0 0 1-1.3-.8l-1.6.6-1.5-2.6 1.2-1.1a5.7 5.7 0 0 1 0-1.6l-1.2-1.1 1.5-2.6 1.6.6a5.5 5.5 0 0 1 1.3-.8l.4-1.6z"
-                stroke="currentColor"
-                strokeWidth="1.2"
-                strokeLinejoin="round"
-              />
-              <circle cx="8" cy="8" r="2.2" stroke="currentColor" strokeWidth="1.2" />
-            </svg>
-            <span className="lang-row-label">{t('settings')}</span>
-          </button>
+          {loggedIn && (
+            <button
+              className="account-menu-item lang-row"
+              role="menuitem"
+              onClick={() => {
+                closeMenu()
+                onOpenAiSettings?.()
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path
+                  d="M6.5 1.5h3l.4 1.6a5.5 5.5 0 0 1 1.3.8l1.6-.6 1.5 2.6-1.2 1.1a5.7 5.7 0 0 1 0 1.6l1.2 1.1-1.5 2.6-1.6-.6a5.5 5.5 0 0 1-1.3.8l-.4 1.6h-3l-.4-1.6a5.5 5.5 0 0 1-1.3-.8l-1.6.6-1.5-2.6 1.2-1.1a5.7 5.7 0 0 1 0-1.6l-1.2-1.1 1.5-2.6 1.6.6a5.5 5.5 0 0 1 1.3-.8l.4-1.6z"
+                  stroke="currentColor"
+                  strokeWidth="1.2"
+                  strokeLinejoin="round"
+                />
+                <circle cx="8" cy="8" r="2.2" stroke="currentColor" strokeWidth="1.2" />
+              </svg>
+              <span className="lang-row-label">{t('settings')}</span>
+            </button>
+          )}
           <button
             className="account-menu-item lang-row"
             role="menuitem"
@@ -1227,7 +1241,7 @@ function AccountEntry({
         aria-expanded={menuOpen}
         title={
           loggedIn
-            ? email || t('loggedInGenspark')
+            ? (status?.name ? `${status.name} (${email})` : email || t('loggedInGenspark'))
             : waiting
               ? t('waitingLogin')
               : (errorText ?? t('loginGenspark'))
@@ -1257,6 +1271,16 @@ function AccountEntry({
                 strokeLinecap="round"
               />
             </svg>
+          ) : status?.avatarUrl ? (
+            <img
+              src={status.avatarUrl}
+              alt=""
+              className="account-avatar-img"
+              onError={(e) => {
+                // Fallback to text initial if avatar fails to load
+                ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+              }}
+            />
           ) : (
             initial
           )}
@@ -1264,7 +1288,9 @@ function AccountEntry({
         <span className="account-text">
           {loggedIn ? (
             <>
-              <span className="account-name">{email ? email.split('@')[0] : t('loggedIn')}</span>
+              <span className="account-name" title={displayName}>
+                {displayName || t('loggedIn')}
+              </span>
               <span className="account-sub" title={email}>
                 {email || '360 CORP'}
               </span>
@@ -1657,8 +1683,16 @@ export function Home() {
     const on = s?.loggedIn ?? false
     setLoggedIn(on)
     if (!on) setCloudMode(false)
-    const name = on ? (s?.email ?? '').split('@')[0] : ''
-    setAccountName(name ? name[0].toUpperCase() + name.slice(1) : '')
+    if (on) {
+      if (s?.name) {
+        setAccountName(s.name)
+      } else {
+        const rawEmail = (s?.email ?? '').split('@')[0]
+        setAccountName(rawEmail ? rawEmail[0].toUpperCase() + rawEmail.slice(1) : '')
+      }
+    } else {
+      setAccountName('')
+    }
   }, [])
 
   // ── Project state ──

@@ -119,6 +119,7 @@ export interface GenofficeAuth {
   accessToken?: string
   email?: string
   name?: string
+  avatarUrl?: string
 }
 
 let cachedAuth: GenofficeAuth | null | undefined
@@ -135,6 +136,7 @@ function readAuthFile(): GenofficeAuth | null {
         : {}),
       ...(typeof raw.email === 'string' && raw.email ? { email: raw.email } : {}),
       ...(typeof raw.name === 'string' && raw.name ? { name: raw.name } : {}),
+      ...(typeof raw.avatar_url === 'string' && raw.avatar_url ? { avatarUrl: raw.avatar_url } : {}),
     }
   } catch {
     return null
@@ -163,6 +165,7 @@ export function saveGenofficeAuth(auth: GenofficeAuth): void {
         access_token: auth.accessToken,
         email: auth.email,
         name: auth.name,
+        avatar_url: auth.avatarUrl,
       },
       null,
       2,

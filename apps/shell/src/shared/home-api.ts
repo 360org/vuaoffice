@@ -270,6 +270,7 @@ export interface AccountStatus {
   loggedIn: boolean
   email?: string
   name?: string
+  avatarUrl?: string
 }
 
 /** login flow progress pushed from main (gsk login CLI output) */
