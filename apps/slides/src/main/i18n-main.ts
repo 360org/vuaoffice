@@ -71,7 +71,7 @@ export const tMain = createI18n({
     errGskNotLoggedIn: '未登录 VuaOffice:请点击下方「登录 VuaOffice」完成登录后重试',
     errNoApiKey: '未配置 {provider} 的 API Key',
     errNoModel: '未配置模型名称',
-    errGskCli: 'gsk 未登录:请先运行 gsk login 登录 Genspark 账号',
+    errGskCli: 'gsk 未登录:请先运行 gsk login 登录 VuaOffice 账号',
     errNoDeckAppend:
       '当前没有可追加的文稿（会话不存在）。请先用 mode:"replace" 生成首页，或改用原生工具新增页面。',
     errAppendFailed: '追加失败：{reason}',
@@ -1647,7 +1647,7 @@ export const tMain = createI18n({
       'Afbeeldingsbijlagen bevatten geen tekst; de afbeelding wordt samen met het gebruikersbericht verzonden',
     errNotImage: 'geen ondersteund afbeeldingstype',
     errGskNotLoggedIn:
-      'Niet aangemeld bij Genspark: klik hieronder op “Aanmelden bij Genspark”, meld u aan en probeer het opnieuw',
+      'Niet aangemeld bij VuaOffice: klik hieronder op “Aanmelden bij VuaOffice”, meld u aan en probeer het opnieuw',
     errNoApiKey: 'Geen API-sleutel geconfigureerd voor {provider}',
     errNoModel: 'Geen modelnaam geconfigureerd',
     errGskCli:
@@ -1760,7 +1760,7 @@ export const tMain = createI18n({
     errImageNoText: 'Lampiran imej tiada teks; imej dihantar bersama mesej pengguna',
     errNotImage: 'bukan jenis imej yang disokong',
     errGskNotLoggedIn:
-      'Belum log masuk ke Genspark: klik “Log masuk ke Genspark” di bawah, kemudian cuba lagi',
+      'Belum log masuk ke VuaOffice: klik “Log masuk ke VuaOffice” di bawah, kemudian cuba lại',
     errNoApiKey: 'Kunci API untuk {provider} belum dikonfigurasikan',
     errNoModel: 'Nama model belum dikonfigurasikan',
     errGskCli:
@@ -1980,7 +1980,7 @@ export const tMain = createI18n({
     errImageNoText: 'छवि अनुलग्नक में टेक्स्ट नहीं होता; छवि उपयोगकर्ता संदेश के साथ भेजी जाती है',
     errNotImage: 'समर्थित छवि प्रकार नहीं है',
     errGskNotLoggedIn:
-      'Genspark में साइन इन नहीं है: नीचे “Genspark में साइन इन करें” पर क्लिक करें, साइन इन करें और फिर से कोशिश करें',
+      'VuaOffice में साइन इन नहीं है: नीचे “VuaOffice में साइन इन करें” पर क्लिक करें, साइन इन करें और फिर से कोशिश करें',
     errNoApiKey: '{provider} के लिए कोई API कुंजी कॉन्फ़िगर नहीं है',
     errNoModel: 'कोई मॉडल नाम कॉन्फ़िगर नहीं है',
     errGskCli: 'gsk साइन इन नहीं है: पहले gsk login चलाकर अपने Genspark खाते में साइन इन करें',
@@ -2093,7 +2093,7 @@ export const tMain = createI18n({
     errGskNotLoggedIn: '未登入 VuaOffice:請點擊下方「登入 VuaOffice」完成登入後重試',
     errNoApiKey: '未設定 {provider} 的 API Key',
     errNoModel: '未設定模型名稱',
-    errGskCli: 'gsk 未登入:請先執行 gsk login 登入 Genspark 帳號',
+    errGskCli: 'gsk 未登入:請先執行 gsk login 登入 VuaOffice 帳號',
     errNoDeckAppend:
       '目前沒有可附加的簡報（工作階段不存在）。請先用 mode:"replace" 產生首頁，或改用原生工具新增頁面。',
     errAppendFailed: '附加失敗：{reason}',

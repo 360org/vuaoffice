@@ -1659,6 +1659,9 @@ export function Home() {
     void window.aiOffice.getAppVersion?.().then((v) => {
       if (v) setAppVersion(v)
     })
+    void window.aiOffice.getDeveloperMode?.().then((dev) => {
+      if (dev !== undefined) setIsDevMode(!!dev)
+    })
     void window.aiOffice.getAiSettings?.().then((s) => {
       if (s?.developerMode !== undefined) setIsDevMode(!!s.developerMode)
     })

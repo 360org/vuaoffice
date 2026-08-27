@@ -126,7 +126,7 @@ export function registerAiIpc(): void {
   )
 
   ipcMain.handle('ai:gsk-login', () => {
-    void shell.openExternal('https://vuahethong.net/web/login?redirect=/vuaoffice/auth/desktop_callback')
+    void shell.openExternal('https://vuahethong.net/vuaoffice/auth?redirect_uri=vuaoffice://auth/callback')
   })
 
   ipcMain.handle('ai:set-settings', (_event, settings: AiSettings) => {

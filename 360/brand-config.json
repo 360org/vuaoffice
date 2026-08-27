@@ -75,6 +75,106 @@
       "reason": "Nhãn Ribbon, tiêu đề AI Panel, badge — CLAUDE.md quy tắc 6"
     },
     {
+      "from": "Sign in to Genspark",
+      "to": "Sign in to VuaOffice",
+      "reason": "Nút đăng nhập AI Panel (Tiếng Anh) — VuaOffice dùng 360 SSO Gateway"
+    },
+    {
+      "from": "Đăng nhập Genspark",
+      "to": "Đăng nhập VuaOffice",
+      "reason": "Nút đăng nhập AI Panel (Tiếng Việt)"
+    },
+    {
+      "from": "登录 Genspark",
+      "to": "登录 VuaOffice",
+      "reason": "Nút đăng nhập AI Panel (Tiếng Trung Giản thể)"
+    },
+    {
+      "from": "登入 Genspark",
+      "to": "登入 VuaOffice",
+      "reason": "Nút đăng nhập AI Panel (Tiếng Trung Phồn thể)"
+    },
+    {
+      "from": "Genspark にサインイン",
+      "to": "VuaOffice にサインイン",
+      "reason": "Nút đăng nhập AI Panel (Tiếng Nhật)"
+    },
+    {
+      "from": "Genspark 로그인",
+      "to": "VuaOffice 로그인",
+      "reason": "Nút đăng nhập AI Panel (Tiếng Hàn)"
+    },
+    {
+      "from": "Se connecter à Genspark",
+      "to": "Se connecter à VuaOffice",
+      "reason": "Nút đăng nhập AI Panel (Tiếng Pháp)"
+    },
+    {
+      "from": "Bei Genspark anmelden",
+      "to": "Bei VuaOffice anmelden",
+      "reason": "Nút đăng nhập AI Panel (Tiếng Đức)"
+    },
+    {
+      "from": "Iniciar sesión en Genspark",
+      "to": "Iniciar sesión en VuaOffice",
+      "reason": "Nút đăng nhập AI Panel (Tiếng Tây Ban Nha)"
+    },
+    {
+      "from": "ลงชื่อเข้าใช้ Genspark",
+      "to": "ลงชื่อเข้าใช้ VuaOffice",
+      "reason": "Nút đăng nhập AI Panel (Tiếng Thái)"
+    },
+    {
+      "from": "Masuk ke Genspark",
+      "to": "Masuk ke VuaOffice",
+      "reason": "Nút đăng nhập AI Panel (Tiếng Indonesia)"
+    },
+    {
+      "from": "Войти в Genspark",
+      "to": "Войти в VuaOffice",
+      "reason": "Nút đăng nhập AI Panel (Tiếng Nga)"
+    },
+    {
+      "from": "تسجيل الدخول إلى Genspark",
+      "to": "تسجيل الدخول إلى VuaOffice",
+      "reason": "Nút đăng nhập AI Panel (Tiếng Ả Rập)"
+    },
+    {
+      "from": "Entrar no Genspark",
+      "to": "Entrar no VuaOffice",
+      "reason": "Nút đăng nhập AI Panel (Tiếng Bồ Đào Nha)"
+    },
+    {
+      "from": "Accedi a Genspark",
+      "to": "Accedi a VuaOffice",
+      "reason": "Nút đăng nhập AI Panel (Tiếng Ý)"
+    },
+    {
+      "from": "Zaloguj się do Genspark",
+      "to": "Zaloguj się do VuaOffice",
+      "reason": "Nút đăng nhập AI Panel (Tiếng Ba Lan)"
+    },
+    {
+      "from": "Aanmelden bij Genspark",
+      "to": "Aanmelden bij VuaOffice",
+      "reason": "Nút đăng nhập AI Panel (Tiếng Hà Lan)"
+    },
+    {
+      "from": "Log masuk ke Genspark",
+      "to": "Log masuk ke VuaOffice",
+      "reason": "Nút đăng nhập AI Panel (Tiếng Mã Lai)"
+    },
+    {
+      "from": "התחבר ל-Genspark",
+      "to": "התחבר ל-VuaOffice",
+      "reason": "Nút đăng nhập AI Panel (Tiếng Do Thái)"
+    },
+    {
+      "from": "Genspark में साइन इन करें",
+      "to": "VuaOffice में साइन इन करें",
+      "reason": "Nút đăng nhập AI Panel (Tiếng Hindi)"
+    },
+    {
       "from": "aiPanelTitle: 'Genspark'",
       "to": "aiPanelTitle: 'VuaOffice AI'",
       "reason": "Tiêu đề panel AI trong Docs và Slides i18n (19 ngôn ngữ)"
@@ -122,12 +222,8 @@
       "reason": "Tên miền dịch vụ Genspark THẬT (trang nạp credit). Đây là tham chiếu bên thứ ba hợp lệ, không phải tự xưng thương hiệu."
     },
     {
-      "pattern": "aiGskLoginBtn|aiCreditsExhausted|aiGsk[A-Za-z]*",
-      "reason": "Chuỗi i18n mô tả việc đăng nhập DỊCH VỤ Genspark thật. Genspark là nhà cung cấp AI hợp lệ trong AI_PROVIDERS — đổi tên sẽ nói dối người dùng."
-    },
-    {
-      "pattern": "登录 Genspark|Genspark にサインイン|Genspark 로그인|Genspark 积分|Sign in to Genspark|Se connecter à Genspark|Bei Genspark anmelden|Iniciar sesión en Genspark",
-      "reason": "Bản địa hóa của nút đăng nhập dịch vụ Genspark thật (mọi ngôn ngữ)."
+      "pattern": "aiCreditsExhausted",
+      "reason": "Khóa i18n mô tả trạng thái hết credit dịch vụ Genspark thật."
     },
     {
       "pattern": "(licenseNotice|licenseTitle|copyright|thirdPartyNotice|attribution)\\s*:\\s*(['\"`])(?:(?!\\2).)*\\2",

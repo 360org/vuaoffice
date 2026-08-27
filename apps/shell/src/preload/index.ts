@@ -257,6 +257,13 @@ const homeApi: HomeApi = {
   async checkForUpdates() {
     await ipcRenderer.invoke(HOME_CHANNELS.checkForUpdates)
   },
+  async getDeveloperMode() {
+    const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.getDeveloperMode)
+    return result === true
+  },
+  async setDeveloperMode(enabled: boolean) {
+    await ipcRenderer.invoke(HOME_CHANNELS.setDeveloperMode, enabled)
+  },
   onDeveloperModeChanged(handler) {
     const listener = (_event: IpcRendererEvent, isDevMode: boolean) => handler(isDevMode)
     ipcRenderer.on('app:developer-mode-changed', listener)

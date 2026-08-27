@@ -142,13 +142,17 @@ Chuỗi có chứa "GenOffice" hoặc "Genspark"
 │    (@genoffice/*, GENOFFICE_*, ~/.genoffice)
 │    └─ CÓ → MIỄN TRỪ. Xem §5 để hiểu quy mô thiệt hại nếu đổi.
 │
-├─ Nói về DỊCH VỤ Genspark có thật? ("Sign in to Genspark", genspark.ai/pricing)
-│    └─ CÓ → MIỄN TRỪ. Genspark là nhà cung cấp AI HỢP LỆ trong AI_PROVIDERS.
-│            Đổi thành "VuaOffice" là NÓI DỐI người dùng về nơi họ đăng nhập.
+├─ Nói về DỊCH VỤ / TÊN MIỀN Genspark thật? (genspark.ai/pricing, aiCreditsExhausted)
+│    └─ CÓ → MIỄN TRỪ. Tên miền trang nạp credit nạp tiền bên thứ ba.
+│
+├─ Là nút / nhãn ĐĂNG NHẬP AI Panel ("Sign in to Genspark", "Đăng nhập Genspark", aiGskLoginBtn)?
+│    └─ CÓ → THAY THẾ QUA `replacements`. VuaOffice xác thực tập trung qua 360 SSO Gateway
+│            (https://vuahethong.net/vuaoffice/auth), nên nút đăng nhập phải hiển thị
+│            "Sign in to VuaOffice" / "Đăng nhập VuaOffice". Được whitelabel tự động qua 20 ngôn ngữ.
 │
 └─ Còn lại: sản phẩm TỰ XƯNG sai thương hiệu
      (tiêu đề cửa sổ, nhãn Ribbon, system prompt AI, menu, lời mời Star…)
-     └─ ĐÂY LÀ RÒ RỈ → thêm cặp vào `replacements` trong brand-config.json
+     └─ ĐÂY LÀ RÒ RỈ → thêm cặp vào `replacements` trong 360/brand-config.json
 ```
 
 **Quy luật vàng để phân biệt nhanh:**
@@ -169,7 +173,7 @@ Chuỗi có chứa "GenOffice" hoặc "Genspark"
 | `PDFName.of('GenOfficeFormField')`, `GenOfficeStaticFormFills`, `GenOffice visual signature field` | **Khóa/marker định dạng dữ liệu ghi bên trong tệp PDF**. Đổi = ứng dụng **không đọc được form và chữ ký trong PDF người dùng đã lưu**. Mất tương thích ngược. |
 | `~/.genoffice/`, `GENOFFICE_AUTH_DIR` | Thư mục dữ liệu. Đổi = **mất phiên đăng nhập của toàn bộ người dùng hiện hữu**. |
 | `Copyright`, `Original Work`, `licenseNotice` | ⚖️ **Vi phạm Apache License 2.0 §4** — nghĩa vụ pháp lý giữ ghi công tác giả gốc. |
-| `Sign in to Genspark`, `genspark.ai/pricing`, `aiGsk*` | Tham chiếu **dịch vụ Genspark thật**. Đổi = nói dối người dùng về nơi họ đăng nhập và nạp tiền. |
+| `genspark.ai/pricing`, `aiCreditsExhausted` | Tham chiếu **dịch vụ / trang nạp credit bên thứ ba**. (Lưu ý: nút đăng nhập AI đã được whitelabel sang VuaOffice AI SSO trong `replacements`). |
 
 > **Nguyên tắc phân định**: Chỉ whitelabel những gì **người dùng nhìn thấy và hiểu là tên sản phẩm**. Giữ nguyên mọi định danh kỹ thuật để bề mặt xung đột với upstream nhỏ nhất có thể.
 

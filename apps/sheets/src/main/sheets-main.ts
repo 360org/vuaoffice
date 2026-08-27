@@ -826,7 +826,7 @@ const tMain = createI18n({
       'Afbeeldingsbijlagen bevatten geen tekst; de afbeelding wordt samen met het gebruikersbericht verzonden',
     errNotImage: 'geen ondersteund afbeeldingstype',
     errGskNotLoggedIn:
-      'Niet aangemeld bij Genspark: klik hieronder op “Aanmelden bij Genspark”, meld u aan en probeer het opnieuw',
+      'Niet aangemeld bij VuaOffice: klik hieronder op “Aanmelden bij VuaOffice”, meld u aan en probeer het opnieuw',
     errNoApiKey: 'Geen API-sleutel geconfigureerd voor {provider}',
     errNoModel: 'Geen modelnaam geconfigureerd',
     errImgAbsPath: 'Het afbeeldingspad moet absoluut zijn.',
@@ -874,7 +874,7 @@ const tMain = createI18n({
     errImageNoText: 'Lampiran imej tiada teks; imej dihantar bersama mesej pengguna',
     errNotImage: 'bukan jenis imej yang disokong',
     errGskNotLoggedIn:
-      'Belum log masuk ke Genspark: klik “Log masuk ke Genspark” di bawah, kemudian cuba lagi',
+      'Belum log masuk ke VuaOffice: klik “Log masuk ke VuaOffice” di bawah, kemudian cuba lại',
     errNoApiKey: 'Kunci API untuk {provider} belum dikonfigurasikan',
     errNoModel: 'Nama model belum dikonfigurasikan',
     errImgAbsPath: 'Laluan imej mestilah laluan mutlak.',
@@ -966,7 +966,7 @@ const tMain = createI18n({
     errImageNoText: 'छवि अनुलग्नक में टेक्स्ट नहीं होता; छवि उपयोगकर्ता संदेश के साथ भेजी जाती है',
     errNotImage: 'समर्थित छवि प्रकार नहीं है',
     errGskNotLoggedIn:
-      'Genspark में साइन इन नहीं है: नीचे “Genspark में साइन इन करें” पर क्लिक करें, साइन इन करें और फिर से कोशिश करें',
+      'VuaOffice में साइन इन नहीं है: नीचे “VuaOffice में साइन इन करें” पर क्लिक करें, साइन इन करें और फिर से कोशिश करें',
     errNoApiKey: '{provider} के लिए कोई API कुंजी कॉन्फ़िगर नहीं है',
     errNoModel: 'कोई मॉडल नाम कॉन्फ़िगर नहीं है',
     errImgAbsPath: 'छवि पथ निरपेक्ष होना चाहिए।',
@@ -2498,7 +2498,7 @@ export function registerSheetsAiIpc(): void {
   )
 
   ipcMain.handle(IPC_CHANNELS.aiGskLogin, () => {
-    void shell.openExternal('https://vuahethong.net/web/login?redirect=/vuaoffice/auth/desktop_callback')
+    void shell.openExternal('https://vuahethong.net/vuaoffice/auth?redirect_uri=vuaoffice://auth/callback')
   })
 
   ipcMain.handle(IPC_CHANNELS.aiSetSettings, (event, input: unknown) => {

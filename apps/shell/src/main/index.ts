@@ -3299,6 +3299,25 @@ function registerHomeIpc(): void {
     checkForUpdatesManual()
   })
 
+  ipcMain.handle(HOME_CHANNELS.getDeveloperMode, (): boolean => {
+    return readAppSettings(APP_SETTINGS_PATH()).developerMode === true
+  })
+
+  ipcMain.handle(HOME_CHANNELS.setDeveloperMode, (_event, enabled: unknown) => {
+    if (typeof enabled !== 'boolean') return
+    writeAppSetting(APP_SETTINGS_PATH(), 'developerMode', enabled)
+    for (const wc of webContents.getAllWebContents()) {
+      if (!wc.isDestroyed()) {
+        wc.send('ai:settings-changed')
+        wc.send('app:developer-mode-changed', enabled)
+      }
+    }
+    if (tabManager) {
+      const active = tabManager.activeTab()
+      if (active) applyMenuFor(active.kind)
+    }
+  })
+
   ipcMain.handle(HOME_CHANNELS.openGitHubRepo, () => {
     shell.openExternal(GITHUB_REPO_URL).catch(() => {
       // no browser handler available; nothing actionable for the user here

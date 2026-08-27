@@ -163,6 +163,10 @@ export interface HomeApi {
   getAiProviders?(): AiCatalogEntry[]
   /** one-shot round trip against the given (possibly unsaved) settings — the settings-UI connection test */
   testAiSettings?(settings: AiSettings): Promise<AiChatResponse>
+  /** whether developer mode is enabled (persisted in userData/app-settings.json) */
+  getDeveloperMode?(): Promise<boolean>
+  /** toggle or set developer mode */
+  setDeveloperMode?(enabled: boolean): Promise<void>
   /** check for software updates manually */
   checkForUpdates?(): Promise<void>
   /** subscribe to developer mode changes from application menu */
@@ -377,6 +381,8 @@ export const HOME_CHANNELS = {
   openCreditUsage: 'home:open-credit-usage',
   getAiSettings: 'home:get-ai-settings',
   setAiSettings: 'home:set-ai-settings',
+  getDeveloperMode: 'home:get-developer-mode',
+  setDeveloperMode: 'home:set-developer-mode',
   checkForUpdates: 'home:check-for-updates',
   generateDiagnosticReport: 'home:generate-diagnostic-report',
   exportDiagnosticReport: 'home:export-diagnostic-report',

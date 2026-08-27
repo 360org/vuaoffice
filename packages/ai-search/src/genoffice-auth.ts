@@ -131,7 +131,10 @@ function parseJwtPayload(token?: string): Record<string, unknown> | null {
     // Standard JWT has 3 parts (header.payload.signature), 360 SSO token has 2 parts (payload.signature)
     const payloadPart = parts.length >= 3 ? parts[1] : parts[0]
     if (!payloadPart) return null
-    const jsonStr = Buffer.from(payloadPart, 'base64').toString('utf-8')
+    // Support base64url and standard base64 decoding
+    const base64 = payloadPart.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=')
+    const jsonStr = Buffer.from(padded, 'base64').toString('utf-8')
     return asRecord(JSON.parse(jsonStr))
   } catch {
     return null
@@ -147,11 +150,18 @@ function readAuthFile(): GenofficeAuth | null {
     )
     const jwtName = typeof jwt?.name === 'string' && jwt.name ? jwt.name : undefined
     const jwtEmail = typeof jwt?.email === 'string' && jwt.email ? jwt.email : undefined
-    const jwtAvatar = typeof jwt?.avatar_url === 'string' && jwt.avatar_url ? jwt.avatar_url : undefined
+    const jwtUid = typeof jwt?.uid === 'number' || typeof jwt?.uid === 'string' ? jwt.uid : undefined
+    const jwtAvatar =
+      typeof jwt?.avatar_url === 'string' && jwt.avatar_url
+        ? jwt.avatar_url
+        : jwtUid
+          ? `https://vuahethong.net/web/image/res.users/${jwtUid}/avatar_128`
+          : undefined
 
-    const email = (typeof raw.email === 'string' && raw.email ? raw.email : jwtEmail)
-    const name = (typeof raw.name === 'string' && raw.name ? raw.name : jwtName)
-    const avatarUrl = (typeof raw.avatar_url === 'string' && raw.avatar_url ? raw.avatar_url : jwtAvatar)
+    const email = typeof raw.email === 'string' && raw.email ? raw.email : jwtEmail
+    const name = typeof raw.name === 'string' && raw.name ? raw.name : jwtName
+    const avatarUrl =
+      typeof raw.avatar_url === 'string' && raw.avatar_url ? raw.avatar_url : jwtAvatar
 
     return {
       apiKey: raw.api_key,
@@ -181,23 +191,47 @@ export function genofficeApiKey(): string {
 export function saveGenofficeAuth(auth: GenofficeAuth): void {
   const path = genofficeAuthPath()
   mkdirSync(dirname(path), { recursive: true })
+  const jwt = parseJwtPayload(auth.accessToken || auth.apiKey)
+  const jwtName = typeof jwt?.name === 'string' && jwt.name ? jwt.name : undefined
+  const jwtEmail = typeof jwt?.email === 'string' && jwt.email ? jwt.email : undefined
+  const jwtUid = typeof jwt?.uid === 'number' || typeof jwt?.uid === 'string' ? jwt.uid : undefined
+  const jwtAvatar =
+    typeof jwt?.avatar_url === 'string' && jwt.avatar_url
+      ? jwt.avatar_url
+      : jwtUid
+        ? `https://vuahethong.net/web/image/res.users/${jwtUid}/avatar_128`
+        : undefined
+
+  const email = auth.email || jwtEmail
+  const name = auth.name || jwtName
+  const avatarUrl = auth.avatarUrl || jwtAvatar
+
+  const finalAuth: GenofficeAuth = {
+    apiKey: auth.apiKey,
+    ...(auth.keyId ? { keyId: auth.keyId } : {}),
+    ...(auth.accessToken ? { accessToken: auth.accessToken } : {}),
+    ...(email ? { email } : {}),
+    ...(name ? { name } : {}),
+    ...(avatarUrl ? { avatarUrl } : {}),
+  }
+
   writeFileSync(
     path,
     JSON.stringify(
       {
-        api_key: auth.apiKey,
-        key_id: auth.keyId,
-        access_token: auth.accessToken,
-        email: auth.email,
-        name: auth.name,
-        avatar_url: auth.avatarUrl,
+        api_key: finalAuth.apiKey,
+        key_id: finalAuth.keyId,
+        access_token: finalAuth.accessToken,
+        email: finalAuth.email,
+        name: finalAuth.name,
+        avatar_url: finalAuth.avatarUrl,
       },
       null,
       2,
     ) + '\n',
     { mode: 0o600 },
   )
-  cachedAuth = auth
+  cachedAuth = finalAuth
 }
 
 function clearAuth(): void {

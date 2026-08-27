@@ -3,6 +3,18 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.22] - 2026-08-27
+
+### Feature Gating, 360 SSO Deep Link & Brand Strategy Whitelabel
+- **[SECURITY] [IMPROVE] Khóa và Vô hiệu hóa Module AI Mail khi chưa bật Developer Mode**:
+  - Tích hợp IPC `home:get-developer-mode` để khóa thẻ VuaOffice Mail trên Launcher Home, gắn nhãn `Coming Soon`, chặn bấm mở nhằm tránh lỗi khi module đang trong giai đoạn phát triển.
+- **[FIX] Khắc phục Lỗi 404 khi Đăng nhập AI Panel & Trích xuất Profile Đầy đủ**:
+  - Trỏ endpoint xác thực AI sang `https://vuahethong.net/vuaoffice/auth?redirect_uri=vuaoffice://auth/callback`.
+  - Nâng cấp bộ giải mã Base64URL JWT payload tự động bù padding `=`, bóc tách chính xác Họ tên (`name`), `email` và sinh avatar URL chuẩn từ hệ thống Odoo 360 cho cả đăng nhập SSO và đăng nhập thủ công.
+- **[REFACTOR] [IMPROVE] Cập nhật Brand Strategy & Cấu hình Whitelabel Nút Đăng nhập Toàn diện 20 Ngôn ngữ**:
+  - Đổi toàn bộ nhãn nút đăng nhập AI "Sign in to Genspark" / "Đăng nhập Genspark" thành "Sign in to VuaOffice" / "Đăng nhập VuaOffice" trên 20 ngôn ngữ trong Docs, Sheets, Slides.
+  - Tự động hóa qua `360/brand-config.json` với nguyên tắc song ánh (bijective) bảo đảm không phát sinh xung đột khi merge upstream.
+
 ## [1.0.21] - 2026-08-26
 
 ### Typography, Vietnamese Font Rendering & SSO Reliability
