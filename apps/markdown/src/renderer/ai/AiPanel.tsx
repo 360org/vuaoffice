@@ -34,7 +34,6 @@ function countWords(text: string): number {
 const PANEL_WIDTH_KEY = 'markdown-ai-panel-width'
 const PANEL_WIDTH_DEFAULT = 360
 const PANEL_WIDTH_MIN = 280
-const MAX_TURNS = 50
 const MAX_SNAPSHOTS = 20
 const TOOL_OUTPUT_MAX_CHARS = 2000
 
@@ -217,7 +216,6 @@ export function AiPanel({
   if (!loopRef.current) {
     loopRef.current = new AgentLoop<DocSnapshot>({
       transport: createElectronTransport(() => settingsRef.current!),
-      maxTurns: MAX_TURNS,
       skill: composeSkills('markdown+search', '', [
         createMarkdownSkill(() => depsRef.current.getEditor(), {
           read: () => depsRef.current.getFrontmatter(),
@@ -268,10 +266,16 @@ export function AiPanel({
           patchLast({ streaming: false })
           setChat((prev) => [...prev, { role: 'assistant', text: '', streaming: true }])
         },
-        onDone: ({ text, cancelled, turnLimit }) => {
-          const final = turnLimit
+        onDone: ({ text, cancelled, turnLimit, truncated }) => {
+          const base = turnLimit
             ? [text, tGlobal('aiTurnLimit')].filter(Boolean).join('\n\n')
             : text || (cancelled ? tGlobal('aiStopped') : '')
+          // A reasoning model can spend the entire output budget on thinking and close the
+          // turn with finish_reason=length and no prose at all — the bare "(no reply)" read
+          // as the assistant ignoring the user. Name the truncation, as docs already does.
+          const final = truncated
+            ? [base, tGlobal('aiTruncatedNote')].filter(Boolean).join('\n\n')
+            : base
           patchLast((last) => ({
             streaming: false,
             text: final || (last.tools?.length ? last.text : tGlobal('aiNoReply')),

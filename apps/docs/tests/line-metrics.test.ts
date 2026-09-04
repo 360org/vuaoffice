@@ -884,8 +884,10 @@ describe('Korean line metrics', () => {
   it('Chinese/Japanese factors follow the Word probe (unprobed names keep LO values)', () => {
     expect(lineHeightFactor('SimSun')).toBe(1.3029)
     expect(lineHeightFactor('宋体')).toBe(1.3029)
-    expect(lineHeightFactor('DengXian')).toBe(1.775)
-    expect(lineHeightFactor('等线')).toBe(1.775)
+    // DengXian renders real in Office for Mac (probes 2026-08-13/25: 16.32pt @12pt)
+    expect(lineHeightFactor('DengXian')).toBe(1.36)
+    expect(lineHeightFactor('\u7b49\u7ebf')).toBe(1.36)
+    expect(lineHeightFactor('DengXian Light')).toBe(1.36)
     // FangSong renders in the SimSun class (Word probe 2026-08-22)
     expect(lineHeightFactor('FangSong')).toBe(1.3029)
     expect(lineHeightFactor('仿宋')).toBe(1.3029)
@@ -1023,6 +1025,12 @@ describe('Korean line metrics', () => {
     // Nunito Sans is an Office cloud font Word renders real
     expect(lineHeightFactor('Nunito Sans')).toBe(1.365)
     expect(lineHeightFactor('Microsoft New Tai Lue')).toBe(1.31)
+    // Poppins is an M365 cloud font Word renders real (probe 2026-09-01:
+    // factor exactly 1.500 = hhea/typo); the bundled Latin subset leads
+    expect(lineHeightFactor('Poppins')).toBe(1.5)
+    expect(cssFontFamily('Poppins')).toBe(
+      "'Poppins','GenOffice Poppins','Noto Sans CJK SC',sans-serif",
+    )
   })
 
   it('hangul wraps at word boundaries like Word, not per syllable', () => {
@@ -1093,6 +1101,10 @@ describe('autospaceBoundaries', () => {
   it('covers Han and hangul on the CJK side', () => {
     expect(autospaceBoundaries('A漢B')).toEqual([1, 2])
     expect(autospaceBoundaries('한글A')).toEqual([2])
+    // Word probe 2026-09-01: hangul-digit seams gap like Han/kana when the
+    // document EA face resolves ('1에서' ~0.22em); suppression for unresolved
+    // faces is document-level (docAutospaceOff), not a classification change
+    expect(autospaceBoundaries('표 1에서')).toEqual([3])
   })
 
   it('needs direct adjacency: spaces and punctuation get no pad', () => {

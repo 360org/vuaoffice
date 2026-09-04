@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react'
+import { Fragment, useEffect, useId, useRef, useState, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { BooleanNumber, numfmt } from '@univerjs/core'
 import { isMetafileMime, metafileToDataUrl } from '@genoffice/docx-engine/metafile'
@@ -18,6 +18,9 @@ import {
 import { parseAddress } from '../domain/cell-address'
 import { ColorDropdown } from './ColorDropdown'
 import { t } from './i18n/locale'
+import { oleCaption, oleFrameStyle, oleRenderKind } from './ole-visual'
+import { VisualDeleteButton } from './VisualDeleteButton'
+import { shouldShowVisualDeleteButton } from './visual-delete-button'
 import type { WorkbookChartEdit, WorkbookFile, WorkbookVisualObject } from '../shared/desktop-api'
 
 type UniverRuntime = ReturnType<typeof createUniver>
@@ -156,14 +159,15 @@ export function installWorkbookVisuals(
     const rowHeight = (index: number): number => Math.max(worksheet.getRowHeight(index), 1)
     let marginX = Math.max(0, visual.anchor.fromColumnOffset / EMU_PER_PIXEL)
     let marginY = Math.max(0, visual.anchor.fromRowOffset / EMU_PER_PIXEL)
+    const explicitTo = visual.anchor.explicitTo === true
     let width = markerSpan(
       { index: fromColumn, offset: marginX },
-      markerFrom(toColumn, visual.anchor.toColumnOffset),
+      clampExplicitTo(markerFrom(toColumn, visual.anchor.toColumnOffset), explicitTo, columnWidth),
       columnWidth,
     )
     let height = markerSpan(
       { index: fromRow, offset: marginY },
-      markerFrom(toRow, visual.anchor.toRowOffset),
+      clampExplicitTo(markerFrom(toRow, visual.anchor.toRowOffset), explicitTo, rowHeight),
       rowHeight,
     )
     // A rotated shape's anchor holds its rotated bounds while xfrm ext keeps
@@ -328,6 +332,63 @@ export function installSparklines(
   return disposables
 }
 
+export interface CellImageState {
+  readonly id: string
+  readonly row: number
+  readonly column: number
+}
+
+/// In-cell rich-value pictures ("place picture in cell"): one pass-through
+/// float DOM per host cell, bytes fetched through the same media IPC as
+/// floating images.
+export function installCellImages(
+  runtime: UniverRuntime,
+  sessionId: string,
+  images: readonly CellImageState[],
+  sheetId: string,
+): Disposable[] {
+  const workbook = runtime.univerAPI.getActiveWorkbook()
+  const worksheet = workbook?.getSheetBySheetId(sheetId)
+  if (!workbook || !worksheet) return []
+  const disposables: Disposable[] = []
+  for (const image of images) {
+    if (image.row >= worksheet.getMaxRows() || image.column >= worksheet.getMaxColumns()) continue
+    const componentKey = `cell-image-${sessionId}-${sheetId}-${image.id}`
+    disposables.push(
+      runtime.univerAPI.registerComponent(componentKey, () => (
+        <CellImage sessionId={sessionId} imageId={image.id} />
+      )),
+    )
+    const range = worksheet.getRange(image.row, image.column, 1, 1)
+    const floating = worksheet.addFloatDomToRange(
+      range,
+      { componentKey, allowTransform: false, eventPassThrough: true },
+      {},
+      componentKey,
+    )
+    if (floating) disposables.push(floating)
+  }
+  return disposables
+}
+
+/// Excel fits the picture inside the cell box, preserving its aspect ratio;
+/// while the bytes load the cell just stays blank.
+function CellImage({
+  sessionId,
+  imageId,
+}: {
+  readonly sessionId: string
+  readonly imageId: string
+}): React.JSX.Element | null {
+  const { url, unavailable } = useWorkbookMediaUrl(sessionId, imageId)
+  if (unavailable || !url) return null
+  return (
+    <div className="xlsx-cell-image">
+      <img src={url} alt="" />
+    </div>
+  )
+}
+
 function Sparkline({
   values,
   type,
@@ -419,7 +480,10 @@ function WorkbookVisual({
   if (visual.kind === 'image') {
     return <ImageVisual file={file} visual={visual} />
   }
-  return <ShapeVisual visual={visual} frame={frame} />
+  if (visual.kind === 'ole') {
+    return <OleVisual file={file} visual={visual} />
+  }
+  return <ShapeVisual file={file} visual={visual} frame={frame} />
 }
 
 /// A drag commit tears down and re-registers every float DOM, dropping the
@@ -634,6 +698,20 @@ export function walkMarker(
   return { index, offset }
 }
 
+/// A real `<xdr:to>` marker never reaches past its own cell: Excel clamps
+/// the offset at the cell edge (broken writers store the picture's full
+/// size there, e.g. ClosedXML). Synthesized to markers (oneCellAnchor ext,
+/// absoluteAnchor, group children) encode sizes as offsets past the edge
+/// and must keep walking, so only explicit-to anchors clamp.
+export function clampExplicitTo(
+  to: AnchorMarker,
+  explicitTo: boolean,
+  sizeOf: (index: number) => number,
+): AnchorMarker {
+  if (!explicitTo || to.offset <= sizeOf(to.index)) return to
+  return { index: to.index, offset: sizeOf(to.index) }
+}
+
 /// Pixel distance between two markers (negative when `to` sits before `from`).
 function markerSpan(
   from: AnchorMarker,
@@ -735,8 +813,17 @@ function EditableShapeVisual({
     const maxRow = XLSX_MAX_ROW
     let fromX = markerFrom(anchor.fromColumn, anchor.fromColumnOffset)
     let fromY = markerFrom(anchor.fromRow, anchor.fromRowOffset)
-    let toX = markerFrom(anchor.toColumn, anchor.toColumnOffset)
-    let toY = markerFrom(anchor.toRow, anchor.toRowOffset)
+    // Drag from the clamped geometry the user sees, not the raw overflowing
+    // offsets — otherwise walkMarker re-expands an explicit-to anchor to its
+    // walked size on commit. The rebuilt anchor is fully normalized, so it
+    // rightly drops the explicitTo flag.
+    const explicitTo = anchor.explicitTo === true
+    let toX = clampExplicitTo(
+      markerFrom(anchor.toColumn, anchor.toColumnOffset),
+      explicitTo,
+      columnWidth,
+    )
+    let toY = clampExplicitTo(markerFrom(anchor.toRow, anchor.toRowOffset), explicitTo, rowHeight)
     // RTL sheets render mirrored geometry from logical anchors, so a screen
     // drag maps to the opposite logical x-shift and the opposite logical edge.
     const rtl = config.rightToLeft === BooleanNumber.TRUE
@@ -995,21 +1082,19 @@ function EditableShapeVisual({
       ) : visual.kind === 'image' ? (
         <ImageVisual file={file} visual={visual} />
       ) : (
-        <ShapeVisual visual={textEditing ? { ...visual, text: '' } : visual} frame={frame} />
+        <ShapeVisual
+          file={file}
+          visual={textEditing ? { ...visual, text: '' } : visual}
+          frame={frame}
+        />
       )}
-      {!textEditing && (
-        <button
-          className="shape-delete-button"
-          data-tip={t('appDeleteVisualTitle')}
-          aria-label={t('appDeleteVisualTitle')}
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={(event) => {
-            event.stopPropagation()
-            onEdit(visual.id, { remove: true })
-          }}
-        >
-          ✕
-        </button>
+      {shouldShowVisualDeleteButton({ selected: isSelected, textEditing }) && (
+        <VisualDeleteButton
+          hostRef={hostNodeRef}
+          worksheet={worksheet}
+          label={t('appDeleteVisualTitle')}
+          onDelete={() => onEdit(visual.id, { remove: true })}
+        />
       )}
       {textEditing && (
         <div
@@ -1107,14 +1192,23 @@ function gradientEndpoints(angle: number): { x1: number; y1: number; x2: number;
 }
 
 function ShapeVisual({
+  file,
   visual,
   frame,
 }: {
+  readonly file?: VisualHost | undefined
   readonly visual: WorkbookVisualObject
   readonly frame?: ShapeFrame | undefined
 }): React.JSX.Element {
   // useId's delimiters (":"/"«») are hostile to url(#…) parsing.
-  const gradientId = `shape-fill-${useId().replace(/[^A-Za-z0-9]/g, '')}`
+  const shapeId = useId().replace(/[^A-Za-z0-9]/g, '')
+  const gradientId = `shape-fill-${shapeId}`
+  const clipId = `shape-clip-${shapeId}`
+  // a:blipFill: the image paints clipped to the geometry, under the stroke.
+  const { url: fillImage } = useWorkbookMediaUrl(
+    visual.fillMediaPath && file ? file.sessionId : undefined,
+    visual.id,
+  )
   const type = visual.shapeType ?? ''
   const gradient = visual.fillGradient
   const customPath = visual.customPath
@@ -1220,10 +1314,38 @@ function ShapeVisual({
             transform={`scale(${boxWidth / customPath.width}, ${boxHeight / customPath.height})`}
           />
         )}
+        {fillImage && !isStraightLine && (
+          <>
+            <clipPath id={clipId}>
+              <path
+                d={d}
+                {...(customPath
+                  ? {
+                      transform: `scale(${boxWidth / customPath.width}, ${boxHeight / customPath.height})`,
+                    }
+                  : {})}
+              />
+            </clipPath>
+            <image
+              href={fillImage}
+              x={0}
+              y={0}
+              width={boxWidth}
+              height={boxHeight}
+              preserveAspectRatio="none"
+              clipPath={`url(#${clipId})`}
+              {...(visual.opacity !== undefined && visual.opacity < 1
+                ? { opacity: visual.opacity }
+                : {})}
+            />
+          </>
+        )}
         <path
           d={d}
           fill={
-            isStraightLine || customPath?.strokeOnly || customPath?.fillD ? 'transparent' : fill
+            isStraightLine || customPath?.strokeOnly || customPath?.fillD || fillImage
+              ? 'transparent'
+              : fill
           }
           {...(customPath
             ? {
@@ -1332,6 +1454,42 @@ function base64ToBytes(base64: string): Uint8Array {
   return bytes
 }
 
+/// Lazily fetches a visual's media bytes as a data URL (metafiles rasterize
+/// to PNG first). Pass an undefined sessionId to skip fetching.
+function useWorkbookMediaUrl(
+  sessionId: string | undefined,
+  visualId: string,
+): { url: string | null; unavailable: boolean } {
+  const [url, setUrl] = useState<string | null>(null)
+  const [unavailable, setUnavailable] = useState(false)
+
+  useEffect(() => {
+    if (sessionId === undefined) return
+    let isCurrent = true
+    void window.desktopApi
+      .readWorkbookMedia({ sessionId, visualId })
+      .then(async (media) => {
+        const next = isMetafileMime(media.mediaType)
+          ? await metafileToDataUrl(base64ToBytes(media.base64), media.mediaType)
+          : `data:${media.mediaType};base64,${media.base64}`
+        if (!isCurrent) return
+        if (next) setUrl(next)
+        else setUnavailable(true)
+      })
+      .catch((reason: unknown) => {
+        // Unsupported or unreadable media degrades to an empty frame; the
+        // grid must never show the failure text.
+        console.warn(`workbook media unavailable (${visualId})`, reason)
+        if (isCurrent) setUnavailable(true)
+      })
+    return () => {
+      isCurrent = false
+    }
+  }, [sessionId, visualId])
+
+  return { url, unavailable }
+}
+
 function ImageVisual({
   file,
   visual,
@@ -1339,40 +1497,100 @@ function ImageVisual({
   readonly file: VisualHost
   readonly visual: WorkbookVisualObject
 }): React.JSX.Element {
-  const [source, setSource] = useState<string | null>(visual.mediaDataUrl ?? null)
-  const [unavailable, setUnavailable] = useState(false)
-
-  useEffect(() => {
-    // Session-added images carry their bytes inline; nothing to fetch.
-    if (visual.mediaDataUrl) return
-    let isCurrent = true
-    void window.desktopApi
-      .readWorkbookMedia({
-        sessionId: file.sessionId,
-        visualId: visual.id,
-      })
-      .then(async (media) => {
-        const url = isMetafileMime(media.mediaType)
-          ? await metafileToDataUrl(base64ToBytes(media.base64), media.mediaType)
-          : `data:${media.mediaType};base64,${media.base64}`
-        if (!isCurrent) return
-        if (url) setSource(url)
-        else setUnavailable(true)
-      })
-      .catch((reason: unknown) => {
-        // Unsupported or unreadable media degrades to an empty frame; the
-        // grid must never show the failure text.
-        console.warn(`workbook media unavailable (${visual.id})`, reason)
-        if (isCurrent) setUnavailable(true)
-      })
-    return () => {
-      isCurrent = false
-    }
-  }, [file.sessionId, visual.id, visual.mediaDataUrl])
+  // Session-added images carry their bytes inline; nothing to fetch.
+  const { url, unavailable } = useWorkbookMediaUrl(
+    visual.mediaDataUrl ? undefined : file.sessionId,
+    visual.id,
+  )
+  const source = visual.mediaDataUrl ?? url
 
   if (unavailable) return <div className="xlsx-visual-unavailable" />
   if (!source) return <div className="xlsx-visual-loading">{t('appImageLoading')}</div>
-  return <img className="xlsx-image" src={source} alt={visual.name ?? t('appWorkbookImageAlt')} />
+  const opacity =
+    visual.opacity !== undefined && visual.opacity < 1 ? { opacity: visual.opacity } : undefined
+  const crop = visual.crop
+  // a:srcRect: stretch the source so the cropped window fills the frame
+  // (Excel fits the remaining region exactly, no letterboxing).
+  const visibleWidth = crop ? 1 - crop.left - crop.right : 1
+  const visibleHeight = crop ? 1 - crop.top - crop.bottom : 1
+  if (crop && visibleWidth > 0 && visibleHeight > 0) {
+    return (
+      <span className="xlsx-image-crop">
+        <img
+          src={source}
+          alt={visual.name ?? t('appWorkbookImageAlt')}
+          style={{
+            width: `${100 / visibleWidth}%`,
+            height: `${100 / visibleHeight}%`,
+            left: `${(-100 * crop.left) / visibleWidth}%`,
+            top: `${(-100 * crop.top) / visibleHeight}%`,
+            ...opacity,
+          }}
+        />
+      </span>
+    )
+  }
+  return (
+    <img
+      className="xlsx-image"
+      src={source}
+      alt={visual.name ?? t('appWorkbookImageAlt')}
+      style={opacity}
+    />
+  )
+}
+
+/// Embedded OLE object: Excel's cached preview picture (EMF/WMF rasterized
+/// like any other metafile) at the object's anchor, or — with no preview or
+/// an undecodable one — Excel's icon-and-caption box. Always read-only: the
+/// object lives in <oleObjects>/xl/embeddings, outside the drawing edit
+/// pipeline, so it is never moved, deleted or re-saved as a picture.
+function OleVisual({
+  file,
+  visual,
+}: {
+  readonly file: VisualHost
+  readonly visual: WorkbookVisualObject
+}): React.JSX.Element {
+  const { url, unavailable } = useWorkbookMediaUrl(
+    visual.mediaPath === undefined ? undefined : file.sessionId,
+    visual.id,
+  )
+  const caption = oleCaption(visual.progId)
+  // The legacy VML shape's stroke/fill are document colours (Excel's
+  // window/windowText by default): the frame Excel draws around every
+  // embedded object and the backdrop that hides the grid behind it.
+  const frame = oleFrameStyle(visual)
+  if (oleRenderKind(visual, unavailable) === 'preview') {
+    if (!url) return <div className="xlsx-visual-loading">{t('appImageLoading')}</div>
+    return (
+      <div className="xlsx-ole-frame" style={frame}>
+        <img className="xlsx-image xlsx-ole-preview" src={url} alt={caption} draggable={false} />
+      </div>
+    )
+  }
+  return (
+    <div
+      className="xlsx-ole-placeholder"
+      style={frame}
+      role="img"
+      aria-label={caption}
+      title={caption}
+    >
+      <svg className="xlsx-ole-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path
+          d="M6 2h8l5 5v15H6z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+        />
+        <path d="M14 2v5h5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M9 12h7M9 15h7M9 18h5" stroke="currentColor" strokeWidth="1.5" />
+      </svg>
+      <span className="xlsx-ole-caption">{caption}</span>
+    </div>
+  )
 }
 
 type ChartMetadata = NonNullable<WorkbookVisualObject['chart']>
@@ -1605,11 +1823,13 @@ function ChartVisual({
     category: (isHorizontalBar ? chart.yAxis : chart.xAxis)?.title ?? chart.axisTitles?.category,
     value: (isHorizontalBar ? chart.xAxis : chart.yAxis)?.title ?? chart.axisTitles?.value,
   }
+  // The value axis sits on the bottom (xAxis slot) for horizontal bars.
+  const valueAxisSide = isHorizontalBar ? chart.xAxis : chart.yAxis
   const valueScaleInput = {
-    min: chart.yAxis?.min ?? chart.valueAxis?.min,
-    max: chart.yAxis?.max ?? chart.valueAxis?.max,
-    majorUnit: chart.yAxis?.majorUnit,
-    numFmt: chart.yAxis?.numFmt,
+    min: valueAxisSide?.min ?? chart.valueAxis?.min,
+    max: valueAxisSide?.max ?? chart.valueAxis?.max,
+    majorUnit: valueAxisSide?.majorUnit,
+    numFmt: valueAxisSide?.numFmt,
   }
   return (
     <figure
@@ -1730,6 +1950,8 @@ function ChartVisual({
             gridlines={chart.gridlines}
             valueAxis={valueScaleInput}
             categoryFormat={categoryFormat}
+            lineMarkers={chart.lineMarkers}
+            dispBlanksAs={chart.dispBlanksAs}
             onElement={selectElement}
             selectedEl={selectedEl}
           />
@@ -1750,6 +1972,9 @@ function ChartVisual({
             secondaryAxis={chart.secondaryYAxis}
             gapWidthPct={chart.gapWidthPct}
             categoryFormat={categoryFormat}
+            categoryReversed={(isHorizontalBar ? chart.yAxis : chart.xAxis)?.reversed === true}
+            lineMarkers={chart.lineMarkers}
+            dispBlanksAs={chart.dispBlanksAs}
             onElement={selectElement}
             selectedEl={selectedEl}
           />
@@ -1759,6 +1984,8 @@ function ChartVisual({
           (chart.legend !== undefined || populated.length > 1) && (
             <SeriesLegend
               seriesList={populated}
+              lineSwatches={legendUsesLineSwatches(types)}
+              lineSwatchFrom={isCombo && populated.length > 1 ? populated.length - 1 : undefined}
               selected={selectedEl?.kind === 'legend'}
               onSelect={
                 selectElement
@@ -1871,14 +2098,18 @@ type ChartGrouping = ChartMetadata['grouping']
 function AxisTitleTexts({
   bottom,
   left,
+  bottomY = 317,
 }: {
   readonly bottom?: string | null | undefined
   readonly left?: string | null | undefined
+  /// Charts with an outer category tier extend the viewBox and push the
+  /// bottom title below the group-label band.
+  readonly bottomY?: number
 }): React.JSX.Element {
   return (
     <g>
       {bottom ? (
-        <text x="320" y="317" textAnchor="middle" className="axis-title">
+        <text x="320" y={bottomY} textAnchor="middle" className="axis-title">
           {truncateLabel(bottom, 60)}
         </text>
       ) : null}
@@ -2136,16 +2367,30 @@ function SeriesLegend({
   seriesList,
   selected,
   onSelect,
+  lineSwatches = false,
+  lineSwatchFrom,
 }: {
   readonly seriesList: readonly ChartSeries[]
   readonly selected?: boolean | undefined
   readonly onSelect?: ((event: React.MouseEvent) => void) | undefined
+  /// Line-family charts: swatches mirror the drawn stroke color.
+  readonly lineSwatches?: boolean | undefined
+  /// Combo charts: series from this index on render as lines.
+  readonly lineSwatchFrom?: number | undefined
 }): React.JSX.Element {
   return (
     <div className={`chart-legend${selected ? ' chart-el-selected' : ''}`} onClick={onSelect}>
       {seriesList.slice(0, 8).map((series, index) => (
         <span key={`${series.name}-${index}`}>
-          <i style={{ background: seriesColor(series, index) }} />
+          <i
+            style={{
+              background: legendSwatchColor(
+                series,
+                index,
+                lineSwatches || (lineSwatchFrom !== undefined && index >= lineSwatchFrom),
+              ),
+            }}
+          />
           {truncateLabel(series.name, 18)}
         </span>
       ))}
@@ -2168,12 +2413,21 @@ function BarChart({
   secondaryAxis,
   gapWidthPct,
   categoryFormat,
+  categoryReversed,
+  lineMarkers,
+  dispBlanksAs,
   onElement,
   selectedEl,
 }: {
   readonly seriesList: readonly ChartSeries[]
   readonly lineSeries?: ChartSeries | undefined
   readonly isHorizontal: boolean
+  /// Plot-level c:lineChart/c:marker flag for the combo line.
+  readonly lineMarkers?: boolean | undefined
+  readonly dispBlanksAs?: ChartMetadata['dispBlanksAs']
+  /// c:catAx orientation maxMin — categories read top-down (bar) /
+  /// right-to-left (column) instead of Excel's minMax default.
+  readonly categoryReversed?: boolean | undefined
   readonly axisTitles?: ChartAxisTitles
   readonly dataLabels?: ChartDataLabels
   readonly dataLabelPosition?: ChartLabelPosition
@@ -2204,12 +2458,15 @@ function BarChart({
   const isPercent = grouping === 'percentStacked' && seriesList.length > 1
   const categoryTotal = (index: number): number =>
     seriesList.reduce((sum, series) => sum + Math.max(0, series.values[index] ?? 0), 0)
+  const barMax = isStacked
+    ? Math.max(...Array.from({ length: visibleCount }, (_, index) => categoryTotal(index)), 0)
+    : Math.max(...seriesList.flatMap((series) => [...series.values]), 0)
+  // A combo line without its own value axis shares the primary scale.
+  const lineOnPrimary = lineSeries !== undefined && secondaryAxis === undefined
   const bounds = isPercent
     ? { min: 0, max: 1, ticks: [0, 0.25, 0.5, 0.75, 1] }
     : axisBounds(
-        isStacked
-          ? Math.max(...Array.from({ length: visibleCount }, (_, index) => categoryTotal(index)), 0)
-          : Math.max(...seriesList.flatMap((series) => [...series.values]), 0),
+        lineOnPrimary ? Math.max(barMax, ...(lineSeries?.values ?? [])) : barMax,
         valueAxis,
       )
   const span = bounds.max - bounds.min
@@ -2249,15 +2506,58 @@ function BarChart({
     : undefined
 
   if (isHorizontal) {
-    const rowHeight = 280 / visibleCount
+    const rowHeight = 270 / visibleCount
+    const rowGroups = visibleCategoryGroups(primary.categoryGroups, visibleCount)
+    // The outer tier owns the x ≤ 99 column; tick labels (end-anchored at
+    // 148) shrink so the two never share pixels.
+    const categoryBudget = rowGroups.length > 0 ? 8 : 14
     const barHeight = Math.max(
       3,
       isStacked ? rowHeight / (1 + gap) : rowHeight / (seriesList.length + gap),
     )
+    // Excel draws bar-chart categories bottom-up and series 0 nearest the
+    // category axis under the default minMax orientation; maxMin flips both
+    // back to top-down reading order.
+    const rowSlot = (index: number): number => (categoryReversed ? index : visibleCount - 1 - index)
+    const seriesSlot = (seriesIndex: number): number =>
+      categoryReversed ? seriesIndex : seriesList.length - 1 - seriesIndex
     const groupTop = (index: number): number =>
-      14 + rowHeight * index + (rowHeight - barHeight * (isStacked ? 1 : seriesList.length)) / 2
+      14 +
+      rowHeight * rowSlot(index) +
+      (rowHeight - barHeight * (isStacked ? 1 : seriesList.length)) / 2
     const plotX = (value: number): number =>
       158 + Math.max(0, Math.min(1, (value - bounds.min) / (bounds.max - bounds.min || 1))) * 390
+    const labelFor = (
+      value: number,
+      y: number,
+      numberFormat?: string,
+    ): React.JSX.Element | null => {
+      const width = norm(value) * 390
+      const inside = dataLabelPosition === 'center' || dataLabelPosition === 'inside-end'
+      const x =
+        dataLabelPosition === 'center'
+          ? 158 + width / 2
+          : dataLabelPosition === 'inside-end'
+            ? 154 + width
+            : 164 + width
+      return (
+        <text
+          x={x}
+          y={y}
+          textAnchor={
+            dataLabelPosition === 'center'
+              ? 'middle'
+              : dataLabelPosition === 'inside-end'
+                ? 'end'
+                : 'start'
+          }
+          className="axis-label"
+          {...(inside ? { fill: '#fff' } : {})}
+        >
+          {formatLabelValue(value, dataLabelFormat, numberFormat)}
+        </text>
+      )
+    }
     return (
       <svg className="chart-svg" viewBox="0 0 600 320" role="img">
         {bounds.ticks.map((tick, index) => (
@@ -2267,12 +2567,13 @@ function BarChart({
                 x1={plotX(tick)}
                 y1="12"
                 x2={plotX(tick)}
-                y2="298"
+                y2="286"
                 stroke="#e3e3e3"
                 strokeWidth="1"
               />
             )}
-            <text x={plotX(tick)} y="10" textAnchor="middle" className="axis-label">
+            {/* Excel draws the bar-chart value axis along the bottom. */}
+            <text x={plotX(tick)} y="298" textAnchor="middle" className="axis-label">
               {formatAxisValue(tick, axisNumberFormat)}
             </text>
           </g>
@@ -2283,11 +2584,11 @@ function BarChart({
             <g key={`${categories[index] ?? index}-${index}`}>
               <text
                 x="148"
-                y={26 + rowHeight * index}
+                y={26 + rowHeight * rowSlot(index)}
                 textAnchor="end"
                 onClick={selectCategoryAxis}
               >
-                {truncateLabel(categories[index] ?? String(index + 1))}
+                {truncateLabel(categories[index] ?? String(index + 1), categoryBudget)}
               </text>
               {seriesList.map((series, seriesIndex) => {
                 const share = isStacked
@@ -2299,7 +2600,7 @@ function BarChart({
                   <rect
                     key={seriesIndex}
                     x={x}
-                    y={groupTop(index) + (isStacked ? 0 : barHeight * seriesIndex)}
+                    y={groupTop(index) + (isStacked ? 0 : barHeight * seriesSlot(seriesIndex))}
                     width={share * 390}
                     height={barHeight}
                     fill={seriesColor(series, seriesIndex)}
@@ -2310,38 +2611,36 @@ function BarChart({
               })}
               {dataLabels === 'value' &&
                 !isStacked &&
-                (() => {
-                  const width = norm(primary.values[index] ?? bounds.min) * 390
-                  const inside =
-                    dataLabelPosition === 'center' || dataLabelPosition === 'inside-end'
-                  const x =
-                    dataLabelPosition === 'center'
-                      ? 158 + width / 2
-                      : dataLabelPosition === 'inside-end'
-                        ? 154 + width
-                        : 164 + width
-                  return (
-                    <text
-                      x={x}
-                      y={groupTop(index) + barHeight / 2 + 3}
-                      textAnchor={
-                        dataLabelPosition === 'center'
-                          ? 'middle'
-                          : dataLabelPosition === 'inside-end'
-                            ? 'end'
-                            : 'start'
-                      }
-                      className="axis-label"
-                      {...(inside ? { fill: '#fff' } : {})}
-                    >
-                      {formatLabelValue(
-                        primary.values[index] ?? 0,
-                        dataLabelFormat,
-                        primary.numberFormat,
-                      )}
-                    </text>
-                  )
-                })()}
+                seriesList.map((series, seriesIndex) => (
+                  <Fragment key={`lbl-${seriesIndex}`}>
+                    {labelFor(
+                      series.values[index] ?? 0,
+                      groupTop(index) + barHeight * seriesSlot(seriesIndex) + barHeight / 2 + 3,
+                      series.numberFormat,
+                    )}
+                  </Fragment>
+                ))}
+            </g>
+          )
+        })}
+        {/* Outer multiLvlStrCache level: a rotated label column left of the
+            category labels with separator lines at the group edges. */}
+        {rowGroups.map((group, groupIndex) => {
+          const first = rowSlot(group.start)
+          const last = rowSlot(group.end - 1)
+          const yTop = 14 + rowHeight * Math.min(first, last)
+          const yBottom = 14 + rowHeight * (Math.max(first, last) + 1)
+          const cy = (yTop + yBottom) / 2
+          return (
+            <g key={`grp-${groupIndex}`} onClick={selectCategoryAxis}>
+              <line x1="86" y1={yTop} x2="158" y2={yTop} stroke="#d9d9d9" strokeWidth="1" />
+              <line x1="86" y1={yBottom} x2="158" y2={yBottom} stroke="#d9d9d9" strokeWidth="1" />
+              <text x="94" y={cy} transform={`rotate(-90 94 ${cy})`} textAnchor="middle">
+                {truncateLabel(
+                  group.label,
+                  Math.max(3, Math.floor((yBottom - yTop) / AXIS_LABEL_CHAR_UNITS)),
+                )}
+              </text>
             </g>
           )
         })}
@@ -2358,36 +2657,62 @@ function BarChart({
     isStacked ? columnWidth / (1 + gap) : columnWidth / (seriesList.length + gap),
   )
   const groupWidth = barWidth * (isStacked ? 1 : seriesList.length)
+  // maxMin mirrors the column order (and the series order inside a group).
+  const catSlot = (index: number): number => (categoryReversed ? visibleCount - 1 - index : index)
+  const seriesSlot = (seriesIndex: number): number =>
+    categoryReversed ? seriesList.length - 1 - seriesIndex : seriesIndex
   const groupLeft = (index: number): number =>
-    62 + columnWidth * index + (columnWidth - groupWidth) / 2
-  // The combo line rides the secondary value axis (its own Excel-like auto
-  // scale when the file has no explicit bounds).
+    62 + columnWidth * catSlot(index) + (columnWidth - groupWidth) / 2
+  // The combo line rides the secondary value axis when the file has one;
+  // a single axis pair means it shares the primary scale (Excel never
+  // invents a right-hand axis).
   const lineScale = lineSeries
-    ? valueAxisScale(Math.max(...lineSeries.values, 0), secondaryAxis)
+    ? secondaryAxis
+      ? valueAxisScale(Math.max(...lineSeries.values, 0), secondaryAxis)
+      : bounds
     : undefined
-  const points =
+  const comboStroke = lineSeries ? lineStroke(lineSeries, seriesList.length) : null
+  const comboSegments =
     lineSeries && lineScale
-      ? lineSeries.values
-          .slice(0, visibleCount)
-          .map(
-            (value, index) =>
-              `${groupLeft(index) + groupWidth / 2},${
-                280 -
-                Math.max(
-                  0,
-                  Math.min(1, (value - lineScale.min) / (lineScale.max - lineScale.min || 1)),
-                ) *
-                  240
-              }`,
-          )
-          .join(' ')
-      : undefined
+      ? lineSegments(
+          Math.min(lineSeries.values.length, visibleCount),
+          lineSeries.blanks,
+          dispBlanksAs,
+        )
+      : []
+  const comboY = (index: number): number =>
+    280 -
+    (lineScale
+      ? Math.max(
+          0,
+          Math.min(
+            1,
+            ((lineSeries?.values[index] ?? 0) - lineScale.min) /
+              (lineScale.max - lineScale.min || 1),
+          ),
+        )
+      : 0) *
+      240
+  const comboPoint = (index: number): string =>
+    `${groupLeft(index) + groupWidth / 2},${comboY(index)}`
+  const comboSymbol =
+    lineSeries === undefined || lineSeries.marker === 'none'
+      ? null
+      : lineMarkers !== true && lineSeries.marker === undefined
+        ? null
+        : lineSeries.marker !== undefined && lineSeries.marker !== 'auto'
+          ? lineSeries.marker
+          : (AUTO_MARKER_SYMBOLS[seriesList.length % AUTO_MARKER_SYMBOLS.length] ?? 'circle')
   const showValueLabels =
     !isStacked &&
     (dataLabels === 'value' ||
       (dataLabels === undefined && visibleCount <= 12 && seriesList.length === 1))
+  const columnGroups = visibleCategoryGroups(primary.categoryGroups, visibleCount)
+  // The group band occupies y 284-314; a bottom axis title moves below it
+  // on an extended canvas instead of overprinting.
+  const shiftBottomTitle = columnGroups.length > 0 && Boolean(axisTitles?.category)
   return (
-    <svg className="chart-svg" viewBox="0 0 600 320" role="img">
+    <svg className="chart-svg" viewBox={`0 0 600 ${shiftBottomTitle ? 336 : 320}`} role="img">
       <VerticalAxis
         minimum={bounds.min}
         maximum={bounds.max}
@@ -2410,7 +2735,7 @@ function BarChart({
               return (
                 <rect
                   key={seriesIndex}
-                  x={groupLeft(index) + (isStacked ? 0 : barWidth * seriesIndex)}
+                  x={groupLeft(index) + (isStacked ? 0 : barWidth * seriesSlot(seriesIndex))}
                   y={y}
                   width={barWidth}
                   height={height}
@@ -2421,8 +2746,8 @@ function BarChart({
               )
             })}
             {showValueLabels &&
-              (() => {
-                const share = norm(primary.values[index] ?? bounds.min)
+              seriesList.map((series, seriesIndex) => {
+                const share = norm(series.values[index] ?? bounds.min)
                 const inside = dataLabelPosition === 'center' || dataLabelPosition === 'inside-end'
                 const y =
                   dataLabelPosition === 'center'
@@ -2430,24 +2755,26 @@ function BarChart({
                     : dataLabelPosition === 'inside-end'
                       ? 292 - share * 240
                       : 272 - share * 240
+                const x = groupLeft(index) + barWidth * seriesSlot(seriesIndex) + barWidth / 2
                 return (
                   <text
-                    x={groupLeft(index) + groupWidth / 2}
+                    key={`lbl-${seriesIndex}`}
+                    x={x}
                     y={y}
                     textAnchor="middle"
                     className="axis-label"
                     {...(inside ? { fill: '#fff' } : {})}
                   >
                     {formatLabelValue(
-                      primary.values[index] ?? 0,
+                      series.values[index] ?? 0,
                       dataLabelFormat,
-                      primary.numberFormat,
+                      series.numberFormat,
                     )}
                   </text>
                 )
-              })()}
+              })}
             <CategoryTick
-              x={62 + columnWidth * index + columnWidth / 2}
+              x={62 + columnWidth * catSlot(index) + columnWidth / 2}
               label={categories[index] ?? String(index + 1)}
               slotWidth={columnWidth}
               stride={tickStride}
@@ -2470,17 +2797,45 @@ function BarChart({
             />
           ) : null,
         )}
-      {points && (
-        <polyline
-          points={points}
-          fill="none"
-          stroke={seriesColor(lineSeries, seriesList.length)}
-          strokeWidth="3"
-        />
+      {comboStroke !== null &&
+        comboSegments.map((segment, segmentIndex) => (
+          <polyline
+            key={`combo-${segmentIndex}`}
+            points={segment.map(comboPoint).join(' ')}
+            fill="none"
+            stroke={comboStroke}
+            strokeWidth={lineSeries?.lineWidth ?? 3}
+          />
+        ))}
+      {lineSeries && comboSymbol !== null && (
+        <g>
+          {comboSegments.flat().map((index) => (
+            <MarkerGlyph
+              key={`combo-marker-${index}`}
+              x={groupLeft(index) + groupWidth / 2}
+              y={comboY(index)}
+              symbol={comboSymbol}
+              color={comboStroke ?? seriesColor(lineSeries, seriesList.length)}
+            />
+          ))}
+        </g>
       )}
+      <CategoryGroupBand
+        spans={columnGroups.map((group) => {
+          const first = catSlot(group.start)
+          const last = catSlot(group.end - 1)
+          return {
+            label: group.label,
+            xStart: 62 + columnWidth * Math.min(first, last),
+            xEnd: 62 + columnWidth * (Math.max(first, last) + 1),
+          }
+        })}
+        onClick={selectCategoryAxis}
+      />
       {lineSeries &&
         lineScale &&
-        secondaryAxis?.hidden !== true &&
+        secondaryAxis !== undefined &&
+        secondaryAxis.hidden !== true &&
         lineScale.ticks.map((tick, index) => (
           <text
             key={index}
@@ -2493,7 +2848,11 @@ function BarChart({
           </text>
         ))}
       <TruncationNote shown={visibleCount} total={primary.values.length} />
-      <AxisTitleTexts bottom={axisTitles?.category} left={axisTitles?.value} />
+      <AxisTitleTexts
+        bottom={axisTitles?.category}
+        left={axisTitles?.value}
+        bottomY={shiftBottomTitle ? 333 : 317}
+      />
     </svg>
   )
 }
@@ -2541,6 +2900,101 @@ function TrendLine({
   )
 }
 
+/// Excel's automatic marker cycle when the plot flag is on but the series
+/// sets no symbol (diamond, square, triangle, then repeat).
+const AUTO_MARKER_SYMBOLS = ['diamond', 'square', 'triangle'] as const
+
+function MarkerGlyph({
+  x,
+  y,
+  symbol,
+  color,
+}: {
+  readonly x: number
+  readonly y: number
+  readonly symbol: string
+  readonly color: string
+}): React.JSX.Element {
+  const r = 4
+  if (symbol === 'diamond') {
+    return (
+      <polygon points={`${x},${y - r} ${x + r},${y} ${x},${y + r} ${x - r},${y}`} fill={color} />
+    )
+  }
+  if (symbol === 'square') {
+    return <rect x={x - r} y={y - r} width={2 * r} height={2 * r} fill={color} />
+  }
+  if (symbol === 'triangle') {
+    return <polygon points={`${x},${y - r} ${x + r},${y + r} ${x - r},${y + r}`} fill={color} />
+  }
+  return <circle cx={x} cy={y} r={r} fill={color} />
+}
+
+/// Series line stroke: an explicit spPr/a:ln color wins over the fill/accent
+/// default; null for an explicit noFill line.
+export function lineStroke(
+  series: SeriesLike & { readonly lineColor?: string | undefined },
+  index: number,
+): string | null {
+  if (series.lineColor === 'none') return null
+  return series.lineColor ?? seriesColor(series, index)
+}
+
+/// Index runs a line plots as one stroke. Blank cells (c:dispBlanksAs)
+/// break the line on 'gap', are bridged on 'span', and plot their 0 filler
+/// on 'zero' — the OOXML default when the element is absent.
+export function lineSegments(
+  count: number,
+  blanks: readonly number[] | undefined,
+  mode: string | undefined,
+): number[][] {
+  const indices = Array.from({ length: count }, (_, index) => index)
+  if ((mode !== 'gap' && mode !== 'span') || blanks === undefined || blanks.length === 0) {
+    return count > 0 ? [indices] : []
+  }
+  const blankSet = new Set(blanks)
+  if (mode === 'span') {
+    const kept = indices.filter((index) => !blankSet.has(index))
+    return kept.length > 0 ? [kept] : []
+  }
+  const segments: number[][] = []
+  let current: number[] = []
+  for (const index of indices) {
+    if (blankSet.has(index)) {
+      if (current.length > 0) segments.push(current)
+      current = []
+    } else {
+      current.push(index)
+    }
+  }
+  if (current.length > 0) segments.push(current)
+  return segments
+}
+
+/// Whether the legend mirrors stroke colors: only when a line-drawing
+/// component wins the render cascade (pie → radar → scatter → area → line →
+/// bar) — a chart that also carries an areaChart/scatterChart paints fills.
+export function legendUsesLineSwatches(types: readonly string[]): boolean {
+  if (types.includes('pieChart') || types.includes('doughnutChart')) return false
+  const noBar = !types.includes('barChart')
+  if (types.includes('radarChart') && noBar) return true
+  if (types.includes('scatterChart')) return false
+  if (types.includes('areaChart') && noBar) return false
+  return types.includes('lineChart') && noBar
+}
+
+/// Legend swatch color: line-family charts mirror the drawn stroke (an
+/// explicit noFill line keeps the series color); everything else keeps the
+/// fill resolution.
+export function legendSwatchColor(
+  series: SeriesLike & { readonly lineColor?: string | undefined },
+  index: number,
+  lineSwatches: boolean,
+): string {
+  if (!lineSwatches) return seriesColor(series, index)
+  return lineStroke(series, index) ?? seriesColor(series, index)
+}
+
 function linePoints(values: readonly number[], maximum: number, minimum = 0): string {
   const count = Math.max(1, values.length - 1)
   const span = maximum - minimum || 1
@@ -2577,6 +3031,15 @@ function formatPieValue(value: number, formatCode: string | undefined): string {
     }
   }
   return formatLabelValue(value, formatCode, undefined)
+}
+
+/// Excel's showPercent default format is "0%" — integer rounding — unless
+/// the dLbls carry their own percent numFmt.
+export function formatPiePercent(share: number, formatCode: string | undefined): string {
+  if (formatCode !== undefined && formatCode.includes('%')) {
+    return formatLabelValue(share, formatCode, undefined)
+  }
+  return `${Math.round(share * 100)}%`
 }
 
 function formatLabelValue(
@@ -2687,6 +3150,51 @@ function CategoryTick({
   )
 }
 
+/// Clamp parsed outer-level category spans to the drawn category count.
+function visibleCategoryGroups(
+  groups: ChartSeries['categoryGroups'],
+  visibleCount: number,
+): { label: string; start: number; end: number }[] {
+  return (groups ?? [])
+    .map((group) => ({ ...group, end: Math.min(group.end, visibleCount) }))
+    .filter((group) => group.start < group.end && group.start < visibleCount)
+}
+
+/// Outer multiLvlStrCache level under the tick labels: each group label
+/// centered under its span with separator ticks at the span edges (Excel's
+/// grouped category axis).
+function CategoryGroupBand({
+  spans,
+  onClick,
+}: {
+  readonly spans: readonly { label: string; xStart: number; xEnd: number }[]
+  readonly onClick?: ((event: React.MouseEvent) => void) | undefined
+}): React.JSX.Element {
+  return (
+    <g onClick={onClick}>
+      {spans.map((span, index) => (
+        <Fragment key={index}>
+          <line
+            x1={span.xStart}
+            y1="284"
+            x2={span.xStart}
+            y2="314"
+            stroke="#d9d9d9"
+            strokeWidth="1"
+          />
+          <line x1={span.xEnd} y1="284" x2={span.xEnd} y2="314" stroke="#d9d9d9" strokeWidth="1" />
+          <text x={(span.xStart + span.xEnd) / 2} y="312" textAnchor="middle">
+            {truncateLabel(
+              span.label,
+              Math.max(3, Math.floor((span.xEnd - span.xStart) / AXIS_LABEL_CHAR_UNITS)),
+            )}
+          </text>
+        </Fragment>
+      ))}
+    </g>
+  )
+}
+
 function formatAxisValue(value: number, numberFormat: string | undefined): string {
   if (numberFormat && numberFormat !== 'General' && !numberFormat.includes('%')) {
     try {
@@ -2770,6 +3278,8 @@ function LineChart({
   gridlines,
   valueAxis,
   categoryFormat,
+  lineMarkers,
+  dispBlanksAs,
   onElement,
   selectedEl,
 }: {
@@ -2780,6 +3290,8 @@ function LineChart({
   readonly gridlines?: boolean | undefined
   readonly valueAxis?: ChartValueAxis
   readonly categoryFormat?: string | undefined
+  readonly lineMarkers?: boolean | undefined
+  readonly dispBlanksAs?: ChartMetadata['dispBlanksAs']
 } & ChartElementProps): React.JSX.Element {
   const primary = seriesList[0]
   if (!primary) return <></>
@@ -2817,8 +3329,20 @@ function LineChart({
   const span = bounds.max - bounds.min
   const categories = primary.categories.map((value) => formatCategoryLabel(value, categoryFormat))
   const count = Math.max(1, primary.values.length - 1)
+  // Stacked lines keep the 0 fillers (a blank contributes nothing to the
+  // stack); only flat lines honor gap/span.
+  const seriesSegments = (series: ChartSeries): number[][] =>
+    lineSegments(series.values.length, isStacked ? undefined : series.blanks, dispBlanksAs)
+  const isSkippedBlank = (series: ChartSeries, index: number): boolean =>
+    !isStacked &&
+    (dispBlanksAs === 'gap' || dispBlanksAs === 'span') &&
+    (series.blanks?.includes(index) ?? false)
+  const categoryGroups = visibleCategoryGroups(primary.categoryGroups, primary.values.length)
+  // The group band occupies y 284-314; a bottom axis title moves below it
+  // on an extended canvas instead of overprinting.
+  const shiftBottomTitle = categoryGroups.length > 0 && Boolean(axisTitles?.category)
   return (
-    <svg className="chart-svg" viewBox="0 0 600 320" role="img">
+    <svg className="chart-svg" viewBox={`0 0 600 ${shiftBottomTitle ? 336 : 320}`} role="img">
       <VerticalAxis
         minimum={bounds.min}
         maximum={bounds.max}
@@ -2834,25 +3358,67 @@ function LineChart({
             : undefined
         }
       />
-      {seriesList.map((series, seriesIndex) => (
-        <polyline
-          key={seriesIndex}
-          points={linePoints(displayValues(seriesIndex), bounds.max, bounds.min)}
-          fill="none"
-          stroke={seriesColor(series, seriesIndex)}
-          strokeWidth={
-            selectedEl?.kind === 'series' && selectedEl.seriesIndex === seriesIndex ? '5' : '3'
-          }
-          onClick={
-            onElement
-              ? (event) => {
-                  event.stopPropagation()
-                  onElement({ kind: 'series', seriesIndex })
-                }
-              : undefined
-          }
-        />
-      ))}
+      {seriesList.map((series, seriesIndex) => {
+        const stroke = lineStroke(series, seriesIndex)
+        if (stroke === null) return null
+        const width = series.lineWidth ?? 3
+        const values = displayValues(seriesIndex)
+        const denominator = Math.max(1, values.length - 1)
+        const pointAt = (index: number): string =>
+          `${60 + (index / denominator) * 500},${
+            280 - Math.max(0, Math.min(1, ((values[index] ?? 0) - bounds.min) / (span || 1))) * 240
+          }`
+        return seriesSegments(series).map((segment, segmentIndex) => (
+          <polyline
+            key={`${seriesIndex}-${segmentIndex}`}
+            points={segment.map(pointAt).join(' ')}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={
+              selectedEl?.kind === 'series' && selectedEl.seriesIndex === seriesIndex
+                ? Math.max(5, width + 2)
+                : width
+            }
+            onClick={
+              onElement
+                ? (event) => {
+                    event.stopPropagation()
+                    onElement({ kind: 'series', seriesIndex })
+                  }
+                : undefined
+            }
+          />
+        ))
+      })}
+      {seriesList.map((series, seriesIndex) => {
+        // Plot flag on or explicit symbol; a series-level "none" always wins.
+        if (series.marker === 'none') return null
+        if (lineMarkers !== true && series.marker === undefined) return null
+        const symbol =
+          series.marker !== undefined && series.marker !== 'auto'
+            ? series.marker
+            : (AUTO_MARKER_SYMBOLS[seriesIndex % AUTO_MARKER_SYMBOLS.length] ?? 'circle')
+        const values = displayValues(seriesIndex)
+        const pointCount = Math.max(1, values.length - 1)
+        // Markers match the polyline stroke; an explicit noFill line keeps
+        // its markers in the series color.
+        const color = lineStroke(series, seriesIndex) ?? seriesColor(series, seriesIndex)
+        return (
+          <g key={`markers-${seriesIndex}`}>
+            {values.map((value, index) =>
+              isSkippedBlank(series, index) ? null : (
+                <MarkerGlyph
+                  key={index}
+                  x={60 + (index / pointCount) * 500}
+                  y={280 - Math.max(0, Math.min(1, (value - bounds.min) / (span || 1))) * 240}
+                  symbol={symbol}
+                  color={color}
+                />
+              ),
+            )}
+          </g>
+        )
+      })}
       {seriesList.map((series, seriesIndex) =>
         series.trendline === 'linear' ? (
           <TrendLine
@@ -2884,18 +3450,45 @@ function LineChart({
         />
       ))}
       {dataLabels === 'value' &&
-        displayValues(0).map((displayed, index) => (
-          <text
-            key={`label-${index}`}
-            x={60 + (index / count) * 500}
-            y={272 - Math.max(0, Math.min(1, (displayed - bounds.min) / span)) * 240}
-            textAnchor="middle"
-            className="axis-label"
-          >
-            {formatAxisValue(primary.values[index] ?? 0, primary.numberFormat)}
-          </text>
-        ))}
-      <AxisTitleTexts bottom={axisTitles?.category} left={axisTitles?.value} />
+        displayValues(0).map((displayed, index) =>
+          isSkippedBlank(primary, index) ? null : (
+            <text
+              key={`label-${index}`}
+              x={60 + (index / count) * 500}
+              y={272 - Math.max(0, Math.min(1, (displayed - bounds.min) / span)) * 240}
+              textAnchor="middle"
+              className="axis-label"
+            >
+              {formatAxisValue(primary.values[index] ?? 0, primary.numberFormat)}
+            </text>
+          ),
+        )}
+      <CategoryGroupBand
+        spans={categoryGroups.map((group) => {
+          const xAt = (index: number): number => 60 + (index / count) * 500
+          // Group edges fall midway between the last point of one group
+          // and the first point of the next (plot edges at the ends).
+          return {
+            label: group.label,
+            xStart: group.start === 0 ? 60 : (xAt(group.start - 1) + xAt(group.start)) / 2,
+            xEnd:
+              group.end >= primary.values.length ? 560 : (xAt(group.end - 1) + xAt(group.end)) / 2,
+          }
+        })}
+        onClick={
+          onElement
+            ? (event) => {
+                event.stopPropagation()
+                onElement({ kind: 'category-axis' })
+              }
+            : undefined
+        }
+      />
+      <AxisTitleTexts
+        bottom={axisTitles?.category}
+        left={axisTitles?.value}
+        bottomY={shiftBottomTitle ? 333 : 317}
+      />
     </svg>
   )
 }
@@ -3124,8 +3717,10 @@ function RadarChart({
             points={seriesPoints(series)}
             fill={seriesColor(series, seriesIndex)}
             fillOpacity="0.18"
-            stroke={isSel ? '#107C41' : seriesColor(series, seriesIndex)}
-            strokeWidth={isSel ? '4' : '2.5'}
+            stroke={isSel ? '#107C41' : (lineStroke(series, seriesIndex) ?? 'none')}
+            strokeWidth={
+              isSel ? Math.max(4, (series.lineWidth ?? 2.5) + 1.5) : (series.lineWidth ?? 2.5)
+            }
             onClick={
               onElement
                 ? (event) => {
@@ -3195,10 +3790,16 @@ function ScatterChart({
       const parsed = Number.parseFloat(value)
       return Number.isFinite(parsed) ? parsed : index
     })
-    return { series, xValues }
+    // Blank cache slots are 0 fillers, not data — Excel plots no point.
+    const blankSet = new Set(series.blanks ?? [])
+    return { series, xValues, blankSet }
   })
-  const allX = points.flatMap((entry) => entry.xValues)
-  const allY = points.flatMap((entry) => [...entry.series.values])
+  const allX = points.flatMap((entry) =>
+    entry.xValues.filter((_, index) => !entry.blankSet.has(index)),
+  )
+  const allY = points.flatMap((entry) =>
+    entry.series.values.filter((_, index) => !entry.blankSet.has(index)),
+  )
   if (allY.length === 0) return <></>
   const boundsX = scatterAxisBounds(allX, xAxis)
   const boundsY = scatterAxisBounds(allY, valueAxis)
@@ -3257,12 +3858,15 @@ function ScatterChart({
           </text>
         </g>
       ))}
-      {points.map(({ series, xValues }, seriesIndex) => (
+      {points.map(({ series, xValues, blankSet }, seriesIndex) => (
         <g key={seriesIndex}>
           {styleWantsLines && series.lineColor !== 'none' && series.values.length > 1 && (
             <polyline
               points={series.values
-                .map((value, index) => `${plotX(xValues[index] ?? 0)},${plotY(value)}`)
+                .map((value, index) =>
+                  blankSet.has(index) ? null : `${plotX(xValues[index] ?? 0)},${plotY(value)}`,
+                )
+                .filter((point) => point !== null)
                 .join(' ')}
               fill="none"
               stroke={
@@ -3270,43 +3874,47 @@ function ScatterChart({
                   ? series.lineColor
                   : seriesColor(series, seriesIndex)
               }
-              strokeWidth="2"
+              strokeWidth={series.lineWidth ?? 2}
             />
           )}
           {series.marker !== 'none' &&
-            series.values.map((value, index) => (
-              <circle
-                key={index}
-                cx={plotX(xValues[index] ?? 0)}
-                cy={plotY(value)}
-                r={isSelectedPoint(selectedEl, seriesIndex, index) ? 6 : 4}
-                fill={seriesColor(series, seriesIndex)}
-                opacity="0.85"
-                {...(isSelectedPoint(selectedEl, seriesIndex, index)
-                  ? { stroke: '#107C41', strokeWidth: 2 }
-                  : {})}
-                onClick={
-                  onElement
-                    ? (event) => {
-                        event.stopPropagation()
-                        onElement(narrowSelection(selectedEl ?? null, seriesIndex, index))
-                      }
-                    : undefined
-                }
-              />
-            ))}
+            series.values.map((value, index) =>
+              blankSet.has(index) ? null : (
+                <circle
+                  key={index}
+                  cx={plotX(xValues[index] ?? 0)}
+                  cy={plotY(value)}
+                  r={isSelectedPoint(selectedEl, seriesIndex, index) ? 6 : 4}
+                  fill={seriesColor(series, seriesIndex)}
+                  opacity="0.85"
+                  {...(isSelectedPoint(selectedEl, seriesIndex, index)
+                    ? { stroke: '#107C41', strokeWidth: 2 }
+                    : {})}
+                  onClick={
+                    onElement
+                      ? (event) => {
+                          event.stopPropagation()
+                          onElement(narrowSelection(selectedEl ?? null, seriesIndex, index))
+                        }
+                      : undefined
+                  }
+                />
+              ),
+            )}
           {dataLabels === 'value' &&
-            series.values.map((value, index) => (
-              <text
-                key={`label-${index}`}
-                x={plotX(xValues[index] ?? 0)}
-                y={plotY(value) - 8}
-                textAnchor="middle"
-                className="axis-label"
-              >
-                {formatAxisValue(value, series.numberFormat)}
-              </text>
-            ))}
+            series.values.map((value, index) =>
+              blankSet.has(index) ? null : (
+                <text
+                  key={`label-${index}`}
+                  x={plotX(xValues[index] ?? 0)}
+                  y={plotY(value) - 8}
+                  textAnchor="middle"
+                  className="axis-label"
+                >
+                  {formatAxisValue(value, series.numberFormat)}
+                </text>
+              ),
+            )}
         </g>
       ))}
       <AxisTitleTexts bottom={axisTitles?.category} left={axisTitles?.value} />
@@ -3335,6 +3943,8 @@ function pieSliceLabels(
   geometry: { cx: number; cy: number; r: number; inner: number; offsets: readonly number[] },
   position?: ChartLabelPosition,
   formatCode?: string | undefined,
+  /// dLbls' own numFmt only — the source cells' format is not a percent.
+  percentFormat?: string | undefined,
 ): PieSliceLabel[] {
   const { cx, cy, r, inner, offsets } = geometry
   const labels: PieSliceLabel[] = []
@@ -3346,7 +3956,7 @@ function pieSliceLabels(
     // Excel labels every visible slice; only slivers too thin to aim a
     // leader line at go unlabeled.
     if (share < 0.005) continue
-    const percentText = `${(share * 100).toFixed(share >= 0.1 ? 0 : 1)}%`
+    const percentText = formatPiePercent(share, percentFormat)
     const valueText = formatPieValue(value, formatCode)
     const lines =
       mode === 'category-value-percent'
@@ -3493,6 +4103,7 @@ function PieChart({
           dataLabelPosition,
           // Labels without their own numFmt inherit the source cells' format.
           dataLabelFormat ?? series.numberFormat,
+          dataLabelFormat,
         )
       : []
   return (

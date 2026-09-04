@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { AI_PROVIDER_ADAPTERS, getProviderAdapter } from '../src/registry'
+import {
+  AI_PROVIDER_ADAPTERS,
+  getProviderAdapter,
+  modelEchoesReasoning,
+  modelLacksVision,
+} from '../src/registry'
 import { AI_PROVIDERS, GENSPARK_LLM_BASE_URLS } from '../src/providers'
 import type { AiProviderConfig, AiProviderId } from '../src/types'
 
@@ -15,15 +20,11 @@ describe('provider registry', () => {
     expect(Object.keys(AI_PROVIDER_ADAPTERS).sort()).toEqual(AI_PROVIDERS.map((m) => m.id).sort())
   })
 
-  it('routes genspark by model id prefix onto the three proxy endpoints', () => {
+  it('routes genspark by model id prefix onto the two proxy endpoints', () => {
     const resolve = (model: string) => AI_PROVIDER_ADAPTERS.genspark.resolveEndpoint(config(model))
     expect(resolve('claude-opus-4-7')).toEqual({
       protocol: 'anthropic',
       baseUrl: GENSPARK_LLM_BASE_URLS.anthropic,
-    })
-    expect(resolve('gemini-3.1-pro-preview')).toEqual({
-      protocol: 'gemini',
-      baseUrl: GENSPARK_LLM_BASE_URLS.gemini,
     })
     // gpt-5.x fixes sampling, so the proxy's OpenAI route also drops temperature
     expect(resolve('gpt-5.2')).toEqual({
@@ -52,6 +53,7 @@ describe('provider registry', () => {
     expect(AI_PROVIDER_ADAPTERS.openai.resolveEndpoint(config('gpt-4.1-mini'))).toEqual({
       protocol: 'openai-compatible',
       baseUrl: 'https://api.openai.com/v1',
+      useMaxCompletionTokens: true,
     })
   })
 
@@ -61,6 +63,7 @@ describe('provider registry', () => {
         protocol: 'openai-compatible',
         baseUrl: 'https://api.openai.com/v1',
         omitTemperature: true,
+        useMaxCompletionTokens: true,
       })
     }
   })
@@ -161,5 +164,28 @@ describe('fixed-sampling models on indirect routes', () => {
       baseUrl: 'https://mirror/v1',
       omitTemperature: true,
     })
+  })
+})
+
+describe('modelLacksVision', () => {
+  it('flags text-only DeepSeek V4 models but not the vision branch', () => {
+    expect(modelLacksVision('deep-seek-v4-flash')).toBe(true)
+    expect(modelLacksVision('deep-seek-v4-flash-baseten')).toBe(true)
+    expect(modelLacksVision('deepseek-v4-pro')).toBe(true)
+    expect(modelLacksVision('deepseek-v4-flash')).toBe(true)
+    expect(modelLacksVision('deepseek-v4-flash-vision-exp')).toBe(false)
+    expect(modelLacksVision('deep-seek-v4-flash-vision-exp-openrouter')).toBe(false)
+    expect(modelLacksVision('claude-opus-4-7')).toBe(false)
+  })
+})
+
+describe('modelEchoesReasoning', () => {
+  it('flags interleaved-thinking families on any route, case-insensitively', () => {
+    expect(modelEchoesReasoning('MiniMax-M3')).toBe(true)
+    expect(modelEchoesReasoning('minimax-m2p7')).toBe(true)
+    expect(modelEchoesReasoning('deep-seek-v4-flash')).toBe(true)
+    expect(modelEchoesReasoning('deepseek-v4-pro')).toBe(true)
+    expect(modelEchoesReasoning('gpt-5.6-luna')).toBe(false)
+    expect(modelEchoesReasoning('kimi-k3')).toBe(false)
   })
 })

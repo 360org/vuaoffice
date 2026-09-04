@@ -8,6 +8,7 @@ import {
 } from '@genoffice/docx-engine'
 import { useI18n } from '../i18n/locale'
 import {
+  hfDeclaredStrutPt,
   hfLeadIndentCss,
   hfSegLeftCss,
   hfTabSegments,
@@ -26,7 +27,9 @@ export interface HfValue {
 function runStyle(run: Run): React.CSSProperties {
   const style: React.CSSProperties = {}
   if (run.bold) style.fontWeight = 600
+  else if (run.bold === false) style.fontWeight = 'normal'
   if (run.italic) style.fontStyle = 'italic'
+  else if (run.italic === false) style.fontStyle = 'normal'
   if (run.underline) style.textDecoration = 'underline'
   if (run.strike) style.textDecoration = `${style.textDecoration ?? ''} line-through`.trim()
   if (run.color) style.color = `#${run.color}`
@@ -36,6 +39,10 @@ function runStyle(run: Run): React.CSSProperties {
   if (run.font || run.fontAscii) style.fontFamily = cssRunFontFamily(run.fontAscii, run.font)
   if (run.caps === 'all') style.textTransform = 'uppercase'
   else if (run.caps === 'small') style.fontVariantCaps = 'small-caps'
+  else if (run.caps === 'none') {
+    style.textTransform = 'none'
+    style.fontVariantCaps = 'normal'
+  }
   return style
 }
 
@@ -138,10 +145,17 @@ export function HeaderFooterArea({
     return hfUsesLegacyHash(value) ? t.replace('#', String(pageNo ?? 1)) : t
   }
 
+  // run-declared strip strut (shrink-only), mirroring makeGapHfEl so the
+  // preview/export strips lay out like the canvas gaps and the push-down probe
+  const strutPt = hfDeclaredStrutPt(paras)
   return (
     <div
       className={`page-hf page-hf-${kind}${editing ? ' page-hf-editing' : ''}`}
-      style={style}
+      style={
+        strutPt != null
+          ? { fontSize: `min(${strutPt}pt, var(--hf-default-fs, 10.5pt))`, ...style }
+          : style
+      }
       data-tip={
         readOnly
           ? undefined
