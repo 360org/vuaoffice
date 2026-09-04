@@ -101,7 +101,7 @@ import {
   syncFloatShifts,
   syncPageBorders,
   clampCellBoxTops,
-  type PageBorderStyle,
+  pageBorderStyleOf,
   type PageGapSpec,
 } from './editor/pagination-gaps'
 import { setColumnLayout } from './editor/column-layout'
@@ -203,6 +203,7 @@ import {
   save as saveImpl,
   writeRecoveryCopy as writeRecoveryCopyImpl,
   type FileActionContext,
+  type PendingPdfExport,
 } from './file-actions'
 import {
   allocateListNumId as allocateListNumIdImpl,
@@ -999,7 +1000,8 @@ export function App() {
   }, [splitView, editor])
 
   // Mixed-paper menu export: after the preview mounts and renders, the merge export resumes automatically
-  const pendingMixedExportRef = useRef<boolean | string>(false)
+  const pendingMixedExportRef = useRef<PendingPdfExport | false>(false)
+  const [, bumpPendingExportTick] = useReducer((x: number) => x + 1, 0)
   // Print dialog (Word-style preview + range); the pagination preview is its print source
   const [showPrintDialog, setShowPrintDialog] = useState(false)
   // the dialog auto-opened the pagination preview: close it again with the dialog
@@ -1014,6 +1016,7 @@ export function App() {
     saveInFlightRef,
     saveIncompleteRef,
     pendingMixedExportRef,
+    bumpPendingExportTick,
     printAutoOpenedPreviewRef,
     setShowPrintDialog,
     setStatus,
@@ -1547,7 +1550,7 @@ export function App() {
     const pending = pendingMixedExportRef.current
     pendingMixedExportRef.current = false
     const timer = window.setTimeout(() => {
-      void exportPdf(typeof pending === 'string' ? pending : undefined)
+      void exportPdf(pending.outPath).then(pending.resolve)
     }, 1200)
     return () => window.clearTimeout(timer)
   }, [showPagePreview, exportPdf])
@@ -2727,26 +2730,7 @@ export function App() {
           // page border (w:pgBorders): per-page overlay boxes (w:display can
           // exclude pages; the border must not run through the page gaps)
           const pbSec = secList?.[0]?.settings ?? section
-          let borderStyle: PageBorderStyle | null = null
-          if (pbSec?.pageBorder) {
-            const p = pbSec.pageBorderProps
-            const spacePx = ((p?.spacePt ?? 24) * 4) / 3
-            const inset = (marginTwips: number) =>
-              !p || p.offsetFrom === 'page'
-                ? spacePx
-                : Math.max(0, twipsToPx(marginTwips) - spacePx)
-            borderStyle = {
-              ...(p?.display ? { display: p.display } : {}),
-              insetPx: {
-                top: inset(pbSec.marginTop),
-                right: inset(pbSec.marginRight),
-                bottom: inset(pbSec.marginBottom),
-                left: inset(pbSec.marginLeft),
-              },
-              widthPx: Math.max(1, ((p?.widthPt ?? 0.75) * 4) / 3),
-              color: p?.color ? `#${p.color}` : '#000000',
-            }
-          }
+          const borderStyle = pbSec ? pageBorderStyleOf(pbSec) : null
           syncPageBorders((pm.closest('.page-wrap') as HTMLElement) ?? pm, borderStyle, factor)
         }
         syncMarginAnnotations(
@@ -4368,7 +4352,6 @@ export function App() {
           hfParts={doc.parsed.hfParts ?? {}}
           colFlow={viewMode === 'print' ? colFlow : null}
           colMode={viewMode === 'print' ? colMode : 'none'}
-          zoom={zoom}
           hf={{
             header,
             footer,

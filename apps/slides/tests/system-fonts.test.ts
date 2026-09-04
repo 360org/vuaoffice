@@ -72,7 +72,7 @@ describe.runIf(mac)(
     })
 
     it('unresolvable families substitute to Calibri regardless of apparent class (PPT probe truth)', () => {
-      const cal = office ? /^Calibri$/ : /^Carlito$/
+      const cal = office ? /^Calibri$/ : /^Carlito(?: GO)?$/
       expect(m.displayFamily!(style('Zxqvwt Nonexistent'))).toMatch(cal)
       expect(m.displayFamily!(style('Qqzgaramond'))).toMatch(cal) // serif-looking name
       expect(m.displayFamily!(style('Zxqvwt Mono Courier'))).toMatch(cal) // mono-looking name

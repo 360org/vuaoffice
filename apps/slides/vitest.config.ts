@@ -35,8 +35,29 @@ export default defineConfig({
         here,
         '../../packages/docx-engine/src/metafile.ts',
       ),
+      '@genoffice/ui/fonts': resolve(here, '../../packages/ui/src/fonts'),
     },
   },
+  plugins: [
+    {
+      name: 'asset-query-resolver',
+      enforce: 'pre',
+      resolveId(source) {
+        if (source.endsWith('?asset')) {
+          const clean = source.slice(0, -6)
+          return this.resolve(clean).then((resolved) => (resolved ? `${resolved.id}?asset` : null))
+        }
+        return null
+      },
+      load(id) {
+        if (id.includes('?asset')) {
+          const filePath = id.replace(/\?asset.*$/, '').replace(/^\/@fs/, '')
+          return `export default ${JSON.stringify(filePath)}`
+        }
+        return null
+      },
+    },
+  ],
   test: {
     include: ['tests/**/*.test.ts'],
     environment: 'jsdom',

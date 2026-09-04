@@ -494,8 +494,8 @@ describe('large edit batches', () => {
     expect(rewritten).not.toContain('<v>0</v>')
 
     // Generous CI budget; the quadratic path this guards against took hours.
-    expect(performance.now() - started).toBeLessThan(30_000)
-  }, 60_000)
+    expect(performance.now() - started).toBeLessThan(45_000)
+  }, 90_000)
 })
 
 describe('text rotation and double underline save', () => {

@@ -510,7 +510,7 @@ export type SavePdfResult =
       skippedTextInserts?: TextInsertFailure[]
       skippedImageEdits?: ImageEditFailure[]
     }
-  | { ok: false; error: string }
+  | { ok: false; error: string; reason?: 'external-modified' }
 
 /** Dry-run matching for pending text edits against the file on disk (no mutation) */
 export interface ValidateTextEditsRequest {

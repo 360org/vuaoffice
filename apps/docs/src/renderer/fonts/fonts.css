@@ -246,7 +246,7 @@
  * Sans KR outlines reshaped to DotumChe ink boxes); hangul falls through to
  * the KR chains. */
 @font-face {
-  font-family: 'VuaOffice Che Latin KR';
+  font-family: 'GenOffice Che Latin KR';
   src: url('./GenOfficeCheLatinKR.woff2') format('woff2');
   unicode-range: U+0020-007E;
   font-weight: normal;
@@ -379,13 +379,13 @@
  * bundled (tools/build-poppins-font.py). A locally installed Poppins still
  * precedes this face in the chain. */
 @font-face {
-  font-family: 'VuaOffice Poppins';
+  font-family: 'GenOffice Poppins';
   src: url('./GenOfficePoppins-Regular-subset.woff2') format('woff2');
   font-weight: normal;
   font-style: normal;
 }
 @font-face {
-  font-family: 'VuaOffice Poppins';
+  font-family: 'GenOffice Poppins';
   src: url('./GenOfficePoppins-Bold-subset.woff2') format('woff2');
   font-weight: bold;
   font-style: normal;

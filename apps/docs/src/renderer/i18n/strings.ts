@@ -141,6 +141,7 @@ export const strings = {
   vi: {
     ...appStrings.vi,
     ...ribbonStrings.vi,
+    ...tableStrings.vi,
     ...editorStrings.vi,
     ...aiStrings.vi,
   },

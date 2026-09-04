@@ -461,7 +461,7 @@ export const BUNDLED_FONTS = new Set([
   'GenOffice Sans KR',
   'GenOffice Serif KR',
   'GenOffice Gothic KR',
-  'VuaOffice Poppins',
+  'GenOffice Poppins',
   'GenOffice Tamil',
   'GenOffice Fullwidth TC',
   'GenOffice Songti SC',
@@ -619,7 +619,7 @@ export function cssFontFamily(font: string, followAltName = true): string {
   if (f.includes('nunito')) return `${chain(font, 'Nunito Sans GO', CJK_SANS)},sans-serif`
   // Poppins is an M365 cloud font Word renders real; the bundled Latin subset
   // (fonts.css) carries its true advances (probe 2026-09-01)
-  if (f.includes('poppins')) return `${chain(font, 'VuaOffice Poppins', CJK_SANS)},sans-serif`
+  if (f.includes('poppins')) return `${chain(font, 'GenOffice Poppins', CJK_SANS)},sans-serif`
   // Microsoft New Tai Lue ships with Office; its Latin is Segoe-flavored with
   // Arial-class widths (probe 2026-08-23: +0.5% vs Helvetica)
   if (f.includes('new tai lue'))
@@ -785,7 +785,7 @@ export function cssFontFamily(font: string, followAltName = true): string {
     if (/(?:batang|gulim|dotum|gungsuh) ?che\b|(?:바탕|굴림|돋움|궁서)체/i.test(nfkc)) {
       const cheGungsuh = /gungsuh|궁서/i.test(nfkc)
       const cheSerif = cheGungsuh || /batang|바탕/i.test(nfkc)
-      return `${chain(font, 'VuaOffice Che Latin KR', ...(cheGungsuh ? ['GungSeo'] : []), ...(cheSerif ? KO_SERIF : KO_SANS))},${cheSerif ? 'serif' : 'sans-serif'}`
+      return `${chain(font, 'GenOffice Che Latin KR', ...(cheGungsuh ? ['GungSeo'] : []), ...(cheSerif ? KO_SERIF : KO_SANS))},${cheSerif ? 'serif' : 'sans-serif'}`
     }
     // Gungsuh ships with Office (batang.ttc) and Word renders it real; its
     // Latin is typewriter-slab at ~0.58em advances — Courier New is the

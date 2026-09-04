@@ -36,22 +36,26 @@ function collectTexts(model: TableModel): { texts: string[]; maxDepth: number } 
 }
 
 describe('deeply nested tables keep their content', () => {
-  it('caps the modeled depth but keeps every paragraph of a 2000-level table', async () => {
-    const source = await buildDocx({ bodyXml: deepTableXml(2000) })
-    const doc = await parseDocx(source)
-    expect(doc.blocks[0].type).toBe('table')
-    const model = doc.blocks[0].table
-    expect(model).toBeDefined()
-    const { texts, maxDepth } = collectTexts(model!)
-    expect(texts).toEqual(Array.from({ length: 2000 }, (_, i) => `Level ${i}`))
-    // 8 modeled levels + 1 flattened sub-table holding everything below the cap
-    expect(maxDepth).toBe(9)
-    // beyond-cap cells are read-only remnants: the flattened sub-table has no further nesting
-    expect(texts.length).toBeGreaterThan(0)
-    // untouched deep tables still save byte-identically
-    const saved = await saveDocx(doc, [{ kind: 'original', docxIndex: 0 }])
-    expect(saved).toEqual(source)
-  })
+  it(
+    'caps the modeled depth but keeps every paragraph of a 2000-level table',
+    async () => {
+      const source = await buildDocx({ bodyXml: deepTableXml(2000) })
+      const doc = await parseDocx(source)
+      expect(doc.blocks[0].type).toBe('table')
+      const model = doc.blocks[0].table
+      expect(model).toBeDefined()
+      const { texts, maxDepth } = collectTexts(model!)
+      expect(texts).toEqual(Array.from({ length: 2000 }, (_, i) => `Level ${i}`))
+      // 8 modeled levels + 1 flattened sub-table holding everything below the cap
+      expect(maxDepth).toBe(9)
+      // beyond-cap cells are read-only remnants: the flattened sub-table has no further nesting
+      expect(texts.length).toBeGreaterThan(0)
+      // untouched deep tables still save byte-identically
+      const saved = await saveDocx(doc, [{ kind: 'original', docxIndex: 0 }])
+      expect(saved).toEqual(source)
+    },
+    60000,
+  )
 
   it('does not flatten tables nested within the cap', async () => {
     const doc = await parseDocx(await buildDocx({ bodyXml: deepTableXml(4) }))

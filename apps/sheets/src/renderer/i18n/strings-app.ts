@@ -4,6 +4,22 @@ import { defineStrings } from '@genoffice/i18n'
 export const appStrings = defineStrings({
   zh: {
     appFormulaBarShown: '公式栏已显示。',
+    appMergeWorkbooks: '合并工作簿',
+    appMergeWorkbooksTip: '将其他 Excel 文件的工作表并入当前工作簿',
+    appMergeWorkbooksPicking: '选择要合并的文件…',
+    appMergeWorkbooksReading: '正在导入 {file} 的 {sheet}…',
+    appMergeWorkbooksDone: '已合并 {files} 个文件的 {sheets} 张工作表（公式已转为数值）。',
+    appMergeWorkbooksFailed: '合并工作簿失败。',
+    appMergeWorkbooksInsertFailed: '无法创建工作表 {sheet}。',
+    appMergeWorkbooksLocked: '大文件仍在加载中，暂时无法合并工作簿。',
+    appDeleteSpanFormulas: '有公式仅引用被删除的行/列——请先更新或删除这些公式。',
+    appDuplicateScopedNames: '该工作表含表级定义名称——暂不支持复制该表。',
+    appCsvExportNeedsFullLoad: 'CSV 导出需要工作簿完整加载——请等待加载完成。',
+    appCsvExportTooLarge: '工作表太大,无法导出 CSV。',
+    appCsvExportCanceled: 'CSV 导出已取消。',
+    appCsvExported: '已导出 {path}。',
+    appCsvExportedActiveOnly: 'CSV 只包含一张工作表——已导出当前工作表“{name}”到 {path}。',
+    appCsvExportFailed: '无法导出 CSV。',
     appFormulaBarHidden: '公式栏已隐藏。',
     appThemesTitle: '选择文档主题（颜色与字体）',
     appThemeColorsTitle: '更改主题颜色',
@@ -1252,6 +1268,28 @@ export const appStrings = defineStrings({
   },
   en: {
     appFormulaBarShown: 'Formula bar shown.',
+    appMergeWorkbooks: 'Merge Workbooks',
+    appMergeWorkbooksTip: 'Append sheets from other Excel files into this workbook',
+    appMergeWorkbooksPicking: 'Choose files to merge…',
+    appMergeWorkbooksReading: 'Importing {sheet} from {file}…',
+    appMergeWorkbooksDone:
+      'Merged {sheets} sheets from {files} files (formulas imported as values).',
+    appMergeWorkbooksFailed: 'Merging workbooks failed.',
+    appMergeWorkbooksInsertFailed: 'Could not create sheet {sheet}.',
+    appMergeWorkbooksLocked:
+      'The workbook is still streaming in; merging is unavailable right now.',
+    appDeleteSpanFormulas:
+      'A formula references only the deleted rows/columns — update or remove it first.',
+    appDuplicateScopedNames:
+      'This sheet has sheet-scoped defined names — duplicating it is not supported yet.',
+    appCsvExportNeedsFullLoad:
+      'CSV export needs the fully loaded workbook — wait for loading to finish.',
+    appCsvExportTooLarge: 'The sheet is too large to export as CSV.',
+    appCsvExportCanceled: 'CSV export canceled.',
+    appCsvExported: 'Exported {path}.',
+    appCsvExportedActiveOnly:
+      'CSV holds a single sheet — exported the active sheet "{name}" to {path}.',
+    appCsvExportFailed: 'Unable to export the CSV.',
     appFormulaBarHidden: 'Formula bar hidden.',
     appThemesTitle: 'Pick a document theme (colors and fonts)',
     appThemeColorsTitle: 'Change the theme colors',
@@ -2535,6 +2573,27 @@ export const appStrings = defineStrings({
   },
   ja: {
     appFormulaBarShown: '数式バーを表示しました。',
+    appMergeWorkbooks: 'ブックの結合',
+    appMergeWorkbooksTip: '他の Excel ファイルのシートをこのブックに追加します',
+    appMergeWorkbooksPicking: '結合するファイルを選択…',
+    appMergeWorkbooksReading: '{file} の {sheet} をインポート中…',
+    appMergeWorkbooksDone:
+      '{files} 個のファイルから {sheets} 枚のシートを結合しました（数式は値として取り込み）。',
+    appMergeWorkbooksFailed: 'ブックの結合に失敗しました。',
+    appMergeWorkbooksInsertFailed: 'シート {sheet} を作成できませんでした。',
+    appMergeWorkbooksLocked: 'ブックの読み込み中のため、今は結合できません。',
+    appDeleteSpanFormulas:
+      '削除対象の行/列のみを参照する数式があります — 先にその数式を更新または削除してください。',
+    appDuplicateScopedNames:
+      'このシートにはシート スコープの定義済み名前があるため、複製はまだサポートされていません。',
+    appCsvExportNeedsFullLoad:
+      'CSV エクスポートにはブックの完全読み込みが必要です — 読み込みの完了をお待ちください。',
+    appCsvExportTooLarge: 'シートが大きすぎるため、CSV をエクスポートできません。',
+    appCsvExportCanceled: 'CSV エクスポートをキャンセルしました。',
+    appCsvExported: '{path} をエクスポートしました。',
+    appCsvExportedActiveOnly:
+      'CSV ファイルには 1 枚のシートしか含められません — アクティブなシート「{name}」を {path} にエクスポートしました。',
+    appCsvExportFailed: 'CSV をエクスポートできません。',
     appFormulaBarHidden: '数式バーを非表示にしました。',
     appThemesTitle: 'ドキュメントのテーマを選択（配色とフォント）',
     appThemeColorsTitle: 'テーマの配色を変更',
@@ -3886,6 +3945,27 @@ export const appStrings = defineStrings({
   },
   ko: {
     appFormulaBarShown: '수식 입력줄을 표시했습니다.',
+    appMergeWorkbooks: '통합 문서 병합',
+    appMergeWorkbooksTip: '다른 Excel 파일의 시트를 현재 통합 문서에 추가합니다',
+    appMergeWorkbooksPicking: '병합할 파일 선택…',
+    appMergeWorkbooksReading: '{file}의 {sheet} 가져오는 중…',
+    appMergeWorkbooksDone:
+      '{files}개 파일에서 시트 {sheets}장을 병합했습니다(수식은 값으로 가져옴).',
+    appMergeWorkbooksFailed: '통합 문서 병합에 실패했습니다.',
+    appMergeWorkbooksInsertFailed: '시트 {sheet}을(를) 만들 수 없습니다.',
+    appMergeWorkbooksLocked: '통합 문서를 아직 불러오는 중이라 지금은 병합할 수 없습니다.',
+    appDeleteSpanFormulas:
+      '삭제할 행/열만 참조하는 수식이 있습니다 — 먼저 해당 수식을 수정하거나 삭제하세요.',
+    appDuplicateScopedNames:
+      '이 시트에는 시트 범위로 정의된 이름이 있어 아직 시트 복제를 지원하지 않습니다.',
+    appCsvExportNeedsFullLoad:
+      'CSV 내보내기에는 통합 문서 전체 로드가 필요합니다 — 로드가 완료될 때까지 기다리십시오.',
+    appCsvExportTooLarge: '시트가 너무 커서 CSV로 내보낼 수 없습니다.',
+    appCsvExportCanceled: 'CSV 내보내기를 취소했습니다.',
+    appCsvExported: '{path}을(를) 내보냈습니다.',
+    appCsvExportedActiveOnly:
+      'CSV는 시트 하나만 포함합니다 — 활성 시트 "{name}"을(를) {path}(으)로 내보냈습니다.',
+    appCsvExportFailed: 'CSV를 내보낼 수 없습니다.',
     appFormulaBarHidden: '수식 입력줄을 숨겼습니다.',
     appThemesTitle: '문서 테마 선택(색 및 글꼴)',
     appThemeColorsTitle: '테마 색 변경',
@@ -5206,6 +5286,28 @@ export const appStrings = defineStrings({
   },
   fr: {
     appFormulaBarShown: 'Barre de formule affichée.',
+    appMergeWorkbooks: 'Fusionner des classeurs',
+    appMergeWorkbooksTip: "Ajouter les feuilles d'autres fichiers Excel à ce classeur",
+    appMergeWorkbooksPicking: 'Choisissez les fichiers à fusionner…',
+    appMergeWorkbooksReading: 'Import de {sheet} depuis {file}…',
+    appMergeWorkbooksDone:
+      '{sheets} feuilles fusionnées depuis {files} fichiers (formules importées comme valeurs).',
+    appMergeWorkbooksFailed: 'Échec de la fusion des classeurs.',
+    appMergeWorkbooksInsertFailed: 'Impossible de créer la feuille {sheet}.',
+    appMergeWorkbooksLocked:
+      'Le classeur est encore en cours de chargement ; fusion indisponible pour le moment.',
+    appDeleteSpanFormulas:
+      'Une formule ne référence que les lignes/colonnes supprimées — mettez-la à jour ou supprimez-la d’abord.',
+    appDuplicateScopedNames:
+      'Cette feuille contient des noms définis limités à la feuille — sa duplication n’est pas encore prise en charge.',
+    appCsvExportNeedsFullLoad:
+      "L'export CSV nécessite un classeur entièrement chargé — attendez la fin du chargement.",
+    appCsvExportTooLarge: 'La feuille est trop grande pour être exportée en CSV.',
+    appCsvExportCanceled: 'Export CSV annulé.',
+    appCsvExported: '{path} exporté.',
+    appCsvExportedActiveOnly:
+      "Les fichiers CSV ne contiennent qu'une seule feuille — la feuille active « {name} » a été exportée vers {path}.",
+    appCsvExportFailed: "Impossible d'exporter le CSV.",
     appFormulaBarHidden: 'Barre de formule masquée.',
     appThemesTitle: 'Choisir un thème de document (couleurs et polices)',
     appThemeColorsTitle: 'Modifier les couleurs du thème',
@@ -6567,6 +6669,28 @@ export const appStrings = defineStrings({
   },
   de: {
     appFormulaBarShown: 'Bearbeitungsleiste eingeblendet.',
+    appMergeWorkbooks: 'Arbeitsmappen zusammenführen',
+    appMergeWorkbooksTip: 'Blätter aus anderen Excel-Dateien in diese Arbeitsmappe übernehmen',
+    appMergeWorkbooksPicking: 'Dateien zum Zusammenführen wählen…',
+    appMergeWorkbooksReading: 'Importiere {sheet} aus {file}…',
+    appMergeWorkbooksDone:
+      '{sheets} Blätter aus {files} Dateien zusammengeführt (Formeln als Werte importiert).',
+    appMergeWorkbooksFailed: 'Zusammenführen der Arbeitsmappen fehlgeschlagen.',
+    appMergeWorkbooksInsertFailed: 'Blatt {sheet} konnte nicht erstellt werden.',
+    appMergeWorkbooksLocked:
+      'Die Arbeitsmappe wird noch geladen; Zusammenführen ist gerade nicht möglich.',
+    appDeleteSpanFormulas:
+      'Eine Formel verweist nur auf die gelöschten Zeilen/Spalten — aktualisieren oder entfernen Sie sie zuerst.',
+    appDuplicateScopedNames:
+      'Dieses Blatt enthält blattbezogene definierte Namen — das Duplizieren wird noch nicht unterstützt.',
+    appCsvExportNeedsFullLoad:
+      'Der CSV-Export erfordert die vollständig geladene Arbeitsmappe — warten Sie, bis das Laden abgeschlossen ist.',
+    appCsvExportTooLarge: 'Das Blatt ist zu groß für den CSV-Export.',
+    appCsvExportCanceled: 'CSV-Export abgebrochen.',
+    appCsvExported: '{path} exportiert.',
+    appCsvExportedActiveOnly:
+      'CSV-Dateien enthalten nur ein Blatt — das aktive Blatt „{name}“ wurde nach {path} exportiert.',
+    appCsvExportFailed: 'CSV kann nicht exportiert werden.',
     appFormulaBarHidden: 'Bearbeitungsleiste ausgeblendet.',
     appThemesTitle: 'Dokumentdesign auswählen (Farben und Schriftarten)',
     appThemeColorsTitle: 'Designfarben ändern',
@@ -7914,6 +8038,28 @@ export const appStrings = defineStrings({
   },
   es: {
     appFormulaBarShown: 'Barra de fórmulas mostrada.',
+    appMergeWorkbooks: 'Combinar libros',
+    appMergeWorkbooksTip: 'Añadir las hojas de otros archivos de Excel a este libro',
+    appMergeWorkbooksPicking: 'Elige los archivos para combinar…',
+    appMergeWorkbooksReading: 'Importando {sheet} de {file}…',
+    appMergeWorkbooksDone:
+      'Se combinaron {sheets} hojas de {files} archivos (las fórmulas se importaron como valores).',
+    appMergeWorkbooksFailed: 'No se pudieron combinar los libros.',
+    appMergeWorkbooksInsertFailed: 'No se pudo crear la hoja {sheet}.',
+    appMergeWorkbooksLocked:
+      'El libro aún se está cargando; la combinación no está disponible ahora.',
+    appDeleteSpanFormulas:
+      'Una fórmula solo hace referencia a las filas/columnas eliminadas: actualícela o elimínela primero.',
+    appDuplicateScopedNames:
+      'Esta hoja tiene nombres definidos con ámbito de hoja: duplicarla aún no es compatible.',
+    appCsvExportNeedsFullLoad:
+      'La exportación a CSV requiere el libro completamente cargado — espere a que termine la carga.',
+    appCsvExportTooLarge: 'La hoja es demasiado grande para exportarla como CSV.',
+    appCsvExportCanceled: 'Exportación a CSV cancelada.',
+    appCsvExported: 'Se exportó {path}.',
+    appCsvExportedActiveOnly:
+      'Los archivos CSV solo contienen una hoja — se exportó la hoja activa «{name}» a {path}.',
+    appCsvExportFailed: 'No se puede exportar el CSV.',
     appFormulaBarHidden: 'Barra de fórmulas oculta.',
     appThemesTitle: 'Elegir un tema del documento (colores y fuentes)',
     appThemeColorsTitle: 'Cambiar los colores del tema',
@@ -9250,6 +9396,25 @@ export const appStrings = defineStrings({
   },
   th: {
     appFormulaBarShown: 'แสดงแถบสูตรแล้ว',
+    appMergeWorkbooks: 'รวมเวิร์กบุ๊ก',
+    appMergeWorkbooksTip: 'นำชีตจากไฟล์ Excel อื่นมารวมในเวิร์กบุ๊กนี้',
+    appMergeWorkbooksPicking: 'เลือกไฟล์ที่จะรวม…',
+    appMergeWorkbooksReading: 'กำลังนำเข้า {sheet} จาก {file}…',
+    appMergeWorkbooksDone: 'รวม {sheets} ชีตจาก {files} ไฟล์แล้ว (สูตรถูกนำเข้าเป็นค่า)',
+    appMergeWorkbooksFailed: 'รวมเวิร์กบุ๊กไม่สำเร็จ',
+    appMergeWorkbooksInsertFailed: 'ไม่สามารถสร้างชีต {sheet} ได้',
+    appMergeWorkbooksLocked: 'เวิร์กบุ๊กยังโหลดไม่เสร็จ ยังรวมไม่ได้ในตอนนี้',
+    appDeleteSpanFormulas:
+      'มีสูตรที่อ้างอิงเฉพาะแถว/คอลัมน์ที่จะถูกลบ — โปรดแก้ไขหรือลบสูตรนั้นก่อน',
+    appDuplicateScopedNames:
+      'แผ่นงานนี้มีชื่อที่กำหนดระดับแผ่นงาน — ยังไม่รองรับการทำสำเนาแผ่นงานนี้',
+    appCsvExportNeedsFullLoad: 'การส่งออก CSV ต้องรอให้เวิร์กบุ๊กโหลดเต็มก่อน — รอให้โหลดเสร็จ',
+    appCsvExportTooLarge: 'ชีตใหญ่เกินไป ส่งออกเป็น CSV ไม่ได้',
+    appCsvExportCanceled: 'ยกเลิกการส่งออก CSV แล้ว',
+    appCsvExported: 'ส่งออก {path} แล้ว',
+    appCsvExportedActiveOnly:
+      'ไฟล์ CSV มีได้เพียงชีตเดียว — ส่งออกชีตที่ใช้งานอยู่ “{name}” ไปยัง {path} แล้ว',
+    appCsvExportFailed: 'ส่งออก CSV ไม่ได้',
     appFormulaBarHidden: 'ซ่อนแถบสูตรแล้ว',
     appThemesTitle: 'เลือกธีมของเอกสาร (สีและแบบอักษร)',
     appThemeColorsTitle: 'เปลี่ยนสีของธีม',
@@ -10519,6 +10684,27 @@ export const appStrings = defineStrings({
   },
   id: {
     appFormulaBarShown: 'Bilah rumus ditampilkan.',
+    appMergeWorkbooks: 'Gabungkan Buku Kerja',
+    appMergeWorkbooksTip: 'Tambahkan sheet dari file Excel lain ke buku kerja ini',
+    appMergeWorkbooksPicking: 'Pilih file yang akan digabungkan…',
+    appMergeWorkbooksReading: 'Mengimpor {sheet} dari {file}…',
+    appMergeWorkbooksDone:
+      '{sheets} sheet dari {files} file digabungkan (rumus diimpor sebagai nilai).',
+    appMergeWorkbooksFailed: 'Gagal menggabungkan buku kerja.',
+    appMergeWorkbooksInsertFailed: 'Tidak dapat membuat sheet {sheet}.',
+    appMergeWorkbooksLocked: 'Buku kerja masih dimuat; penggabungan belum tersedia saat ini.',
+    appDeleteSpanFormulas:
+      'Ada rumus yang hanya merujuk baris/kolom yang dihapus — perbarui atau hapus rumus itu dahulu.',
+    appDuplicateScopedNames:
+      'Lembar ini memiliki nama terdefinisi berlingkup lembar — menduplikasinya belum didukung.',
+    appCsvExportNeedsFullLoad:
+      'Ekspor CSV memerlukan buku kerja termuat penuh — tunggu pemuatan selesai.',
+    appCsvExportTooLarge: 'Lembar terlalu besar untuk diekspor sebagai CSV.',
+    appCsvExportCanceled: 'Ekspor CSV dibatalkan.',
+    appCsvExported: '{path} diekspor.',
+    appCsvExportedActiveOnly:
+      'File CSV hanya memuat satu lembar — lembar aktif “{name}” diekspor ke {path}.',
+    appCsvExportFailed: 'Tidak dapat mengekspor CSV.',
     appFormulaBarHidden: 'Bilah rumus disembunyikan.',
     appThemesTitle: 'Pilih tema dokumen (warna dan font)',
     appThemeColorsTitle: 'Ubah warna tema',
@@ -11817,6 +12003,27 @@ export const appStrings = defineStrings({
   },
   ru: {
     appFormulaBarShown: 'Строка формул показана.',
+    appMergeWorkbooks: 'Объединить книги',
+    appMergeWorkbooksTip: 'Добавить листы из других файлов Excel в эту книгу',
+    appMergeWorkbooksPicking: 'Выберите файлы для объединения…',
+    appMergeWorkbooksReading: 'Импорт {sheet} из {file}…',
+    appMergeWorkbooksDone:
+      'Объединено листов: {sheets} из файлов: {files} (формулы импортированы как значения).',
+    appMergeWorkbooksFailed: 'Не удалось объединить книги.',
+    appMergeWorkbooksInsertFailed: 'Не удалось создать лист {sheet}.',
+    appMergeWorkbooksLocked: 'Книга ещё загружается; объединение пока недоступно.',
+    appDeleteSpanFormulas:
+      'Формула ссылается только на удаляемые строки/столбцы — сначала обновите или удалите её.',
+    appDuplicateScopedNames:
+      'Этот лист содержит определённые имена уровня листа — его дублирование пока не поддерживается.',
+    appCsvExportNeedsFullLoad:
+      'Экспорт в CSV требует полностью загруженной книги — дождитесь завершения загрузки.',
+    appCsvExportTooLarge: 'Лист слишком большой для экспорта в CSV.',
+    appCsvExportCanceled: 'Экспорт в CSV отменён.',
+    appCsvExported: 'Экспортировано: {path}.',
+    appCsvExportedActiveOnly:
+      'Файлы CSV содержат только один лист — активный лист «{name}» экспортирован в {path}.',
+    appCsvExportFailed: 'Не удаётся экспортировать CSV.',
     appFormulaBarHidden: 'Строка формул скрыта.',
     appThemesTitle: 'Выберите тему документа (цвета и шрифты)',
     appThemeColorsTitle: 'Изменить цвета темы',
@@ -13136,6 +13343,25 @@ export const appStrings = defineStrings({
   },
   ar: {
     appFormulaBarShown: 'تم إظهار شريط الصيغة.',
+    appMergeWorkbooks: 'دمج المصنفات',
+    appMergeWorkbooksTip: 'إضافة أوراق من ملفات Excel أخرى إلى هذا المصنف',
+    appMergeWorkbooksPicking: 'اختر الملفات المراد دمجها…',
+    appMergeWorkbooksReading: 'جارٍ استيراد {sheet} من {file}…',
+    appMergeWorkbooksDone: 'تم دمج {sheets} ورقة من {files} ملفات (تم استيراد الصيغ كقيم).',
+    appMergeWorkbooksFailed: 'فشل دمج المصنفات.',
+    appMergeWorkbooksInsertFailed: 'تعذر إنشاء الورقة {sheet}.',
+    appMergeWorkbooksLocked: 'ما زال المصنف قيد التحميل؛ الدمج غير متاح الآن.',
+    appDeleteSpanFormulas:
+      'هناك صيغة تشير فقط إلى الصفوف/الأعمدة المحذوفة — قم بتحديثها أو حذفها أولاً.',
+    appDuplicateScopedNames:
+      'تحتوي هذه الورقة على أسماء معرفة على مستوى الورقة — تكرارها غير مدعوم بعد.',
+    appCsvExportNeedsFullLoad: 'يتطلب تصدير CSV مصنفًا محمّلاً بالكامل — انتظر حتى ينتهي التحميل.',
+    appCsvExportTooLarge: 'الورقة كبيرة جدًا ولا يمكن تصديرها بتنسيق CSV.',
+    appCsvExportCanceled: 'أُلغي تصدير CSV.',
+    appCsvExported: 'تم التصدير: {path}.',
+    appCsvExportedActiveOnly:
+      'ملفات CSV تحتوي على ورقة واحدة فقط — تم تصدير الورقة النشطة «{name}» إلى {path}.',
+    appCsvExportFailed: 'يتعذر تصدير CSV.',
     appFormulaBarHidden: 'تم إخفاء شريط الصيغة.',
     appThemesTitle: 'اختيار نسق المستند (الألوان والخطوط)',
     appThemeColorsTitle: 'تغيير ألوان النسق',
@@ -14405,6 +14631,29 @@ export const appStrings = defineStrings({
   },
   pt: {
     appFormulaBarShown: 'Barra de fórmulas exibida.',
+    appMergeWorkbooks: 'Mesclar pastas de trabalho',
+    appMergeWorkbooksTip:
+      'Adicionar planilhas de outros arquivos do Excel a esta pasta de trabalho',
+    appMergeWorkbooksPicking: 'Escolha os arquivos para mesclar…',
+    appMergeWorkbooksReading: 'Importando {sheet} de {file}…',
+    appMergeWorkbooksDone:
+      '{sheets} planilhas mescladas de {files} arquivos (fórmulas importadas como valores).',
+    appMergeWorkbooksFailed: 'Falha ao mesclar as pastas de trabalho.',
+    appMergeWorkbooksInsertFailed: 'Não foi possível criar a planilha {sheet}.',
+    appMergeWorkbooksLocked:
+      'A pasta de trabalho ainda está carregando; a mesclagem não está disponível agora.',
+    appDeleteSpanFormulas:
+      'Uma fórmula referencia apenas as linhas/colunas excluídas — atualize-a ou remova-a primeiro.',
+    appDuplicateScopedNames:
+      'Esta planilha tem nomes definidos no escopo da planilha — duplicá-la ainda não é suportado.',
+    appCsvExportNeedsFullLoad:
+      'A exportação de CSV requer a pasta de trabalho totalmente carregada — aguarde o carregamento terminar.',
+    appCsvExportTooLarge: 'A planilha é grande demais para exportar como CSV.',
+    appCsvExportCanceled: 'Exportação de CSV cancelada.',
+    appCsvExported: '{path} exportado.',
+    appCsvExportedActiveOnly:
+      'Arquivos CSV contêm apenas uma planilha — a planilha ativa “{name}” foi exportada para {path}.',
+    appCsvExportFailed: 'Não foi possível exportar o CSV.',
     appFormulaBarHidden: 'Barra de fórmulas oculta.',
     appThemesTitle: 'Escolher um tema do documento (cores e fontes)',
     appThemeColorsTitle: 'Alterar as cores do tema',
@@ -15738,6 +15987,27 @@ export const appStrings = defineStrings({
   },
   it: {
     appFormulaBarShown: 'Barra della formula mostrata.',
+    appMergeWorkbooks: 'Unisci cartelle di lavoro',
+    appMergeWorkbooksTip: 'Aggiungi i fogli di altri file Excel a questa cartella di lavoro',
+    appMergeWorkbooksPicking: 'Scegli i file da unire…',
+    appMergeWorkbooksReading: 'Importazione di {sheet} da {file}…',
+    appMergeWorkbooksDone: 'Uniti {sheets} fogli da {files} file (formule importate come valori).',
+    appMergeWorkbooksFailed: 'Unione delle cartelle di lavoro non riuscita.',
+    appMergeWorkbooksInsertFailed: 'Impossibile creare il foglio {sheet}.',
+    appMergeWorkbooksLocked:
+      'La cartella di lavoro è ancora in caricamento; unione non disponibile al momento.',
+    appDeleteSpanFormulas:
+      'Una formula fa riferimento solo alle righe/colonne eliminate — aggiornala o rimuovila prima.',
+    appDuplicateScopedNames:
+      'Questo foglio contiene nomi definiti a livello di foglio — la duplicazione non è ancora supportata.',
+    appCsvExportNeedsFullLoad:
+      "L'esportazione in CSV richiede la cartella di lavoro completamente caricata — attendi la fine del caricamento.",
+    appCsvExportTooLarge: 'Il foglio è troppo grande per essere esportato come CSV.',
+    appCsvExportCanceled: 'Esportazione CSV annullata.',
+    appCsvExported: '{path} esportato.',
+    appCsvExportedActiveOnly:
+      'I file CSV contengono un solo foglio — il foglio attivo “{name}” è stato esportato in {path}.',
+    appCsvExportFailed: 'Impossibile esportare il CSV.',
     appFormulaBarHidden: 'Barra della formula nascosta.',
     appThemesTitle: 'Scegli un tema del documento (colori e tipi di carattere)',
     appThemeColorsTitle: 'Cambia i colori del tema',
@@ -17072,6 +17342,27 @@ export const appStrings = defineStrings({
   },
   pl: {
     appFormulaBarShown: 'Pasek formuły widoczny.',
+    appMergeWorkbooks: 'Scal skoroszyty',
+    appMergeWorkbooksTip: 'Dodaj arkusze z innych plików Excel do tego skoroszytu',
+    appMergeWorkbooksPicking: 'Wybierz pliki do scalenia…',
+    appMergeWorkbooksReading: 'Importowanie {sheet} z {file}…',
+    appMergeWorkbooksDone:
+      'Scalono {sheets} arkuszy z {files} plików (formuły zaimportowano jako wartości).',
+    appMergeWorkbooksFailed: 'Scalanie skoroszytów nie powiodło się.',
+    appMergeWorkbooksInsertFailed: 'Nie można utworzyć arkusza {sheet}.',
+    appMergeWorkbooksLocked: 'Skoroszyt wciąż się wczytuje; scalanie jest teraz niedostępne.',
+    appDeleteSpanFormulas:
+      'Formuła odwołuje się wyłącznie do usuwanych wierszy/kolumn — najpierw ją zaktualizuj lub usuń.',
+    appDuplicateScopedNames:
+      'Ten arkusz zawiera nazwy zdefiniowane o zasięgu arkusza — jego duplikowanie nie jest jeszcze obsługiwane.',
+    appCsvExportNeedsFullLoad:
+      'Eksport do CSV wymaga w pełni załadowanego skoroszytu — poczekaj na zakończenie ładowania.',
+    appCsvExportTooLarge: 'Arkusz jest za duży, aby wyeksportować go do CSV.',
+    appCsvExportCanceled: 'Anulowano eksport do CSV.',
+    appCsvExported: 'Wyeksportowano {path}.',
+    appCsvExportedActiveOnly:
+      'Pliki CSV zawierają tylko jeden arkusz — aktywny arkusz „{name}” wyeksportowano do {path}.',
+    appCsvExportFailed: 'Nie można wyeksportować pliku CSV.',
     appFormulaBarHidden: 'Pasek formuły ukryty.',
     appThemesTitle: 'Wybierz motyw dokumentu (kolory i czcionki)',
     appThemeColorsTitle: 'Zmień kolory motywu',
@@ -18399,6 +18690,27 @@ export const appStrings = defineStrings({
   },
   nl: {
     appFormulaBarShown: 'Formulebalk weergegeven.',
+    appMergeWorkbooks: 'Werkmappen samenvoegen',
+    appMergeWorkbooksTip: 'Bladen uit andere Excel-bestanden aan deze werkmap toevoegen',
+    appMergeWorkbooksPicking: 'Kies bestanden om samen te voegen…',
+    appMergeWorkbooksReading: '{sheet} uit {file} importeren…',
+    appMergeWorkbooksDone:
+      '{sheets} bladen uit {files} bestanden samengevoegd (formules als waarden geïmporteerd).',
+    appMergeWorkbooksFailed: 'Samenvoegen van werkmappen mislukt.',
+    appMergeWorkbooksInsertFailed: 'Kan blad {sheet} niet maken.',
+    appMergeWorkbooksLocked: 'De werkmap wordt nog geladen; samenvoegen is nu niet beschikbaar.',
+    appDeleteSpanFormulas:
+      'Een formule verwijst alleen naar de verwijderde rijen/kolommen — werk deze eerst bij of verwijder deze.',
+    appDuplicateScopedNames:
+      'Dit blad bevat gedefinieerde namen op bladniveau — dupliceren wordt nog niet ondersteund.',
+    appCsvExportNeedsFullLoad:
+      'CSV-export vereist een volledig geladen werkmap — wacht tot het laden is voltooid.',
+    appCsvExportTooLarge: 'Het blad is te groot om als CSV te exporteren.',
+    appCsvExportCanceled: 'CSV-export geannuleerd.',
+    appCsvExported: '{path} geëxporteerd.',
+    appCsvExportedActiveOnly:
+      'CSV-bestanden bevatten slechts één blad — het actieve blad “{name}” is geëxporteerd naar {path}.',
+    appCsvExportFailed: 'Kan de CSV niet exporteren.',
     appFormulaBarHidden: 'Formulebalk verborgen.',
     appThemesTitle: 'Kies een documentthema (kleuren en lettertypen)',
     appThemeColorsTitle: 'Themakleuren wijzigen',
@@ -19736,6 +20048,28 @@ export const appStrings = defineStrings({
   },
   ms: {
     appFormulaBarShown: 'Bar formula dipaparkan.',
+    appMergeWorkbooks: 'Gabung Buku Kerja',
+    appMergeWorkbooksTip: 'Tambah helaian daripada fail Excel lain ke buku kerja ini',
+    appMergeWorkbooksPicking: 'Pilih fail untuk digabungkan…',
+    appMergeWorkbooksReading: 'Mengimport {sheet} daripada {file}…',
+    appMergeWorkbooksDone:
+      '{sheets} helaian daripada {files} fail telah digabungkan (formula diimport sebagai nilai).',
+    appMergeWorkbooksFailed: 'Gagal menggabungkan buku kerja.',
+    appMergeWorkbooksInsertFailed: 'Tidak dapat mencipta helaian {sheet}.',
+    appMergeWorkbooksLocked:
+      'Buku kerja masih dimuatkan; penggabungan tidak tersedia buat masa ini.',
+    appDeleteSpanFormulas:
+      'Ada formula yang hanya merujuk baris/lajur yang dipadam — kemas kini atau padam formula itu dahulu.',
+    appDuplicateScopedNames:
+      'Helaian ini mempunyai nama tertakrif berskop helaian — penduaan belum disokong.',
+    appCsvExportNeedsFullLoad:
+      'Eksport CSV memerlukan buku kerja dimuatkan sepenuhnya — tunggu pemuatan selesai.',
+    appCsvExportTooLarge: 'Helaian terlalu besar untuk dieksport sebagai CSV.',
+    appCsvExportCanceled: 'Eksport CSV dibatalkan.',
+    appCsvExported: '{path} dieksport.',
+    appCsvExportedActiveOnly:
+      'Fail CSV hanya mengandungi satu helaian — helaian aktif “{name}” dieksport ke {path}.',
+    appCsvExportFailed: 'Tidak dapat mengeksport CSV.',
     appFormulaBarHidden: 'Bar formula disembunyikan.',
     appThemesTitle: 'Pilih tema dokumen (warna dan fon)',
     appThemeColorsTitle: 'Tukar warna tema',
@@ -21035,6 +21369,23 @@ export const appStrings = defineStrings({
   },
   he: {
     appFormulaBarShown: 'שורת הנוסחאות מוצגת.',
+    appMergeWorkbooks: 'מיזוג חוברות עבודה',
+    appMergeWorkbooksTip: 'הוספת גיליונות מקובצי Excel אחרים לחוברת העבודה הזו',
+    appMergeWorkbooksPicking: 'בחרו קבצים למיזוג…',
+    appMergeWorkbooksReading: 'מייבא את {sheet} מתוך {file}…',
+    appMergeWorkbooksDone: 'מוזגו {sheets} גיליונות מ‑{files} קבצים (נוסחאות יובאו כערכים).',
+    appMergeWorkbooksFailed: 'מיזוג חוברות העבודה נכשל.',
+    appMergeWorkbooksInsertFailed: 'לא ניתן ליצור את הגיליון {sheet}.',
+    appMergeWorkbooksLocked: 'חוברת העבודה עדיין נטענת; המיזוג אינו זמין כרגע.',
+    appDeleteSpanFormulas: 'נוסחה מפנה רק לשורות/עמודות שנמחקות — עדכן או הסר אותה תחילה.',
+    appDuplicateScopedNames: 'גיליון זה מכיל שמות מוגדרים ברמת הגיליון — שכפולו אינו נתמך עדיין.',
+    appCsvExportNeedsFullLoad: 'ייצוא CSV דורש חוברת עבודה טעונה במלואה — המתן לסיום הטעינה.',
+    appCsvExportTooLarge: 'הגיליון גדול מדי לייצוא כ-CSV.',
+    appCsvExportCanceled: 'ייצוא ה-CSV בוטל.',
+    appCsvExported: '{path} יוצא.',
+    appCsvExportedActiveOnly:
+      'קובצי CSV מכילים גיליון אחד בלבד — הגיליון הפעיל "{name}" יוצא אל {path}.',
+    appCsvExportFailed: 'לא ניתן לייצא את ה-CSV.',
     appFormulaBarHidden: 'שורת הנוסחאות הוסתרה.',
     appThemesTitle: 'בחירת ערכת נושא למסמך (צבעים וגופנים)',
     appThemeColorsTitle: 'שינוי צבעי ערכת הנושא',
@@ -22285,6 +22636,27 @@ export const appStrings = defineStrings({
   },
   hi: {
     appFormulaBarShown: 'सूत्र पट्टी दिखाई गई।',
+    appMergeWorkbooks: 'वर्कबुक मर्ज करें',
+    appMergeWorkbooksTip: 'अन्य Excel फ़ाइलों की शीट इस वर्कबुक में जोड़ें',
+    appMergeWorkbooksPicking: 'मर्ज करने के लिए फ़ाइलें चुनें…',
+    appMergeWorkbooksReading: '{file} से {sheet} आयात हो रही है…',
+    appMergeWorkbooksDone:
+      '{files} फ़ाइलों से {sheets} शीट मर्ज की गईं (सूत्र मानों के रूप में आयात हुए)।',
+    appMergeWorkbooksFailed: 'वर्कबुक मर्ज नहीं हो सकीं।',
+    appMergeWorkbooksInsertFailed: 'शीट {sheet} नहीं बनाई जा सकी।',
+    appMergeWorkbooksLocked: 'वर्कबुक अभी लोड हो रही है; मर्ज अभी उपलब्ध नहीं है।',
+    appDeleteSpanFormulas:
+      'कोई सूत्र केवल हटाई जा रही पंक्तियों/स्तंभों को संदर्भित करता है — पहले उसे अपडेट करें या हटाएँ।',
+    appDuplicateScopedNames:
+      'इस शीट में शीट-स्तरीय परिभाषित नाम हैं — इसकी प्रतिलिपि बनाना अभी समर्थित नहीं है।',
+    appCsvExportNeedsFullLoad:
+      'CSV निर्यात के लिए पूरी तरह लोड की गई कार्यपुस्तिका चाहिए — लोडिंग पूरी होने तक प्रतीक्षा करें।',
+    appCsvExportTooLarge: 'शीट बहुत बड़ी है, CSV के रूप में निर्यात नहीं की जा सकती।',
+    appCsvExportCanceled: 'CSV निर्यात रद्द किया गया।',
+    appCsvExported: '{path} निर्यात किया गया।',
+    appCsvExportedActiveOnly:
+      'CSV फ़ाइलों में केवल एक शीट होती है — सक्रिय शीट “{name}” को {path} पर निर्यात किया गया।',
+    appCsvExportFailed: 'CSV निर्यात नहीं किया जा सका।',
     appFormulaBarHidden: 'सूत्र पट्टी छिपाई गई।',
     appThemesTitle: 'दस्तावेज़ थीम चुनें (रंग और फ़ॉन्ट)',
     appThemeColorsTitle: 'थीम के रंग बदलें',
@@ -23583,6 +23955,22 @@ export const appStrings = defineStrings({
   },
   'zh-TW': {
     appFormulaBarShown: '公式列已顯示。',
+    appMergeWorkbooks: '合併活頁簿',
+    appMergeWorkbooksTip: '將其他 Excel 檔案的工作表併入目前活頁簿',
+    appMergeWorkbooksPicking: '選擇要合併的檔案…',
+    appMergeWorkbooksReading: '正在匯入 {file} 的 {sheet}…',
+    appMergeWorkbooksDone: '已合併 {files} 個檔案的 {sheets} 張工作表（公式已轉為數值）。',
+    appMergeWorkbooksFailed: '合併活頁簿失敗。',
+    appMergeWorkbooksInsertFailed: '無法建立工作表 {sheet}。',
+    appMergeWorkbooksLocked: '大型檔案仍在載入中，目前無法合併活頁簿。',
+    appDeleteSpanFormulas: '有公式僅引用被刪除的列/欄——請先更新或刪除這些公式。',
+    appDuplicateScopedNames: '該工作表含表級定義名稱——暫不支援複製該表。',
+    appCsvExportNeedsFullLoad: 'CSV 匯出需要活頁簿完整載入——請等待載入完成。',
+    appCsvExportTooLarge: '工作表太大,無法匯出 CSV。',
+    appCsvExportCanceled: 'CSV 匯出已取消。',
+    appCsvExported: '已匯出 {path}。',
+    appCsvExportedActiveOnly: 'CSV 只包含一張工作表——已匯出目前工作表「{name}」到 {path}。',
+    appCsvExportFailed: '無法匯出 CSV。',
     appFormulaBarHidden: '公式列已隱藏。',
     appThemesTitle: '選擇文件佈景主題（色彩與字型）',
     appThemeColorsTitle: '變更佈景主題色彩',
@@ -24801,6 +25189,27 @@ export const appStrings = defineStrings({
   },
   vi: {
     appFormulaBarShown: 'Thanh công thức đã hiển thị.',
+    appMergeWorkbooks: 'Gộp sổ làm việc',
+    appMergeWorkbooksTip: 'Thêm trang tính từ các tệp Excel khác vào sổ làm việc hiện tại',
+    appMergeWorkbooksPicking: 'Chọn tệp để gộp…',
+    appMergeWorkbooksReading: 'Đang nhập {sheet} từ {file}…',
+    appMergeWorkbooksDone:
+      'Đã gộp {sheets} trang tính từ {files} tệp (công thức được chuyển thành giá trị).',
+    appMergeWorkbooksFailed: 'Gộp sổ làm việc thất bại.',
+    appMergeWorkbooksInsertFailed: 'Không thể tạo trang tính {sheet}.',
+    appMergeWorkbooksLocked: 'Sổ làm việc lớn vẫn đang tải, chưa thể gộp.',
+    appDeleteSpanFormulas:
+      'Có công thức chỉ tham chiếu đến hàng/cột bị xóa — hãy cập nhật hoặc xóa các công thức đó trước.',
+    appDuplicateScopedNames:
+      'Trang tính này có tên xác định theo trang — chưa hỗ trợ nhân bản trang này.',
+    appCsvExportNeedsFullLoad:
+      'Xuất CSV yêu cầu sổ làm việc được tải hoàn toàn — hãy chờ tải xong.',
+    appCsvExportTooLarge: 'Trang tính quá lớn để xuất CSV.',
+    appCsvExportCanceled: 'Đã hủy xuất CSV.',
+    appCsvExported: 'Đã xuất {path}.',
+    appCsvExportedActiveOnly:
+      'CSV chỉ chứa một trang tính — đã xuất trang tính hiện tại “{name}” đến {path}.',
+    appCsvExportFailed: 'Không thể xuất CSV.',
     appFormulaBarHidden: 'Thanh công thức đã ẩn.',
     appThemesTitle: 'Chọn chủ đề tài liệu (màu sắc và phông chữ)',
     appThemeColorsTitle: 'Đổi màu chủ đề',
@@ -24933,7 +25342,8 @@ export const appStrings = defineStrings({
     appPivotNoChartData: 'PivotTable không chứa dữ liệu để tạo biểu đồ.',
     appSheetNoPivot: 'Trang tính này không chứa PivotTable nào.',
     appPivotSourceSheetMissing: 'Trang tính nguồn của Bảng Pivot "{name}" không tồn tại.',
-    appShapeNotEditable: 'Không có hình dạng có thể chỉnh sửa "{id}" (chỉ hình được thêm trong phiên này mới có thể sửa).',
+    appShapeNotEditable:
+      'Không có hình dạng có thể chỉnh sửa "{id}" (chỉ hình được thêm trong phiên này mới có thể sửa).',
     appCalcFieldNameDuplicate: 'Tên trường tính toán phải là duy nhất.',
     appInvalidRowField: 'Trường hàng không hợp lệ.',
     appNeedRowField: 'Cần ít nhất một trường hàng.',
@@ -24978,7 +25388,8 @@ export const appStrings = defineStrings({
     appTimelineEmptyRange: 'Khoảng thời gian trống không thể áp dụng.',
     appGoToNotReady: 'Chức năng Đi đến chưa sẵn sàng.',
     appGoToEmpty: 'Hãy nhập địa chỉ ô hoặc tên vùng.',
-    appGoToUnresolved: 'Không thể đi tới "{ref}": địa chỉ không hợp lệ hoặc tên đã định nghĩa không thể điều hướng.',
+    appGoToUnresolved:
+      'Không thể đi tới "{ref}": địa chỉ không hợp lệ hoặc tên đã định nghĩa không thể điều hướng.',
     appGoToOutOfBounds: 'Không thể đi tới "{ref}": nằm ngoài phạm vi trang tính.',
     appGoToSheetNotFound: 'Không thể đi tới "{ref}": không tìm thấy trang tính đó.',
     appGoToInvalidAddress: 'Không thể đi tới "{ref}": địa chỉ không hợp lệ.',
@@ -25056,7 +25467,8 @@ export const appStrings = defineStrings({
     appPivotTooManyColLines: 'Quá nhiều dòng cột trong PivotTable.',
     appPivotNeedsValues: 'PivotTable cần ít nhất một trường giá trị.',
     appPivotTooManyRowLines: 'Quá nhiều dòng hàng trong PivotTable.',
-    appPivotOverlapSession: 'Đầu ra của pivot sẽ chồng lấn với pivot "{name}" được tạo trong phiên này.',
+    appPivotOverlapSession:
+      'Đầu ra của pivot sẽ chồng lấn với pivot "{name}" được tạo trong phiên này.',
     appPivotNameUsed: 'Tên PivotTable "{name}" đã được sử dụng.',
     appActiveCellFallback: 'Đã chọn ô mặc định.',
     appFormulaStartsEquals: 'Công thức phải bắt đầu bằng dấu bằng (=).',
@@ -25115,7 +25527,8 @@ export const appStrings = defineStrings({
     appNoTraceArrows: 'Không có mũi tên theo dõi nào trên trang tính.',
     appFrozenAtSelection: 'Đã cố định tại vùng chọn — lưu bằng ⌘S.',
     appSelectCellsFirst: 'Hãy chọn các ô trước.',
-    appCellStyleApplied: 'Đã áp dụng kiểu ô — được ghi nhật ký như bất kỳ chỉnh sửa định dạng nào (⌘S để lưu).',
+    appCellStyleApplied:
+      'Đã áp dụng kiểu ô — được ghi nhật ký như bất kỳ chỉnh sửa định dạng nào (⌘S để lưu).',
     appSelectRangeFirst: 'Hãy chọn một vùng trước.',
     appSettingNeedsFile: 'Hãy mở một sổ làm việc để áp dụng cài đặt.',
     appTooManyCellsForSetting: 'Vùng chọn quá lớn cho cài đặt này.',
@@ -25132,7 +25545,8 @@ export const appStrings = defineStrings({
     appLinkRemoved: 'Đã xóa liên kết.',
     appLinkInvalid: 'Địa chỉ liên kết không hợp lệ.',
     appLinkSaved: 'Đã lưu liên kết — bấm vào ô để truy cập.',
-    appTextToColsSelectOne: 'Chuyển văn bản thành cột (Text to Columns) chỉ áp dụng cho một cột duy nhất.',
+    appTextToColsSelectOne:
+      'Chuyển văn bản thành cột (Text to Columns) chỉ áp dụng cho một cột duy nhất.',
     appSplitIntoColumns: 'Tách thành các cột.',
     appAppliedToSelection: 'Đã áp dụng cho vùng chọn.',
     appCommandFailed: 'Thực thi lệnh thất bại.',
@@ -25209,7 +25623,8 @@ export const appStrings = defineStrings({
     appLinkInternal: 'Liên kết trỏ tới bên trong sổ làm việc: {location}',
     appLinkSheetNotFound: 'Không tìm thấy trang tính "{name}".',
     appLinkJumpFailed: 'Không thể nhảy tới {location}.',
-    appRecalcDone: 'Đã tính toán lại công thức từ các chỉnh sửa của bạn ({count} ô, dự phòng bộ xử lý).',
+    appRecalcDone:
+      'Đã tính toán lại công thức từ các chỉnh sửa của bạn ({count} ô, dự phòng bộ xử lý).',
     appIndexing: 'Đang lập chỉ mục {name}: {rows} hàng đã sẵn sàng.',
     appStreamingRows: 'Đang truyền phát {name}: {rows} hàng khả dụng.',
     appLoadRangeFailed: 'Tải vùng dữ liệu thất bại.',
@@ -25910,91 +26325,167 @@ export const appStrings = defineStrings({
     appFind: 'Tìm',
     appFindTitle: 'Tìm & Chọn ⌘F',
     appReplace: 'Thay thế',
-    appWorkbookProtectionWillWrite: "Cấu trúc sổ làm việc sẽ được bảo vệ khi lưu (không mật khẩu).",
-    appWorkbookProtectedWithPassword: "Cấu trúc sổ làm việc được bảo vệ bằng mật khẩu — không thể thay đổi tại đây.",
-    appWorkbookStructureLocked: "Cấu trúc sổ làm việc đã bị khóa — không thể thêm, xóa, đổi tên hoặc di chuyển trang tính.",
-    appRangesPasswordBlocked: "Trang tính này có các vùng chỉnh sửa được bảo vệ bằng mật khẩu — không hỗ trợ chỉnh sửa các vùng này.",
-    appPivotChartHintOut: "Chọn một ô trong vùng kết quả Bảng Pivot trước, sau đó chọn loại biểu đồ",
-    appTableNotDeletable: "Bảng \"{name}\" không tồn tại hoặc không được tạo trong phiên này — chưa hỗ trợ xóa bảng có sẵn trong tệp.",
-    appCursorNotInPivot: "Con trỏ không nằm trong Bảng Pivot — vui lòng chọn một ô trong vùng Bảng Pivot trước.",
-    appPivotDefNotLoaded: "Định nghĩa Bảng Pivot chưa tải xong (hoặc phân tích lỗi) — vui lòng thử lại sau giây lát.",
-    appPivotChartInsertedTruncated: "Đã chèn Biểu đồ Pivot (quá nhiều điểm dữ liệu, đã rút gọn) — lưu (⌘S) để ghi vào tệp.",
-    appPivotChartInserted: "Đã chèn Biểu đồ Pivot — tự động cập nhật theo Bảng Pivot; lưu (⌘S) để ghi vào tệp.",
-    appPivotNeedsFullLoad: "Làm mới Bảng Pivot yêu cầu chế độ tải đầy đủ — sổ làm việc này quá lớn và đang tải theo luồng.",
-    appPivotLayoutMismatch: "Bố cục Bảng Pivot không khớp với vùng kết quả — hãy làm mới trong Excel trước khi tính toán lại.",
-    appPivotGrowUnsupported: "Bố cục Bảng Pivot này (thu gọn/nhiều hàng tiêu đề) chưa hỗ trợ tự động mở rộng — hãy làm mới trong Excel.",
-    appPivotGrowConflict: "Vùng Bảng Pivot mở rộng xung đột với nội dung hiện có — hãy dọn sạch vùng đích rồi làm mới.",
-    appCalcFieldNameClash: "Trường tính toán \"{name}\" không được trùng tên với tiêu đề nguồn.",
-    appValueFilterFieldMissing: "Bộ lọc giá trị tham chiếu đến trường giá trị {index} không tồn tại.",
-    appPivotRelayoutOverlap: "Bố cục Bảng Pivot mới sẽ ghi đè lên nội dung hiện có — hãy dọn sạch vùng đích trước.",
-    appPivotCreated: "Đã tạo Bảng Pivot tại {cell} — sẽ ghi vào tệp khi lưu; lưu để bật slicer, timeline và làm mới.",
-    appPivotDefNotLoadedSave: "Định nghĩa Bảng Pivot chưa được tải — nếu bạn đã chỉnh sửa trong phiên này, hãy lưu (⌘S) trước.",
-    appPivotEditHasFeatures: "Bảng Pivot có nhóm, bộ lọc báo cáo hoặc trường tính toán chưa hỗ trợ sửa bố cục — hãy điều chỉnh trong Excel.",
-    appPivotEditValuesOnRows: "Bảng Pivot có các trường giá trị trên trục hàng chưa hỗ trợ chỉnh sửa bố cục.",
-    appPivotEditAggUnsupported: "Kiểu tổng hợp của Bảng Pivot này (ví dụ: Product hoặc Count Numbers) chưa hỗ trợ sửa bố cục.",
-    appPivotLayoutUpdated: "Đã cập nhật bố cục Bảng Pivot — lưu (⌘S) để ghi vào tệp; Excel sẽ dựng lại bộ nhớ đệm khi mở.",
-    appSlicerNeedsFullLoad: "Lọc theo Slicer yêu cầu chế độ tải đầy đủ — sổ làm việc này quá lớn và đang tải theo luồng.",
-    appTimelineNoDateFields: "Bảng Pivot này không có trường ngày tháng hợp lệ — timeline cần một trường không nhóm có giá trị toàn bộ là ngày tháng.",
-    appFieldFilterTaken: "Mọi trường đủ điều kiện đều đã có slicer hoặc timeline — hãy xóa cái hiện có trước.",
-    appAdvFilterNeedsFilter: "Bộ lọc nâng cao cần một vùng AutoFilter — hãy chọn dữ liệu và nhấn Lọc trước.",
-    appFlashFillNeedsExamples: "Điền 1-2 ví dụ vào cột đích trước, sau đó nhấn Tự động điền (Flash Fill).",
-    appFlashFillNoPattern: "Không nhận diện được quy luật từ các ví dụ — giá trị đích phải suy ra được từ các cột bên trái; hãy thử thêm ví dụ khác.",
-    appSparklineNeedsCols: "Chọn ít nhất hai cột dữ liệu — mỗi hàng một sparkline, đặt ở cột bên phải vùng chọn.",
-    appSparklinesInserted: "Đã chèn {count} sparkline ở cột bên phải vùng chọn — nhấn ⌘S để lưu vào tệp.",
-    appSaveHeldStranded: "Không thể lưu Bảng Pivot/bảng cùng lúc với việc thêm trang tính mới và thay đổi hàng/cột — hãy lưu cấu trúc trước rồi mới thêm Bảng Pivot/bảng.",
-    appSaveSecondCanceled: "Giai đoạn lưu thứ hai đã bị hủy — cấu trúc đã lưu; Bảng Pivot/bảng/tên định nghĩa chưa được ghi.",
-    appSaveSecondFailed: "Cấu trúc đã lưu, nhưng giai đoạn hai (Bảng Pivot/bảng/tên định nghĩa) thất bại: {reason}",
-    appAiTurnLimit: "(Đã đạt giới hạn lượt gọi công cụ cho yêu cầu này; câu trả lời dựa trên những gì đã đọc và có thể chưa đầy đủ.)",
-    appFormulaRecordedPartial: "Đã ghi nhận công thức — sẽ lưu vào tệp, nhưng kết quả trên màn hình có thể chưa đầy đủ vì sổ làm việc lớn này đang tải một phần.",
-    appFormulaTooExpensive: "Công thức này tính toán một vùng lớn cho từng phần tử — phép tính có thể làm treo ứng dụng nên đã bị hủy. Hãy thu hẹp vùng tham chiếu và thử lại.",
-    appPivotSheetNoStructural: "Trang tính này chứa Bảng Pivot — chưa hỗ trợ thay đổi cấu trúc hàng/cột.",
-    appIconSetUnsupported: "Bộ biểu tượng kết hợp này không thể lưu vào xlsx — vui lòng chọn một bộ biểu tượng khác.",
-    appNeedFullLoadSort: "Sắp xếp, lọc, di chuyển vùng và tách văn bản cần chế độ tải đầy đủ — sổ làm việc này quá lớn và đang tải một phần.",
-    appTableFilterNoEdit: "Bộ lọc của trang tính này thuộc về một bảng Excel — chưa hỗ trợ lưu chỉnh sửa bộ lọc này.",
-    appDvNeedsIndexed: "Chỉnh sửa kiểm tra dữ liệu hợp lệ cần trang tính này được lập chỉ mục đầy đủ — vui lòng thử lại sau giây lát.",
-    appDuplicateNeedsFullLoad: "Nhân bản trang tính cần chế độ tải đầy đủ — sổ làm việc này quá lớn và đang tải một phần.",
-    appPivotSheetNoDuplicate: "Trang tính này chứa Bảng Pivot — chưa hỗ trợ nhân bản trang tính này.",
-    appMoveRowsColsUnsaved: "Chưa hỗ trợ lưu di chuyển toàn bộ cột vào sổ làm việc đã nhập — hỗ trợ di chuyển toàn bộ hàng.",
-    appWorkbookChangedSincePreview: "Sổ làm việc đã thay đổi kể từ bản xem trước — vui lòng tạo bản xem trước mới.",
-    appChartInsertedDemo: "Đã chèn biểu đồ — chỉnh sửa mẫu chỉ lưu trong bộ nhớ; hãy mở tệp XLSX để lưu vào đĩa.",
-    appChartNeedsNumericColumn: "Chọn một vùng có ít nhất một cột số (tiêu đề là tùy chọn).",
-    appPivotOverlapSource: "Vùng kết quả Bảng Pivot sẽ đè lên vùng nguồn — hãy chọn ô đích khác.",
-    appPivotOverlapExisting: "Vùng kết quả Bảng Pivot sẽ đè lên một Bảng Pivot hiện có trên trang tính đích.",
-    appConsolidateMaxMinLabels: "Hàm Max và Min không hỗ trợ nhãn ở cột bên trái — hãy dùng chế độ theo vị trí.",
-    appConsolidateLabelNeedsCols: "Chế độ nhãn cần ít nhất hai cột cho mỗi vùng (cột nhãn và cột giá trị).",
-    appProtectionNeedsIndexed: "Bảo vệ trang tính cần trang tính được lập chỉ mục đầy đủ — vui lòng thử lại sau giây lát.",
-    appProtectedWithPassword: "Trang tính này được bảo vệ bằng mật khẩu — không hỗ trợ gỡ bỏ bảo vệ.",
-    appProtectionWillWrite: "Thiết lập bảo vệ trang tính sẽ được ghi khi lưu (không mật khẩu). Trình chỉnh sửa không tự thực thi khóa.",
-    appFindScanTruncated: "Trang tính lớn: tìm kiếm đã dừng sau {cells} ô — kết quả có thể chưa đầy đủ.",
-    appWorkbookStats: "Thống kê sổ làm việc: {sheets} trang tính · {cells} ô có dữ liệu · {formulas} công thức{note}.",
-    appProtectionFlagsRecorded: "Đã ghi nhận các cờ bảo vệ — sẽ áp dụng khi trang tính được bảo vệ.",
-    appSortSelectRows: "Chọn các hàng cần sắp xếp trước — bao gồm tất cả các cột đi liền với nhau.",
-    appDedupeNeedsFullLoad: "Xóa dữ liệu trùng lặp cần chế độ tải đầy đủ — sổ làm việc này quá lớn và đang tải một phần.",
-    appColorFiltersUnsaveable: "Bộ lọc theo màu chưa thể lưu thành định dạng XLSX — hãy xóa bộ lọc màu trước khi lưu.",
-    appCfRuleUnsaveable: "Quy tắc định dạng có điều kiện này không thể lưu vào xlsx — hãy đổi sang loại quy tắc khác.",
-    appSaveErrX14Dv: "Trang tính này có quy tắc kiểm tra dữ liệu mở rộng (x14); chưa hỗ trợ lưu chỉnh sửa các quy tắc này.",
-    appSaveErrMultiSelectList: "Kiểm tra dữ liệu danh sách chọn nhiều không thể lưu vào xlsx — hãy xóa quy tắc trước khi lưu.",
-    appSaveErrX14Cf: "Vùng này có định dạng có điều kiện mở rộng (x14) và chưa thể chỉnh sửa.",
-    appSaveErrPivotWithSheetOps: "Bảng Pivot mới tạo không thể lưu cùng lúc với các thay đổi quản lý trang tính — hãy lưu Bảng Pivot trước.",
-    appSaveErrPivotWithRowCol: "Bảng Pivot mới tạo không thể lưu cùng lúc với các thay đổi hàng/cột trên trang tính — hãy lưu Bảng Pivot trước.",
-    appSaveErrTableWithRowCol: "Bảng mới tạo không thể lưu cùng lúc với các thay đổi hàng/cột trên trang tính — hãy lưu bảng trước.",
-    appSaveErrNamesWithStructural: "Các thay đổi tên định nghĩa không thể lưu cùng lúc với thay đổi hàng/cột hoặc cấu trúc trang tính — hãy lưu riêng.",
-    appSaveErrChangedOnDisk: "Tệp đã bị thay đổi trên đĩa bởi chương trình khác — đã hủy lưu; hãy mở lại tệp và thử lại.",
-    appSaveErrStylesheetLimited: "Bảng kiểu của sổ làm việc này thiếu cấu trúc cơ bản nên không thể lưu các thay đổi định dạng kiểu.",
-    appSaveErrPackageGuard: "Lưu tệp sẽ làm thay đổi cấu trúc gói của sổ làm việc — đã hủy thao tác để bảo vệ tệp.",
-    appSaveErrChartUnsupported: "Loại biểu đồ này không hỗ trợ chỉnh sửa đó; đã hủy lưu — hãy hoàn tác thay đổi biểu đồ.",
-    appSaveErrMoveOverlap: "Một công thức, vùng định dạng, hình vẽ hoặc bảng nằm đè lên các hàng đã di chuyển; đã hủy lưu — hãy hoàn tác di chuyển.",
-    appStructuralShiftBlocked: "Một biểu đồ hoặc bảng trên trang tính này được neo vào các hàng/cột bị ảnh hưởng nên không thể dịch chuyển; thay đổi cấu trúc chưa được lưu. Hãy hoàn tác (Cmd+Z) và lưu lại.",
-    appAiChangesNotSaved: "Đã áp dụng các thay đổi từ AI (chưa lưu). Hoàn tác bằng Cmd+Z; lưu vào tệp bằng Cmd+S.",
-    appFileVisualMoveDeleteOnly: "Đối tượng đồ họa có sẵn trong tệp chỉ hỗ trợ di chuyển hoặc xóa.",
-    appClosureActive: "{count} công thức đang tự động tính lại trực tiếp (chế độ closure); phần còn lại của sổ làm việc sẽ tải theo nhu cầu.",
-    appRecalcPartial: "Các công thức đã được tính lại từ các chỉnh sửa của bạn — {count} công thức giữ giá trị lưu đệm (hàm mà công cụ dự phòng chưa có).",
-    appPrintTooLarge: "Vùng in quá lớn — hãy thiết lập vùng in nhỏ hơn trên thẻ Bố trí Trang.",
-    appCategoriesRangeTitle: "Vùng nhãn danh mục cho {name} — một hàng hoặc cột đơn lẻ, ví dụ: A2:A13",
-    appRemoveDuplicatesNote: "Các hàng trong vùng chọn trùng lặp với một hàng trước đó (so sánh mọi cột, không phân biệt chữ hoa/thường) sẽ bị xóa; các hàng còn lại sẽ dịch chuyển lên.",
-    appUseInFormulaNeedsEmptyCell: "Chọn một ô trống trước — việc chèn tên sẽ ghi đè nội dung của ô này",
-    appTranslatePrompt: "Dịch văn bản trong vùng đã chọn sang {language} và ghi bản dịch vào chính các ô đó.",
-    appFormatAsTableTitle: "Tạo bảng Excel thực sự trên vùng chọn (hàng đầu tiên làm tiêu đề)",
+    appWorkbookProtectionWillWrite: 'Cấu trúc sổ làm việc sẽ được bảo vệ khi lưu (không mật khẩu).',
+    appWorkbookProtectedWithPassword:
+      'Cấu trúc sổ làm việc được bảo vệ bằng mật khẩu — không thể thay đổi tại đây.',
+    appWorkbookStructureLocked:
+      'Cấu trúc sổ làm việc đã bị khóa — không thể thêm, xóa, đổi tên hoặc di chuyển trang tính.',
+    appRangesPasswordBlocked:
+      'Trang tính này có các vùng chỉnh sửa được bảo vệ bằng mật khẩu — không hỗ trợ chỉnh sửa các vùng này.',
+    appPivotChartHintOut:
+      'Chọn một ô trong vùng kết quả Bảng Pivot trước, sau đó chọn loại biểu đồ',
+    appTableNotDeletable:
+      'Bảng "{name}" không tồn tại hoặc không được tạo trong phiên này — chưa hỗ trợ xóa bảng có sẵn trong tệp.',
+    appCursorNotInPivot:
+      'Con trỏ không nằm trong Bảng Pivot — vui lòng chọn một ô trong vùng Bảng Pivot trước.',
+    appPivotDefNotLoaded:
+      'Định nghĩa Bảng Pivot chưa tải xong (hoặc phân tích lỗi) — vui lòng thử lại sau giây lát.',
+    appPivotChartInsertedTruncated:
+      'Đã chèn Biểu đồ Pivot (quá nhiều điểm dữ liệu, đã rút gọn) — lưu (⌘S) để ghi vào tệp.',
+    appPivotChartInserted:
+      'Đã chèn Biểu đồ Pivot — tự động cập nhật theo Bảng Pivot; lưu (⌘S) để ghi vào tệp.',
+    appPivotNeedsFullLoad:
+      'Làm mới Bảng Pivot yêu cầu chế độ tải đầy đủ — sổ làm việc này quá lớn và đang tải theo luồng.',
+    appPivotLayoutMismatch:
+      'Bố cục Bảng Pivot không khớp với vùng kết quả — hãy làm mới trong Excel trước khi tính toán lại.',
+    appPivotGrowUnsupported:
+      'Bố cục Bảng Pivot này (thu gọn/nhiều hàng tiêu đề) chưa hỗ trợ tự động mở rộng — hãy làm mới trong Excel.',
+    appPivotGrowConflict:
+      'Vùng Bảng Pivot mở rộng xung đột với nội dung hiện có — hãy dọn sạch vùng đích rồi làm mới.',
+    appCalcFieldNameClash: 'Trường tính toán "{name}" không được trùng tên với tiêu đề nguồn.',
+    appValueFilterFieldMissing:
+      'Bộ lọc giá trị tham chiếu đến trường giá trị {index} không tồn tại.',
+    appPivotRelayoutOverlap:
+      'Bố cục Bảng Pivot mới sẽ ghi đè lên nội dung hiện có — hãy dọn sạch vùng đích trước.',
+    appPivotCreated:
+      'Đã tạo Bảng Pivot tại {cell} — sẽ ghi vào tệp khi lưu; lưu để bật slicer, timeline và làm mới.',
+    appPivotDefNotLoadedSave:
+      'Định nghĩa Bảng Pivot chưa được tải — nếu bạn đã chỉnh sửa trong phiên này, hãy lưu (⌘S) trước.',
+    appPivotEditHasFeatures:
+      'Bảng Pivot có nhóm, bộ lọc báo cáo hoặc trường tính toán chưa hỗ trợ sửa bố cục — hãy điều chỉnh trong Excel.',
+    appPivotEditValuesOnRows:
+      'Bảng Pivot có các trường giá trị trên trục hàng chưa hỗ trợ chỉnh sửa bố cục.',
+    appPivotEditAggUnsupported:
+      'Kiểu tổng hợp của Bảng Pivot này (ví dụ: Product hoặc Count Numbers) chưa hỗ trợ sửa bố cục.',
+    appPivotLayoutUpdated:
+      'Đã cập nhật bố cục Bảng Pivot — lưu (⌘S) để ghi vào tệp; Excel sẽ dựng lại bộ nhớ đệm khi mở.',
+    appSlicerNeedsFullLoad:
+      'Lọc theo Slicer yêu cầu chế độ tải đầy đủ — sổ làm việc này quá lớn và đang tải theo luồng.',
+    appTimelineNoDateFields:
+      'Bảng Pivot này không có trường ngày tháng hợp lệ — timeline cần một trường không nhóm có giá trị toàn bộ là ngày tháng.',
+    appFieldFilterTaken:
+      'Mọi trường đủ điều kiện đều đã có slicer hoặc timeline — hãy xóa cái hiện có trước.',
+    appAdvFilterNeedsFilter:
+      'Bộ lọc nâng cao cần một vùng AutoFilter — hãy chọn dữ liệu và nhấn Lọc trước.',
+    appFlashFillNeedsExamples:
+      'Điền 1-2 ví dụ vào cột đích trước, sau đó nhấn Tự động điền (Flash Fill).',
+    appFlashFillNoPattern:
+      'Không nhận diện được quy luật từ các ví dụ — giá trị đích phải suy ra được từ các cột bên trái; hãy thử thêm ví dụ khác.',
+    appSparklineNeedsCols:
+      'Chọn ít nhất hai cột dữ liệu — mỗi hàng một sparkline, đặt ở cột bên phải vùng chọn.',
+    appSparklinesInserted:
+      'Đã chèn {count} sparkline ở cột bên phải vùng chọn — nhấn ⌘S để lưu vào tệp.',
+    appSaveHeldStranded:
+      'Không thể lưu Bảng Pivot/bảng cùng lúc với việc thêm trang tính mới và thay đổi hàng/cột — hãy lưu cấu trúc trước rồi mới thêm Bảng Pivot/bảng.',
+    appSaveSecondCanceled:
+      'Giai đoạn lưu thứ hai đã bị hủy — cấu trúc đã lưu; Bảng Pivot/bảng/tên định nghĩa chưa được ghi.',
+    appSaveSecondFailed:
+      'Cấu trúc đã lưu, nhưng giai đoạn hai (Bảng Pivot/bảng/tên định nghĩa) thất bại: {reason}',
+    appAiTurnLimit:
+      '(Đã đạt giới hạn lượt gọi công cụ cho yêu cầu này; câu trả lời dựa trên những gì đã đọc và có thể chưa đầy đủ.)',
+    appFormulaRecordedPartial:
+      'Đã ghi nhận công thức — sẽ lưu vào tệp, nhưng kết quả trên màn hình có thể chưa đầy đủ vì sổ làm việc lớn này đang tải một phần.',
+    appFormulaTooExpensive:
+      'Công thức này tính toán một vùng lớn cho từng phần tử — phép tính có thể làm treo ứng dụng nên đã bị hủy. Hãy thu hẹp vùng tham chiếu và thử lại.',
+    appPivotSheetNoStructural:
+      'Trang tính này chứa Bảng Pivot — chưa hỗ trợ thay đổi cấu trúc hàng/cột.',
+    appIconSetUnsupported:
+      'Bộ biểu tượng kết hợp này không thể lưu vào xlsx — vui lòng chọn một bộ biểu tượng khác.',
+    appNeedFullLoadSort:
+      'Sắp xếp, lọc, di chuyển vùng và tách văn bản cần chế độ tải đầy đủ — sổ làm việc này quá lớn và đang tải một phần.',
+    appTableFilterNoEdit:
+      'Bộ lọc của trang tính này thuộc về một bảng Excel — chưa hỗ trợ lưu chỉnh sửa bộ lọc này.',
+    appDvNeedsIndexed:
+      'Chỉnh sửa kiểm tra dữ liệu hợp lệ cần trang tính này được lập chỉ mục đầy đủ — vui lòng thử lại sau giây lát.',
+    appDuplicateNeedsFullLoad:
+      'Nhân bản trang tính cần chế độ tải đầy đủ — sổ làm việc này quá lớn và đang tải một phần.',
+    appPivotSheetNoDuplicate:
+      'Trang tính này chứa Bảng Pivot — chưa hỗ trợ nhân bản trang tính này.',
+    appMoveRowsColsUnsaved:
+      'Chưa hỗ trợ lưu di chuyển toàn bộ cột vào sổ làm việc đã nhập — hỗ trợ di chuyển toàn bộ hàng.',
+    appWorkbookChangedSincePreview:
+      'Sổ làm việc đã thay đổi kể từ bản xem trước — vui lòng tạo bản xem trước mới.',
+    appChartInsertedDemo:
+      'Đã chèn biểu đồ — chỉnh sửa mẫu chỉ lưu trong bộ nhớ; hãy mở tệp XLSX để lưu vào đĩa.',
+    appChartNeedsNumericColumn: 'Chọn một vùng có ít nhất một cột số (tiêu đề là tùy chọn).',
+    appPivotOverlapSource: 'Vùng kết quả Bảng Pivot sẽ đè lên vùng nguồn — hãy chọn ô đích khác.',
+    appPivotOverlapExisting:
+      'Vùng kết quả Bảng Pivot sẽ đè lên một Bảng Pivot hiện có trên trang tính đích.',
+    appConsolidateMaxMinLabels:
+      'Hàm Max và Min không hỗ trợ nhãn ở cột bên trái — hãy dùng chế độ theo vị trí.',
+    appConsolidateLabelNeedsCols:
+      'Chế độ nhãn cần ít nhất hai cột cho mỗi vùng (cột nhãn và cột giá trị).',
+    appProtectionNeedsIndexed:
+      'Bảo vệ trang tính cần trang tính được lập chỉ mục đầy đủ — vui lòng thử lại sau giây lát.',
+    appProtectedWithPassword:
+      'Trang tính này được bảo vệ bằng mật khẩu — không hỗ trợ gỡ bỏ bảo vệ.',
+    appProtectionWillWrite:
+      'Thiết lập bảo vệ trang tính sẽ được ghi khi lưu (không mật khẩu). Trình chỉnh sửa không tự thực thi khóa.',
+    appFindScanTruncated:
+      'Trang tính lớn: tìm kiếm đã dừng sau {cells} ô — kết quả có thể chưa đầy đủ.',
+    appWorkbookStats:
+      'Thống kê sổ làm việc: {sheets} trang tính · {cells} ô có dữ liệu · {formulas} công thức{note}.',
+    appProtectionFlagsRecorded:
+      'Đã ghi nhận các cờ bảo vệ — sẽ áp dụng khi trang tính được bảo vệ.',
+    appSortSelectRows: 'Chọn các hàng cần sắp xếp trước — bao gồm tất cả các cột đi liền với nhau.',
+    appDedupeNeedsFullLoad:
+      'Xóa dữ liệu trùng lặp cần chế độ tải đầy đủ — sổ làm việc này quá lớn và đang tải một phần.',
+    appColorFiltersUnsaveable:
+      'Bộ lọc theo màu chưa thể lưu thành định dạng XLSX — hãy xóa bộ lọc màu trước khi lưu.',
+    appCfRuleUnsaveable:
+      'Quy tắc định dạng có điều kiện này không thể lưu vào xlsx — hãy đổi sang loại quy tắc khác.',
+    appSaveErrX14Dv:
+      'Trang tính này có quy tắc kiểm tra dữ liệu mở rộng (x14); chưa hỗ trợ lưu chỉnh sửa các quy tắc này.',
+    appSaveErrMultiSelectList:
+      'Kiểm tra dữ liệu danh sách chọn nhiều không thể lưu vào xlsx — hãy xóa quy tắc trước khi lưu.',
+    appSaveErrX14Cf: 'Vùng này có định dạng có điều kiện mở rộng (x14) và chưa thể chỉnh sửa.',
+    appSaveErrPivotWithSheetOps:
+      'Bảng Pivot mới tạo không thể lưu cùng lúc với các thay đổi quản lý trang tính — hãy lưu Bảng Pivot trước.',
+    appSaveErrPivotWithRowCol:
+      'Bảng Pivot mới tạo không thể lưu cùng lúc với các thay đổi hàng/cột trên trang tính — hãy lưu Bảng Pivot trước.',
+    appSaveErrTableWithRowCol:
+      'Bảng mới tạo không thể lưu cùng lúc với các thay đổi hàng/cột trên trang tính — hãy lưu bảng trước.',
+    appSaveErrNamesWithStructural:
+      'Các thay đổi tên định nghĩa không thể lưu cùng lúc với thay đổi hàng/cột hoặc cấu trúc trang tính — hãy lưu riêng.',
+    appSaveErrChangedOnDisk:
+      'Tệp đã bị thay đổi trên đĩa bởi chương trình khác — đã hủy lưu; hãy mở lại tệp và thử lại.',
+    appSaveErrStylesheetLimited:
+      'Bảng kiểu của sổ làm việc này thiếu cấu trúc cơ bản nên không thể lưu các thay đổi định dạng kiểu.',
+    appSaveErrPackageGuard:
+      'Lưu tệp sẽ làm thay đổi cấu trúc gói của sổ làm việc — đã hủy thao tác để bảo vệ tệp.',
+    appSaveErrChartUnsupported:
+      'Loại biểu đồ này không hỗ trợ chỉnh sửa đó; đã hủy lưu — hãy hoàn tác thay đổi biểu đồ.',
+    appSaveErrMoveOverlap:
+      'Một công thức, vùng định dạng, hình vẽ hoặc bảng nằm đè lên các hàng đã di chuyển; đã hủy lưu — hãy hoàn tác di chuyển.',
+    appStructuralShiftBlocked:
+      'Một biểu đồ hoặc bảng trên trang tính này được neo vào các hàng/cột bị ảnh hưởng nên không thể dịch chuyển; thay đổi cấu trúc chưa được lưu. Hãy hoàn tác (Cmd+Z) và lưu lại.',
+    appAiChangesNotSaved:
+      'Đã áp dụng các thay đổi từ AI (chưa lưu). Hoàn tác bằng Cmd+Z; lưu vào tệp bằng Cmd+S.',
+    appFileVisualMoveDeleteOnly: 'Đối tượng đồ họa có sẵn trong tệp chỉ hỗ trợ di chuyển hoặc xóa.',
+    appClosureActive:
+      '{count} công thức đang tự động tính lại trực tiếp (chế độ closure); phần còn lại của sổ làm việc sẽ tải theo nhu cầu.',
+    appRecalcPartial:
+      'Các công thức đã được tính lại từ các chỉnh sửa của bạn — {count} công thức giữ giá trị lưu đệm (hàm mà công cụ dự phòng chưa có).',
+    appPrintTooLarge: 'Vùng in quá lớn — hãy thiết lập vùng in nhỏ hơn trên thẻ Bố trí Trang.',
+    appCategoriesRangeTitle:
+      'Vùng nhãn danh mục cho {name} — một hàng hoặc cột đơn lẻ, ví dụ: A2:A13',
+    appRemoveDuplicatesNote:
+      'Các hàng trong vùng chọn trùng lặp với một hàng trước đó (so sánh mọi cột, không phân biệt chữ hoa/thường) sẽ bị xóa; các hàng còn lại sẽ dịch chuyển lên.',
+    appUseInFormulaNeedsEmptyCell:
+      'Chọn một ô trống trước — việc chèn tên sẽ ghi đè nội dung của ô này',
+    appTranslatePrompt:
+      'Dịch văn bản trong vùng đã chọn sang {language} và ghi bản dịch vào chính các ô đó.',
+    appFormatAsTableTitle: 'Tạo bảng Excel thực sự trên vùng chọn (hàng đầu tiên làm tiêu đề)',
     appGoTo: 'Đi đến',
   },
 })

@@ -652,7 +652,8 @@ const tMain = createI18n({
     errParseFailed: 'Gagal mengurai file',
     errImageNoText: 'Lampiran gambar tidak memiliki teks; gambar dikirim bersama pesan pengguna',
     errNotImage: 'bukan jenis gambar yang didukung',
-    errGskNotLoggedIn: 'Belum masuk ke VuaOffice: klik “Masuk ke VuaOffice” di bawah, lalu coba lagi',
+    errGskNotLoggedIn:
+      'Belum masuk ke VuaOffice: klik “Masuk ke VuaOffice” di bawah, lalu coba lagi',
     errNoApiKey: 'API Key untuk {provider} belum dikonfigurasi',
     errAiBusy: 'Layanan AI sedang sibuk — silakan coba lagi sebentar lagi',
     errNoModel: 'Nama model belum dikonfigurasi',
@@ -1314,6 +1315,7 @@ const tMain = createI18n({
     errGskNotLoggedIn:
       'Chưa đăng nhập VuaOffice: Vui lòng nhấp vào "Đăng nhập VuaOffice" bên dưới để hoàn tất đăng nhập rồi thử lại',
     errNoApiKey: 'Chưa cấu hình Khóa API cho {provider}',
+    errAiBusy: 'Dịch vụ AI đang bận — vui lòng thử lại sau ít phút.',
     errNoModel: 'Chưa cấu hình tên mô hình',
     errImgAbsPath: 'Đường dẫn hình ảnh phải là đường dẫn tuyệt đối.',
     errImgNotFound: 'Không tìm thấy tệp hình ảnh: {path}',
@@ -1342,6 +1344,18 @@ const tMain = createI18n({
     btnCancel: 'Hủy',
     csvSaveAsNotice:
       'Định dạng CSV không giữ lại các định dạng kiểu dáng — lưu thành .xlsx sẽ giữ lại toàn bộ nội dung.',
+    menuExportCsv: 'Xuất CSV…',
+    filterCsv: 'CSV (phân tách bằng dấu phẩy)',
+    csvFormulaLossMsg: 'Trang tính hiện tại chứa công thức mà định dạng CSV không thể giữ lại.',
+    csvFormulaLossDetail:
+      'CSV chỉ giữ giá trị văn bản thuần — công thức sẽ được thay bằng kết quả tính hiện tại và định dạng cũng bị mất.',
+    csvKeepXlsxBtn: 'Lưu thành .xlsx',
+    csvContinueBtn: 'Tiếp tục lưu CSV',
+    csvActiveSheetOnlyNotice:
+      'Tệp CSV chỉ chứa một trang tính — chỉ xuất trang tính hiện tại “{name}”.',
+    csvKeepFormatMsg: 'Tiếp tục lưu dưới dạng CSV?',
+    csvKeepFormatDetail:
+      'CSV chỉ giữ giá trị thuần của một trang tính — công thức, định dạng và các trang tính khác sẽ không được lưu trong tệp .csv.',
   },
 })
 const tm = (key: Parameters<typeof tMain>[1], params?: Parameters<typeof tMain>[2]) =>
@@ -3101,7 +3115,9 @@ export function registerSheetsAiIpc(): void {
   )
 
   ipcMain.handle(IPC_CHANNELS.aiGskLogin, () => {
-    void shell.openExternal('https://vuahethong.net/vuaoffice/auth?redirect_uri=vuaoffice://auth/callback')
+    void shell.openExternal(
+      'https://vuahethong.net/vuaoffice/auth?redirect_uri=vuaoffice://auth/callback',
+    )
   })
 
   ipcMain.handle(IPC_CHANNELS.aiSetSettings, (event, input: unknown) => {

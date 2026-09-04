@@ -319,7 +319,7 @@ export function docStyleCss(parsed: ParsedDocFull): string {
       if (metrics && blankSrc) {
         gridStrut = true
         rules.push(
-          `@font-face { font-family:'VuaOffice Grid Strut'; src:${blankSrc}; ` +
+          `@font-face { font-family:'GenOffice Grid Strut'; src:${blankSrc}; ` +
             `ascent-override:${metrics.ascentPct}%; descent-override:${metrics.descentPct}%; ` +
             `line-gap-override:0% }`,
         )
@@ -645,7 +645,7 @@ export function docStyleCss(parsed: ParsedDocFull): string {
     // after every [data-style] family rule so the strut face wins the cascade;
     // the tail keeps each context's own inherited chain rendering the glyphs
     rules.push(
-      `.doc-page .doc-grid-strut { font-family:'VuaOffice Grid Strut',var(--doc-grid-strut-tail,serif) }`,
+      `.doc-page .doc-grid-strut { font-family:'GenOffice Grid Strut',var(--doc-grid-strut-tail,serif) }`,
     )
   }
   return rules.join('\n')

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import {
   constants,
   copyFileSync,
@@ -8,7 +9,7 @@ import {
   unlinkSync,
   writeFileSync,
 } from 'node:fs'
-import { readFile, writeFile } from 'node:fs/promises'
+import { readFile, stat, writeFile } from 'node:fs/promises'
 import { userInfo } from 'node:os'
 import { basename, dirname, join } from 'node:path'
 import { BrowserWindow, WebContentsView, app, dialog, ipcMain, shell } from 'electron'
@@ -61,6 +62,7 @@ import type {
 } from '../shared/ipc'
 import type { SavedSignature } from '../shared/ipc'
 import { writePdfAtomically } from './atomic-write'
+import { isExternallyModified, type DiskFileState } from './external-change'
 import {
   cropPagesBytes,
   extractPagesBytes,
@@ -556,6 +558,39 @@ const closeSaveWaiters = new Map<number, (ok: boolean) => void>()
 const saveAsWaiters = new Map<number, (ok: boolean) => void>()
 /** Save As destination granted per view (main-process dialog pick); the save handler refuses any other non-source target */
 const saveAsTargetByWc = new Map<number, string>()
+/** Disk state at the last PDF read/write, scoped to the granted renderer view. */
+const pdfDiskStates = new Map<number, Map<string, DiskFileState>>()
+
+const EXTERNAL_PDF_MODIFIED_ERROR = 'pdf: file changed outside VuaOffice'
+const sha256Hex = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex')
+
+async function rememberPdfDiskState(wcId: number, filePath: string, bytes: Buffer): Promise<void> {
+  try {
+    const s = await stat(filePath)
+    const states = pdfDiskStates.get(wcId) ?? new Map<string, DiskFileState>()
+    states.set(filePath, { mtimeMs: s.mtimeMs, size: s.size, hash: sha256Hex(bytes) })
+    pdfDiskStates.set(wcId, states)
+  } catch {
+    /* unstatable target: skip tracking; the next save simply will not flag a conflict */
+  }
+}
+
+async function pdfChangedExternally(wcId: number, filePath: string): Promise<boolean> {
+  let current: { mtimeMs: number; size: number } | null
+  try {
+    const s = await stat(filePath)
+    current = { mtimeMs: s.mtimeMs, size: s.size }
+  } catch {
+    current = null
+  }
+  return isExternallyModified(pdfDiskStates.get(wcId)?.get(filePath), current, async () => {
+    try {
+      return sha256Hex(await readFile(filePath))
+    } catch {
+      return null
+    }
+  })
+}
 
 export function pdfIsDirty(webContentsId: number): boolean {
   return dirtyByWc.has(webContentsId)
@@ -838,6 +873,7 @@ function registerPdfIpc(): void {
       throw new Error('pdf: path not granted to this view')
     }
     const buf = await readFile(path)
+    await rememberPdfDiskState(e.sender.id, path, buf)
     return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength)
   })
 
@@ -870,11 +906,26 @@ function registerPdfIpc(): void {
       return { ok: false, error: 'pdf: target path not granted to this view' }
     }
     try {
+      // Save As reads the source only, so it remains the non-destructive escape
+      // hatch when another application changed the original PDF.
+      if (target === path && (await pdfChangedExternally(e.sender.id, path))) {
+        return {
+          ok: false,
+          error: EXTERNAL_PDF_MODIFIED_ERROR,
+          reason: 'external-modified',
+        }
+      }
+      // The view may have been destroyed while hashing the file. Do not land a
+      // deferred write after its grant has been revoked.
+      if (!allowedByWc.get(e.sender.id)?.has(path)) {
+        return { ok: false, error: 'pdf: path not granted to this view' }
+      }
       const { skippedTextEdits, skippedTextInserts, skippedImageEdits } = await savePdfToPath(
         path,
         target,
         request,
       )
+      if (target === path) await rememberPdfDiskState(e.sender.id, path, await readFile(path))
       return {
         ok: true,
         ...(skippedTextEdits.length > 0 ? { skippedTextEdits } : {}),
@@ -928,6 +979,12 @@ function registerPdfIpc(): void {
       // the same operation that grants the new one, even if it is recreated.
       allowedByWc.set(e.sender.id, new Set([target]))
       if (openPathByWc.get(e.sender.id) === path) openPathByWc.set(e.sender.id, target)
+      const diskStates = pdfDiskStates.get(e.sender.id)
+      const diskState = diskStates?.get(path)
+      if (diskState && diskStates) {
+        diskStates.delete(path)
+        diskStates.set(target, diskState)
+      }
       untitledPdfPaths.delete(path)
       try {
         pdfRenamedHook?.(e.sender, path, target)
@@ -1097,12 +1154,19 @@ function registerPdfIpc(): void {
       const other = picked.filePaths[0]
       if (picked.canceled || !other) return { ok: true, canceled: true }
       try {
+        if (await pdfChangedExternally(e.sender.id, path)) {
+          return { ok: false, error: EXTERNAL_PDF_MODIFIED_ERROR }
+        }
+        if (!allowedByWc.get(e.sender.id)?.has(path)) {
+          return { ok: false, error: 'pdf: path not granted to this view' }
+        }
         const { merged, count } = await insertPdfBytes(
           new Uint8Array(await readFile(path)),
           new Uint8Array(await readFile(other)),
           typeof afterPageIndex === 'number' ? afterPageIndex : -1,
         )
         await writePdfAtomically(path, merged)
+        await rememberPdfDiskState(e.sender.id, path, Buffer.from(merged))
         return { ok: true, insertedCount: count }
       } catch (err) {
         return { ok: false, error: err instanceof Error ? err.message : String(err) }
@@ -1118,11 +1182,18 @@ function registerPdfIpc(): void {
         return { ok: false, error: 'pdf: path not granted to this view' }
       }
       try {
+        if (await pdfChangedExternally(e.sender.id, path)) {
+          return { ok: false, error: EXTERNAL_PDF_MODIFIED_ERROR }
+        }
+        if (!allowedByWc.get(e.sender.id)?.has(path)) {
+          return { ok: false, error: 'pdf: path not granted to this view' }
+        }
         const bytes = await insertBlankPageBytes(
           new Uint8Array(await readFile(path)),
           typeof afterPageIndex === 'number' ? afterPageIndex : -1,
         )
         await writePdfAtomically(path, bytes)
+        await rememberPdfDiskState(e.sender.id, path, Buffer.from(bytes))
         return { ok: true }
       } catch (err) {
         return { ok: false, error: err instanceof Error ? err.message : String(err) }
@@ -1250,12 +1321,19 @@ function registerPdfIpc(): void {
       const other = picked.filePaths[0]
       if (picked.canceled || !other) return { ok: true, canceled: true }
       try {
+        if (await pdfChangedExternally(e.sender.id, path)) {
+          return { ok: false, error: EXTERNAL_PDF_MODIFIED_ERROR }
+        }
+        if (!allowedByWc.get(e.sender.id)?.has(path)) {
+          return { ok: false, error: 'pdf: path not granted to this view' }
+        }
         const { merged, removed, inserted } = await replacePagesBytes(
           new Uint8Array(await readFile(path)),
           new Uint8Array(await readFile(other)),
           pages,
         )
         await writePdfAtomically(path, merged)
+        await rememberPdfDiskState(e.sender.id, path, Buffer.from(merged))
         return { ok: true, removed, inserted }
       } catch (err) {
         return { ok: false, error: err instanceof Error ? err.message : String(err) }
@@ -1274,8 +1352,15 @@ function registerPdfIpc(): void {
         return { ok: false, error: 'pdf: invalid page size' }
       }
       try {
+        if (await pdfChangedExternally(e.sender.id, path)) {
+          return { ok: false, error: EXTERNAL_PDF_MODIFIED_ERROR }
+        }
+        if (!allowedByWc.get(e.sender.id)?.has(path)) {
+          return { ok: false, error: 'pdf: path not granted to this view' }
+        }
         const bytes = await setPageSizeBytes(new Uint8Array(await readFile(path)), width, height)
         await writePdfAtomically(path, bytes)
+        await rememberPdfDiskState(e.sender.id, path, Buffer.from(bytes))
         return { ok: true }
       } catch (err) {
         return { ok: false, error: err instanceof Error ? err.message : String(err) }
@@ -1322,8 +1407,15 @@ function registerPdfIpc(): void {
         return { ok: false, error: 'pdf: path not granted to this view' }
       }
       try {
+        if (await pdfChangedExternally(e.sender.id, path)) {
+          return { ok: false, error: EXTERNAL_PDF_MODIFIED_ERROR }
+        }
+        if (!allowedByWc.get(e.sender.id)?.has(path)) {
+          return { ok: false, error: 'pdf: path not granted to this view' }
+        }
         const bytes = await cropPagesBytes(new Uint8Array(await readFile(path)), pages, rect)
         await writePdfAtomically(path, bytes)
+        await rememberPdfDiskState(e.sender.id, path, Buffer.from(bytes))
         return { ok: true }
       } catch (err) {
         return { ok: false, error: err instanceof Error ? err.message : String(err) }
@@ -1449,6 +1541,7 @@ function grantAndTrack(wc: WebContents, openPath?: string | null): void {
     allowedByWc.delete(wcId)
     dirtyByWc.delete(wcId)
     saveAsTargetByWc.delete(wcId)
+    pdfDiskStates.delete(wcId)
     closeSaveWaiters.get(wcId)?.(false)
     closeSaveWaiters.delete(wcId)
     saveAsWaiters.get(wcId)?.(false)

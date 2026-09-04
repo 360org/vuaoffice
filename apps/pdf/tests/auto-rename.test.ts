@@ -164,6 +164,22 @@ describe('pdf auto-rename', () => {
     expect(readFileSync(occupiedPath)).toEqual(sentinel)
   })
 
+  it('refuses to overwrite a PDF changed outside VuaOffice', async () => {
+    const path = makePdfFile()
+    createPdfView(path)
+    const wcId = lastWebContents.id
+    await readGranted(wcId, path)
+    const externalBytes = Buffer.from('%PDF-1.4\nexternally changed\n%%EOF\n')
+    writeFileSync(path, externalBytes)
+
+    await expect(saveGranted(wcId, path)).resolves.toEqual({
+      ok: false,
+      error: 'pdf: file changed outside VuaOffice',
+      reason: 'external-modified',
+    })
+    expect(readFileSync(path)).toEqual(externalBytes)
+  })
+
   it('revokes the old path even when it is recreated and keeps the new path reloadable', async () => {
     const path = makePdfFile()
     markPdfUntitledPath(path)

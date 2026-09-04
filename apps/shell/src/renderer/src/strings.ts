@@ -4057,6 +4057,7 @@ export const strings = {
     newMail: 'AI Mail',
     newPdf: 'AI PDF',
     openLocal: 'Mở tệp cục bộ',
+    dropToOpenTitle: 'Thả để mở',
     greetMorning: 'Chào buổi sáng',
     greetAfternoon: 'Chào buổi chiều',
     greetEvening: 'Chào buổi tối',
@@ -4081,6 +4082,9 @@ export const strings = {
     selectAll: 'Chọn tất cả',
     selectFile: 'Chọn {name}',
     removeFromList: 'Xóa khỏi danh sách',
+    missingFileTitle: 'Tệp không khả dụng',
+    missingFileBody:
+      'Không tìm thấy “{name}”. Tệp có thể nằm trên ổ đĩa chưa kết nối, hoặc đã bị di chuyển hay xóa. Xóa khỏi danh sách?',
     deleteFiles: 'Xóa tệp',
     cancel: 'Hủy',
     star: 'Gắn sao',
@@ -4111,8 +4115,10 @@ export const strings = {
       'Xóa dự án này?\nCác tệp trong dự án sẽ trở về "Dự án mặc định" và không bị mất.',
     projMoreActions: 'Thao tác khác cho {name}',
     defaultProject: 'Dự án mặc định',
-    projEmpty: 'Gom các tài liệu liên quan vào cùng một dự án — lịch sử trò chuyện AI sẽ được lưu trữ theo dự án.',
-    projEmptyHint: 'Tạo tệp mới, hoặc nhấp chuột phải vào tệp gần đây và chọn "Di chuyển vào dự án".',
+    projEmpty:
+      'Gom các tài liệu liên quan vào cùng một dự án — lịch sử trò chuyện AI sẽ được lưu trữ theo dự án.',
+    projEmptyHint:
+      'Tạo tệp mới, hoặc nhấp chuột phải vào tệp gần đây và chọn "Di chuyển vào dự án".',
     timelineCount: '{n} mục',
     timelineCountOne: '{n} mục',
     timelineEmpty: 'Chưa có hội thoại AI nào trong dự án này.',
@@ -4175,6 +4181,9 @@ export const strings = {
     setAiTesting: 'Đang kiểm tra…',
     setAiTestOk: 'Kết nối thành công',
     setAiTestFail: 'Kết nối thất bại',
+    setAiMaxTokens: 'Giới hạn token đầu ra',
+    setAiMaxTokensDesc:
+      'Ngân sách đầu ra cho mỗi lượt. Mô hình suy luận dùng một phần ngân sách để suy nghĩ; khi hết ngân sách, phản hồi có thể trống, hãy tăng giá trị này.',
     setAiGskTools: 'Công cụ đám mây Genspark',
     setAiGskToolsDesc:
       'Tìm kiếm web, tạo ảnh AI và phân tích phương tiện chạy qua Genspark và tiêu tốn điểm tín dụng; khi tắt, công cụ tạo ảnh sẽ không khả dụng và tìm kiếm chuyển sang nguồn miễn phí.',

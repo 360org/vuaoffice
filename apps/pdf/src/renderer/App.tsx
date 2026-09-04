@@ -3025,6 +3025,7 @@ export default function App() {
 
   /** Localize known structured main-process errors; other messages pass through raw */
   const friendlySaveError = (error: string): string => {
+    if (error === 'pdf: file changed outside VuaOffice') return t('fileChangedExternally')
     const verify = /save-verify-failed pages=([\d,]+)/.exec(error)
     if (verify) return t('saveVerifyFailed', { pages: verify[1]!.split(',').join(', ') })
     return error
@@ -3158,7 +3159,7 @@ export default function App() {
       setSaveState('saving')
       const result = await window.pdfApi.save({ path: filePath, ...editsPayload(edits, noteFlush) })
       if (!result.ok) {
-        opFailed(result.error)
+        opFailed(result.reason === 'external-modified' ? t('fileChangedExternally') : result.error)
         return false
       }
       if (result.skippedTextEdits && result.skippedTextEdits.length > 0) {
@@ -3293,7 +3294,7 @@ export default function App() {
     setSaveState('saving')
     const result = await window.pdfApi.save({ path: filePath, targetPath, ...edits })
     if (!result.ok) {
-      opFailed(result.error)
+      opFailed(result.reason === 'external-modified' ? t('fileChangedExternally') : result.error)
       return false
     }
     if (result.skippedTextEdits && result.skippedTextEdits.length > 0) {

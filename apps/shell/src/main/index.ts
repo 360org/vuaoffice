@@ -183,7 +183,7 @@ import { HOME_CHANNELS } from '../shared/home-api'
 import type { TabKind } from '../shared/tabs-api'
 import { TABS_CHANNELS } from '../shared/tabs-api'
 import { showErrorDialog } from './error-dialog'
-import { normalizeRecentQuery, pageRecentPaths, statExistingPaths } from './recent-files'
+import { normalizeRecentQuery, pageRecentPaths, statPathEntries } from './recent-files'
 import { TabManager } from './tab-manager'
 import { applyUpdateChannel, checkForUpdatesManual, initAutoUpdater } from './updater'
 import { isUpdateChannel, type UpdateChannel } from '../shared/update-api'
@@ -2412,36 +2412,47 @@ const tMain = createI18n({
     thirdPartyNotices: 'Thông báo phần mềm bên thứ ba',
     menuExportDocx: 'Xuất thành Word…',
     pdfDocxLoginMsg: 'Xuất thành Word yêu cầu đăng nhập tài khoản 360 CORP.',
-    pdfDocxLoginDetail: 'Bấm "Đăng nhập" sẽ mở trình duyệt để xác thực, sau khi hoàn tất vui lòng bấm Xuất lại.',
+    pdfDocxLoginDetail:
+      'Bấm "Đăng nhập" sẽ mở trình duyệt để xác thực, sau khi hoàn tất vui lòng bấm Xuất lại.',
     pdfDocxBtnLogin: 'Đăng nhập',
     pdfDocxConfirmMsg: 'Tải tệp PDF này lên đám mây 360 CORP để chuyển thành Word?',
-    pdfDocxConfirmDetail: 'Lần chuyển đổi này sẽ tiêu tốn 5 lượt dùng AI, tệp sẽ được tải lên đám mây để xử lý.',
+    pdfDocxConfirmDetail:
+      'Lần chuyển đổi này sẽ tiêu tốn 5 lượt dùng AI, tệp sẽ được tải lên đám mây để xử lý.',
     pdfDocxConfirmBalance: 'Số dư hiện tại: {balance} lượt dùng.',
     pdfDocxBtnConvert: 'Tiếp tục',
     btnCancel: 'Hủy',
     pdfDocxFailedMsg: 'Xuất thành Word thất bại',
-    pdfDocxNoCliMsg: 'Không thể đăng nhập 360 CORP: Thiếu thành phần cần thiết (gsk), vui lòng cài đặt lại ứng dụng.',
+    pdfDocxNoCliMsg:
+      'Không thể đăng nhập 360 CORP: Thiếu thành phần cần thiết (gsk), vui lòng cài đặt lại ứng dụng.',
     pdfDocxBusyMsg: 'Đang chuyển đổi, vui lòng đợi lượt xuất hiện tại hoàn tất.',
     menuExportDocxLocal: 'Xuất thành Word (chuyển đổi cục bộ)…',
     menuExportDocxCloud: 'Xuất thành Word (chuyển đổi đám mây)…',
     menuExportPptx: 'Xuất thành PPT…',
     pdfPptxFailedMsg: 'Xuất thành PPT thất bại',
     pdfPptxBusyMsg: 'Đang chuyển đổi, vui lòng đợi lượt xuất hiện tại hoàn tất.',
-    pdfPptxLocalScannedDetail: 'Chuyển đổi cục bộ đã xuất các trang dưới dạng hình ảnh trung thực, văn bản trong slide không thể chỉnh sửa.',
+    pdfPptxLocalScannedDetail:
+      'Chuyển đổi cục bộ đã xuất các trang dưới dạng hình ảnh trung thực, văn bản trong slide không thể chỉnh sửa.',
     menuExportXlsx: 'Xuất thành Excel…',
     pdfXlsxFailedMsg: 'Xuất thành Excel thất bại',
     pdfXlsxBusyMsg: 'Đang chuyển đổi, vui lòng đợi lượt xuất hiện tại hoàn tất.',
-    pdfXlsxLocalScannedDetail: 'Trang quét không thể chuyển thành ô tính, đã thêm dòng chú thích trong trang tính tương ứng.',
+    pdfXlsxLocalScannedDetail:
+      'Trang quét không thể chuyển thành ô tính, đã thêm dòng chú thích trong trang tính tương ứng.',
     pdfXlsxLocalSkippedMsg: 'Một số trang chưa được chuyển thành ô tính',
-    pdfXlsxLocalSkippedDetail: 'Trang {pages} không thể chuyển thành ô tính, đã thêm dòng chú thích trong trang tính tương ứng.',
+    pdfXlsxLocalSkippedDetail:
+      'Trang {pages} không thể chuyển thành ô tính, đã thêm dòng chú thích trong trang tính tương ứng.',
     pdfDocxLocalScannedMsg: 'Phát hiện tệp tài liệu quét',
-    pdfDocxLocalScannedDetail: 'Chuyển đổi cục bộ đã xuất các trang dưới dạng hình ảnh trung thực. Nếu cần văn bản chỉnh sửa được, vui lòng dùng chuyển đổi đám mây (hỗ trợ OCR).',
+    pdfDocxLocalScannedDetail:
+      'Chuyển đổi cục bộ đã xuất các trang dưới dạng hình ảnh trung thực. Nếu cần văn bản chỉnh sửa được, vui lòng dùng chuyển đổi đám mây (hỗ trợ OCR).',
     pdfDocxLocalDegradedMsg: 'Một số trang đã được xuất dưới dạng hình ảnh',
-    pdfDocxLocalDegradedDetail: 'Bố cục trang {pages} không thể tái cấu trúc chính xác, đã xuất toàn bộ trang dưới dạng hình ảnh trung thực.',
+    pdfDocxLocalDegradedDetail:
+      'Bố cục trang {pages} không thể tái cấu trúc chính xác, đã xuất toàn bộ trang dưới dạng hình ảnh trung thực.',
     pdfDocxLocalOcrMsg: 'Trang quét đã được chuyển đổi thành văn bản có thể chỉnh sửa',
-    pdfDocxLocalOcrDetail: 'Trang {pages} là bản quét, đã được nhận dạng thành văn bản chỉnh sửa qua OCR cục bộ; khuyến nghị kiểm tra lại kết quả.',
-    pdfDocxLocalEncryptedDetail: 'Tệp PDF này đã được mã hóa, chưa cung cấp đúng mật khẩu nên không thể chuyển đổi.',
-    pdfDocxLocalUnsupportedEncDetail: 'Tệp này sử dụng mã hóa chứng chỉ hoặc phương thức mã hóa không được hỗ trợ cục bộ. Bạn có thể thử chuyển đổi đám mây.',
+    pdfDocxLocalOcrDetail:
+      'Trang {pages} là bản quét, đã được nhận dạng thành văn bản chỉnh sửa qua OCR cục bộ; khuyến nghị kiểm tra lại kết quả.',
+    pdfDocxLocalEncryptedDetail:
+      'Tệp PDF này đã được mã hóa, chưa cung cấp đúng mật khẩu nên không thể chuyển đổi.',
+    pdfDocxLocalUnsupportedEncDetail:
+      'Tệp này sử dụng mã hóa chứng chỉ hoặc phương thức mã hóa không được hỗ trợ cục bộ. Bạn có thể thử chuyển đổi đám mây.',
     pdfPwdTitle: 'Nhập mật khẩu',
     pdfPwdPrompt: 'Tệp PDF này đã được mã hóa. Vui lòng nhập mật khẩu để mở:',
     pdfPwdRetryPrompt: 'Mật khẩu không chính xác, vui lòng thử lại.',
@@ -2451,9 +2462,11 @@ const tMain = createI18n({
     pdfPwdPlaceholder: 'Nhập mật khẩu mở tệp',
     pdfPwdShow: 'Hiện mật khẩu',
     pdfPwdHide: 'Ẩn mật khẩu',
-    pdfDocxLocalCorruptDetail: 'Tệp bị lỗi hoặc không phải định dạng PDF hợp lệ, không thể chuyển đổi.',
+    pdfDocxLocalCorruptDetail:
+      'Tệp bị lỗi hoặc không phải định dạng PDF hợp lệ, không thể chuyển đổi.',
     dlgPickSaveDir: 'Chọn vị trí lưu mặc định',
-    errSaveDirUnusable: 'Thư mục đã chọn không có quyền ghi, không thể dùng làm vị trí lưu mặc định',
+    errSaveDirUnusable:
+      'Thư mục đã chọn không có quyền ghi, không thể dùng làm vị trí lưu mặc định',
   },
 })
 
@@ -2986,7 +2999,7 @@ function assertSafeUserPath(targetPath: string): boolean {
 }
 
 function statEntries(paths: string[]): RecentEntry[] {
-  return statExistingPaths(paths.filter(assertSafeUserPath), new Set(readStarredFiles()))
+  return statPathEntries(paths.filter(assertSafeUserPath), new Set(readStarredFiles()))
 }
 
 function registerHomeIpc(): void {
@@ -3134,7 +3147,8 @@ function registerHomeIpc(): void {
   })
 
   ipcMain.handle(HOME_CHANNELS.revealPath, (_event, path: unknown) => {
-    if (typeof path === 'string' && existsSync(path) && assertSafeUserPath(path)) shell.showItemInFolder(path)
+    if (typeof path === 'string' && existsSync(path) && assertSafeUserPath(path))
+      shell.showItemInFolder(path)
   })
 
   ipcMain.handle(
@@ -3142,8 +3156,7 @@ function registerHomeIpc(): void {
     (_event, path: unknown, newName: unknown): RenameResult => {
       if (typeof path !== 'string' || typeof newName !== 'string')
         return { ok: false, error: tm('errBadArgs') }
-      if (!assertSafeUserPath(path))
-        return { ok: false, error: tm('errBadArgs') }
+      if (!assertSafeUserPath(path)) return { ok: false, error: tm('errBadArgs') }
       const name = newName.trim()
       if (!name || /[\\/:]/.test(name)) return { ok: false, error: tm('errBadName') }
       if (!existsSync(path)) return { ok: false, error: tm('errMissing') }
@@ -3362,15 +3375,18 @@ function registerHomeIpc(): void {
     return await generateDiagnosticReportData(APP_SETTINGS_PATH())
   })
 
-  ipcMain.handle(HOME_CHANNELS.exportDiagnosticReport, async (_event, report: DiagnosticReportData) => {
-    return await exportDiagnosticReportToFile(report)
-  })
+  ipcMain.handle(
+    HOME_CHANNELS.exportDiagnosticReport,
+    async (_event, report: DiagnosticReportData) => {
+      return await exportDiagnosticReportToFile(report)
+    },
+  )
 
   ipcMain.handle(
     HOME_CHANNELS.sendDiagnosticReport,
     async (_event, report: DiagnosticReportData, userNote?: string) => {
       return await submitDiagnosticReportToGitLab(report, userNote)
-    }
+    },
   )
 }
 
@@ -3531,7 +3547,9 @@ function macAppMenu(): MenuItemConstructorOptions[] {
 
 // ---- home menu ----
 
-function helpMenuSubmenu(extraItems: MenuItemConstructorOptions[] = []): MenuItemConstructorOptions[] {
+function helpMenuSubmenu(
+  extraItems: MenuItemConstructorOptions[] = [],
+): MenuItemConstructorOptions[] {
   const savedSettings = readAppSettings(APP_SETTINGS_PATH())
   const isDevMode = savedSettings.developerMode === true
 
@@ -4412,7 +4430,11 @@ function handleVuaOfficeUrl(rawUrl: string): boolean {
   try {
     const parsed = new URL(rawUrl)
     // Handle auth callback: vuaoffice://auth/callback?token=...&email=...&name=...&state=...
-    if (parsed.hostname === 'auth' || parsed.pathname.includes('auth/callback') || parsed.pathname.includes('/callback')) {
+    if (
+      parsed.hostname === 'auth' ||
+      parsed.pathname.includes('auth/callback') ||
+      parsed.pathname.includes('/callback')
+    ) {
       const state = parsed.searchParams.get('state') || ''
       // Security Validation: verify state nonce if both sides provided it
       if (pendingLoginState && state && pendingLoginState.nonce !== state) {
@@ -4433,8 +4455,10 @@ function handleVuaOfficeUrl(rawUrl: string): boolean {
         ''
       const email = parsed.searchParams.get('email') || ''
       const name = parsed.searchParams.get('name') || ''
-      const avatarUrl = parsed.searchParams.get('avatar_url') || parsed.searchParams.get('avatar') || ''
-      const keyId = parsed.searchParams.get('key_id') || parsed.searchParams.get('keyId') || undefined
+      const avatarUrl =
+        parsed.searchParams.get('avatar_url') || parsed.searchParams.get('avatar') || ''
+      const keyId =
+        parsed.searchParams.get('key_id') || parsed.searchParams.get('keyId') || undefined
 
       if (token || email) {
         saveGenofficeAuth({

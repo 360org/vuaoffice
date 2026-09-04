@@ -106,6 +106,7 @@ export const aiStrings = defineStrings({
     aiErrTimeout: '超时({ms}ms)',
     aiErrEmptyOutput: '空输出',
     aiErrUnknown: '未知错误',
+    aiErrOverloaded: 'AI 服务当前繁忙，请稍后重试',
     aiErrStreamTimeout: 'AI 请求超时：网络长时间无响应，已停止。请检查网络后重试',
     aiErrNetwork: '网络有问题，无法连接 AI 服务。请检查网络后重试',
     aiCreditsExhausted: 'Genspark 积分已用完，请前往 genspark.ai/pricing 充值后重试',
@@ -121,6 +122,8 @@ export const aiStrings = defineStrings({
     aiPagesSuffix: '（{n}页）',
     aiPageN: '第{n}页',
     aiClarifyTitle: '先确认几个问题，让 PPT 更贴合你的需求',
+    aiClarifyMulti: '可多选',
+    aiClarifyNext: '下一题',
     aiClarifySelected: '已选 {n} 项',
     aiClarifyDecide: '帮我决定',
     aiClarifyDecideAnswer: '（帮我决定）',
@@ -348,6 +351,7 @@ export const aiStrings = defineStrings({
     aiErrTimeout: 'Timed out ({ms}ms)',
     aiErrEmptyOutput: 'Empty output',
     aiErrUnknown: 'Unknown error',
+    aiErrOverloaded: 'The AI service is busy right now — please try again in a moment',
     aiErrStreamTimeout:
       'AI request timed out: no response from the network, so the run was stopped. Check your connection and try again',
     aiErrNetwork:
@@ -366,6 +370,8 @@ export const aiStrings = defineStrings({
     aiPagesSuffix: ' ({n} pages)',
     aiPageN: 'Page {n}',
     aiClarifyTitle: 'A few quick questions to tailor the deck to you',
+    aiClarifyMulti: 'Multiple choice',
+    aiClarifyNext: 'Next',
     aiClarifySelected: '{n} selected',
     aiClarifyDecide: 'Decide for me',
     aiClarifyDecideAnswer: '(decide for me)',
@@ -592,6 +598,7 @@ export const aiStrings = defineStrings({
     aiErrTimeout: 'タイムアウト（{ms}ms）',
     aiErrEmptyOutput: '出力が空です',
     aiErrUnknown: '不明なエラー',
+    aiErrOverloaded: 'AI サービスが混み合っています。しばらくしてからもう一度お試しください',
     aiErrStreamTimeout:
       'AIリクエストがタイムアウトしました：ネットワークからの応答がないため中断しました。接続を確認して再試行してください',
     aiErrNetwork:
@@ -610,6 +617,8 @@ export const aiStrings = defineStrings({
     aiPagesSuffix: '（{n}ページ）',
     aiPageN: '{n}ページ目',
     aiClarifyTitle: 'ご要望に合ったスライドにするため、いくつか確認させてください',
+    aiClarifyMulti: '複数選択',
+    aiClarifyNext: '次へ',
     aiClarifySelected: '{n} 件選択',
     aiClarifyDecide: 'おまかせ',
     aiClarifyDecideAnswer: '（おまかせ）',
@@ -837,6 +846,7 @@ export const aiStrings = defineStrings({
     aiErrTimeout: '시간 초과({ms}ms)',
     aiErrEmptyOutput: '출력이 비어 있음',
     aiErrUnknown: '알 수 없는 오류',
+    aiErrOverloaded: 'AI 서비스가 혼잡합니다. 잠시 후 다시 시도해 주세요',
     aiErrStreamTimeout:
       'AI 요청 시간 초과: 네트워크 응답이 없어 중단되었습니다. 연결을 확인한 후 다시 시도해 주세요',
     aiErrNetwork:
@@ -855,6 +865,8 @@ export const aiStrings = defineStrings({
     aiPagesSuffix: '({n}페이지)',
     aiPageN: '{n}페이지',
     aiClarifyTitle: '몇 가지 질문에 답하면 요구에 더 맞는 PPT를 만들 수 있습니다',
+    aiClarifyMulti: '복수 선택',
+    aiClarifyNext: '다음',
     aiClarifySelected: '{n}개 선택',
     aiClarifyDecide: '알아서 결정',
     aiClarifyDecideAnswer: '(알아서 결정)',
@@ -1084,6 +1096,7 @@ export const aiStrings = defineStrings({
     aiErrTimeout: 'Délai dépassé ({ms}ms)',
     aiErrEmptyOutput: 'Sortie vide',
     aiErrUnknown: 'Erreur inconnue',
+    aiErrOverloaded: "Le service d'IA est actuellement surchargé — réessayez dans un instant",
     aiErrStreamTimeout:
       "Délai de la requête IA dépassé : aucune réponse du réseau, l'exécution a été interrompue. Vérifiez votre connexion et réessayez",
     aiErrNetwork:
@@ -1102,6 +1115,8 @@ export const aiStrings = defineStrings({
     aiPagesSuffix: ' ({n} pages)',
     aiPageN: 'Page {n}',
     aiClarifyTitle: 'Quelques questions rapides pour adapter la présentation à vos besoins',
+    aiClarifyMulti: 'Choix multiple',
+    aiClarifyNext: 'Suivant',
     aiClarifySelected: '{n} sélectionnés',
     aiClarifyDecide: 'Décidez pour moi',
     aiClarifyDecideAnswer: '(décidez pour moi)',
@@ -1332,6 +1347,7 @@ export const aiStrings = defineStrings({
     aiErrTimeout: 'Zeitüberschreitung ({ms}ms)',
     aiErrEmptyOutput: 'Leere Ausgabe',
     aiErrUnknown: 'Unbekannter Fehler',
+    aiErrOverloaded: 'Der KI-Dienst ist derzeit überlastet — bitte gleich erneut versuchen',
     aiErrStreamTimeout:
       'Zeitüberschreitung der KI-Anfrage: keine Antwort vom Netzwerk, der Vorgang wurde abgebrochen. Prüfe deine Verbindung und versuche es erneut',
     aiErrNetwork:
@@ -1350,6 +1366,8 @@ export const aiStrings = defineStrings({
     aiPagesSuffix: ' ({n} Seiten)',
     aiPageN: 'Seite {n}',
     aiClarifyTitle: 'Ein paar kurze Fragen, um die Präsentation auf Sie zuzuschneiden',
+    aiClarifyMulti: 'Mehrfachauswahl',
+    aiClarifyNext: 'Weiter',
     aiClarifySelected: '{n} ausgewählt',
     aiClarifyDecide: 'Entscheide für mich',
     aiClarifyDecideAnswer: '(entscheide für mich)',
@@ -1579,6 +1597,8 @@ export const aiStrings = defineStrings({
     aiErrTimeout: 'Tiempo agotado ({ms}ms)',
     aiErrEmptyOutput: 'Salida vacía',
     aiErrUnknown: 'Error desconocido',
+    aiErrOverloaded:
+      'El servicio de IA está saturado en este momento; inténtalo de nuevo en unos instantes',
     aiErrStreamTimeout:
       'La solicitud de IA agotó el tiempo de espera: no hubo respuesta de la red y se detuvo. Comprueba tu conexión e inténtalo de nuevo',
     aiErrNetwork:
@@ -1597,6 +1617,8 @@ export const aiStrings = defineStrings({
     aiPagesSuffix: ' ({n} páginas)',
     aiPageN: 'Página {n}',
     aiClarifyTitle: 'Unas preguntas rápidas para adaptar la presentación a ti',
+    aiClarifyMulti: 'Selección múltiple',
+    aiClarifyNext: 'Siguiente',
     aiClarifySelected: '{n} seleccionados',
     aiClarifyDecide: 'Decide por mí',
     aiClarifyDecideAnswer: '(decide por mí)',
@@ -1822,6 +1844,7 @@ export const aiStrings = defineStrings({
     aiErrTimeout: 'หมดเวลา ({ms}ms)',
     aiErrEmptyOutput: 'ผลลัพธ์ว่างเปล่า',
     aiErrUnknown: 'ข้อผิดพลาดที่ไม่รู้จัก',
+    aiErrOverloaded: 'บริการ AI มีผู้ใช้งานจำนวนมากในขณะนี้ โปรดลองอีกครั้งในอีกสักครู่',
     aiErrStreamTimeout:
       'คำขอ AI หมดเวลา: เครือข่ายไม่ตอบสนอง จึงหยุดการทำงาน โปรดตรวจสอบการเชื่อมต่อแล้วลองใหม่',
     aiErrNetwork:
@@ -1840,6 +1863,8 @@ export const aiStrings = defineStrings({
     aiPagesSuffix: ' ({n} หน้า)',
     aiPageN: 'หน้า {n}',
     aiClarifyTitle: 'ขอถามคำถามสั้น ๆ เพื่อให้งานนำเสนอตรงกับความต้องการของคุณยิ่งขึ้น',
+    aiClarifyMulti: 'เลือกได้หลายข้อ',
+    aiClarifyNext: 'ถัดไป',
     aiClarifySelected: 'เลือกแล้ว {n}',
     aiClarifyDecide: 'ตัดสินใจให้ฉัน',
     aiClarifyDecideAnswer: '(ตัดสินใจให้ฉัน)',
@@ -2068,6 +2093,7 @@ export const aiStrings = defineStrings({
     aiErrTimeout: 'Waktu habis ({ms}ms)',
     aiErrEmptyOutput: 'Keluaran kosong',
     aiErrUnknown: 'Kesalahan tidak dikenal',
+    aiErrOverloaded: 'Layanan AI sedang sibuk — silakan coba lagi sebentar lagi',
     aiErrStreamTimeout:
       'Permintaan AI habis waktu: jaringan tidak merespons sehingga proses dihentikan. Periksa koneksi Anda lalu coba lagi',
     aiErrNetwork:
@@ -2086,6 +2112,8 @@ export const aiStrings = defineStrings({
     aiPagesSuffix: ' ({n} halaman)',
     aiPageN: 'Halaman {n}',
     aiClarifyTitle: 'Beberapa pertanyaan singkat agar presentasi lebih sesuai kebutuhan Anda',
+    aiClarifyMulti: 'Pilih beberapa',
+    aiClarifyNext: 'Berikutnya',
     aiClarifySelected: '{n} dipilih',
     aiClarifyDecide: 'Putuskan untuk saya',
     aiClarifyDecideAnswer: '(putuskan untuk saya)',
@@ -2314,6 +2342,7 @@ export const aiStrings = defineStrings({
     aiErrTimeout: 'Превышено время ожидания ({ms}ms)',
     aiErrEmptyOutput: 'Пустой вывод',
     aiErrUnknown: 'Неизвестная ошибка',
+    aiErrOverloaded: 'Сервис ИИ сейчас перегружен — повторите попытку чуть позже',
     aiErrStreamTimeout:
       'Тайм-аут запроса ИИ: сеть не отвечает, выполнение остановлено. Проверьте подключение и повторите попытку',
     aiErrNetwork:
@@ -2332,6 +2361,8 @@ export const aiStrings = defineStrings({
     aiPagesSuffix: ' ({n} стр.)',
     aiPageN: 'Страница {n}',
     aiClarifyTitle: 'Несколько коротких вопросов, чтобы презентация лучше отвечала вашим задачам',
+    aiClarifyMulti: 'Несколько вариантов',
+    aiClarifyNext: 'Далее',
     aiClarifySelected: 'выбрано: {n}',
     aiClarifyDecide: 'Решите за меня',
     aiClarifyDecideAnswer: '(решите за меня)',
@@ -2557,6 +2588,7 @@ export const aiStrings = defineStrings({
     aiErrTimeout: 'انتهت المهلة ({ms}ms)',
     aiErrEmptyOutput: 'إخراج فارغ',
     aiErrUnknown: 'خطأ غير معروف',
+    aiErrOverloaded: 'خدمة الذكاء الاصطناعي مشغولة حاليًا — يرجى المحاولة مرة أخرى بعد قليل',
     aiErrStreamTimeout:
       'انتهت مهلة طلب الذكاء الاصطناعي: لا توجد استجابة من الشبكة وتم الإيقاف. تحقق من الاتصال وحاول مجددًا',
     aiErrNetwork:
@@ -2575,6 +2607,8 @@ export const aiStrings = defineStrings({
     aiPagesSuffix: ' ({n} صفحات)',
     aiPageN: 'الصفحة {n}',
     aiClarifyTitle: 'بضعة أسئلة سريعة ليكون العرض أنسب لاحتياجاتك',
+    aiClarifyMulti: 'اختيار متعدد',
+    aiClarifyNext: 'التالي',
     aiClarifySelected: 'تم تحديد {n}',
     aiClarifyDecide: 'قرِّر بالنيابة عني',
     aiClarifyDecideAnswer: '(قرِّر بالنيابة عني)',
@@ -2803,6 +2837,8 @@ export const aiStrings = defineStrings({
     aiErrTimeout: 'Tempo esgotado ({ms}ms)',
     aiErrEmptyOutput: 'Saída vazia',
     aiErrUnknown: 'Erro desconhecido',
+    aiErrOverloaded:
+      'O serviço de IA está sobrecarregado no momento — tente novamente em instantes',
     aiErrStreamTimeout:
       'A solicitação de IA expirou: sem resposta da rede, a execução foi interrompida. Verifique sua conexão e tente novamente',
     aiErrNetwork:
@@ -2821,6 +2857,8 @@ export const aiStrings = defineStrings({
     aiPagesSuffix: ' ({n} páginas)',
     aiPageN: 'Página {n}',
     aiClarifyTitle: 'Algumas perguntas rápidas para adaptar a apresentação a você',
+    aiClarifyMulti: 'Seleção múltipla',
+    aiClarifyNext: 'Próxima',
     aiClarifySelected: '{n} selecionados',
     aiClarifyDecide: 'Decida por mim',
     aiClarifyDecideAnswer: '(decida por mim)',
@@ -3049,6 +3087,7 @@ export const aiStrings = defineStrings({
     aiErrTimeout: 'Timeout ({ms}ms)',
     aiErrEmptyOutput: 'Output vuoto',
     aiErrUnknown: 'Errore sconosciuto',
+    aiErrOverloaded: 'Il servizio IA è momentaneamente sovraccarico — riprova tra poco',
     aiErrStreamTimeout:
       'Richiesta IA scaduta: nessuna risposta dalla rete, esecuzione interrotta. Controlla la connessione e riprova',
     aiErrNetwork:
@@ -3067,6 +3106,8 @@ export const aiStrings = defineStrings({
     aiPagesSuffix: ' ({n} pagine)',
     aiPageN: 'Pagina {n}',
     aiClarifyTitle: 'Qualche domanda rapida per adattare la presentazione alle tue esigenze',
+    aiClarifyMulti: 'Scelta multipla',
+    aiClarifyNext: 'Avanti',
     aiClarifySelected: '{n} selezionati',
     aiClarifyDecide: 'Decidi tu per me',
     aiClarifyDecideAnswer: '(decidi tu per me)',
@@ -3295,6 +3336,7 @@ export const aiStrings = defineStrings({
     aiErrTimeout: 'Przekroczono limit czasu ({ms}ms)',
     aiErrEmptyOutput: 'Pusty wynik',
     aiErrUnknown: 'Nieznany błąd',
+    aiErrOverloaded: 'Usługa AI jest obecnie przeciążona — spróbuj ponownie za chwilę',
     aiErrStreamTimeout:
       'Przekroczono limit czasu żądania AI: brak odpowiedzi sieci, przerwano. Sprawdź połączenie i spróbuj ponownie',
     aiErrNetwork:
@@ -3313,6 +3355,8 @@ export const aiStrings = defineStrings({
     aiPagesSuffix: ' ({n} stron)',
     aiPageN: 'Strona {n}',
     aiClarifyTitle: 'Kilka szybkich pytań, aby dopasować prezentację do twoich potrzeb',
+    aiClarifyMulti: 'Wielokrotny wybór',
+    aiClarifyNext: 'Dalej',
     aiClarifySelected: 'wybrano: {n}',
     aiClarifyDecide: 'Zdecyduj za mnie',
     aiClarifyDecideAnswer: '(zdecyduj za mnie)',
@@ -3542,6 +3586,7 @@ export const aiStrings = defineStrings({
     aiErrTimeout: 'Time-out ({ms}ms)',
     aiErrEmptyOutput: 'Lege uitvoer',
     aiErrUnknown: 'Onbekende fout',
+    aiErrOverloaded: 'De AI-service is momenteel overbelast — probeer het zo opnieuw',
     aiErrStreamTimeout:
       'AI-verzoek verlopen: geen reactie van het netwerk, uitvoering gestopt. Controleer je verbinding en probeer het opnieuw',
     aiErrNetwork:
@@ -3560,6 +3605,8 @@ export const aiStrings = defineStrings({
     aiPagesSuffix: " ({n} pagina's)",
     aiPageN: 'Pagina {n}',
     aiClarifyTitle: 'Een paar korte vragen om de presentatie op u af te stemmen',
+    aiClarifyMulti: 'Meerdere keuzes',
+    aiClarifyNext: 'Volgende',
     aiClarifySelected: '{n} geselecteerd',
     aiClarifyDecide: 'Beslis voor mij',
     aiClarifyDecideAnswer: '(beslis voor mij)',
@@ -3789,6 +3836,7 @@ export const aiStrings = defineStrings({
     aiErrTimeout: 'Tamat masa ({ms}ms)',
     aiErrEmptyOutput: 'Output kosong',
     aiErrUnknown: 'Ralat tidak diketahui',
+    aiErrOverloaded: 'Perkhidmatan AI sedang sibuk — sila cuba lagi sebentar lagi',
     aiErrStreamTimeout:
       'Permintaan AI tamat masa: rangkaian tidak memberi respons, proses dihentikan. Semak sambungan anda dan cuba lagi',
     aiErrNetwork:
@@ -3807,6 +3855,8 @@ export const aiStrings = defineStrings({
     aiPagesSuffix: ' ({n} halaman)',
     aiPageN: 'Halaman {n}',
     aiClarifyTitle: 'Beberapa soalan ringkas untuk menyesuaikan persembahan dengan keperluan anda',
+    aiClarifyMulti: 'Pilihan berbilang',
+    aiClarifyNext: 'Seterusnya',
     aiClarifySelected: '{n} dipilih',
     aiClarifyDecide: 'Putuskan untuk saya',
     aiClarifyDecideAnswer: '(putuskan untuk saya)',
@@ -4033,6 +4083,7 @@ export const aiStrings = defineStrings({
     aiErrTimeout: 'תם הזמן ({ms}ms)',
     aiErrEmptyOutput: 'פלט ריק',
     aiErrUnknown: 'שגיאה לא ידועה',
+    aiErrOverloaded: 'שירות ה-AI עמוס כרגע — נסו שוב בעוד רגע',
     aiErrStreamTimeout:
       'תם הזמן לבקשת ה-AI: אין תגובה מהרשת וההרצה הופסקה. בדוק את החיבור ונסה שוב',
     aiErrNetwork: 'בעיית רשת: לא ניתן להתחבר לשירות ה-AI. בדוק את החיבור ונסה שוב',
@@ -4049,6 +4100,8 @@ export const aiStrings = defineStrings({
     aiPagesSuffix: ' ({n} עמודים)',
     aiPageN: 'עמוד {n}',
     aiClarifyTitle: 'כמה שאלות קצרות כדי להתאים את המצגת אליך',
+    aiClarifyMulti: 'בחירה מרובה',
+    aiClarifyNext: 'הבא',
     aiClarifySelected: 'נבחרו {n}',
     aiClarifyDecide: 'החלט בשבילי',
     aiClarifyDecideAnswer: '(החלט בשבילי)',
@@ -4276,6 +4329,7 @@ export const aiStrings = defineStrings({
     aiErrTimeout: 'समय समाप्त ({ms}ms)',
     aiErrEmptyOutput: 'खाली आउटपुट',
     aiErrUnknown: 'अज्ञात त्रुटि',
+    aiErrOverloaded: 'AI सेवा अभी व्यस्त है — कृपया थोड़ी देर बाद फिर से प्रयास करें',
     aiErrStreamTimeout:
       'AI अनुरोध का समय समाप्त: नेटवर्क से कोई प्रतिक्रिया नहीं मिली, इसलिए रोक दिया गया। कनेक्शन जांचें और फिर से प्रयास करें',
     aiErrNetwork:
@@ -4294,6 +4348,8 @@ export const aiStrings = defineStrings({
     aiPagesSuffix: ' ({n} पृष्ठ)',
     aiPageN: 'पृष्ठ {n}',
     aiClarifyTitle: 'प्रेज़ेंटेशन को आपके अनुरूप बनाने के लिए कुछ छोटे प्रश्न',
+    aiClarifyMulti: 'एकाधिक चयन',
+    aiClarifyNext: 'अगला',
     aiClarifySelected: '{n} चयनित',
     aiClarifyDecide: 'मेरे लिए तय करें',
     aiClarifyDecideAnswer: '(मेरे लिए तय करें)',
@@ -4517,6 +4573,7 @@ export const aiStrings = defineStrings({
     aiErrTimeout: '逾時({ms}ms)',
     aiErrEmptyOutput: '空輸出',
     aiErrUnknown: '未知錯誤',
+    aiErrOverloaded: 'AI 服務目前繁忙，請稍後重試',
     aiErrStreamTimeout: 'AI 請求逾時：網路長時間無回應，已停止。請檢查網路後重試',
     aiErrNetwork: '網路有問題，無法連接 AI 服務。請檢查網路後重試',
     aiCreditsExhausted: 'Genspark 點數已用完，請前往 genspark.ai/pricing 儲值後重試',
@@ -4532,6 +4589,8 @@ export const aiStrings = defineStrings({
     aiPagesSuffix: '（{n}頁）',
     aiPageN: '第{n}頁',
     aiClarifyTitle: '先確認幾個問題，讓簡報更貼合你的需求',
+    aiClarifyMulti: '可複選',
+    aiClarifyNext: '下一題',
     aiClarifySelected: '已選 {n} 項',
     aiClarifyDecide: '幫我決定',
     aiClarifyDecideAnswer: '（幫我決定）',
@@ -4718,7 +4777,8 @@ export const aiStrings = defineStrings({
     aiChipUnify: 'Đồng nhất phong cách',
     aiQueueTitle: 'Hàng đợi chỉnh sửa',
     aiQueueCount: 'Chỉnh sửa: {count}',
-    aiQueueHint: 'Đánh dấu nội dung cần thay đổi trên bất kỳ trang nào, sau đó gửi tất cả cùng một lúc.',
+    aiQueueHint:
+      'Đánh dấu nội dung cần thay đổi trên bất kỳ trang nào, sau đó gửi tất cả cùng một lúc.',
     aiQueueSend: 'Gửi các chỉnh sửa ({count})',
     aiQueueDiscard: 'Hủy bỏ',
     aiQueueDiscardConfirm: 'Hủy bỏ tất cả {count} chỉnh sửa trong hàng đợi?',
@@ -4740,8 +4800,8 @@ export const aiStrings = defineStrings({
     aiSend: 'Gửi',
     aiSnapshotsTitle: 'Ảnh chụp nhanh',
     aiRollback: 'Khôi phục lại',
-    aiStarterPolishTitle: 'Improve this slide\\\'s title and copy',
-    aiStarterTighten: 'Make this slide\\\'s bullets more concise',
+    aiStarterPolishTitle: "Improve this slide\\'s title and copy",
+    aiStarterTighten: "Make this slide\\'s bullets more concise",
     aiStarterProofread: 'Kiểm tra lỗi chính tả trong toàn bộ bài trình chiếu và sửa chúng',
     aiStoppedNote: '(đã dừng)',
     aiNoResponse: 'AI không trả về nội dung nào.',
@@ -4751,6 +4811,7 @@ export const aiStrings = defineStrings({
     aiErrTimeout: 'Đã hết thời gian chờ ({ms}ms)',
     aiErrEmptyOutput: 'Đầu ra trống',
     aiErrUnknown: 'Lỗi không xác định',
+    aiErrOverloaded: 'Dịch vụ AI đang bận — vui lòng thử lại sau ít phút.',
     aiErrRequestFailed: 'Gửi yêu cầu thất bại: {msg}',
     aiErrGenerateFailed: 'Tạo thất bại',
     aiErrRegenFailed: 'Làm lại trang thất bại',
@@ -4763,6 +4824,8 @@ export const aiStrings = defineStrings({
     aiPagesSuffix: ' ({n} trang)',
     aiPageN: 'Trang {n}',
     aiClarifyTitle: 'Một vài câu hỏi nhanh để điều chỉnh bài trình chiếu phù hợp với bạn',
+    aiClarifyMulti: 'Có thể chọn nhiều',
+    aiClarifyNext: 'Tiếp theo',
     aiClarifySelected: 'Đã chọn {n}',
     aiClarifyDecide: 'Quyết định giúp tôi',
     aiClarifyDecideAnswer: '(quyết định giúp tôi)',
@@ -4880,13 +4943,20 @@ export const aiStrings = defineStrings({
     aiSumDeleteElement: 'Đã xóa phần tử trên trang {n}',
     aiSumSaveTemplate: 'Đã lưu mẫu phong cách "{name}"',
     aiSumTemplatesEmpty: 'Mẫu phong cách (trống)',
-    aiFactCheckPrompt: "Kiểm tra tính xác thực của bản trình chiếu: xác minh số liệu, ngày tháng, tên và nhận định, sau đó chỉ ra và sửa các lỗi",
-    aiImagePrompt: "Tạo một hình ảnh phù hợp với nội dung trang chiếu này và chèn vào vị trí thích hợp trên trang",
-    aiBeautifyPrompt: "Làm đẹp trang chiếu này: cải thiện bố cục, màu sắc và kiểu chữ để chuyên nghiệp hơn",
-    aiTurnLimit: "(Đã đạt giới hạn lượt gọi công cụ cho yêu cầu này; câu trả lời phản ánh các bước đã hoàn thành và có thể chưa đầy đủ.)",
-    aiErrStreamTimeout: "Yêu cầu AI đã hết thời gian: mạng không phản hồi nên đã dừng. Vui lòng kiểm tra kết nối và thử lại",
-    aiErrNetwork: "Sự cố mạng: không thể kết nối tới dịch vụ AI. Vui lòng kiểm tra kết nối và thử lại",
-    aiCreditsExhausted: "Số dư tín dụng Genspark của bạn đã hết. Vui lòng truy cập genspark.ai/pricing để nạp thêm và thử lại",
+    aiFactCheckPrompt:
+      'Kiểm tra tính xác thực của bản trình chiếu: xác minh số liệu, ngày tháng, tên và nhận định, sau đó chỉ ra và sửa các lỗi',
+    aiImagePrompt:
+      'Tạo một hình ảnh phù hợp với nội dung trang chiếu này và chèn vào vị trí thích hợp trên trang',
+    aiBeautifyPrompt:
+      'Làm đẹp trang chiếu này: cải thiện bố cục, màu sắc và kiểu chữ để chuyên nghiệp hơn',
+    aiTurnLimit:
+      '(Đã đạt giới hạn lượt gọi công cụ cho yêu cầu này; câu trả lời phản ánh các bước đã hoàn thành và có thể chưa đầy đủ.)',
+    aiErrStreamTimeout:
+      'Yêu cầu AI đã hết thời gian: mạng không phản hồi nên đã dừng. Vui lòng kiểm tra kết nối và thử lại',
+    aiErrNetwork:
+      'Sự cố mạng: không thể kết nối tới dịch vụ AI. Vui lòng kiểm tra kết nối và thử lại',
+    aiCreditsExhausted:
+      'Số dư tín dụng Genspark của bạn đã hết. Vui lòng truy cập genspark.ai/pricing để nạp thêm và thử lại',
     aiSumListTemplates: 'Đã liệt kê {count} mẫu phong cách',
   },
 })

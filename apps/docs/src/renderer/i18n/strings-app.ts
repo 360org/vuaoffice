@@ -354,6 +354,7 @@ export const appStrings = defineStrings({
     appReplaceAll: '全部替换',
     // Pagination preview
     appPaginationPreview: '分页预览',
+    appPvCommented: '批注',
     appTotalPagesN: '共 {n} 页',
     appPvHint: '只读快照,编辑后请重新打开 · Esc 关闭',
     appPvExportTip: '按预览逐页导出,页眉页脚/页码与所见一致',
@@ -699,6 +700,7 @@ export const appStrings = defineStrings({
     appReplace: 'Replace',
     appReplaceAll: 'Replace All',
     appPaginationPreview: 'Pagination Preview',
+    appPvCommented: 'Commented',
     appTotalPagesN: '{n} pages',
     appPvHint: 'Read-only snapshot; reopen after editing · Esc to close',
     appPvExportTip:
@@ -1076,6 +1078,7 @@ export const appStrings = defineStrings({
     appReplaceAll: 'すべて置換',
     // Pagination preview
     appPaginationPreview: 'ページ プレビュー',
+    appPvCommented: 'コメント',
     appTotalPagesN: '全 {n} ページ',
     appPvHint: '読み取り専用スナップショット。編集後は再度開いてください · Esc で閉じる',
     appPvExportTip:
@@ -1453,6 +1456,7 @@ export const appStrings = defineStrings({
     appReplaceAll: '모두 바꾸기',
     // Pagination preview
     appPaginationPreview: '페이지 미리 보기',
+    appPvCommented: '메모',
     appTotalPagesN: '전체 {n}페이지',
     appPvHint: '읽기 전용 스냅숏입니다. 편집 후 다시 여세요 · Esc로 닫기',
     appPvExportTip:
@@ -1813,6 +1817,7 @@ export const appStrings = defineStrings({
     appReplace: 'Remplacer',
     appReplaceAll: 'Remplacer tout',
     appPaginationPreview: 'Aperçu de la pagination',
+    appPvCommented: 'Commentaire',
     appTotalPagesN: '{n} pages',
     appPvHint: 'Instantané en lecture seule ; rouvrez après modification · Échap pour fermer',
     appPvExportTip:
@@ -2173,6 +2178,7 @@ export const appStrings = defineStrings({
     appReplace: 'Ersetzen',
     appReplaceAll: 'Alle ersetzen',
     appPaginationPreview: 'Seitenvorschau',
+    appPvCommented: 'Kommentar',
     appTotalPagesN: '{n} Seiten',
     appPvHint:
       'Schreibgeschützte Momentaufnahme; nach der Bearbeitung erneut öffnen · Esc zum Schließen',
@@ -2530,6 +2536,7 @@ export const appStrings = defineStrings({
     appReplace: 'Reemplazar',
     appReplaceAll: 'Reemplazar todo',
     appPaginationPreview: 'Vista previa de paginación',
+    appPvCommented: 'Comentario',
     appTotalPagesN: '{n} páginas',
     appPvHint: 'Instantánea de solo lectura; vuelva a abrirla después de editar · Esc para cerrar',
     appPvExportTip:
@@ -2879,6 +2886,7 @@ export const appStrings = defineStrings({
     appReplace: 'แทนที่',
     appReplaceAll: 'แทนที่ทั้งหมด',
     appPaginationPreview: 'ตัวอย่างการแบ่งหน้า',
+    appPvCommented: 'ข้อคิดเห็น',
     appTotalPagesN: 'ทั้งหมด {n} หน้า',
     appPvHint: 'สแนปช็อตแบบอ่านอย่างเดียว เปิดใหม่หลังแก้ไข · กด Esc เพื่อปิด',
     appPvExportTip: 'ส่งออกทีละหน้าตามตัวอย่าง หัวกระดาษ/ท้ายกระดาษและหมายเลขหน้าตรงกับที่เห็น',
@@ -3229,6 +3237,7 @@ export const appStrings = defineStrings({
     appReplace: 'Ganti',
     appReplaceAll: 'Ganti Semua',
     appPaginationPreview: 'Pratinjau Paginasi',
+    appPvCommented: 'Komentar',
     appTotalPagesN: '{n} halaman',
     appPvHint: 'Cuplikan baca-saja; buka kembali setelah mengedit · Esc untuk menutup',
     appPvExportTip:
@@ -3584,6 +3593,7 @@ export const appStrings = defineStrings({
     appReplace: 'Заменить',
     appReplaceAll: 'Заменить все',
     appPaginationPreview: 'Предварительный просмотр страниц',
+    appPvCommented: 'Примечание',
     appTotalPagesN: 'Всего страниц: {n}',
     appPvHint: 'Снимок только для чтения; после правки откройте заново · Esc — закрыть',
     appPvExportTip:
@@ -3931,6 +3941,7 @@ export const appStrings = defineStrings({
     appReplace: 'استبدال',
     appReplaceAll: 'استبدال الكل',
     appPaginationPreview: 'معاينة ترقيم الصفحات',
+    appPvCommented: 'تعليق',
     appTotalPagesN: '{n} صفحة إجمالاً',
     appPvHint: 'لقطة للقراءة فقط؛ أعد الفتح بعد التحرير · Esc للإغلاق',
     appPvExportTip:
@@ -4283,6 +4294,7 @@ export const appStrings = defineStrings({
     appReplace: 'Substituir',
     appReplaceAll: 'Substituir tudo',
     appPaginationPreview: 'Visualização de paginação',
+    appPvCommented: 'Comentário',
     appTotalPagesN: '{n} páginas',
     appPvHint: 'Instantâneo somente leitura; reabra após editar · Esc para fechar',
     appPvExportTip:
@@ -4636,6 +4648,7 @@ export const appStrings = defineStrings({
     appReplace: 'Sostituisci',
     appReplaceAll: 'Sostituisci tutto',
     appPaginationPreview: 'Anteprima impaginazione',
+    appPvCommented: 'Commento',
     appTotalPagesN: '{n} pagine',
     appPvHint: 'Istantanea in sola lettura; riapri dopo le modifiche · Esc per chiudere',
     appPvExportTip:
@@ -4990,6 +5003,7 @@ export const appStrings = defineStrings({
     appReplace: 'Zamień',
     appReplaceAll: 'Zamień wszystko',
     appPaginationPreview: 'Podgląd podziału na strony',
+    appPvCommented: 'Komentarz',
     appTotalPagesN: 'Stron: {n}',
     appPvHint: 'Migawka tylko do odczytu; po edycji otwórz ponownie · Esc — zamknij',
     appPvExportTip:
@@ -5351,6 +5365,7 @@ export const appStrings = defineStrings({
     appReplace: 'Vervangen',
     appReplaceAll: 'Alles vervangen',
     appPaginationPreview: 'Pagineringsvoorbeeld',
+    appPvCommented: 'Opmerking',
     appTotalPagesN: "{n} pagina's",
     appPvHint: 'Alleen-lezen momentopname; opnieuw openen na bewerken · Esc om te sluiten',
     appPvExportTip:
@@ -5704,6 +5719,7 @@ export const appStrings = defineStrings({
     appReplace: 'Ganti',
     appReplaceAll: 'Ganti Semua',
     appPaginationPreview: 'Pratonton Penomboran Halaman',
+    appPvCommented: 'Komen',
     appTotalPagesN: '{n} halaman',
     appPvHint: 'Snapshot baca sahaja; buka semula selepas menyunting · Esc untuk tutup',
     appPvExportTip:
@@ -6047,6 +6063,7 @@ export const appStrings = defineStrings({
     appReplace: 'החלפה',
     appReplaceAll: 'החלפת הכול',
     appPaginationPreview: 'תצוגה מקדימה של עימוד',
+    appPvCommented: 'הערה',
     appTotalPagesN: '{n} עמודים בסך הכול',
     appPvHint: 'תמונת מצב לקריאה בלבד; פתחו מחדש לאחר עריכה · Esc לסגירה',
     appPvExportTip:
@@ -6396,6 +6413,7 @@ export const appStrings = defineStrings({
     appReplace: 'बदलें',
     appReplaceAll: 'सभी बदलें',
     appPaginationPreview: 'पृष्ठांकन पूर्वावलोकन',
+    appPvCommented: 'टिप्पणी',
     appTotalPagesN: 'कुल {n} पृष्ठ',
     appPvHint: 'केवल-पठन स्नैपशॉट; संपादन के बाद फिर से खोलें · बंद करने के लिए Esc',
     appPvExportTip:
@@ -6734,6 +6752,7 @@ export const appStrings = defineStrings({
     appReplace: '取代',
     appReplaceAll: '全部取代',
     appPaginationPreview: '分頁預覽',
+    appPvCommented: '註解',
     appTotalPagesN: '共 {n} 頁',
     appPvHint: '唯讀快照,編輯後請重新開啟 · Esc 關閉',
     appPvExportTip: '依預覽逐頁匯出,頁首頁尾/頁碼與所見一致',
@@ -6794,8 +6813,7 @@ export const appStrings = defineStrings({
     appFontsMissing: 'Phông chữ tài liệu chưa cài đặt: {names} (đã hiển thị phông thay thế)',
     appVerticalTextNotice:
       'Tài liệu chứa văn bản dọc (tạm thời hiển thị ngang; lưu không bị ảnh hưởng)',
-    appNewDocCreated:
-      'Đã tạo tài liệu trống mới, có thể mô tả nội dung cần tạo ở bảng AI bên trái',
+    appNewDocCreated: 'Đã tạo tài liệu trống mới, có thể mô tả nội dung cần tạo ở bảng AI bên trái',
     appNewFailed: 'Tạo mới thất bại: {error}',
     appSaveFailed: 'Lưu thất bại: {error}',
     appAutoSavedAt: 'Đã tự động lưu ({time})',
@@ -6807,7 +6825,8 @@ export const appStrings = defineStrings({
     appBreakContinuous: 'Liên tục',
     appBreakEvenPage: 'Trang chẵn',
     appBreakOddPage: 'Trang lẻ',
-    appSectionSettingsApplied: 'Cài đặt trang đã áp dụng cho Phần {n}, sẽ ghi vào tài liệu sau khi lưu',
+    appSectionSettingsApplied:
+      'Cài đặt trang đã áp dụng cho Phần {n}, sẽ ghi vào tài liệu sau khi lưu',
     // Đánh số danh sách / trường
     appNumberingRestarted: 'Đã bắt đầu lại đánh số',
     appNumberingContinued: 'Đã tiếp tục đánh số',
@@ -6815,7 +6834,8 @@ export const appStrings = defineStrings({
     appNoFieldsToUpdate: 'Không có trường nào cần cập nhật',
     appFieldsUpdated: 'Đã cập nhật {n} trường',
     // Kiểu dáng
-    appStyleUpdated: 'Đã cập nhật kiểu "{name}" bằng định dạng vùng chọn, sẽ ghi vào tài liệu sau khi lưu',
+    appStyleUpdated:
+      'Đã cập nhật kiểu "{name}" bằng định dạng vùng chọn, sẽ ghi vào tài liệu sau khi lưu',
     appStyleCreated: 'Đã tạo kiểu mới "{name}" và áp dụng vào vùng chọn',
     // Định dạng số trang
     appPgNumFormatSet: 'Đã đặt định dạng số trang',
@@ -6846,10 +6866,12 @@ export const appStrings = defineStrings({
     appExportedPdf: 'Đã xuất PDF: {path}',
     appExportedPdfMixed: 'Đã xuất PDF: {path} (khổ giấy hỗn hợp, {n} nhóm đã gộp theo trang)',
     appExportPdfCanceled: 'Đã hủy xuất PDF',
-    appMixedExportOpening: 'Tài liệu khổ giấy hỗn hợp: Đang mở xem trước phân trang và gộp trang để xuất…',
+    appMixedExportOpening:
+      'Tài liệu khổ giấy hỗn hợp: Đang mở xem trước phân trang và gộp trang để xuất…',
     // Nhận xét
     appSelectTextToComment: 'Hãy chọn đoạn văn bản cần nhận xét trước',
-    appCommentSelectionLost: 'Vùng chọn không còn hiệu lực, vui lòng chọn lại đoạn văn bản cần nhận xét',
+    appCommentSelectionLost:
+      'Vùng chọn không còn hiệu lực, vui lòng chọn lại đoạn văn bản cần nhận xét',
     appCommentAdded: 'Đã thêm nhận xét, sẽ ghi vào tài liệu sau khi lưu',
     appCommentAnchorGone: 'Điểm neo nhận xét ban đầu không còn tồn tại, không thể trả lời',
     appCommentReplied: 'Đã trả lời nhận xét, sẽ ghi vào tài liệu sau khi lưu',
@@ -6875,12 +6897,14 @@ export const appStrings = defineStrings({
     appNoRevisionsToHandle: 'Không có thay đổi nào cần xử lý',
     appProtectTitle: 'Bảo vệ tài liệu',
     appProtectSecurity: 'Bảo mật',
-    appProtectDesc: 'Đặt mật khẩu mở/chỉnh sửa, giới hạn biên tập và quyền riêng tư; có hiệu lực sau khi lưu',
+    appProtectDesc:
+      'Đặt mật khẩu mở/chỉnh sửa, giới hạn biên tập và quyền riêng tư; có hiệu lực sau khi lưu',
     appOptional: '(Tùy chọn)',
     appOptionalBlank: '(Có thể để trống)',
     appProtectOpenPwd: 'Mật khẩu mở tài liệu này',
     appProtectModifyPwd: 'Mật khẩu chỉnh sửa tài liệu này',
-    appProtectPwdKeepHint: 'Mật khẩu đã đặt hiển thị dạng dấu chấm: Giữ nguyên để bảo lưu, xóa trống rồi bấm OK để gỡ bỏ',
+    appProtectPwdKeepHint:
+      'Mật khẩu đã đặt hiển thị dạng dấu chấm: Giữ nguyên để bảo lưu, xóa trống rồi bấm OK để gỡ bỏ',
     appProtectSectionTitle: 'Bảo vệ',
     appProtectFor: 'Giới hạn phương thức chỉnh sửa',
     appProtectModeTracked: 'Theo dõi thay đổi',
@@ -6892,7 +6916,8 @@ export const appStrings = defineStrings({
     appProtectRemovePersonal: 'Xóa siêu dữ liệu tác giả và tổ chức khỏi tệp này khi lưu',
     appProtectUpdated: 'Cài đặt bảo vệ đã được cập nhật, có hiệu lực sau khi lưu',
     appModifyPwdTitle: 'Tài liệu được bảo vệ chống ghi',
-    appModifyPwdBody: '"{name}" có mật khẩu chỉnh sửa. Nhập mật khẩu để chỉnh sửa, hoặc mở ở chế độ chỉ đọc.',
+    appModifyPwdBody:
+      '"{name}" có mật khẩu chỉnh sửa. Nhập mật khẩu để chỉnh sửa, hoặc mở ở chế độ chỉ đọc.',
     appOpenReadOnly: 'Mở chỉ đọc',
     appProtectPwdOptional: 'Mật khẩu bảo vệ',
     appWrongPassword: 'Mật khẩu không chính xác',
@@ -6908,13 +6933,16 @@ export const appStrings = defineStrings({
     appInksCleared: 'Đã xóa tất cả nét mực vẽ, có hiệu lực sau khi lưu',
     appWatermarkSet: 'Đã đặt hình mờ "{text}", sẽ ghi vào tài liệu sau khi lưu',
     appWatermarkRemoved: 'Đã xóa hình mờ, có hiệu lực sau khi lưu',
-    appThemeFontsChanged: 'Đã thay đổi phông chủ đề, sẽ ghi vào tài liệu sau khi lưu (các kiểu tham chiếu phông chủ đề sẽ có hiệu lực trong Word)',
+    appThemeFontsChanged:
+      'Đã thay đổi phông chủ đề, sẽ ghi vào tài liệu sau khi lưu (các kiểu tham chiếu phông chủ đề sẽ có hiệu lực trong Word)',
     appThemeColorsApplied: 'Đã áp dụng màu chủ đề "{name}", sẽ ghi vào tài liệu sau khi lưu',
     appSourceAdded: 'Đã thêm nguồn "{title}", có thể trích dẫn qua "Chèn trích dẫn"',
     // Đầu trang & Chân trang
-    appTitlePgOn: 'Đã bật "Trang đầu khác biệt", chuyển đổi ở đầu trang để chỉnh sửa đầu/chân trang trang đầu',
+    appTitlePgOn:
+      'Đã bật "Trang đầu khác biệt", chuyển đổi ở đầu trang để chỉnh sửa đầu/chân trang trang đầu',
     appTitlePgOff: 'Đã tắt "Trang đầu khác biệt"',
-    appEvenOddOn: 'Đã bật "Trang chẵn/lẻ khác nhau", chuyển đổi ở đầu trang để chỉnh sửa đầu/chân trang trang chẵn',
+    appEvenOddOn:
+      'Đã bật "Trang chẵn/lẻ khác nhau", chuyển đổi ở đầu trang để chỉnh sửa đầu/chân trang trang chẵn',
     appEvenOddOff: 'Đã tắt "Trang chẵn/lẻ khác nhau"',
     appFirstPage: 'Trang đầu',
     appOddPage: 'Trang lẻ',
@@ -7099,15 +7127,18 @@ export const appStrings = defineStrings({
     appReplaceAll: 'Thay thế tất cả',
     // Xem trước phân trang
     appPaginationPreview: 'Xem trước phân trang',
+    appPvCommented: 'Nhận xét',
     appTotalPagesN: 'Tổng cộng {n} trang',
     appPvHint: 'Bản xem trước chỉ đọc, vui lòng mở lại sau khi chỉnh sửa · Esc để đóng',
-    appPvExportTip: 'Xuất từng trang theo bản xem trước, đầu/chân trang và số trang khớp chính xác như hiển thị',
+    appPvExportTip:
+      'Xuất từng trang theo bản xem trước, đầu/chân trang và số trang khớp chính xác như hiển thị',
     // Bảng kiểu dáng
     appStylesTitle: 'Kiểu',
     appParagraphStyles: 'Kiểu đoạn văn',
     appCharacterStyles: 'Kiểu ký tự',
     appApplyStyle: 'Áp dụng kiểu {name}',
-    appUpdateStyleTip: 'Cập nhật kiểu này bằng định dạng vùng chọn hiện tại (ghi lại vào styles.xml)',
+    appUpdateStyleTip:
+      'Cập nhật kiểu này bằng định dạng vùng chọn hiện tại (ghi lại vào styles.xml)',
     appNewStyleFromSelection: 'Tạo kiểu mới từ vùng chọn hiện tại',
     appStyleNamePlaceholder: 'Tên kiểu',
   },

@@ -923,7 +923,8 @@ const tMain = createI18n({
     errImageNoText:
       'Lampiran gambar tidak menyediakan teks; gambar dikirim bersama pesan pengguna dan dapat dilihat langsung',
     errNotImage: 'bukan jenis gambar yang didukung',
-    errGskNotLoggedIn: 'Belum masuk ke VuaOffice: klik “Masuk ke VuaOffice” di bawah, lalu coba lagi',
+    errGskNotLoggedIn:
+      'Belum masuk ke VuaOffice: klik “Masuk ke VuaOffice” di bawah, lalu coba lagi',
     errNoApiKey: 'API Key untuk {provider} belum dikonfigurasi',
     errAiBusy: 'Layanan AI sedang sibuk — silakan coba lagi sebentar lagi',
     errNoModel: 'Nama model belum dikonfigurasi',
@@ -1948,7 +1949,8 @@ const tMain = createI18n({
     closeNoReplyDetail: 'Đóng ngay bây giờ sẽ hủy lượt phản hồi này.',
     btnCloseAnyway: 'Vẫn đóng',
     autosaveFoundTitle: 'Khôi phục tài liệu chưa lưu',
-    autosaveFoundBody: 'Đã tìm thấy phiên bản tự động lưu từ phiên làm việc trước. Bạn có muốn khôi phục không?',
+    autosaveFoundBody:
+      'Đã tìm thấy phiên bản tự động lưu từ phiên làm việc trước. Bạn có muốn khôi phục không?',
     autosaveRestore: 'Khôi phục',
     autosaveDiscard: 'Bỏ qua',
     btnDontSave: 'Không lưu',
@@ -1969,10 +1971,13 @@ const tMain = createI18n({
     errUnreadable: 'Không thể đọc tệp',
     errFileTooLarge: 'Tệp vượt quá giới hạn kích thước',
     errParseFailed: 'Phân tích tệp thất bại',
-    errImageNoText: 'Tệp đính kèm hình ảnh không có văn bản; hình ảnh được gửi kèm cùng với tin nhắn của bạn',
+    errImageNoText:
+      'Tệp đính kèm hình ảnh không có văn bản; hình ảnh được gửi kèm cùng với tin nhắn của bạn',
     errNotImage: 'Định dạng hình ảnh không được hỗ trợ',
-    errGskNotLoggedIn: 'Chưa đăng nhập VuaOffice: Nhấp vào "Đăng nhập VuaOffice" bên dưới để tiếp tục',
+    errGskNotLoggedIn:
+      'Chưa đăng nhập VuaOffice: Nhấp vào "Đăng nhập VuaOffice" bên dưới để tiếp tục',
     errNoApiKey: 'Chưa cấu hình API key cho {provider}',
+    errAiBusy: 'Dịch vụ AI đang bận — vui lòng thử lại sau ít phút.',
     errNoModel: 'Chưa cấu hình tên mô hình',
     menuFile: 'Tệp',
     menuNewDoc: 'Tài liệu mới',
@@ -2745,7 +2750,9 @@ export function registerAiIpc(): void {
   )
 
   ipcMain.handle('ai:gsk-login', () => {
-    void shell.openExternal('https://vuahethong.net/vuaoffice/auth?redirect_uri=vuaoffice://auth/callback')
+    void shell.openExternal(
+      'https://vuahethong.net/vuaoffice/auth?redirect_uri=vuaoffice://auth/callback',
+    )
   })
 
   ipcMain.handle('ai:set-settings', (_event, settings: AiSettings) => {
