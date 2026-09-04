@@ -61,6 +61,7 @@ import type { OutlineNode } from './OutlinePanel'
 import { printPdf } from './print'
 import { PasswordDialog } from './PasswordDialog'
 import { PropertiesDialog } from './PropertiesDialog'
+import { ForensicsModal } from './ForensicsModal'
 import { SignatureDialog, fileToCanvas } from './SignatureDialog'
 import type { SignatureData } from './SignatureDialog'
 import { signatureDrawingForField } from './signature-field'
@@ -119,6 +120,7 @@ import type {
   TextInsertFailure,
   TextInsertInput,
   PdfOcrLine,
+  PdfForensicsReport,
 } from '../shared/ipc'
 import {
   ZOOM_STEPS,
@@ -320,6 +322,8 @@ export default function App() {
   /** One-shot prompt pushed by the ribbon AI buttons; the panel auto-runs it (docs preset pattern) */
   const [aiPreset, setAiPreset] = useState<{ text: string; nonce: number } | null>(null)
   const [ribbonTab, setRibbonTab] = useState<RibbonTab>('home')
+  const [forensicsReport, setForensicsReport] = useState<PdfForensicsReport | null>(null)
+  const [forensicsDlg, setForensicsDlg] = useState(false)
   const [spread, setSpread] = useState<1 | 2>(1)
   const [nightMode, setNightMode] = useState(false)
   const [outline, setOutline] = useState<OutlineNode[] | null>(null)
@@ -1089,6 +1093,10 @@ export default function App() {
             setScale(Math.min(MAX_SCALE, Math.max(MIN_SCALE, savedView.scale)))
         }
         setStatus('ready')
+        void window.pdfApi.inspectForensics(path).then(setForensicsReport, (err) => {
+          console.warn('[pdf] forensics inspection failed:', err)
+          setForensicsReport(null)
+        })
       } catch (err) {
         if ((err as Error | null)?.name === 'PasswordException') {
           // like docs: a failed attempt clears the field alongside the error
@@ -5712,6 +5720,19 @@ export default function App() {
               XFA
             </span>
           )}
+          {forensicsReport && (
+            <span
+              className={`tb-forensics-badge ${forensicsReport.isOriginal ? 'original' : 'modified'}`}
+              data-tip={
+                forensicsReport.isOriginal
+                  ? t('forensicsOriginalTitle')
+                  : t('forensicsModifiedDesc', { count: forensicsReport.revisionCount })
+              }
+              onClick={() => setForensicsDlg(true)}
+            >
+              {forensicsReport.isOriginal ? '✓ ' + t('forensicsOriginalTitle') : '⚠️ ' + t('forensicsModifiedTitle')}
+            </span>
+          )}
         </div>
         <div className="ribbon-body">
           {ribbonTab === 'home' && (
@@ -8041,6 +8062,15 @@ export default function App() {
                   pushUndo()
                   setMetadata(meta)
                 }}
+              />
+            )}
+            {forensicsDlg && forensicsReport && (
+              <ForensicsModal
+                report={forensicsReport}
+                fileName={fileName}
+                t={t}
+                onClose={() => setForensicsDlg(false)}
+                onGotoPage={(page) => scrollToPage(page)}
               />
             )}
             {signDlg && (

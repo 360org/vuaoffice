@@ -44,6 +44,7 @@ export const PDF_CHANNELS = {
   languageChanged: 'app:language-changed',
   getTheme: 'app:get-theme',
   themeChanged: 'app:theme-changed',
+  inspectForensics: 'pdf:inspect-forensics',
 } as const
 
 export const VISUAL_SIGNATURE_CONTENT_PREFIX = 'GenOffice visual signature field: '
@@ -765,4 +766,31 @@ export interface PdfApi {
   aiStream(request: AiStreamRequest): Promise<void>
   aiStreamCancel(requestId: string): Promise<void>
   onAiStream(handler: (chunk: AiStreamChunk) => void): () => void
+  inspectForensics(path: string): Promise<PdfForensicsReport>
+}
+
+export interface PdfForensicsReport {
+  isOriginal: boolean
+  revisionCount: number
+  revisions: Array<{
+    revisionNumber: number
+    byteOffset: number
+    producer?: string
+    creator?: string
+    modDate?: string
+    creationDate?: string
+  }>
+  modifiedItems: Array<{
+    type: 'page_content' | 'annotation' | 'page_added' | 'page_removed' | 'form_field' | 'metadata'
+    pageNumber?: number
+    description: string
+    details?: string
+  }>
+  producer?: string
+  creator?: string
+  creationDate?: string
+  modDate?: string
+  datesDiffer: boolean
+  hasXmpHistory: boolean
+  xmpHistoryEvents: Array<{ action?: string; when?: string; softwareAgent?: string }>
 }

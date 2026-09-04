@@ -85,6 +85,7 @@ import {
   saveSignatures,
 } from './signature-store'
 import { uniqueGeneratedPdfPath } from './generated-output'
+import { inspectPdfForensics } from './pdf-inspector'
 
 const tDlg = createI18n({
   zh: {
@@ -875,6 +876,14 @@ function registerPdfIpc(): void {
     const buf = await readFile(path)
     await rememberPdfDiskState(e.sender.id, path, buf)
     return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength)
+  })
+
+  ipcMain.handle(PDF_CHANNELS.inspectForensics, async (e, path: unknown) => {
+    if (typeof path !== 'string' || !allowedByWc.get(e.sender.id)?.has(path)) {
+      throw new Error('pdf: path not granted to this view')
+    }
+    const buf = await readFile(path)
+    return await inspectPdfForensics(buf)
   })
 
   ipcMain.handle(

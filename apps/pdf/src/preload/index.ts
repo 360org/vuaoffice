@@ -90,6 +90,7 @@ const api: PdfApi = {
     ipcRenderer.on(AI_CHANNELS.streamChunk, listener)
     return () => ipcRenderer.removeListener(AI_CHANNELS.streamChunk, listener)
   },
+  inspectForensics: (path) => ipcRenderer.invoke(PDF_CHANNELS.inspectForensics, path),
 }
 
 // Shared project chat store (registered app-wide by the shell's main init):
