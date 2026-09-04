@@ -39,25 +39,45 @@ export function adoptSavedSlides(ctx: ActionCtx, next: RenderSlide[]): void {
   ctx.setSlides(next)
 }
 
+/**
+ * Serializes save passes: a call that arrives while a save is in flight waits
+ * for it instead of running concurrently. Two overlapping saves write the
+ * same file with two `createWriteStream` pipes — interleaved zip streams,
+ * truncated pptx, or EPERM/EBUSY on Windows. The queue is a simple promise
+ * chain: each caller awaits the previous tail, then runs its own pass.
+ */
+let saveTail: Promise<boolean> | null = null
+
 export async function save(ctx: ActionCtx, quiet = false): Promise<boolean> {
-  await flushActiveEdit(ctx)
-  await ctx.flushNotes()
-  const r = await window.slidesApi.save()
-  if (r.ok) {
-    if (r.slides) adoptSavedSlides(ctx, r.slides)
-    if (r.path) ctx.setPath(r.path)
-    ctx.setDirty(false)
-    const saved = t('appStatusSaved')
-    ctx.setStatus(saved)
-    if (!quiet) showToast(saved)
-  } else {
-    const failed = t('appStatusSaveFailed', { error: r.error ?? t('appErrorCanceled') })
-    ctx.setStatus(failed)
-    // quiet suppresses the success toast only — a failed save (incl. the 30s
-    // auto-save) must surface, or edits silently stop reaching disk
-    showToast(failed, 'error')
-  }
-  return r.ok
+  const prior = saveTail
+  const pass = (async () => {
+    if (prior) await prior.catch(() => false)
+    await flushActiveEdit(ctx)
+    await ctx.flushNotes()
+    const r = await window.slidesApi.save()
+    if (r.ok) {
+      if (r.slides) adoptSavedSlides(ctx, r.slides)
+      if (r.path) ctx.setPath(r.path)
+      ctx.setDirty(false)
+      const saved = t('appStatusSaved')
+      ctx.setStatus(saved)
+      if (!quiet) showToast(saved)
+    } else {
+      const failed = t('appStatusSaveFailed', { error: r.error ?? t('appErrorCanceled') })
+      ctx.setStatus(failed)
+      // quiet suppresses the success toast only — a failed save (incl. the 30s
+      // auto-save) must surface, or edits silently stop reaching disk
+      showToast(failed, 'error')
+    }
+    return r.ok
+  })()
+  saveTail = pass
+  pass
+    .catch(() => false)
+    .then(() => {
+      if (saveTail === pass) saveTail = null
+    })
+  return pass
 }
 
 export async function saveAs(ctx: ActionCtx): Promise<void> {
