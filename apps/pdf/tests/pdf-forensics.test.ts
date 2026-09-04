@@ -48,4 +48,32 @@ describe('PDF Forensics Inspector', () => {
     expect(report.revisionCount).toBeGreaterThan(1)
     expect(report.modifiedItems.length).toBeGreaterThan(0)
   })
+
+  it('detects modifications stored in catalog forensics record on single revision save', async () => {
+    const { PDFName, PDFHexString } = await import('pdf-lib')
+    const doc = await PDFDocument.create()
+    const page = doc.addPage([400, 600])
+    page.drawText('Original invoice', { x: 50, y: 500 })
+
+    const forensicsLog = [
+      {
+        type: 'page_content',
+        pageNumber: 1,
+        description: 'Đã chỉnh sửa văn bản trên trang 1',
+        details: 'Nội dung mới: "[Đà Lạt]"',
+      },
+    ]
+    doc.catalog.set(
+      PDFName.of('GenOfficeForensics'),
+      PDFHexString.fromText(JSON.stringify(forensicsLog)),
+    )
+    const savedBytes = await doc.save({ useObjectStreams: false })
+
+    const report = await inspectPdfForensics(savedBytes)
+    expect(report.isOriginal).toBe(false)
+    expect(report.revisionCount).toBe(1)
+    expect(report.modifiedItems).toHaveLength(1)
+    expect(report.modifiedItems[0].pageNumber).toBe(1)
+    expect(report.modifiedItems[0].description).toContain('trang 1')
+  })
 })

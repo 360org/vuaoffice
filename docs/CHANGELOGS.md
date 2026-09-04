@@ -5,14 +5,18 @@ Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaO
 
 ## [1.0.25] - 2026-09-04
 
-### Chuẩn hóa Giám định PDF Forensics & Khắc phục False Positive trên Tệp Xuất từ Hệ thống
+### Chuẩn hóa Giám định PDF Forensics: Khắc phục False Positive & False Negative
 
 - **[FIX] Khắc phục Triệt để Nhận diện Sai Tệp Gốc (False Positive)**:
   - Tải tài liệu qua `pdf-lib` với `{ updateMetadata: false }`, ngăn chặn việc thư viện tự động chèn ngày sửa đổi hiện tại (`ModDate`) và ghi đè `Producer` thành `pdf-lib`.
   - Giữ nguyên 100% metadata thực tế của tệp PDF ban đầu từ các hệ thống xuất hóa đơn/chứng từ (Odoo, CamScanner, Word, Excel, ERP, phần mềm quét tài liệu).
+- **[FIX] Khắc phục Bỏ sót Cảnh báo sau khi Lưu Chỉnh sửa (False Negative)**:
+  - Ghi nhận nhật ký giám định cấu trúc (`GenOfficeForensics`) trực tiếp vào PDF Catalog kèm cập nhật `ModDate` khi lưu tài liệu đã qua can thiệp (chỉnh sửa văn bản, chèn chữ, đánh dấu highlight, vẽ tay, chèn hình/dấu, xóa trang).
+  - Động cơ giám định tự động đối chiếu siêu dữ liệu Catalog và phân tích bất thường cấu trúc luồng tài nguyên (font /FXF* do PDFium chèn) trên các tệp tuần tự hóa đơn phân đoạn (1 revision full-rewrite).
+  - Tự động làm mới báo cáo giám định ngay sau khi hoàn tất lưu tệp (`Cmd+S`), chuyển đổi trạng thái tức thì trên thanh công cụ sang `⚠️ Tệp đã qua chỉnh sửa`.
 - **[IMPROVE] Chuẩn hóa Tiêu chí Nhận diện Tệp Đã qua Chỉnh sửa**:
   - Tệp gốc (Original) xuất từ hệ thống chỉ có 1 phân đoạn EOF / xref duy nhất và không bị can thiệp sẽ luôn được nhận diện chính xác 100% là `✓ Tệp gốc (Chưa chỉnh sửa)`.
-  - Chỉ cảnh báo `⚠️ Tệp đã qua chỉnh sửa` khi phát hiện can thiệp cấu trúc nhị phân thực sự: có từ 2 phân đoạn sửa đổi trở lên (Incremental Updates / Revisions > 1), phát hiện can thiệp luồng nội dung trang (`/Contents`), chú thích/chữ ký (`/Annots`), trang chèn thêm/xóa bớt, hoặc can thiệp biểu mẫu (`/AcroForm`).
+  - Khi tệp bị chỉnh sửa, chỉ rõ chính xác từng vị trí thay đổi (trang nào, loại thay đổi gì: sửa văn bản, chèn văn bản, đánh dấu, xóa trang...).
   - Giao diện Modal giám định hiển thị chính xác ngày tạo và ngày sửa đổi gốc của tệp mà không gán nhầm cảnh báo sửa đổi.
 
 ## [1.0.24] - 2026-09-04

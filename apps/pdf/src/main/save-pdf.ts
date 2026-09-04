@@ -32,6 +32,7 @@ import { writePdfAtomically } from './atomic-write'
 
 const num = (v: number) => Math.round(v * 100) / 100
 const STATIC_FORM_FILLS_KEY = PDFName.of('GenOfficeStaticFormFills')
+const FORENSICS_RECORD_KEY = PDFName.of('GenOfficeForensics')
 
 function validStaticFormFill(value: unknown): value is StaticFormFillRecord {
   if (!value || typeof value !== 'object') return false
@@ -976,6 +977,94 @@ export async function applySaveRequest(
         PDFHexString.fromText(JSON.stringify(staticFormFills)),
       )
   }
+
+  // Record forensics trace in PDF Catalog when document is modified by user
+  const forensicsLog: Array<{
+    type: string
+    pageNumber?: number
+    description: string
+    details?: string
+  }> = []
+
+  // Read existing forensics records if present
+  const existingForensics = pdfDoc.catalog.get(FORENSICS_RECORD_KEY)
+  if (existingForensics instanceof PDFHexString) {
+    try {
+      const parsed = JSON.parse(existingForensics.decodeText())
+      if (Array.isArray(parsed)) forensicsLog.push(...parsed)
+    } catch {
+      /* ignore corrupted prior log */
+    }
+  }
+
+  // Content text edits
+  for (const te of request.textEdits ?? []) {
+    if (!skippedTextEdits.some((s) => s.pageIndex === te.pageIndex && s.oldText === te.oldText)) {
+      forensicsLog.push({
+        type: 'page_content',
+        pageNumber: te.pageIndex + 1,
+        description: `Đã chỉnh sửa văn bản trên trang ${te.pageIndex + 1}`,
+        details: `Nội dung mới: "${te.newText.length > 40 ? te.newText.slice(0, 37) + '...' : te.newText}"`,
+      })
+    }
+  }
+
+  // Content text inserts
+  (request.textInserts ?? []).forEach((ti, idx) => {
+    if (!skippedTextInserts.some((s) => s.editIndex === idx)) {
+      forensicsLog.push({
+        type: 'page_content',
+        pageNumber: ti.pageIndex + 1,
+        description: `Đã chèn thêm văn bản vào trang ${ti.pageIndex + 1}`,
+        details: `Nội dung chèn: "${ti.text.length > 40 ? ti.text.slice(0, 37) + '...' : ti.text}"`,
+      })
+    }
+  })
+
+  // Markups / Annotations
+  for (const m of request.markups ?? []) {
+    forensicsLog.push({
+      type: 'annotation',
+      pageNumber: m.pageIndex + 1,
+      description: `Đã thêm đánh dấu (${m.type}) trên trang ${m.pageIndex + 1}`,
+    })
+  }
+
+  // Drawings / signatures / note replies
+  for (const d of request.drawings ?? []) {
+    forensicsLog.push({
+      type: 'annotation',
+      pageNumber: d.pageIndex + 1,
+      description: `Đã thêm nét vẽ/chữ ký trên trang ${d.pageIndex + 1}`,
+    })
+  }
+
+  // Stamps
+  for (const s of request.stamps ?? []) {
+    forensicsLog.push({
+      type: 'annotation',
+      pageNumber: s.pageIndex + 1,
+      description: `Đã thêm con dấu/hình ảnh trên trang ${s.pageIndex + 1}`,
+    })
+  }
+
+  // Deleted pages
+  if ((request.deletedPages?.length ?? 0) > 0) {
+    forensicsLog.push({
+      type: 'page_removed',
+      description: `Đã xóa ${request.deletedPages!.length} trang khỏi tài liệu`,
+      details: `Các trang gốc bị xóa: ${request.deletedPages!.map((p) => p + 1).join(', ')}`,
+    })
+  }
+
+  if (forensicsLog.length > 0) {
+    pdfDoc.setModificationDate(new Date())
+    pdfDoc.catalog.set(
+      FORENSICS_RECORD_KEY,
+      PDFHexString.fromText(JSON.stringify(forensicsLog)),
+    )
+  }
+
   try {
     return {
       bytes: await pdfDoc.save({ useObjectStreams: false }),

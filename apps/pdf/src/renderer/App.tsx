@@ -3214,6 +3214,8 @@ export default function App() {
           /* naming is best-effort; the save itself already succeeded */
         }
       }
+      // Refresh forensics inspection report so warning badges immediately reflect modifications
+      void window.pdfApi.inspectForensics(filePath).then(setForensicsReport, () => {})
       setSaveState('saved')
       setTimeout(() => setSaveState((s) => (s === 'saved' ? 'idle' : s)), 2000)
       return true
