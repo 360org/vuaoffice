@@ -116,7 +116,7 @@ export async function inspectPdfForensics(bytes: Uint8Array): Promise<PdfForensi
   let modDate: string | undefined
 
   try {
-    const fullDoc = await PDFDocument.load(bytes, { ignoreEncryption: true })
+    const fullDoc = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false })
     producer = fullDoc.getProducer()
     creator = fullDoc.getCreator()
     const cDate = fullDoc.getCreationDate()
@@ -135,7 +135,7 @@ export async function inspectPdfForensics(bytes: Uint8Array): Promise<PdfForensi
     if (mdMatch) modDate = parsePdfDate(mdMatch[1])
   }
 
-  // Check if CreationDate and ModDate significantly differ (> 60s)
+  // Check if CreationDate and ModDate significantly differ (> 60s) for info display only
   let datesDiffer = false
   if (creationDate && modDate && creationDate !== modDate) {
     const cTime = new Date(creationDate).getTime()
@@ -160,8 +160,8 @@ export async function inspectPdfForensics(bytes: Uint8Array): Promise<PdfForensi
   if (eofOffsets.length > 1) {
     try {
       const baseBytes = buf.subarray(0, eofOffsets[0])
-      const baseDoc = await PDFDocument.load(baseBytes, { ignoreEncryption: true })
-      const latestDoc = await PDFDocument.load(bytes, { ignoreEncryption: true })
+      const baseDoc = await PDFDocument.load(baseBytes, { ignoreEncryption: true, updateMetadata: false })
+      const latestDoc = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false })
 
       const basePageCount = baseDoc.getPageCount()
       const latestPageCount = latestDoc.getPageCount()
@@ -276,29 +276,30 @@ export async function inspectPdfForensics(bytes: Uint8Array): Promise<PdfForensi
         description: `Tài liệu có ${revisionCount} phiên bản ghi đè liên tiếp (Incremental Updates)`,
       })
     }
+
+    // If there are multiple revisions but structural diffing didn't detect specific page changes
+    if (modifiedItems.length === 0) {
+      modifiedItems.push({
+        type: 'metadata',
+        description: `Tài liệu có ${revisionCount} phiên bản ghi đè liên tiếp (Incremental Updates)`,
+        details: 'Cấu trúc tài liệu ghi nhận đã qua chỉnh sửa và lưu bổ sung ở tầng nhị phân',
+      })
+    }
   }
 
-  // If no incremental updates but XMP History has edit events
+  // If no incremental updates but XMP History has multiple edit events from external tools
   if (xmpHistoryEvents.length > 1 && modifiedItems.length === 0) {
     modifiedItems.push({
       type: 'metadata',
-      description: `Lịch sử chỉnh sửa XMP ghi nhận ${xmpHistoryEvents.length} lần sửa đổi`,
+      description: `Lịch sử chỉnh sửa XMP ghi nhận ${xmpHistoryEvents.length} lần can thiệp`,
       details: xmpHistoryEvents
         .map((e) => `${e.action || 'Sửa'}: ${e.softwareAgent || 'Ứng dụng không rõ'} (${e.when || 'Thời gian không rõ'})`)
         .join('; '),
     })
   }
 
-  // If dates differ significantly and no other items found
-  if (datesDiffer && modifiedItems.length === 0) {
-    modifiedItems.push({
-      type: 'metadata',
-      description: 'Thời gian sửa đổi (ModDate) khác biệt đáng kể so với thời gian tạo gốc (CreationDate)',
-      details: `Tạo lúc: ${creationDate} · Sửa đổi: ${modDate}`,
-    })
-  }
-
-  const isOriginal = revisionCount === 1 && !datesDiffer && xmpHistoryEvents.length <= 1 && modifiedItems.length === 0
+  // Document is original if it has only 1 revision (no incremental updates) and no XMP modification history
+  const isOriginal = revisionCount === 1 && modifiedItems.length === 0
 
   return {
     isOriginal,

@@ -62,9 +62,7 @@ export function ForensicsModal({
             {report.modDate && (
               <div className="pdf-prop-row">
                 <span>{t('propModified')}</span>
-                <em style={{ color: report.datesDiffer ? 'var(--pdf-error)' : 'inherit', fontWeight: report.datesDiffer ? 600 : 'normal' }}>
-                  {report.modDate} {report.datesDiffer ? `(${t('forensicsDatesMismatch')})` : ''}
-                </em>
+                <em>{report.modDate}</em>
               </div>
             )}
           </div>

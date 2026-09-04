@@ -30,7 +30,7 @@ describe('PDF Forensics Inspector', () => {
     expect(eofs.length).toBe(1)
 
     // 2. Load document and apply incremental changes (useSaveMode or standard append)
-    const loadedDoc = await PDFDocument.load(baseBytes)
+    const loadedDoc = await PDFDocument.load(baseBytes, { updateMetadata: false })
     const page2 = loadedDoc.addPage([400, 600])
     page2.drawText('Appended Page 2', { x: 50, y: 500 })
     const secondBytes = await loadedDoc.save({ useObjectStreams: false })
