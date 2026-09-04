@@ -379,13 +379,13 @@
  * bundled (tools/build-poppins-font.py). A locally installed Poppins still
  * precedes this face in the chain. */
 @font-face {
-  font-family: 'GenOffice Poppins';
+  font-family: 'VuaOffice Poppins';
   src: url('./GenOfficePoppins-Regular-subset.woff2') format('woff2');
   font-weight: normal;
   font-style: normal;
 }
 @font-face {
-  font-family: 'GenOffice Poppins';
+  font-family: 'VuaOffice Poppins';
   src: url('./GenOfficePoppins-Bold-subset.woff2') format('woff2');
   font-weight: bold;
   font-style: normal;

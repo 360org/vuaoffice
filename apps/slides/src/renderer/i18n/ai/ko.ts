@@ -17,8 +17,8 @@ export const ko = {
   aiQcPageSkipped: '{n}페이지: 자동 레이아웃 검사 건너뜀',
   aiQcStopped: '레이아웃 검사를 중지했습니다',
   aiQcCapped: '나머지 {count}페이지는 검사하지 않음(회당 상한)',
-  aiGskLoginBtn: 'Genspark 로그인',
-  aiPanelTitle: 'Genspark',
+  aiGskLoginBtn: 'VuaOffice 로그인',
+  aiPanelTitle: 'VuaOffice AI',
   aiOpenAssistant: 'AI 도우미 열기',
   aiFactCheckBtn: 'AI 팩트체크',
   aiFactCheckPrompt:

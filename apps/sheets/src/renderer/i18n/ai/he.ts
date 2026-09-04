@@ -4,7 +4,7 @@ export const he = {
   aiComposerPlaceholderBuild: 'תארו את הטבלה, הנתונים או התרשים ליצירה…',
   aiEmptyBuildTitle: 'תנו ל-AI לבנות את חוברת העבודה הזו עבורכם',
   aiEmptyBuildBody: 'תארו את הטבלה, הנתונים או התרשים הדרושים — ה-AI יוצר אותם במקום.',
-  aiGskLoginBtn: 'התחבר ל-Genspark',
+  aiGskLoginBtn: 'התחבר ל-VuaOffice',
   aiUndelivered: 'לא נשלח',
   aiRetry: 'נסה שוב',
   aiOpenAssistant: 'פתיחת עוזר ה-AI',

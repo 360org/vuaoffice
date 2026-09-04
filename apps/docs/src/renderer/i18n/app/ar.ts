@@ -232,7 +232,7 @@ export const ar = {
   appLoggedInEmail: 'تم تسجيل الدخول: {email}',
   appNotLoggedIn: 'لم يتم تسجيل الدخول (تتطلب ميزات الذكاء الاصطناعي حساب Genspark)',
   appWaitingBrowserLogin: 'في انتظار تسجيل الدخول عبر المتصفح…',
-  appLoginGenspark: 'تسجيل الدخول إلى Genspark',
+  appLoginGenspark: 'تسجيل الدخول إلى VuaOffice',
   appModel: 'النموذج',
   appCut: 'قص',
   appCopy: 'نسخ',

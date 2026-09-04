@@ -231,7 +231,7 @@ export const en = {
   appLoggedInEmail: 'Signed in: {email}',
   appNotLoggedIn: 'Not signed in (AI features require a Genspark account)',
   appWaitingBrowserLogin: 'Waiting for browser sign-in…',
-  appLoginGenspark: 'Sign in to Genspark',
+  appLoginGenspark: 'Sign in to VuaOffice',
   appModel: 'Model',
   appCut: 'Cut',
   appCopy: 'Copy',

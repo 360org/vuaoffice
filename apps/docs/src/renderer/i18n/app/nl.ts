@@ -245,7 +245,7 @@ export const nl = {
   appLoggedInEmail: 'Aangemeld: {email}',
   appNotLoggedIn: 'Niet aangemeld (AI-functies vereisen een Genspark-account)',
   appWaitingBrowserLogin: 'Wachten op aanmelding in de browser…',
-  appLoginGenspark: 'Aanmelden bij Genspark',
+  appLoginGenspark: 'Aanmelden bij VuaOffice',
   appModel: 'Model',
   appCut: 'Knippen',
   appCopy: 'Kopiëren',

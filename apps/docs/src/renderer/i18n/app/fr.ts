@@ -245,7 +245,7 @@ export const fr = {
   appLoggedInEmail: 'Connecté : {email}',
   appNotLoggedIn: 'Non connecté (les fonctionnalités IA nécessitent un compte Genspark)',
   appWaitingBrowserLogin: 'En attente de la connexion dans le navigateur…',
-  appLoginGenspark: 'Se connecter à Genspark',
+  appLoginGenspark: 'Se connecter à VuaOffice',
   appModel: 'Modèle',
   appCut: 'Couper',
   appCopy: 'Copier',

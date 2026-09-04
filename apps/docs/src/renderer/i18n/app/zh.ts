@@ -242,9 +242,9 @@ export const zh = {
   appChecking: '检测中…',
   appLoggedIn: '已登录',
   appLoggedInEmail: '已登录：{email}',
-  appNotLoggedIn: '未登录（AI 功能需要登录 Genspark 账号）',
+  appNotLoggedIn: '未登录（AI 功能需要登录 VuaOffice 账号）',
   appWaitingBrowserLogin: '等待浏览器登录…',
-  appLoginGenspark: '登录 Genspark',
+  appLoginGenspark: '登录 VuaOffice',
   appModel: '模型',
   // Context menu
   appCut: '剪切',

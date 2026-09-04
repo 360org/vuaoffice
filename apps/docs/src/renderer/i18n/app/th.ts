@@ -235,7 +235,7 @@ export const th = {
   appLoggedInEmail: 'ลงชื่อเข้าใช้แล้ว: {email}',
   appNotLoggedIn: 'ยังไม่ได้ลงชื่อเข้าใช้ (ฟีเจอร์ AI ต้องใช้บัญชี Genspark)',
   appWaitingBrowserLogin: 'กำลังรอการลงชื่อเข้าใช้ในเบราว์เซอร์…',
-  appLoginGenspark: 'ลงชื่อเข้าใช้ Genspark',
+  appLoginGenspark: 'ลงชื่อเข้าใช้ VuaOffice',
   appModel: 'โมเดล',
   appCut: 'ตัด',
   appCopy: 'คัดลอก',

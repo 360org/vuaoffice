@@ -237,7 +237,7 @@ export const id = {
   appLoggedInEmail: 'Sudah masuk: {email}',
   appNotLoggedIn: 'Belum masuk (fitur AI memerlukan akun Genspark)',
   appWaitingBrowserLogin: 'Menunggu masuk lewat browser…',
-  appLoginGenspark: 'Masuk ke Genspark',
+  appLoginGenspark: 'Masuk ke VuaOffice',
   appModel: 'Model',
   appCut: 'Potong',
   appCopy: 'Salin',
