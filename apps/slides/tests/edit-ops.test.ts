@@ -7,12 +7,14 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import {
   addElement,
   createBlankPptx,
+  getSlideAnimations,
   extractMergeSlideSource,
   openPptx,
   parseMasterPart,
   patchSlideXml,
   savePptx,
   type OpenedPptx,
+  type SlideElement,
   type TextElement,
 } from '@genoffice/pptx-engine'
 import { runTxn, opNames, elementDurableId, slideDurableId } from '../src/main/ops'
@@ -72,6 +74,382 @@ describe('op validation (guided errors)', () => {
     })
     expect(r.applied).toBe(false)
     expect(r.failures![0]!.error).toContain('needs "fill"')
+  })
+
+  // Color/number payloads are pasted into XML attribute values — validation is
+  // the only thing between a CSS color name and a schema-invalid srgbClr @val.
+  it('setFill rejects non-hex color strings', () => {
+    const r = runTxn(opened, {
+      ops: [{ op: 'setFill', target: { slide: 0, el: cardId }, fill: 'red' }],
+    })
+    expect(r.applied).toBe(false)
+    expect(r.failures![0]!.error).toContain('hex color')
+  })
+
+  it('setFill rejects a single-stop gradient', () => {
+    const r = runTxn(opened, {
+      ops: [
+        {
+          op: 'setFill',
+          target: { slide: 0, el: cardId },
+          fill: { stops: [{ pos: 0, color: '#FF0000' }] },
+        },
+      ],
+    })
+    expect(r.applied).toBe(false)
+    expect(r.failures![0]!.error).toContain('at least two')
+  })
+
+  it('setStroke rejects an empty patch (NaN width would reach the XML)', () => {
+    const r = runTxn(opened, {
+      ops: [{ op: 'setStroke', target: { slide: 0, el: cardId }, stroke: {} }],
+    })
+    expect(r.applied).toBe(false)
+    expect(r.failures![0]!.error).toContain('hex color')
+  })
+
+  it('setStroke rejects a non-finite width', () => {
+    const r = runTxn(opened, {
+      ops: [
+        {
+          op: 'setStroke',
+          target: { slide: 0, el: cardId },
+          stroke: { color: '#000000', widthEmu: Number.NaN },
+        },
+      ],
+    })
+    expect(r.applied).toBe(false)
+    expect(r.failures![0]!.error).toContain('finite number')
+  })
+
+  it('setFont rejects a non-hex color', () => {
+    const r = runTxn(opened, {
+      ops: [{ op: 'setFont', target: { slide: 0, el: titleId }, font: { color: 'red' } }],
+    })
+    expect(r.applied).toBe(false)
+    expect(r.failures![0]!.error).toContain('hex color')
+  })
+
+  it('setParagraphFormat rejects non-finite numerics', () => {
+    const r = runTxn(opened, {
+      ops: [
+        {
+          op: 'setParagraphFormat',
+          target: { slide: 0, el: titleId },
+          format: { lineSpacingPct: Number.NaN },
+        },
+      ],
+    })
+    expect(r.applied).toBe(false)
+    expect(r.failures![0]!.error).toContain('finite number')
+  })
+
+  it('setBackground rejects CSS color names', () => {
+    const r = runTxn(opened, {
+      ops: [{ op: 'setBackground', target: { slide: 0 }, kind: 'solid', color: 'blue' }],
+    })
+    expect(r.applied).toBe(false)
+    expect(r.failures![0]!.error).toContain('hex color')
+  })
+
+  it('setPictureOpacity rejects NaN (it would survive the engine clamp)', () => {
+    const r = runTxn(opened, {
+      ops: [{ op: 'setPictureOpacity', target: { slide: 0, el: cardId }, opacity: Number.NaN }],
+    })
+    expect(r.applied).toBe(false)
+    expect(r.failures![0]!.error).toContain('finite number')
+  })
+
+  it('setPictureSrcRect rejects fractions outside 0..1', () => {
+    const r = runTxn(opened, {
+      ops: [
+        {
+          op: 'setPictureSrcRect',
+          target: { slide: 0, el: cardId },
+          srcRect: { l: 2, t: 0, r: 0, b: 0 },
+        },
+      ],
+    })
+    expect(r.applied).toBe(false)
+    expect(r.failures![0]!.error).toContain('fraction 0..1')
+  })
+
+  it('setPictureSrcRect rejects opposing crops that erase the image', () => {
+    const r = runTxn(opened, {
+      ops: [
+        {
+          op: 'setPictureSrcRect',
+          target: { slide: 0, el: cardId },
+          srcRect: { l: 0.6, t: 0, r: 0.6, b: 0 },
+        },
+      ],
+    })
+    expect(r.applied).toBe(false)
+    expect(r.failures![0]!.error).toContain('visible strip')
+  })
+
+  it('setAnimations resolves durable element refs and writes the timing target', () => {
+    const durable = elementDurableId(els()[0]!)!
+    expect(durable).toMatch(/^e_[0-9a-f]{8}$/)
+    const r = runTxn(opened, {
+      ops: [
+        {
+          op: 'setAnimations',
+          target: { slide: 0 },
+          items: [
+            { sourceId: durable, effect: 'fade', trigger: 'onClick', durationMs: 500, delayMs: 0 },
+          ],
+        },
+      ],
+    })
+    expect(r.applied).toBe(true)
+    const anims = getSlideAnimations(opened.deck.slides[0]!)
+    expect(anims).toHaveLength(1)
+    expect(anims[0]!.effect).toBe('fade')
+  })
+
+  it('setAnimations rejects an unresolvable sourceId instead of silently wiping', () => {
+    const r = runTxn(opened, {
+      ops: [
+        {
+          op: 'setAnimations',
+          target: { slide: 0 },
+          items: [
+            {
+              sourceId: 'e_ghost',
+              effect: 'fade',
+              trigger: 'onClick',
+              durationMs: 500,
+              delayMs: 0,
+            },
+          ],
+        },
+      ],
+    })
+    expect(r.applied).toBe(false)
+    expect(r.failures![0]!.error).toContain('no element "e_ghost"')
+  })
+
+  it('setAnimations rejects unknown effect / trigger / non-finite timings', () => {
+    const base = { sourceId: titleId, durationMs: 500, delayMs: 0 }
+    for (const [patch, needle] of [
+      [{ effect: 'sparkle', trigger: 'onClick' }, 'effect'],
+      [{ effect: 'fade', trigger: 'sometime' }, 'trigger'],
+      [{ effect: 'fade', trigger: 'onClick', durationMs: Number.NaN }, 'durationMs'],
+      [{ effect: 'fade', trigger: 'onClick', delayMs: -1 }, 'delayMs'],
+    ] as const) {
+      const r = runTxn(opened, {
+        ops: [{ op: 'setAnimations', target: { slide: 0 }, items: [{ ...base, ...patch }] }],
+      })
+      expect(r.applied).toBe(false)
+      expect(r.failures![0]!.error).toContain(needle)
+    }
+  })
+
+  it('setTransition rejects unmapped kinds (they would serialize as literal text)', () => {
+    const r = runTxn(opened, {
+      ops: [{ op: 'setTransition', target: { slide: 0 }, kind: 'flip' }],
+    })
+    expect(r.applied).toBe(false)
+    expect(r.failures![0]!.error).toContain('one of')
+  })
+
+  it('setAdvanceTime rejects negative/NaN ms (advTm is unsigned)', () => {
+    for (const ms of [-5, Number.NaN]) {
+      const r = runTxn(opened, {
+        ops: [{ op: 'setAdvanceTime', target: { slide: 0 }, ms }],
+      })
+      expect(r.applied).toBe(false)
+      expect(r.failures![0]!.error).toContain('non-negative')
+    }
+  })
+
+  it('setSlideSize rejects non-positive dimensions', () => {
+    const r = runTxn(opened, { ops: [{ op: 'setSlideSize', cx: 0, cy: 6858000 }] })
+    expect(r.applied).toBe(false)
+  })
+
+  it('addChart rejects empty categories/series with the actual reason', () => {
+    const offset = { x: 0, y: 0, cx: 4572000, cy: 3200400 }
+    const r1 = runTxn(opened, {
+      ops: [
+        {
+          op: 'addChart',
+          target: { slide: 0 },
+          kind: 'bar',
+          categories: [],
+          series: [{ name: 'S', values: [1] }],
+          offset,
+        },
+      ],
+    })
+    expect(r1.applied).toBe(false)
+    expect(r1.failures![0]!.error).toContain('at least one category')
+    const r2 = runTxn(opened, {
+      ops: [
+        {
+          op: 'addChart',
+          target: { slide: 0 },
+          kind: 'bar',
+          categories: ['A'],
+          series: [],
+          offset,
+        },
+      ],
+    })
+    expect(r2.applied).toBe(false)
+    expect(r2.failures![0]!.error).toContain('at least one {name, values[]}')
+  })
+
+  it('insertSlidePptx rejects a source missing rels/media/layoutChain (TypeError otherwise)', () => {
+    const r = runTxn(opened, {
+      ops: [
+        {
+          op: 'insertSlidePptx',
+          at: 0,
+          source: { srcSlidePath: 'ppt/slides/slide1.xml', slideXml: '<p:sld/>' },
+        },
+      ],
+    })
+    expect(r.applied).toBe(false)
+    expect(r.failures![0]!.error).toContain('source.rels')
+  })
+
+  it('setConnectorEndpoints refuses non-connectors and unresolvable anchors, applies to connectors', () => {
+    const onShape = runTxn(opened, {
+      ops: [
+        {
+          op: 'setConnectorEndpoints',
+          target: { slide: 0, el: cardId },
+          p1: { x: 0, y: 0 },
+          p2: { x: 914400, y: 914400 },
+        },
+      ],
+    })
+    expect(onShape.applied).toBe(false)
+    expect(onShape.failures![0]!.error).toContain('not a connector')
+
+    const cxn = addElement(opened.deck.slides[0]!, {
+      kind: 'line',
+      offset: { x: 0, y: 0, cx: 914400, cy: 914400 },
+    })
+    const badAnchor = runTxn(opened, {
+      ops: [
+        {
+          op: 'setConnectorEndpoints',
+          target: { slide: 0, el: cxn.id },
+          p1: { x: 0, y: 0 },
+          p2: { x: 914400, y: 914400 },
+          start: { targetId: 'e_ghost', idx: 1 },
+        },
+      ],
+    })
+    expect(badAnchor.applied).toBe(false)
+    expect(badAnchor.failures![0]!.error).toContain('does not resolve')
+
+    // per_op does not roll back a failed apply: the bad anchor must reject
+    // before the box mutation, or the connector stays moved on failure
+    const beforeBox = { ...els().find((x) => x.id === cxn.id)!.transform.offset }
+    const perOp = runTxn(opened, {
+      isolation: 'per_op',
+      ops: [
+        {
+          op: 'setConnectorEndpoints',
+          target: { slide: 0, el: cxn.id },
+          p1: { x: 457200, y: 457200 },
+          p2: { x: 1828800, y: 1828800 },
+          end: { targetId: 'e_ghost', idx: 0 },
+        },
+      ],
+    })
+    expect(perOp.applied).toBe(false)
+    expect(els().find((x) => x.id === cxn.id)!.transform.offset).toEqual(beforeBox)
+
+    const ok = runTxn(opened, {
+      ops: [
+        {
+          op: 'setConnectorEndpoints',
+          target: { slide: 0, el: cxn.id },
+          p1: { x: 914400, y: 0 },
+          p2: { x: 0, y: 914400 },
+        },
+      ],
+    })
+    expect(ok.applied).toBe(true)
+    const live = els().find((x) => x.id === cxn.id)!
+    expect(live.transform.offset).toEqual({ x: 0, y: 0, cx: 914400, cy: 914400 })
+    expect(live.transform.flipH).toBe(true)
+  })
+
+  it('setPictureSrcRect accepts null per the documented contract', () => {
+    const r = runTxn(opened, {
+      ops: [{ op: 'setPictureSrcRect', target: { slide: 0, el: cardId }, srcRect: null }],
+    })
+    // null passes validation; the failure is the shape not being a picture
+    expect(r.applied).toBe(false)
+    expect(r.failures![0]!.error).toContain('not a croppable picture')
+  })
+})
+
+describe('media bytes over JSON (base64 / data URL)', () => {
+  const PNG_B64 =
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+  const offset = { x: 0, y: 0, cx: 914400, cy: 914400 }
+
+  it('addPicture accepts a base64 string (the AI tool channel cannot carry binary)', () => {
+    const r = runTxn(opened, {
+      ops: [{ op: 'addPicture', target: { slide: 0 }, bytes: PNG_B64, ext: 'png', offset }],
+    })
+    expect(r.applied).toBe(true)
+    expect(r.records![0]!.created).toHaveLength(1)
+    expect(els().some((x) => x.type === 'picture')).toBe(true)
+  })
+
+  it('addPicture derives a missing ext from a data URL and replacePicture round-trips', () => {
+    const r = runTxn(opened, {
+      ops: [
+        {
+          op: 'addPicture',
+          target: { slide: 0 },
+          bytes: `data:image/png;base64,${PNG_B64}`,
+          offset,
+        },
+      ],
+    })
+    expect(r.applied).toBe(true)
+    const pic = els().find((x) => x.type === 'picture')!
+    const r2 = runTxn(opened, {
+      ops: [
+        {
+          op: 'replacePicture',
+          target: { slide: 0, el: pic.id },
+          bytes: `data:image/png;base64,${PNG_B64}`,
+        },
+      ],
+    })
+    expect(r2.applied).toBe(true)
+  })
+
+  it('setImageFill accepts data-URL bytes on a shape', () => {
+    const r = runTxn(opened, {
+      ops: [
+        {
+          op: 'setImageFill',
+          target: { slide: 0, el: cardId },
+          source: { bytes: `data:image/png;base64,${PNG_B64}` },
+        },
+      ],
+    })
+    expect(r.applied).toBe(true)
+    expect((els().find((x) => x.id === cardId) as TextElement).fill?.type).toBe('image')
+  })
+
+  it('garbage byte strings are rejected with a guided error', () => {
+    const r = runTxn(opened, {
+      ops: [{ op: 'addPicture', target: { slide: 0 }, bytes: 'not base64!!', ext: 'png', offset }],
+    })
+    expect(r.applied).toBe(false)
+    expect(r.failures![0]!.error).toContain('base64')
   })
 })
 
@@ -685,5 +1063,161 @@ describe('applyTheme op', () => {
     })
     expect(r.applied).toBe(false)
     expect(r.failures![0]!.error).toContain('colors.accent1')
+  })
+})
+
+describe('XML-invalid characters are rejected at plan time', () => {
+  const vt = String.fromCharCode(0x0b)
+
+  it('setText with a vertical tab fails guided, nothing applied', () => {
+    const r = runTxn(opened, {
+      ops: [
+        {
+          op: 'setText',
+          target: { slide: 0, el: titleId },
+          paragraphs: [{ runs: [{ text: `PDF${vt}line` }] }],
+        },
+      ],
+    })
+    expect(r.applied).toBe(false)
+    expect(r.failures![0]!.error).toContain('paragraphs[0].runs[0].text')
+    expect(r.failures![0]!.error).toContain('\\u000B')
+    const title = els().find((e) => e.id === titleId) as TextElement
+    expect(title.text!.paragraphs[0]!.runs[0]!.text).toBe('Title')
+  })
+
+  it('tab and newline are legal XML and pass', () => {
+    const r = runTxn(opened, {
+      ops: [
+        {
+          op: 'setText',
+          target: { slide: 0, el: titleId },
+          paragraphs: [{ runs: [{ text: 'a\tb\nc' }] }],
+        },
+      ],
+    })
+    expect(r.applied).toBe(true)
+  })
+
+  it('covers every string field, not just text payloads', () => {
+    const r = runTxn(opened, {
+      ops: [{ op: 'setNotes', target: { slide: 0 }, text: `n${String.fromCharCode(0)}` }],
+    })
+    expect(r.applied).toBe(false)
+    expect(r.failures![0]!.error).toContain('"text"')
+  })
+})
+
+describe('insert-time options (genpptx parity ops)', () => {
+  it('addTable rejects a length-mismatched colWidthsEmu with a guided error', () => {
+    const r = runTxn(opened, {
+      ops: [
+        {
+          op: 'addTable',
+          target: { slide: 0 },
+          rows: 2,
+          cols: 3,
+          offset: { x: 0, y: 0, cx: 3000000, cy: 1000000 },
+          colWidthsEmu: [1000000, 2000000],
+        },
+      ],
+    })
+    expect(r.applied).toBe(false)
+    expect(r.failures![0]!.error).toContain('exactly 3 positive EMU values')
+  })
+
+  it('addTable applies explicit widths/heights and cell merges', () => {
+    const r = runTxn(opened, {
+      ops: [
+        {
+          op: 'addTable',
+          target: { slide: 0 },
+          rows: 2,
+          cols: 2,
+          offset: { x: 0, y: 0, cx: 3000000, cy: 1000000 },
+          colWidthsEmu: [1000000, 2000000],
+          rowHeightsEmu: [400000, 600000],
+          cellProps: [[{ gridSpan: 2 }, { hMerge: true }], []],
+        },
+      ],
+    })
+    expect(r.applied).toBe(true)
+    const el = els().find((e) => e.id === r.records![0]!.created![0]) as SlideElement
+    expect(el.anchor.originalXml).toContain('<a:gridCol w="1000000"/><a:gridCol w="2000000"/>')
+    expect(el.anchor.originalXml).toContain('<a:tc gridSpan="2">')
+  })
+
+  it('addChart validates colorScheme entries and writes per-series colors', () => {
+    const bad = runTxn(opened, {
+      ops: [
+        {
+          op: 'addChart',
+          target: { slide: 0 },
+          kind: 'bar',
+          categories: ['A'],
+          series: [{ name: 'S', values: [1] }],
+          offset: { x: 0, y: 0, cx: 3000000, cy: 2000000 },
+          colorScheme: ['red'],
+        },
+      ],
+    })
+    expect(bad.applied).toBe(false)
+    expect(bad.failures![0]!.error).toContain('colorScheme[]')
+
+    const ok = runTxn(opened, {
+      ops: [
+        {
+          op: 'addChart',
+          target: { slide: 0 },
+          kind: 'doughnut',
+          categories: ['A', 'B'],
+          series: [{ name: 'S', values: [1, 2] }],
+          offset: { x: 0, y: 0, cx: 3000000, cy: 2000000 },
+          colorScheme: ['#C00000'],
+          holeSizePct: 72,
+        },
+      ],
+    })
+    expect(ok.applied).toBe(true)
+    const chartXml = [...opened.archive.entries.keys()]
+      .filter((p) => /^ppt\/charts\/chart\d+\.xml$/.test(p))
+      .map((p) => Buffer.from(opened.archive.entries.get(p) as Uint8Array).toString('utf8'))
+      .join('')
+    expect(chartXml).toContain('<a:srgbClr val="C00000"/>')
+    expect(chartXml).toContain('<c:holeSize val="72"/>')
+  })
+
+  it('addElement carries adjustments and bodyPr.autoFit into the shape XML', () => {
+    const bad = runTxn(opened, {
+      ops: [
+        {
+          op: 'addElement',
+          target: { slide: 0 },
+          kind: 'roundRect',
+          offset: { x: 0, y: 0, cx: 914400, cy: 914400 },
+          bodyPr: { autoFit: 'grow' },
+        },
+      ],
+    })
+    expect(bad.applied).toBe(false)
+    expect(bad.failures![0]!.error).toContain('"shrink"')
+
+    const r = runTxn(opened, {
+      ops: [
+        {
+          op: 'addElement',
+          target: { slide: 0 },
+          kind: 'roundRect',
+          offset: { x: 0, y: 0, cx: 914400, cy: 914400 },
+          adjustments: { adj: 25000 },
+          bodyPr: { autoFit: 'shrink' },
+          paragraphs: [{ runs: [{ text: 'chip' }] }],
+        },
+      ],
+    })
+    expect(r.applied).toBe(true)
+    const el = els().find((e) => e.id === r.records![0]!.created![0]) as SlideElement
+    expect(el.anchor.originalXml).toContain('<a:gd name="adj" fmla="val 25000"/>')
+    expect(el.anchor.originalXml).toContain('<a:normAutofit/>')
   })
 })

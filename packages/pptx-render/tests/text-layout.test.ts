@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { HeuristicMetrics, OpentypeMetrics, type OpentypeFontLike } from '../src/metrics'
 import { DEFAULT_INSETS_EMU, layoutText } from '../src/text-layout'
 import { makeViewport } from '../src/coords'
-import { DEFAULT_BODY_INSETS, type TextBody } from '@genoffice/pptx-engine'
+import { DEFAULT_BODY_INSETS, type Paragraph, type TextBody } from '@genoffice/pptx-engine'
 
 const vp = makeViewport({ cx: 9525 * 1000, cy: 9525 * 1000 }, 1000) // scale 1
 
@@ -71,6 +71,194 @@ describe('2.3 metrics', () => {
 })
 
 describe('2.3 text layout', () => {
+  it('vertical layout stamps effective rtl on columns (ribbon/editor state parity with horizontal)', () => {
+    const lay = (vert: 'eaVert' | 'vert') =>
+      layoutText({
+        body: body({
+          paragraphs: [{ runs: [{ text: '\u05d0\u05d1\u05d2', fontSize: 18 }] }],
+          vert,
+        }),
+        boxWidthPx: 200,
+        boxHeightPx: 200,
+        metrics: new HeuristicMetrics(),
+        vp,
+      })
+    expect(lay('eaVert').lines.every((l) => l.rtl === true)).toBe(true)
+    expect(lay('vert').lines.every((l) => l.rtl === true)).toBe(true)
+  })
+
+  describe('RTL list mirroring (PowerPoint probe-measured)', () => {
+    const HE = '\u05d0\u05d1\u05d2'
+    const lay = (paragraphs: Paragraph[]) =>
+      layoutText({
+        body: body({ paragraphs }),
+        boxWidthPx: 400,
+        boxHeightPx: 300,
+        metrics: new HeuristicMetrics(),
+        vp,
+      }).lines[0]!
+    const bulletOf = (l: ReturnType<typeof lay>) => l.runs.find((r) => r.isBullet)!
+    const textSpan = (l: ReturnType<typeof lay>) => {
+      const rs = l.runs.filter((r) => !r.isBullet)
+      return [Math.min(...rs.map((r) => r.x)), Math.max(...rs.map((r) => r.x + r.widthPx))]
+    }
+
+    it('RTL bullet hangs on the right of the text, flush right by default (marL from the right edge)', () => {
+      const marL = 228600 // 24px at scale 1
+      const line = lay([
+        {
+          runs: [{ text: HE, fontSize: 18 }],
+          rtl: true,
+          marL,
+          indent: -marL,
+          bullet: { type: 'char', char: '•' },
+        },
+      ])
+      const b = bulletOf(line)
+      const [tl, tr] = textSpan(line)
+      expect(b.x).toBeGreaterThan(tr) // glyph right of the body text
+      // bulletX = marL + indent = 0 → glyph right edge at the box right edge
+      expect(b.x + b.widthPx).toBeCloseTo(400, 0)
+      // body text ends marL short of the right edge
+      expect(tr).toBeCloseTo(400 - 24, 0)
+      expect(tl).toBeGreaterThan(0)
+    })
+
+    it('explicit physical left align keeps the RTL bullet adjacent at the text right', () => {
+      const marL = 228600
+      const line = lay([
+        {
+          runs: [{ text: HE, fontSize: 18 }],
+          rtl: true,
+          align: 'left',
+          marL,
+          indent: -marL,
+          bullet: { type: 'char', char: '•' },
+        },
+      ])
+      const b = bulletOf(line)
+      const [tl, tr] = textSpan(line)
+      expect(tl).toBeCloseTo(0, 0) // physical left, like PowerPoint
+      // reserved advance between text end and glyph = -indent - bulletW
+      expect(b.x - tr).toBeCloseTo(24 - b.widthPx, 0)
+    })
+
+    it('numbered RTL bullet renders with an RTL base ("1." displays as ".1")', () => {
+      const marL = 342900
+      const line = lay([
+        {
+          runs: [{ text: HE, fontSize: 18 }],
+          rtl: true,
+          marL,
+          indent: -marL,
+          bullet: { type: 'number' },
+        },
+      ])
+      expect(bulletOf(line).rtl).toBe(true)
+    })
+
+    it('justified RTL paragraph: spread and final lines share the mirrored right boundary', () => {
+      const marL = 228600 // 24px: mirrored to the right edge
+      const long = '\u05d0\u05d1\u05d2 '.repeat(20).trim()
+      const layout = layoutText({
+        body: body({
+          paragraphs: [{ runs: [{ text: long, fontSize: 18 }], rtl: true, align: 'justify', marL }],
+        }),
+        boxWidthPx: 200,
+        boxHeightPx: 400,
+        metrics: new HeuristicMetrics(),
+        vp,
+      })
+      expect(layout.lines.length).toBeGreaterThan(1)
+      const edges = layout.lines.map((l) => Math.max(...l.runs.map((r) => r.x + r.widthPx)))
+      for (const e of edges) expect(e).toBeCloseTo(200 - 24, 0)
+      expect(Math.min(...layout.lines[0]!.runs.map((r) => r.x))).toBeCloseTo(0, 0)
+    })
+
+    it('LTR control: bullet stays at the left', () => {
+      const marL = 228600
+      const line = lay([
+        {
+          runs: [{ text: 'Latin', fontSize: 18 }],
+          marL,
+          indent: -marL,
+          bullet: { type: 'char', char: '•' },
+        },
+      ])
+      const b = bulletOf(line)
+      const [tl] = textSpan(line)
+      expect(b.x).toBeCloseTo(0, 0)
+      expect(tl).toBeCloseTo(24, 0)
+      expect(b.rtl).toBeUndefined()
+    })
+  })
+
+  it('paragraph rtl=true: RTL base for pure-LTR text (trailing neutral moves left, default align right)', () => {
+    const lay = (rtl?: boolean) =>
+      layoutText({
+        body: body({ paragraphs: [{ runs: [{ text: 'Hi!', fontSize: 18 }], rtl }] }),
+        boxWidthPx: 400,
+        boxHeightPx: 200,
+        metrics: new HeuristicMetrics(),
+        vp,
+      }).lines[0]!
+    const rtlLine = lay(true)
+    // UAX#9 with an RTL base: the trailing '!' (neutral) takes the base level and
+    // renders at the visual left of the LTR word
+    const bang = rtlLine.runs.find((r) => r.text.includes('!'))!
+    const word = rtlLine.runs.find((r) => r.text.includes('Hi'))!
+    expect(bang.x).toBeLessThan(word.x)
+    // Default alignment is right (applied as an x offset; TextLine.align only carries explicit values)
+    const rightEdge = Math.max(...rtlLine.runs.map((r) => r.x + r.widthPx))
+    expect(rightEdge).toBeCloseTo(400, 0)
+    expect(rtlLine.align).toBeUndefined()
+    // Without the attribute the first strong char (LTR) wins: single run, no reorder, left aligned
+    const ltrLine = lay(undefined)
+    expect(ltrLine.runs.map((r) => r.text).join('')).toBe('Hi!')
+    expect(Math.min(...ltrLine.runs.map((r) => r.x))).toBeCloseTo(0, 0)
+  })
+
+  it('paragraph rtl=true: logical-first LTR run renders at the right in mixed text', () => {
+    const lay = (rtl?: boolean) =>
+      layoutText({
+        body: body({
+          paragraphs: [{ runs: [{ text: 'AB \u05d0\u05d1\u05d2', fontSize: 18 }], rtl }],
+        }),
+        boxWidthPx: 400,
+        boxHeightPx: 200,
+        metrics: new HeuristicMetrics(),
+        vp,
+      }).lines[0]!
+    const xOf = (line: ReturnType<typeof lay>, t: string) =>
+      line.runs.find((r) => r.text.includes(t))!.x
+    const rtlLine = lay(true)
+    expect(xOf(rtlLine, 'AB')).toBeGreaterThan(xOf(rtlLine, '\u05d0'))
+    // Inferred base is LTR here (first strong char is 'A'): 'AB' stays left
+    const autoLine = lay(undefined)
+    expect(xOf(autoLine, 'AB')).toBeLessThan(xOf(autoLine, '\u05d0'))
+  })
+
+  it('paragraph rtl=false: explicit LTR base overrides RTL-first inference (no default right align)', () => {
+    const lay = (rtl?: boolean) =>
+      layoutText({
+        body: body({
+          paragraphs: [{ runs: [{ text: '\u05d0\u05d1\u05d2 AB', fontSize: 18 }], rtl }],
+        }),
+        boxWidthPx: 400,
+        boxHeightPx: 200,
+        metrics: new HeuristicMetrics(),
+        vp,
+      }).lines[0]!
+    // Inferred RTL base right-aligns (as an x offset); explicit rtl="0" restores the left edge
+    const inferred = lay(undefined)
+    expect(Math.max(...inferred.runs.map((r) => r.x + r.widthPx))).toBeCloseTo(400, 0)
+    const ltrLine = lay(false)
+    expect(Math.min(...ltrLine.runs.map((r) => r.x))).toBeCloseTo(0, 0)
+    // Base LTR keeps the logical-first Hebrew run at the visual left
+    const xOf = (t: string) => ltrLine.runs.find((r) => r.text.includes(t))!.x
+    expect(xOf('\u05d0')).toBeLessThan(xOf('AB'))
+  })
+
   it('single short line stays one line', () => {
     const layout = layoutText({
       body: body({ paragraphs: [{ runs: [{ text: 'Hi', fontSize: 18 }] }] }),
@@ -1309,4 +1497,131 @@ describe('kerning threshold (rPr kern)', () => {
     })
     expect(l2.lines[0]!.runs[0]!.kerningOff).toBeUndefined()
   })
+})
+
+describe('paragraph marR / tab stops / dash & wide-space wrapping', () => {
+  const m = new HeuristicMetrics()
+  const lay = (paragraphs: Paragraph[], boxWidthPx = 200) =>
+    layoutText({ body: body({ paragraphs }), boxWidthPx, boxHeightPx: 400, metrics: m, vp })
+
+  it('marR narrows the wrap width from the right', () => {
+    const p: Paragraph = { runs: [{ text: '一二三四五六七八', fontSize: 18 }] } // 8 × 24px
+    expect(lay([p]).lines).toHaveLength(1)
+    // marR = 100px → avail 100px → 4 chars per line
+    const wrapped = lay([{ ...p, marR: 952500 }]).lines
+    expect(wrapped).toHaveLength(2)
+    expect(wrapped[0]!.runs[0]!.x).toBe(0) // LTR: marR only narrows, the left edge stays
+  })
+
+  it('tab advances to the next custom stop, then to the default grid', () => {
+    const runs = [
+      { text: 'ab', fontSize: 18 },
+      { text: '\t', fontSize: 18 },
+      { text: 'cd', fontSize: 18 },
+    ]
+    const stopped = lay([{ runs, tabStops: [{ pos: 952500 }] }], 400).lines[0]!
+    expect(stopped.runs.find((r) => r.text === 'cd')!.x).toBeCloseTo(100, 0)
+    // No custom stop → the 1" (96px) default grid
+    const grid = lay([{ runs }], 400).lines[0]!
+    expect(grid.runs.find((r) => r.text === 'cd')!.x).toBeCloseTo(96, 0)
+  })
+
+  it('breaks after a dash instead of mid-word', () => {
+    const p: Paragraph = { runs: [{ text: 'Cloud–Edge', fontSize: 18 }] }
+    const lines = lay([p], 100).lines
+    expect(lines).toHaveLength(2)
+    expect(lines[0]!.runs.map((r) => r.text).join('')).toBe('Cloud–')
+    expect(lines[1]!.runs.map((r) => r.text).join('')).toBe('Edge')
+  })
+
+  it('ideographic spaces at a wrap point are swallowed, recorded verbatim, and never indent the next line', () => {
+    const p: Paragraph = { runs: [{ text: '一二三四　　五六七八', fontSize: 18 }] }
+    const lines = lay([p], 100).lines
+    expect(lines).toHaveLength(2)
+    expect(lines[0]!.trailingSpace).toBe(true)
+    expect(lines[0]!.trailingText).toBe('　　')
+    expect(lines[1]!.runs[0]!.x).toBe(0)
+    expect(lines[1]!.runs.map((r) => r.text).join('')).toBe('五六七八')
+  })
+})
+
+it('first-line tabs land on inset-absolute stops despite a first-line indent', () => {
+  const m = new HeuristicMetrics()
+  const lines = layoutText({
+    body: body({
+      paragraphs: [
+        {
+          runs: [
+            { text: 'ab', fontSize: 18 },
+            { text: '\t', fontSize: 18 },
+            { text: 'cd', fontSize: 18 },
+          ],
+          indent: 190500, // 20px first-line indent
+          tabStops: [{ pos: 952500 }], // 100px from the inset edge
+        },
+      ],
+    }),
+    boxWidthPx: 400,
+    boxHeightPx: 100,
+    metrics: m,
+    vp,
+  }).lines
+  // drawn x = line-local x + first-line shift; the stop is absolute, so 'cd' sits at 100px
+  expect(lines[0]!.runs.find((r) => r.text === 'cd')!.x).toBeCloseTo(100, 0)
+})
+
+it('a positive first-line indent consumes first-line wrap budget (hanging widens it)', () => {
+  const m = new HeuristicMetrics()
+  const lay = (indent?: number) =>
+    layoutText({
+      body: body({
+        paragraphs: [
+          {
+            runs: [{ text: '一二三四五六七八', fontSize: 18 }],
+            ...(indent != null ? { indent } : {}),
+          },
+        ],
+      }),
+      boxWidthPx: 100,
+      boxHeightPx: 400,
+      metrics: m,
+      vp,
+    }).lines
+  // 24px/char, 100px box: no indent → 4 chars on line 1
+  expect(lay()[0]!.runs.length).toBe(4)
+  // 20px first-line indent → 80px budget → 3 chars, drawn starting at 20px
+  const indented = lay(190500)
+  expect(indented[0]!.runs.length).toBe(3)
+  expect(indented[0]!.runs[0]!.x).toBeCloseTo(20, 0)
+  expect(indented[1]!.runs[0]!.x).toBe(0)
+})
+
+it('anchorCtr centers the text block bounding box horizontally (alignment stays within)', () => {
+  const m = new HeuristicMetrics()
+  const lay = (anchorCtr?: boolean) =>
+    layoutText({
+      body: body({
+        paragraphs: [
+          { runs: [{ text: '一二三四', fontSize: 18 }] }, // 96px
+          { runs: [{ text: '一二', fontSize: 18 }] }, // 48px
+        ],
+        ...(anchorCtr ? { anchorCtr } : {}),
+      }),
+      boxWidthPx: 200,
+      boxHeightPx: 200,
+      metrics: m,
+      vp,
+    }).lines
+  expect(lay()[0]!.runs[0]!.x).toBe(0)
+  const centered = lay(true)
+  // block width 96 → dx = (200-96)/2 = 52; the narrower line keeps its left alignment within the block
+  expect(centered[0]!.runs[0]!.x).toBeCloseTo(52, 0)
+  expect(centered[1]!.runs[0]!.x).toBeCloseTo(52, 0)
+})
+
+it('enclosed alphanumerics measure full-width in the missing-glyph fallback', () => {
+  const m = new HeuristicMetrics()
+  const style = { fontFamily: 'Century Gothic', fontSizePx: 100, bold: false, italic: false }
+  // ⑤ falls back to a CJK font at draw time; measuring it narrow overlaps the next run
+  expect(m.measure('⑤', style)).toBeCloseTo(100, 0)
 })

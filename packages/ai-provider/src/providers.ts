@@ -7,7 +7,6 @@ import type { AiProviderId, AiProviderMeta, AiSettings, LegacyAiSettings } from 
  */
 export const GENSPARK_LLM_BASE_URLS = {
   anthropic: 'https://www.genspark.ai/api/anthropic',
-  gemini: 'https://www.genspark.ai/api/llm_proxy/gemini/v1beta',
   openai: 'https://www.genspark.ai/api/llm_proxy/v1',
 } as const
 
@@ -28,16 +27,14 @@ export const AI_PROVIDERS: AiProviderMeta[] = [
   {
     id: 'genspark',
     label: 'Genspark',
+    // must stay within the proxy's served set (GET /api/llm_proxy/v1/models);
+    // bare gpt-5.6 and the gemini family dropped off it (verified 2026-08-31)
     models: [
       'claude-opus-4-7',
       'claude-opus-4-8',
       'claude-sonnet-4-6',
-      'gpt-5.6',
       'gpt-5.6-terra',
       'gpt-5.6-luna',
-      'gemini-3.1-pro-preview',
-      'gemini-3-flash-preview',
-      'gemini-3.7-flash',
     ],
     defaultModel: 'claude-opus-4-7',
     keyPlaceholder: 'Not required - sign in to Genspark',
@@ -75,10 +72,10 @@ export const AI_PROVIDERS: AiProviderMeta[] = [
   {
     id: 'deepseek',
     label: 'DeepSeek',
-    // V4 ids per api-docs.deepseek.com (2026-08). The deepseek-chat /
-    // deepseek-reasoner aliases were retired 2026-07-24; thinking mode is now
-    // a request parameter, so both ids drive the tool-calling agent loop.
-    models: ['deepseek-v4-pro', 'deepseek-v4-flash'],
+    // V4 ids per api-docs.deepseek.com (2026-08). Vision Exp is available
+    // through the normal DeepSeek API key; indirect-route aliases such as
+    // `-openrouter` do not belong in this direct-provider list.
+    models: ['deepseek-v4-pro', 'deepseek-v4-flash', 'deepseek-v4-flash-vision-exp'],
     defaultModel: 'deepseek-v4-pro',
     keyPlaceholder: 'sk-...',
   },
@@ -267,6 +264,42 @@ const RETIRED_MODELS: Partial<Record<AiProviderId, Record<string, string>>> = {
     'deepseek-chat': 'deepseek-v4-flash',
     'deepseek-reasoner': 'deepseek-v4-flash',
   },
+  // proxy stopped serving bare gpt-5.6 (400) and removed the gemini route
+  // entirely (405), verified 2026-08-31; gemini selections fall back to the
+  // provider default since no gemini id is served at all
+  genspark: {
+    'gpt-5.6': 'gpt-5.6-terra',
+    'gemini-3.1-pro-preview': 'claude-opus-4-7',
+    'gemini-3-flash-preview': 'claude-opus-4-7',
+    'gemini-3.7-flash': 'claude-opus-4-7',
+  },
+}
+
+/**
+ * Per-turn output cap applied when the settings carry none. Every app's AI IPC
+ * handler used to hardcode this 8192 with no user-facing way to raise it, which
+ * is exactly the budget a reasoning model burns on thinking before it writes any
+ * prose (see AiSettings.maxOutputTokens).
+ */
+export const DEFAULT_MAX_OUTPUT_TOKENS = 8192
+/** bounds accepted for AiSettings.maxOutputTokens: below the first a short answer cannot even finish, above the second one turn risks the whole context window */
+export const MIN_MAX_OUTPUT_TOKENS = 1024
+export const MAX_MAX_OUTPUT_TOKENS = 131072
+
+/** Out-of-range or non-finite input falls back to a bound / the default (a mistyped settings field must not kill AI features) */
+export function clampMaxOutputTokens(value: unknown): number {
+  const n = typeof value === 'number' ? Math.floor(value) : Number.NaN
+  if (!Number.isFinite(n)) return DEFAULT_MAX_OUTPUT_TOKENS
+  return Math.min(MAX_MAX_OUTPUT_TOKENS, Math.max(MIN_MAX_OUTPUT_TOKENS, n))
+}
+
+/** The effective per-turn output cap of a settings object (clamped; absent → default) */
+export function maxOutputTokensOf(
+  settings: Pick<AiSettings, 'maxOutputTokens'> | null | undefined,
+): number {
+  return settings?.maxOutputTokens === undefined
+    ? DEFAULT_MAX_OUTPUT_TOKENS
+    : clampMaxOutputTokens(settings.maxOutputTokens)
 }
 
 /** pasted keys/URLs often carry stray whitespace, which turns into a 401 with a valid key */
@@ -325,5 +358,12 @@ export function resolveAiSettings(
     providers: trimConfigs(migrateRetiredModels(providers)),
     developerMode: stored.developerMode ?? defaults.developerMode,
     gskToolsEnabled: stored.gskToolsEnabled ?? defaults.gskToolsEnabled ?? true,
+    // clamped on read: a hand-edited settings file with an absurd cap must not be
+    // forwarded to the endpoint verbatim
+    ...(stored.maxOutputTokens !== undefined || defaults.maxOutputTokens !== undefined
+      ? {
+          maxOutputTokens: clampMaxOutputTokens(stored.maxOutputTokens ?? defaults.maxOutputTokens),
+        }
+      : {}),
   }
 }

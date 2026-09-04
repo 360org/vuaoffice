@@ -37,14 +37,21 @@ export interface Run {
   fontAscii?: string
   /** complex-script-slot font (w:rFonts w:cs, literal attribute only — theme refs stay in rawRPr) */
   fontCs?: string
+  /** font/fontAscii values that were resolved from theme refs at parse time; generate
+   * treats model == resolved as untouched so the raw theme attrs are not materialized */
+  themeRFonts?: { font?: string; fontAscii?: string }
   /** Complex-script font (w:rFonts cs/cstheme, theme-resolved). Display only; saving is kept faithful by rawRPr */
   csFont?: string
   /** right-to-left run (w:rtl): text stored in logical order, rendered RTL */
   rtl?: boolean
   /** Character spacing (w:spacing, twips, may be negative). Display only; saving is kept faithful by rawRPr */
   charSpacingTwips?: number
-  /** w:caps ('all') / w:smallCaps ('small') display transform. Display only; saving is kept faithful by rawRPr */
-  caps?: 'all' | 'small'
+  /** w:caps ('all') / w:smallCaps ('small') display transform, 'none' = explicit off. Display only; saving is kept faithful by rawRPr */
+  caps?: 'all' | 'small' | 'none'
+  /** w:vanish hidden text, resolved through the style chain at parse (an explicit
+   *  run value wins; w:specVanish style separators stay visible). Display only;
+   *  saving is kept faithful by rawRPr */
+  vanish?: boolean
   /** Horizontal character scale percent (w:w). Display only (approximated as spacing); saving is kept faithful by rawRPr */
   charScalePct?: number
   /** OOXML named highlight color (w:highlight), e.g. "yellow" */
@@ -142,6 +149,11 @@ export interface Run {
     wrap?: ImageWrap
     offsetXEmu?: number
     offsetYEmu?: number
+    /** wp:anchor text-wrap distances (EMU; display-only) */
+    wrapDistTopEmu?: number
+    wrapDistBottomEmu?: number
+    wrapDistLeftEmu?: number
+    wrapDistRightEmu?: number
     /** wp:anchor allowOverlap="0" (display-only collision hint) */
     noOverlap?: boolean
     /** picture outline (pic:spPr a:ln solid fill, display-only) */
@@ -253,6 +265,20 @@ export interface ParaFrame {
   wrap?: 'none' | 'around' | 'through' | 'notBeside' | 'auto'
 }
 
+/**
+ * Character-unit indents a w:ind specifies (w:leftChars / w:rightChars /
+ * w:firstLineChars / w:hangingChars), in hundredths of a character — the way
+ * CJK documents express "first-line indent: 2 characters". An explicit 0 is
+ * recorded as such: Word writes it to mean "this indent is absolute", and it
+ * cancels the value inherited from a parent style.
+ */
+export interface CharIndents {
+  left?: number
+  right?: number
+  firstLine?: number
+  hanging?: number
+}
+
 export interface ParaFormat {
   /** w:jc */
   align?: ParaAlign
@@ -272,8 +298,15 @@ export interface ParaFormat {
   indentLeft?: number
   /** right indent in twips (w:ind w:right) */
   indentRight?: number
-  /** first-line indent in twips; positive = w:firstLine, negative = w:hanging */
+  /** first-line indent in twips; positive = w:firstLine, negative = w:hanging.
+   *  Character-unit indents (w:firstLineChars…) are already resolved into these
+   *  twips fields at parse time — see resolveCharIndents. */
   indentFirstLine?: number
+  /** the active character-unit indents (direct w:ind or style chain) the twips
+   *  fields above were resolved from. Parse-side only: a save that rebuilds w:ind
+   *  writes the matching `*Chars="0"` for them (mergePPrFormat), or Word keeps
+   *  preferring the character indent over the new twips value on reload. */
+  charIndents?: CharIndents
   /** space above the paragraph in twips (w:spacing w:before) */
   spaceBefore?: number
   /** space below the paragraph in twips (w:spacing w:after) */
@@ -298,6 +331,10 @@ export interface ParaFormat {
   contextualSpacing?: boolean
   /** paragraph shading fill, hex without '#' (w:shd w:fill) */
   shadingFill?: string
+  /** display-only blend for pattern shading (w:shd pctNN/stripes over the fill):
+   *  drives the rendered background; never written back — the raw w:shd
+   *  round-trips through shadingFill */
+  shadingDisplay?: string
   /** paragraph borders, subset of "tblr" e.g. "b" or "tblr" (w:pBdr, single lines) */
   borders?: string
   /**
@@ -374,6 +411,22 @@ export interface SectionSettings {
     widthPt: number
     /** hex without '#', first side declaring a literal color */
     color?: string
+    /** per-side lines; a missing side draws no border */
+    sides?: Partial<
+      Record<
+        'top' | 'right' | 'bottom' | 'left',
+        {
+          /** OOXML line style (w:val: single, double, thinThickSmallGap, …) */
+          val: string
+          /** line width in points (w:sz eighth-points / 8) */
+          widthPt: number
+          /** border distance in points (w:space) */
+          spacePt: number
+          /** hex without '#' */
+          color?: string
+        }
+      >
+    >
   }
   /** number of text columns (w:cols w:num), 1 = normal */
   columns: number
@@ -428,6 +481,9 @@ export interface HfParagraph extends ParaFormat {
   /** w:framePr w:xAlign — text frame floated at the margin edge; the line
    *  overlays the following paragraph's flow line instead of stacking (Word) */
   frameXAlign?: 'left' | 'center' | 'right'
+  /** surfaced content of a floating textbox (wp:anchor / absolute VML shape):
+   *  drawn at the anchor in Word, so it adds no strip flow height */
+  boxAnchored?: boolean
   /** w:ptab alignments indexed by overall tab order (regular w:tab slots are undefined); margin-relative, ignores tab stops */
   ptabAligns?: Array<'left' | 'center' | 'right' | undefined>
   runs: Run[]
@@ -556,8 +612,8 @@ export interface NoteRun {
   fontAscii?: string
   /** East-Asian font (w:eastAsia) — save-side only, parse does not recover it */
   font?: string
-  /** w:caps ('all') / w:smallCaps ('small') display transform */
-  caps?: 'all' | 'small'
+  /** w:caps ('all') / w:smallCaps ('small') display transform, 'none' = explicit off */
+  caps?: 'all' | 'small' | 'none'
 }
 
 /** One footnote or endnote (display/edit model; separators are preserved separately). */
@@ -568,6 +624,17 @@ export interface NoteInfo {
   text: string
   /** rich display runs (one group per paragraph); gone when an edit rebuilds the note as plain text */
   richParas?: NoteRun[][]
+  /** no w:footnoteRef/w:endnoteRef run in the note body: Word renders the entry without a number mark */
+  noRefMark?: true
+  /** w:pStyle of the first note paragraph (notes without one render with Normal metrics) */
+  styleId?: string
+  /** direct w:spacing of the first note paragraph (overrides the style chain) */
+  spacing?: {
+    beforeTwips?: number
+    afterTwips?: number
+    lineRule?: 'auto' | 'atLeast' | 'exact'
+    lineRawTwips?: number
+  }
 }
 
 /** Display/edit model for a protected field paragraph. */
@@ -587,6 +654,13 @@ export interface FieldDisplay {
   /** display-only metrics of the entry paragraph (direct pPr/run values; Word
    *  sizes TOC lines by them while the style carries nothing) */
   szHalfPoints?: number
+  /** face of the visible result runs (text fields): drives the line factor */
+  fontFamily?: string
+  /** per-run sizes for mixed-size text fields (a manual drop-cap letter next to
+   *  body text): rendered as sized spans; szHalfPoints keeps the dominant size */
+  runs?: Array<{ text: string; szHalfPoints?: number }>
+  /** explicit paragraph alignment (text fields): overrides the doc default */
+  align?: 'left' | 'center' | 'right'
   lineRule?: 'auto' | 'atLeast' | 'exact'
   lineRawTwips?: number
   lineSpacing?: number
@@ -608,6 +682,16 @@ export interface ChartSeries {
   name?: string
   /** cached numeric values by category position; null = gap in the cache */
   values: (number | null)[]
+  /** explicit series fill (c:ser/c:spPr solid fill), hex without '#' */
+  color?: string
+  /** explicit per-point fills (c:dPt), e.g. pie slice colors; sparse by point index */
+  pointColors?: (string | null)[]
+  /** scatter/bubble: numeric x of each point (c:xVal) */
+  xValues?: (number | null)[]
+  /** bubble: point sizes (c:bubbleSize) */
+  sizes?: (number | null)[]
+  /** scatter: connect the points (c:scatterStyle line*, unless the series line is a:noFill) */
+  line?: boolean
 }
 
 /**
@@ -619,13 +703,23 @@ export interface ChartSeries {
 export interface ChartDisplay {
   /** zip path of the chart part this model was read from */
   partPath: string
-  kind: 'bar' | 'line' | 'pie' | 'area' | 'other'
+  kind: 'bar' | 'line' | 'pie' | 'area' | 'scatter' | 'bubble' | 'other'
   /** bar charts: c:barDir="bar" (horizontal bars); default is column direction */
   horizontal?: boolean
+  /** c:grouping: series stack per category (percentStacked normalizes each category to 100%) */
+  grouping?: 'stacked' | 'percentStacked'
+  /** line charts: draw point markers (c:marker) */
+  markers?: boolean
+  /** doughnut hole as % of the radius (c:holeSize); absent = solid pie */
+  holePct?: number
+  /** legend position (c:legend/c:legendPos); absent = no c:legend element */
+  legendPos?: 'b' | 'l' | 'r' | 't' | 'tr'
   /** chart title; undefined when the chart has no title part (then not editable) */
   title?: string
   categories: string[]
   series: ChartSeries[]
+  /** series color cycle from the chart style + theme accents (hex, no '#'); absent = Office default */
+  palette?: string[]
   /** display size (from wp:extent), editable via the corner resize handle */
   widthPx?: number
   heightPx?: number
@@ -736,6 +830,8 @@ export interface TableCell {
   /** per nested table: how many cell paragraphs precede it (reading-order anchor); absent = after all paragraphs */
   nestedTableAnchors?: number[]
   colSpan?: number
+  /** display-only placeholder spanning a row's w:gridBefore/w:gridAfter columns (no borders/fill, not written back as w:tc) */
+  gridGap?: boolean
   /** 'restart' opens a vertical merge, 'continue' is a merged-away cell */
   vMerge?: 'restart' | 'continue'
   /** cell shading fill, hex without '#' (w:shd w:fill) */
@@ -759,6 +855,18 @@ export interface TableCell {
   cellRevision?: { kind: 'ins' | 'del' } & RevisionInfo
 }
 
+export type TableAutoFitMode = 'contents' | 'window' | 'fixed'
+
+/** Word's Table Style Options (w:tblLook). */
+export interface TableLook {
+  firstRow: boolean
+  lastRow: boolean
+  firstColumn: boolean
+  lastColumn: boolean
+  bandedRows: boolean
+  bandedColumns: boolean
+}
+
 /** Editable interchange model of a table block, extracted from or generated to OOXML. */
 export interface TableModel {
   rows: TableCell[][]
@@ -770,8 +878,17 @@ export interface TableModel {
   widthPct?: number
   /** autofit layout (no fixed w:tblLayout; w:tblW auto/absent/zero or pct): display may widen columns to min-content */
   autoLayout?: boolean
+  /** editable Word AutoFit mode (w:tblLayout + w:tblW) */
+  autoFit?: TableAutoFitMode
+  /** literal w:tblLayout type="fixed": Word keeps the declared column widths even when the
+   * table runs past the paper edge (content clips there), so display must never narrow them */
+  fixedLayout?: boolean
   /** table-level default cell margins (w:tblCellMar) */
   cellMarTwips?: CellMargins
+  /** w:tblCellSpacing (twips, half the gap between adjacent cells); cells render boxed with gaps */
+  cellSpacingTwips?: number
+  /** table shading (tblPr w:shd), hex without '#'; shows through transparent cells and cell-spacing gaps */
+  fill?: string
   /** table-level borders (w:tblBorders); undefined = not declared (default gridlines apply) */
   borders?: TableBorders
   /** table horizontal alignment (tblPr w:jc); default left */
@@ -788,19 +905,25 @@ export interface TableModel {
     yTwips: number
     horzAnchor?: 'page' | 'margin' | 'text'
     vertAnchor?: 'page' | 'margin' | 'text'
+    /** gap between the floating table and surrounding text (w:*FromText) */
+    distanceTwips?: CellMargins
   }
   /** floating table (w:tblpPr): text wraps around the side opposite the anchor */
-  floatSide?: 'left' | 'right'
+  floatSide?: 'left' | 'right' | null
   /** per-row height (twips, w:trHeight; null = not set), aligned with rows */
   rowHeightsTwips?: Array<number | null>
   /** per-row height rule (w:trHeight w:hRule; absent/legacy models = atLeast), aligned with rows */
   rowHeightRules?: Array<'atLeast' | 'exact' | null>
+  /** per-row repeat-as-header flag (w:trPr/w:tblHeader), aligned with rows */
+  repeatHeaderRows?: Array<boolean | null>
   /** per-row raw <w:trPr>…</w:trPr> bytes (passed through verbatim), aligned with rows */
   rawTrPrs?: Array<string | null>
   /** row-level revisions (trPr w:ins/w:del = inserted/deleted row), aligned with rows */
   rowRevisions?: Array<({ kind: 'ins' | 'del' } & RevisionInfo) | null>
   /** table style reference (w:tblStyle w:val); '' = explicitly no style, undefined = leave as-is */
   tblStyleId?: string
+  /** conditional table-style switches (w:tblLook) */
+  tableLook?: TableLook
   /** RTL table (tblPr w:bidiVisual): columns display right to left */
   bidiVisual?: boolean
 }
@@ -905,6 +1028,13 @@ export interface NewImage {
 
 export type BlockType = 'paragraph' | 'heading' | 'listItem' | 'table' | 'image' | 'passthrough'
 
+/** direct w:ind of a textbox anchor paragraph (twips; negative firstLine = hanging) */
+export interface StrayIndent {
+  leftTwips?: number
+  rightTwips?: number
+  firstLineTwips?: number
+}
+
 export interface Block {
   /** stable id for editor bookkeeping */
   id: string
@@ -956,10 +1086,23 @@ export interface Block {
   imageCrop?: { l: number; t: number; r: number; b: number }
   /** fill placement (a:stretch/a:fillRect) as fractions of the shape box; negative = bleed (display-only) */
   imageFillRect?: { l: number; t: number; r: number; b: number }
+  /** Preserved whitespace before an inline picture and its paragraph indents (display-only). */
+  imageLeadingText?: string
+  imageLeadingFont?: string
+  imageLeadingExplicitSpaceWidthPx?: number
+  imageLeadingImplicitSpaceCount?: number
+  imageParagraphIndentLeft?: number
+  imageParagraphIndentRight?: number
+  imageParagraphIndentFirstLine?: number
   /** paragraph alignment of the image (w:jc) */
   imageAlign?: 'left' | 'center' | 'right'
   /** text wrapping of a floating image (wp:anchor); absent = inline (in line with text) */
   imageWrap?: ImageWrap
+  /** wp:anchor text-wrap distances (EMU; display-only) */
+  imageWrapDistTopEmu?: number
+  imageWrapDistBottomEmu?: number
+  imageWrapDistLeftEmu?: number
+  imageWrapDistRightEmu?: number
   /**
    * stacking rank of a floating image among overlapping anchors, decoded from
    * wp:anchor relativeHeight minus the 251658240 base (0 when at/below base).
@@ -984,6 +1127,8 @@ export interface Block {
    */
   imageOffsetXEmu?: number
   imageOffsetYEmu?: number
+  /** wp:anchor locked="1": moving the picture must not change its anchor paragraph */
+  imageAnchorLocked?: boolean
   /** margin-relative wp:align of a floating image (Word position-gallery presets) */
   imagePosH?: 'left' | 'center' | 'right'
   imagePosV?: 'top' | 'center' | 'bottom'
@@ -1020,6 +1165,8 @@ export interface Block {
   strayRuns?: Run[]
   /** w:pStyle of the anchor paragraph; styles strayRuns via data-style */
   strayStyleId?: string
+  /** the anchor paragraph's direct w:ind (display-only, lays out the stray line) */
+  strayIndent?: StrayIndent
   /** text tokens of an OMML formula, in document order */
   formulaDisplay?: FormulaDisplay
   /** display/edit model of an embedded chart (set on chart-labeled blocks) */
@@ -1147,6 +1294,8 @@ export interface TextboxDisplay {
   floating?: boolean
   /** behindDoc="1" anchor: this box paints under the body text */
   behind?: boolean
+  /** wp:anchor relativeHeight rank (display-only): paint order among overlapping floats */
+  z?: number
   /** first-page page-anchored cover art: offsets are raw page coordinates and
    *  the box positions against the page box, not the anchor paragraph */
   pagePinned?: boolean
@@ -1163,6 +1312,9 @@ export interface TextboxDisplay {
   /** the band's top edge (px, offset component of bandBottomPx); the renderer
    *  adds the live box height so in-editor autogrow moves the band with it */
   bandTopPx?: number
+  /** column-spanning wrapSquare band: Word keeps the box on its anchor's page
+   *  and lets it overflow the bottom margin instead of pushing it whole */
+  bandOverflow?: boolean
   /** rotation in degrees clockwise (a:xfrm rot / 60000) */
   rotDeg?: number
   /** border width in CSS px (a:ln w) */
@@ -1246,8 +1398,8 @@ export interface StyleDisplay {
   charSpacingTwips?: number
   /** style-level pPr w:tabs (Word's built-in Header/Footer styles carry the center/right stops) */
   tabStops?: TabStop[]
-  /** w:caps ('all') / w:smallCaps ('small') display transform */
-  caps?: 'all' | 'small'
+  /** w:caps ('all') / w:smallCaps ('small') display transform, 'none' = explicit off */
+  caps?: 'all' | 'small' | 'none'
   /** multiple of single line spacing (w:spacing w:line, lineRule auto) */
   lineSpacing?: number
   /** F1: lineRule for accurate height calculation */
@@ -1263,12 +1415,17 @@ export interface StyleDisplay {
   indentLeftTwips?: number
   indentRightTwips?: number
   indentFirstLineTwips?: number
+  /** character-unit indents from the style definition; their twips value depends
+   *  on each paragraph's text, so the parser resolves them per paragraph */
+  indentChars?: CharIndents
   /** F1: keepNext from style definition */
   keepNext?: boolean
   /** keepLines from style definition */
   keepLines?: boolean
   /** pageBreakBefore from style definition */
   pageBreakBefore?: boolean
+  /** w:suppressAutoHyphens from style definition (tri-state: explicit off overrides the chain) */
+  suppressAutoHyphens?: boolean
   /** F1: contextualSpacing from style definition */
   contextualSpacing?: boolean
   /** paragraph alignment from the style (w:pPr w:jc) */
@@ -1345,6 +1502,8 @@ export interface DocDefaults {
   eastAsiaFont?: string
   /** eastAsiaFont is a lang-based backfill for an empty theme slot, not a document choice */
   eaSlotEmpty?: boolean
+  /** eastAsiaFont was backfilled from w:lang w:eastAsia, not declared */
+  eaFromLang?: boolean
   /** bold/italic/color from rPrDefault (display-layer defaults, used by canvas CSS) */
   bold?: boolean
   italic?: boolean
@@ -1364,6 +1523,8 @@ export interface DocDefaults {
   spaceAfterAuto?: boolean
   /** rPrDefault w:lang w:val (BCP-47) — hyphenation/locale of the body text */
   lang?: string
+  /** pPrDefault w:suppressAutoHyphens — every paragraph opts out of w:autoHyphenation */
+  suppressAutoHyphens?: boolean
 }
 
 /** word/settings.xml w:documentProtection (only the editing restriction subset). */
@@ -1514,6 +1675,10 @@ export interface ParsedDoc {
   autoHyphenation?: boolean
   /** settings.xml <w:balanceSingleByteDoubleByteWidth/> — rPr w:spacing counts double on double-byte characters */
   balanceDbcsSpacing?: boolean
+  /** settings.xml w:characterSpacingControl compressPunctuation* — justified CJK lines compress trailing-blank punctuation */
+  compressPunctuation?: boolean
+  /** settings.xml w:compat <w:adjustLineHeightInTable/> — table-cell lines snap to the typed docGrid like body lines */
+  adjustLineHeightInTable?: boolean
   /** settings.xml w:defaultTabStop in twips (absent = Word's 720); 0 = zero-width default tabs */
   defaultTabStopTwips?: number
   /** first-page header/footer parts (w:type="first"), null when absent */

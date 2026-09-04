@@ -49,6 +49,10 @@ interface Token {
   breakable: boolean
   /** Whether it is whitespace (trailing whitespace may be swallowed when wrapping) */
   isSpace: boolean
+  /** Tab character: width comes from the paragraph's tab stops, not the font */
+  isTab?: boolean
+  /** Layout-computed width (px) overriding the font measurement (tab advance) */
+  wOverride?: number
   /** Forced line break (<a:br/> soft-break sentinel "\n") */
   isBreak?: boolean
   /** Source model run index (index into Paragraph.runs) */
@@ -66,7 +70,7 @@ interface Token {
   /** Run outer shadow (px, offset resolved from dist/dir) */
   shadow?: { color: string; blurPx: number; offsetX: number; offsetY: number }
   /** WordArt gradient text fill (resolved stops + screen angle) */
-  gradient?: { stops: Array<{ pos: number; color: string }>; angleDeg: number }
+  gradient?: { stops: Array<{ pos: number; color: string }>; angleDeg: number; scaled?: boolean }
   /** Run glow (px radius) */
   glow?: { color: string; blurPx: number }
   /** Run reflection (faded mirror below the baseline) */
@@ -120,6 +124,7 @@ function substituteKerning(tok: Token, metrics: FontMetricsProvider): Token {
 
 /** Token width = font advance width + letter spacing × char count (matches canvas letterSpacing: appended after each char) */
 function tokenWidth(tok: Token, metrics: FontMetricsProvider): number {
+  if (tok.wOverride != null) return tok.wOverride
   const w = metrics.measure(tok.text, tok.style)
   return tok.ls ? w + tok.ls * [...tok.text].length : w
 }
@@ -326,6 +331,7 @@ function tokenizeParagraph(p: Paragraph, scale: number, fontScale: number): Toke
               stops: run.gradient.stops.map((s) => ({ pos: s.pos, color: s.color })),
               // OOXML gradient angle is 1/60000° clockwise from the +x axis
               angleDeg: (run.gradient.angle ?? 5400000) / 60000,
+              ...(run.gradient.scaled ? { scaled: true } : {}),
             },
           }
         : {}),
@@ -380,9 +386,13 @@ function tokenizeParagraph(p: Paragraph, scale: number, fontScale: number): Toke
       if (ch === '\n' || ch === '\v') {
         flushWord()
         tokens.push({ ...base, text: '\n', breakable: true, isSpace: false, isBreak: true })
-      } else if (ch === ' ' || ch === '\t') {
+      } else if (ch === ' ' || ch === '　') {
+        // U+3000 ideographic space wraps like whitespace (PowerPoint swallows it at line ends)
         flushWord()
         tokens.push({ ...base, text: ch, breakable: true, isSpace: true })
+      } else if (ch === '\t') {
+        flushWord()
+        tokens.push({ ...base, text: ch, breakable: true, isSpace: true, isTab: true })
       } else if (ch === ' ') {
         // NBSP: glues neighbors into one token but draws/measures at plain-space
         // width (fonts like Carlito have no U+00A0 glyph → the missing-glyph
@@ -391,6 +401,11 @@ function tokenizeParagraph(p: Paragraph, scale: number, fontScale: number): Toke
       } else if (isWideChar(cp)) {
         flushWord()
         tokens.push({ ...base, text: ch, breakable: true, isSpace: false })
+      } else if (BREAK_AFTER_DASH.has(cp) && buf) {
+        // Hyphen/dash after word characters is a break-after opportunity (PowerPoint
+        // wraps "Cloud–Edge" as "Cloud–" + "Edge", never mid-word)
+        buf += ch
+        flushWord()
       } else {
         buf += ch
       }
@@ -498,6 +513,9 @@ const KINSOKU_NO_END = new Set('([{$（［｛＄〈《「『【〔〝｢£¥￡�
 const kinsokuNoStart = (t: Token) => KINSOKU_NO_START.has(t.text)
 const kinsokuNoEnd = (t: Token) => KINSOKU_NO_END.has(t.text)
 
+/** Dashes that allow a break after them (U+2011 non-breaking hyphen intentionally absent). */
+const BREAK_AFTER_DASH = new Set([0x2d, 0x2010, 0x2012, 0x2013, 0x2014])
+
 /** Southeast Asian scripts without spaces (Thai/Burmese/Khmer/Lao); word boundaries need ICU dictionary segmentation. */
 const SEA_RE = /[฀-໿က-႟ក-៿]/
 const WORD_SEG: Intl.Segmenter | null =
@@ -517,11 +535,15 @@ let bidiApi: ReturnType<typeof bidiFactory> | null = null
  * logical order (UAX#9 requires wrap first, reorder after); visualOrder reorders
  * each line once formed.
  */
-function applyBidi(tokens: Token[]): Token[] {
+function applyBidi(tokens: Token[], baseRtl?: boolean): Token[] {
   const text = tokens.map((t) => t.text).join('')
-  if (!RTL_RE.test(text)) return tokens
+  // An explicit RTL base still needs analysis for pure-LTR text (neutrals move to the left edge)
+  if (!RTL_RE.test(text) && !baseRtl) return tokens
   bidiApi ??= bidiFactory()
-  const { levels } = bidiApi.getEmbeddingLevels(text)
+  const { levels } = bidiApi.getEmbeddingLevels(
+    text,
+    baseRtl == null ? undefined : baseRtl ? 'rtl' : 'ltr',
+  )
   const out: Token[] = []
   let off = 0
   for (const tok of tokens) {
@@ -568,8 +590,9 @@ function visualOrder(toks: Token[]): Token[] {
   return arr
 }
 
-/** Paragraph base direction: decided by the first strong-direction character (used for the default alignment; RTL paragraphs without explicit alignment align right). */
+/** Paragraph base direction: explicit a:pPr rtl wins, else the first strong-direction character (used for the default alignment; RTL paragraphs without explicit alignment align right). */
 function paraBaseRtl(p: Paragraph): boolean {
+  if (p.rtl != null) return p.rtl
   for (const r of p.runs) {
     for (const ch of r.text) {
       if (RTL_RE.test(ch)) return true
@@ -593,6 +616,8 @@ interface LaidLine {
   leadAbove?: number
   /** Trailing whitespace was swallowed when wrapping (tells the editor to re-add a space when joining lines) */
   trailingSpace?: boolean
+  /** The exact swallowed whitespace (may be U+3000 / tabs; the editor re-adds it verbatim) */
+  trailingText?: string
   /** The line ends at a soft-break sentinel; value = the sentinel run's model index */
   softBreakAfter?: number
 }
@@ -606,23 +631,30 @@ function layoutParagraph(
   scale: number,
   fontScale: number,
   lnSpcRed = 0,
-  /** First-line width reduction (px): a bullet glyph overflowing the hanging indent
-   *  pushes the first line's text start right, so it must wrap that much earlier. */
+  /** First-line x shift (px): the first-line indent, or the push of a bullet glyph
+   *  overflowing the hanging indent. Shrinks (negative: widens) the first line's wrap
+   *  budget and offsets its tab cursor by the same amount. */
   firstLineShrinkPx = 0,
+  /** Tab geometry: stops + default grid in px measured from the text-frame left inset,
+   *  originPx = the line's x offset (marL) in that same space. */
+  tabs?: { stopsPx: number[]; defaultPx: number; originPx: number },
 ): LaidLine[] {
-  const tokens = applyBidi(tokenizeParagraph(p, scale, fontScale)).map((tok, logicalOrder) => ({
-    ...substituteKerning(tok, metrics),
-    logicalOrder,
-  }))
+  const tokens = applyBidi(tokenizeParagraph(p, scale, fontScale), p.rtl).map(
+    (tok, logicalOrder) => ({
+      ...substituteKerning(tok, metrics),
+      logicalOrder,
+    }),
+  )
   const lines: LaidLine[] = []
   let cur: Token[] = []
   let curW = 0
 
   const pushLine = (toks: Token[]) => {
-    // Strip trailing whitespace (recorded: the editor re-adds a space when joining wrapped lines back into a paragraph)
+    // Strip trailing whitespace (recorded verbatim: the editor re-adds it when joining wrapped lines back into a paragraph)
     let trailingSpace = false
+    let trailingText = ''
     while (toks.length && toks[toks.length - 1]!.isSpace) {
-      toks.pop()
+      trailingText = toks.pop()!.text + trailingText
       trailingSpace = true
     }
     if (!toks.length) {
@@ -671,12 +703,15 @@ function layoutParagraph(
         ascent: m.ascent,
         descent: m.descent,
         singleH: PPT_SINGLE * st.fontSizePx,
-        ...(trailingSpace ? { trailingSpace } : {}),
+        ...(trailingSpace ? { trailingSpace, trailingText } : {}),
       })
       return
     }
     const line = buildLine(toks, metrics, p, scale, lnSpcRed)
-    if (trailingSpace) line.trailingSpace = true
+    if (trailingSpace) {
+      line.trailingSpace = true
+      line.trailingText = trailingText
+    }
     lines.push(line)
   }
 
@@ -692,6 +727,15 @@ function layoutParagraph(
       continue
     }
     endedWithBreak = false
+    if (tok.isTab && tabs) {
+      // Tab advances to the next stop past the cursor; past the last stop, to the default grid
+      const cursor = tabs.originPx + (lines.length === 0 ? firstLineShrinkPx : 0) + curW
+      const stop = tabs.stopsPx.find((s) => s > cursor + 0.5)
+      tok.wOverride = Math.max(
+        (stop ?? (Math.floor(cursor / tabs.defaultPx) + 1) * tabs.defaultPx) - cursor,
+        0,
+      )
+    }
     const w = tokenWidth(tok, metrics)
     // The first line loses firstLineShrinkPx to the overflowing bullet glyph; evaluated
     // lazily because the soft wrap right below can end line 0 for this same token
@@ -986,13 +1030,29 @@ export function layoutText(input: TextLayoutInput): RenderTextLayout {
   // offset that clips the top. Equal to contentHeight under single spacing.
   const extraH = availHeight - (result.inkBottom ?? result.contentHeight)
   const dy = anchor === 'middle' ? extraH / 2 : anchor === 'bottom' ? extraH : 0
-  const lines = dy
-    ? result.lines.map((ln) => ({
-        ...ln,
-        top: ln.top + dy,
-        runs: ln.runs.map((r) => ({ ...r, baselineY: r.baselineY + dy })),
-      }))
-    : result.lines
+  // bodyPr anchorCtr="1": the whole text block (widest-line bounding box) centers
+  // horizontally in the text area; paragraph alignment stays relative within the block.
+  let dxCtr = 0
+  if (body.anchorCtr && numCol === 1) {
+    let minX = Infinity
+    let maxX = -Infinity
+    for (const ln of result.lines) {
+      for (const r of ln.runs) {
+        if (!r.text) continue
+        if (r.x < minX) minX = r.x
+        if (r.x + r.widthPx > maxX) maxX = r.x + r.widthPx
+      }
+    }
+    if (maxX > minX) dxCtr = (availWidth - (maxX - minX)) / 2 - minX
+  }
+  const lines =
+    dy || dxCtr
+      ? result.lines.map((ln) => ({
+          ...ln,
+          top: ln.top + dy,
+          runs: ln.runs.map((r) => ({ ...r, x: r.x + dxCtr, baselineY: r.baselineY + dy })),
+        }))
+      : result.lines
 
   // WordArt text extrusion: depth projected by the body camera tilt (same screen basis
   // as the scene3d shape pipeline: depth leans (sin lon, -sin lat·cos lon) per unit)
@@ -1020,6 +1080,7 @@ export function layoutText(input: TextLayoutInput): RenderTextLayout {
     wrap,
     autofit: body.autofit ?? 'none',
     ...(extrusion ? { extrusion } : {}),
+    ...(body.txWarp ? { txWarp: body.txWarp } : {}),
   }
 }
 
@@ -1142,6 +1203,7 @@ function layoutTextVertical(
     paraStart: boolean
     align?: Paragraph['align']
     alignExplicit?: boolean
+    rtl?: boolean
     softBreakAfter?: number
     /** Space-before/after maps to horizontal gaps between columns (carried by a paragraph's first/last column) */
     gapBefore: number
@@ -1321,6 +1383,7 @@ function layoutTextVertical(
         c.alignExplicit = true
       }
     }
+    if (paraBaseRtl(p)) for (const c of paraCols) c.rtl = true
     cols.push(...paraCols)
   }
 
@@ -1365,6 +1428,7 @@ function layoutTextVertical(
       paraStart: c.paraStart,
       ...(c.softBreakAfter != null ? { softBreakAfter: c.softBreakAfter } : {}),
       ...(c.alignExplicit && c.align ? { align: c.align } : {}),
+      ...(c.rtl ? { rtl: true } : {}),
     }
   })
 
@@ -1413,11 +1477,15 @@ function layoutAll(
     if (symText) bulletText = symText
 
     const textX = marLPx
-    const avail = Math.max(availWidth - textX, 1)
-    // Paragraphs with an RTL base direction (first strong char is RTL) default to right
-    // alignment when none is explicit; affects layout only, not written back to
-    // TextLine.align (an editor commit would store it as an explicit value)
-    const align = p.align ?? (paraBaseRtl(p) ? ('right' as const) : undefined)
+    const marRPx = emuToPx(p.marR ?? 0, scale)
+    const avail = Math.max(availWidth - textX - marRPx, 1)
+    // RTL base direction mirrors the paragraph box (PowerPoint semantics, probe-measured):
+    // marL/indent measure from the RIGHT edge, the bullet glyph hangs on the right, and the
+    // default alignment is right. Explicit algn values stay physical (l = left edge).
+    const mirror = paraBaseRtl(p)
+    // Affects layout only, not written back to TextLine.align (an editor commit would
+    // store it as an explicit value)
+    const align = p.align ?? (mirror ? ('right' as const) : undefined)
     // Bullet glyph style/advance (drawn on the first line only). PowerPoint reserves
     // the glyph's advance like a tab stop: body text can never start before the glyph
     // ends, even when the glyph is wider than the hanging indent (-indent).
@@ -1437,16 +1505,14 @@ function layoutAll(
     // Glyph wider than the hanging indent: the first line's text start shifts right by
     // this much, so the first line must also wrap that much earlier
     const bulletOverflowPx = hasBullet ? Math.max(bulletX + bulletW - textX, 0) : 0
-    const laid = layoutParagraph(
-      p,
-      avail,
-      wrap,
-      metrics,
-      scale,
-      fontScale,
-      lnSpcRed,
-      bulletOverflowPx,
-    )
+    // The first line's x shift: bullet-overflow push, or the first-line indent itself —
+    // it consumes (negative: adds) that much of the first line's wrap budget
+    const firstLineDx = hasBullet ? bulletOverflowPx : indentPx
+    const laid = layoutParagraph(p, avail, wrap, metrics, scale, fontScale, lnSpcRed, firstLineDx, {
+      stopsPx: (p.tabStops ?? []).map((t) => emuToPx(t.pos, scale)),
+      defaultPx: Math.max(emuToPx(p.defTabSz ?? 914400, scale), 1),
+      originPx: textX,
+    })
     // Space before/after: spcPts is absolute pt; spcPct is a percentage of the paragraph's single line height (100 = one line).
     // PowerPoint ignores space-before on a text frame's FIRST paragraph in every body
     // (0047 measured: defaultTextStyle spcBef 50% shifted no first line), not just table cells.
@@ -1535,7 +1601,22 @@ function layoutAll(
       }
       // Center/right alignment counts the overflow push so the text stays inside the box
       const off = alignOffset(align, avail, lineWidth + bulletShift)
-      const dx = textX + firstShift + bulletShift + off
+      let dx = textX + firstShift + bulletShift + off
+      // Mirrored box: the body's right boundary sits marL (+ first-line shifts) from the
+      // right edge; every line lives inside [0, rightEdge]. Spread justified lines fill
+      // that whole span (the spread width already equals it), unspread ones (paragraph-
+      // final, hard breaks) go flush right like PowerPoint.
+      const rightEdge = availWidth - textX - firstShift - bulletShift
+      const mirrorSpread = mirror && align === 'justify' && lineRuns !== ln.runs
+      if (mirror) {
+        // Mirrored: marL measures from the right edge, marR from the left
+        dx =
+          mirrorSpread || align === 'left'
+            ? marRPx
+            : align === 'center'
+              ? marRPx + (rightEdge - marRPx - lineWidth) / 2
+              : rightEdge - lineWidth
+      }
       const runs = lineRuns.map((r) => ({
         ...r,
         x: r.x + dx,
@@ -1543,9 +1624,16 @@ function layoutAll(
       }))
       if (hasBullet && li === 0) {
         const st = bulletSt!
+        // Mirrored: the glyph keeps its reserved advance but on the right of the body text
+        // (right edge at availWidth - bulletX when the line is flush right); numbered
+        // glyphs render with an RTL base so "1." displays as ".1" like PowerPoint
+        const bx = mirror
+          ? dx + (mirrorSpread ? rightEdge : lineWidth) + (textX + bulletShift - bulletX - bulletW)
+          : bulletX + off
         runs.unshift({
           text: bulletText,
-          x: bulletX + off,
+          x: bx,
+          ...(mirror ? { rtl: true } : {}),
           baselineY: baseline,
           fontFamily: metrics.displayFamily?.(st, bulletText) ?? st.fontFamily,
           fontSizePx: st.fontSizePx,
@@ -1565,8 +1653,10 @@ function layoutAll(
         ...(ln.leadAbove ? { leadAbove: ln.leadAbove } : {}),
         paraStart: li === 0,
         ...(ln.trailingSpace ? { trailingSpace: true } : {}),
+        ...(ln.trailingText ? { trailingText: ln.trailingText } : {}),
         ...(ln.softBreakAfter != null ? { softBreakAfter: ln.softBreakAfter } : {}),
         ...(p.align ? { align: p.align } : {}),
+        ...(paraBaseRtl(p) ? { rtl: true } : {}),
         ...(p.level ? { level: p.level } : {}),
         ...(marLPx ? { marLPx } : {}),
         ...(indentPx ? { indentPx } : {}),

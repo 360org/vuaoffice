@@ -653,10 +653,32 @@ export const DropCapExtension = Extension.create({
             state.doc.forEach((node, offset) => {
               const raw = node.attrs?.dropCap as string | null
               if (!raw) return
+              // Word-imported caps store the enlarged size on the run itself
+              // (a 52pt letter for lines=3): the 3em first-letter scale is only
+              // for editor-created caps whose run keeps the body size —
+              // stacking both painted an 8-line giant (real_run2/44). "Own
+              // size" means the first run is already enlarged: clearly larger
+              // than the paragraph's other text (or 24pt+ when the cap letter
+              // is the whole paragraph) — an ordinary explicit body size on
+              // the letter still gets the 3em scale (Bugbot).
+              const szOf = (n: ProseMirrorNode | null): number | undefined =>
+                n?.isText
+                  ? ((n.marks.find((m) => m.type.name === 'docTextStyle')?.attrs.sizeHalfPoints as
+                      number | undefined) ?? undefined)
+                  : undefined
+              const firstSz = szOf(node.firstChild)
+              let restSz: number | undefined
+              node.forEach((child, _off, i) => {
+                if (i === 0 || restSz !== undefined || !child.isText) return
+                restSz = szOf(child) ?? 0
+              })
+              const ownSize =
+                firstSz !== undefined &&
+                (restSz !== undefined ? firstSz >= Math.max(restSz, 20) * 1.8 : firstSz >= 48)
               decos.push(
                 Decoration.node(offset, offset + node.nodeSize, {
                   'data-drop-cap': raw,
-                  class: 'has-drop-cap',
+                  class: ownSize ? 'has-drop-cap drop-cap-own-size' : 'has-drop-cap',
                 }),
               )
             })
@@ -698,6 +720,62 @@ export const WsRunLineHeightExtension = Extension.create({
               )
               if (!styled) return
               decos.push(Decoration.inline(pos, pos + node.nodeSize, { class: 'doc-ws-run' }))
+            })
+            return decos.length > 0 ? DecorationSet.create(state.doc, decos) : DecorationSet.empty
+          },
+        },
+      }),
+    ]
+  },
+})
+
+// ---- hinted East Asian curly quotes (w:hint="eastAsia") ----
+
+const eaHintQuotesPluginKey = new PluginKey<DecorationSet>('eaHintQuotes')
+
+/** the run's own w:rFonts carries w:hint="eastAsia" (revision snapshots inside w:rPrChange don't count) */
+const EA_HINT_RE = /<w:rFonts\b[^>]*\bw:hint="eastAsia"/
+
+const EA_QUOTES_RE = /[‘’“”]+/g
+
+/** quote ranges of `text` that Word renders with the East Asian font; exported for tests */
+export function eaHintQuoteRanges(
+  rawRPr: string | null | undefined,
+  text: string,
+): Array<{ from: number; to: number }> {
+  if (!rawRPr || !text || !/[‘’“”]/.test(text)) return []
+  if (!EA_HINT_RE.test(rawRPr.replace(/<w:rPrChange[\s\S]*?<\/w:rPrChange>/, ''))) return []
+  const ranges: Array<{ from: number; to: number }> = []
+  for (const m of text.matchAll(EA_QUOTES_RE)) {
+    ranges.push({ from: m.index, to: m.index + m[0].length })
+  }
+  return ranges
+}
+
+/**
+ * Curly quotes U+2018/2019/201C/201D are dual-width codepoints: Word renders
+ * them with the run's East Asian font (fullwidth advance) iff the run's
+ * w:rFonts carries w:hint="eastAsia" — surrounding text and w:lang play no
+ * part (Word for Mac probe 2026-09-01). Chromium resolves them through the
+ * Latin head of the font chain (halfwidth), so hinted quotes get a
+ * display-only decoration whose bundled CJK face restores the 1em advance.
+ */
+export const EaHintQuotesExtension = Extension.create({
+  name: 'eaHintQuotes',
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: eaHintQuotesPluginKey,
+        props: {
+          decorations(state) {
+            const decos: Decoration[] = []
+            state.doc.descendants((node, pos) => {
+              if (!node.isText || !node.text) return
+              const style = node.marks.find((m) => m.type.name === 'docTextStyle')
+              const raw = style?.attrs.rawRPr as string | null | undefined
+              for (const r of eaHintQuoteRanges(raw, node.text)) {
+                decos.push(Decoration.inline(pos + r.from, pos + r.to, { class: 'doc-ea-quotes' }))
+              }
             })
             return decos.length > 0 ? DecorationSet.create(state.doc, decos) : DecorationSet.empty
           },

@@ -6,6 +6,7 @@
  */
 import type { IRange } from '@univerjs/core'
 import { columnLabel, parseAddress } from '../../domain/cell-address'
+import { MAX_PATCH_ENTRY_BYTES } from '../../shared/desktop-api'
 import type { InMemoryWorkbookAdapter } from '../../domain/in-memory-workbook'
 import type { CellFormatState, CellScalar } from '../../domain/workbook.types'
 import { toSelectionFormat } from '../selection-format'
@@ -205,8 +206,14 @@ export function readSheetFeatures(ctx: WorkbookReadContext, sheetIdInput?: strin
           : visual.id.startsWith('added-')
             ? 'added this session'
             : 'came with the file, not modifiable by the AI'
+        const label =
+          visual.kind === 'image'
+            ? 'image'
+            : visual.kind === 'ole'
+              ? `embedded object ${visual.progId ?? ''}`
+              : `shape ${visual.shapeType ?? ''}`
         lines.push(
-          `- ${visual.kind === 'image' ? 'image' : `shape ${visual.shapeType ?? ''}`} @ ` +
+          `- ${label} @ ` +
             `${columnLabel(visual.anchor.fromColumn)}${visual.anchor.fromRow + 1}` +
             `${visual.text ? ` text "${visual.text}"` : ''} (${origin})`,
         )
@@ -310,16 +317,20 @@ export function getActiveSheetInfo(
       : undefined
     return {
       mode: 'lazy',
+      streaming: !state.formulaMode,
       sheetId,
       sheetName: worksheet.getSheetName(),
       knownAddresses: [],
       loadedRange,
       sheets: workbook.getSheets().map((sheet) => {
         const extent = lazySheetScreenExtent(state, sheet.getSheetId())
+        const meta = state.file.sheets.find((candidate) => candidate.id === sheet.getSheetId())
+        const oversized = (meta?.sourceXmlBytes ?? 0) > MAX_PATCH_ENTRY_BYTES
         return {
           id: sheet.getSheetId(),
           name: sheet.getSheetName(),
           ...(extent ? { rows: extent.rows, columns: extent.columns } : {}),
+          ...(oversized ? { readOnlyOversized: true } : {}),
         }
       }),
       selection,

@@ -97,34 +97,37 @@ export const OP_DOCS: Record<string, OpDoc> = {
     group: 'element',
   },
   setImageFill: {
-    sig: '{source:{mediaPath}|{bytes,ext},tile?} — bytes payload; use the image tools instead',
+    sig: '{source:{mediaPath}|{bytes:base64|dataURL,ext},tile?} — use the image tools instead',
     group: 'element',
     aiCallable: false,
   },
 
   // ── insert ────────────────────────────────────────────────────────────
   addElement: {
-    sig: '{kind:"textbox"|<preset geometry>,offset:{x,y,cx,cy},paragraphs?,fill?,stroke?}',
+    sig: '{kind:"textbox"|<preset geometry>,offset:{x,y,cx,cy},paragraphs?,fill?,stroke?,adjustments?:{<gd name>:val},bodyPr?:{autoFit?:"shrink"|"resize"}}',
     group: 'insert',
   },
   addPicture: {
-    sig: '{bytes,ext,offset} — bytes payload; use insert_web_image instead',
+    sig: '{bytes:base64|dataURL,ext?,offset} — use insert_web_image instead',
     group: 'insert',
     aiCallable: false,
   },
   replacePicture: {
-    sig: '{bytes,ext} — bytes payload; use replace_image instead',
+    sig: '{bytes:base64|dataURL,ext?} — use replace_image instead',
     group: 'insert',
     aiCallable: false,
   },
-  addTable: { sig: '{rows,cols,offset:{x,y,cx,cy}}', group: 'insert' },
+  addTable: {
+    sig: '{rows,cols,offset:{x,y,cx,cy},colWidthsEmu?,rowHeightsEmu?,cellProps?:[[{gridSpan?,rowSpan?,hMerge?,vMerge?,anchor?}]]}',
+    group: 'insert',
+  },
   addChart: {
-    sig: '{kind:"bar"|"barStacked"|"line"|"area"|"pie"|"doughnut"|"scatter"|"radar"|"comboBarLine",categories:[…],series:[{name,values:[…]}],offset,title?}',
+    sig: '{kind:"bar"|"barStacked"|"line"|"area"|"pie"|"doughnut"|"scatter"|"radar"|"comboBarLine",categories:[…],series:[{name,values:[…]}],offset,title?,colorScheme?:["#RRGGBB"],holeSizePct?}',
     group: 'insert',
   },
   addSmartArt: { sig: '{layout,items:[…],offset}', group: 'insert' },
   addMedia: {
-    sig: '{kind:"video"|"audio",bytes,ext,offset} — bytes payload',
+    sig: '{kind:"video"|"audio",bytes:base64|dataURL,ext,offset}',
     group: 'insert',
     aiCallable: false,
   },

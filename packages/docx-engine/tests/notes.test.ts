@@ -248,7 +248,12 @@ describe('captions', () => {
     const doc = await parseDocx(await buildDocx({ bodyXml: generateCaptionXml('图', 1, '测试') }))
     const p = doc.blocks[0]
     expect(p.type).toBe('passthrough')
-    expect(p.fieldDisplay).toEqual({ kind: 'text', left: '图 1 测试' })
+    expect(p.fieldDisplay).toEqual({
+      kind: 'text',
+      left: '图 1 测试',
+      szHalfPoints: 18,
+      align: 'center',
+    })
   })
 })
 
@@ -277,6 +282,20 @@ describe('rich-text footnote display runs', () => {
     ])
     expect(notes[1].richParas).toBeUndefined()
     expect(notes[1].text).toBe('纯文本')
+  })
+
+  it('flags notes without a self-reference mark run (Word renders those entries numberless)', async () => {
+    const endnotesXml =
+      '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<w:endnotes xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
+      '<w:endnote w:type="separator" w:id="-1"><w:p><w:r><w:separator/></w:r></w:p></w:endnote>' +
+      '<w:endnote w:id="1"><w:p><w:pPr><w:pStyle w:val="ad"/></w:pPr></w:p></w:endnote>' +
+      '<w:endnote w:id="2"><w:p><w:r><w:t>text without ref mark</w:t></w:r></w:p></w:endnote>' +
+      '<w:endnote w:id="3"><w:p><w:r><w:endnoteRef/></w:r><w:r><w:t>normal</w:t></w:r></w:p></w:endnote>' +
+      '</w:endnotes>'
+    const { parseNotesXml } = await import('../src/notes')
+    const notes = parseNotesXml(endnotesXml, 'endnote')
+    expect(notes.map((n) => n.noRefMark)).toEqual([true, true, undefined])
   })
 
   it('serializes richParas runs with size/font formatting for fresh notes (P17)', async () => {

@@ -39,6 +39,7 @@ export const strings = {
     newMail: 'AI Mail',
     newPdf: 'AI PDF',
     openLocal: '打开本地文件',
+    dropToOpenTitle: '松开以打开文件',
     greetMorning: '早上好',
     greetAfternoon: '下午好',
     greetEvening: '晚上好',
@@ -63,6 +64,9 @@ export const strings = {
     selectAll: '全选',
     selectFile: '选择 {name}',
     removeFromList: '从列表中移除',
+    missingFileTitle: '文件不可用',
+    missingFileBody:
+      '找不到“{name}”。它可能位于未连接的磁盘上，或已被移动或删除。要从列表中移除吗？',
     deleteFiles: '删除文件',
     cancel: '取消',
     star: '收藏',
@@ -155,6 +159,9 @@ export const strings = {
     setAiTesting: '测试中…',
     setAiTestOk: '连接成功',
     setAiTestFail: '连接失败',
+    setAiMaxTokens: '单次输出上限（tokens）',
+    setAiMaxTokensDesc:
+      '一次回合的输出预算。推理模型会先消耗预算用于思考，预算用完时回复可能变成空白，遇到这种情况请调大此项。',
     setAiGskTools: 'Genspark 云工具',
     setAiGskToolsDesc:
       '网页搜索、AI 生图、媒体分析经 Genspark 云端并消耗积分；关闭后生图与媒体分析不可用，搜索改用免费来源。',
@@ -238,6 +245,7 @@ export const strings = {
     newMail: 'AI Mail',
     newPdf: 'AI PDF',
     openLocal: 'Open Local File',
+    dropToOpenTitle: 'Drop to open',
     greetMorning: 'Good morning',
     greetAfternoon: 'Good afternoon',
     greetEvening: 'Good evening',
@@ -260,6 +268,9 @@ export const strings = {
     selectAll: 'Select all',
     selectFile: 'Select {name}',
     removeFromList: 'Remove from list',
+    missingFileTitle: 'File unavailable',
+    missingFileBody:
+      '“{name}” can’t be found. It may be on a disconnected drive, or it was moved or deleted. Remove it from the list?',
     deleteFiles: 'Delete files',
     cancel: 'Cancel',
     star: 'Star',
@@ -351,6 +362,9 @@ export const strings = {
     setAiTesting: 'Testing…',
     setAiTestOk: 'Connection OK',
     setAiTestFail: 'Connection failed',
+    setAiMaxTokens: 'Max output tokens',
+    setAiMaxTokensDesc:
+      'Output budget for one turn. Reasoning models spend part of it thinking, so an answer can come back empty once the budget runs out; raise this value if that happens.',
     setAiGskTools: 'Genspark cloud tools',
     setAiGskToolsDesc:
       'Web search, AI image generation and media analysis run through Genspark and use credits; when off, image tools are unavailable and search uses free sources.',
@@ -439,6 +453,7 @@ export const strings = {
     newMail: 'AI Mail',
     newPdf: 'AI PDF',
     openLocal: 'ローカルファイルを開く',
+    dropToOpenTitle: 'ドロップして開く',
     greetMorning: 'おはようございます',
     greetAfternoon: 'こんにちは',
     greetEvening: 'こんばんは',
@@ -463,6 +478,9 @@ export const strings = {
     selectAll: 'すべて選択',
     selectFile: '{name} を選択',
     removeFromList: 'リストから削除',
+    missingFileTitle: 'ファイルを利用できません',
+    missingFileBody:
+      '「{name}」が見つかりません。接続されていないドライブにあるか、移動または削除された可能性があります。リストから削除しますか？',
     deleteFiles: 'ファイルを削除',
     cancel: 'キャンセル',
     star: 'お気に入りに追加',
@@ -562,6 +580,9 @@ export const strings = {
     setAiTesting: 'テスト中…',
     setAiTestOk: '接続に成功しました',
     setAiTestFail: '接続に失敗しました',
+    setAiMaxTokens: '1 回あたりの出力トークン上限',
+    setAiMaxTokensDesc:
+      '1 ターンの出力予算です。推論モデルは思考に消費するため、耗尽すると返信が空になります。その場合は値を大きくしてください。',
     setAiGskTools: 'Genspark クラウドツール',
     setAiGskToolsDesc:
       'ウェブ検索・AI 画像生成・メディア分析は Genspark クラウド経由でクレジットを消費します。オフにすると画像ツールは使えず、検索は無料ソースを使用します。',
@@ -651,6 +672,7 @@ export const strings = {
     newMail: 'AI Mail',
     newPdf: 'AI PDF',
     openLocal: '로컬 파일 열기',
+    dropToOpenTitle: '놓아서 파일 열기',
     greetMorning: '좋은 아침이에요',
     greetAfternoon: '안녕하세요',
     greetEvening: '좋은 저녁이에요',
@@ -675,6 +697,9 @@ export const strings = {
     selectAll: '모두 선택',
     selectFile: '{name} 선택',
     removeFromList: '목록에서 제거',
+    missingFileTitle: '파일을 사용할 수 없음',
+    missingFileBody:
+      '“{name}”을(를) 찾을 수 없습니다. 연결되지 않은 드라이브에 있거나 이동 또는 삭제되었을 수 있습니다. 목록에서 제거할까요?',
     deleteFiles: '파일 삭제',
     cancel: '취소',
     star: '즐겨찾기에 추가',
@@ -770,6 +795,9 @@ export const strings = {
     setAiTesting: '테스트 중…',
     setAiTestOk: '연결 성공',
     setAiTestFail: '연결 실패',
+    setAiMaxTokens: '턴당 출력 토큰 상한',
+    setAiMaxTokensDesc:
+      '한 턴의 출력 예산입니다. 추론 모델은 생각하는 데 소모하므로 예산이 떨어지면 응답이 비어 올 수 있습니다. 그럴 때 값을 키우세요.',
     setAiGskTools: 'Genspark 클라우드 도구',
     setAiGskToolsDesc:
       '웹 검색·AI 이미지 생성·미디어 분석은 Genspark 클라우드를 거치며 크레딧을 사용합니다. 끄면 이미지 도구를 사용할 수 없고 검색은 무료 소스를 사용합니다.',
@@ -861,6 +889,7 @@ export const strings = {
     newMail: 'AI Mail',
     newPdf: 'AI PDF',
     openLocal: 'Ouvrir un fichier local',
+    dropToOpenTitle: 'Déposer pour ouvrir',
     greetMorning: 'Bonjour',
     greetAfternoon: 'Bonjour',
     greetEvening: 'Bonsoir',
@@ -885,6 +914,9 @@ export const strings = {
     selectAll: 'Tout sélectionner',
     selectFile: 'Sélectionner {name}',
     removeFromList: 'Retirer de la liste',
+    missingFileTitle: 'Fichier indisponible',
+    missingFileBody:
+      '« {name} » est introuvable. Il se trouve peut-être sur un disque déconnecté, ou il a été déplacé ou supprimé. Le retirer de la liste ?',
     deleteFiles: 'Supprimer les fichiers',
     cancel: 'Annuler',
     star: 'Ajouter aux favoris',
@@ -983,6 +1015,9 @@ export const strings = {
     setAiTesting: 'Test en cours…',
     setAiTestOk: 'Connexion réussie',
     setAiTestFail: 'Échec de la connexion',
+    setAiMaxTokens: 'Jetons de sortie max.',
+    setAiMaxTokensDesc:
+      'Budget de sortie pour un tour. Les modèles à raisonnement le dépensent en réflexion ; quand il est épuisé, la réponse arrive vide : augmentez cette valeur.',
     setAiGskTools: 'Outils cloud Genspark',
     setAiGskToolsDesc:
       "Recherche web, génération d'images et analyse de médias passent par Genspark et consomment des crédits ; désactivé, les outils d'image sont indisponibles et la recherche utilise des sources gratuites.",
@@ -1074,6 +1109,7 @@ export const strings = {
     newMail: 'AI Mail',
     newPdf: 'AI PDF',
     openLocal: 'Lokale Datei öffnen',
+    dropToOpenTitle: 'Zum Öffnen ablegen',
     greetMorning: 'Guten Morgen',
     greetAfternoon: 'Guten Tag',
     greetEvening: 'Guten Abend',
@@ -1098,6 +1134,9 @@ export const strings = {
     selectAll: 'Alle auswählen',
     selectFile: '{name} auswählen',
     removeFromList: 'Aus Liste entfernen',
+    missingFileTitle: 'Datei nicht verfügbar',
+    missingFileBody:
+      '„{name}“ wurde nicht gefunden. Sie befindet sich möglicherweise auf einem getrennten Laufwerk oder wurde verschoben oder gelöscht. Aus der Liste entfernen?',
     deleteFiles: 'Dateien löschen',
     cancel: 'Abbrechen',
     star: 'Zu Favoriten hinzufügen',
@@ -1198,6 +1237,9 @@ export const strings = {
     setAiTesting: 'Wird getestet…',
     setAiTestOk: 'Verbindung erfolgreich',
     setAiTestFail: 'Verbindung fehlgeschlagen',
+    setAiMaxTokens: 'Max. Ausgabe-Tokens',
+    setAiMaxTokensDesc:
+      'Ausgabe-Budget pro Durchlauf. Denk-Modelle verbrauchen es beim Reasoning; ist es erschöpft, kommt eine leere Antwort zurück — dann diesen Wert erhöhen.',
     setAiGskTools: 'Genspark-Cloud-Tools',
     setAiGskToolsDesc:
       'Websuche, KI-Bilderzeugung und Medienanalyse laufen über Genspark und verbrauchen Guthaben; ausgeschaltet sind Bildtools nicht verfügbar und die Suche nutzt freie Quellen.',
@@ -1289,6 +1331,7 @@ export const strings = {
     newMail: 'AI Mail',
     newPdf: 'AI PDF',
     openLocal: 'Abrir archivo local',
+    dropToOpenTitle: 'Suelta para abrir',
     greetMorning: 'Buenos días',
     greetAfternoon: 'Buenas tardes',
     greetEvening: 'Buenas noches',
@@ -1313,6 +1356,9 @@ export const strings = {
     selectAll: 'Seleccionar todo',
     selectFile: 'Seleccionar {name}',
     removeFromList: 'Quitar de la lista',
+    missingFileTitle: 'Archivo no disponible',
+    missingFileBody:
+      'No se encuentra “{name}”. Puede estar en una unidad desconectada, o se ha movido o eliminado. ¿Quitarlo de la lista?',
     deleteFiles: 'Eliminar archivos',
     cancel: 'Cancelar',
     star: 'Destacar',
@@ -1412,6 +1458,9 @@ export const strings = {
     setAiTesting: 'Probando…',
     setAiTestOk: 'Conexión correcta',
     setAiTestFail: 'Error de conexión',
+    setAiMaxTokens: 'Tokens de salida máx.',
+    setAiMaxTokensDesc:
+      'Presupuesto de salida por turno. Los modelos de razonamiento lo gastan en pensar; si se agota, la respuesta llega vacía: suba este valor.',
     setAiGskTools: 'Herramientas en la nube de Genspark',
     setAiGskToolsDesc:
       'La búsqueda web, la generación de imágenes y el análisis de medios pasan por Genspark y consumen créditos; desactivado, las herramientas de imagen no están disponibles y la búsqueda usa fuentes gratuitas.',
@@ -1501,6 +1550,7 @@ export const strings = {
     newMail: 'AI Mail',
     newPdf: 'AI PDF',
     openLocal: 'เปิดไฟล์ในเครื่อง',
+    dropToOpenTitle: 'วางเพื่อเปิดไฟล์',
     greetMorning: 'สวัสดีตอนเช้า',
     greetAfternoon: 'สวัสดีตอนบ่าย',
     greetEvening: 'สวัสดีตอนเย็น',
@@ -1525,6 +1575,9 @@ export const strings = {
     selectAll: 'เลือกทั้งหมด',
     selectFile: 'เลือก {name}',
     removeFromList: 'นำออกจากรายการ',
+    missingFileTitle: 'ไฟล์ไม่พร้อมใช้งาน',
+    missingFileBody:
+      'ไม่พบ “{name}” อาจอยู่ในไดรฟ์ที่ไม่ได้เชื่อมต่อ หรือถูกย้ายหรือลบไปแล้ว ต้องการนำออกจากรายการหรือไม่',
     deleteFiles: 'ลบไฟล์',
     cancel: 'ยกเลิก',
     star: 'เพิ่มในรายการโปรด',
@@ -1620,6 +1673,9 @@ export const strings = {
     setAiTesting: 'กำลังทดสอบ…',
     setAiTestOk: 'เชื่อมต่อสำเร็จ',
     setAiTestFail: 'การเชื่อมต่อล้มเหลว',
+    setAiMaxTokens: 'จำนวนโทเคนขาออกสูงสุด',
+    setAiMaxTokensDesc:
+      'งบผลลัพท์ต่อหนึ่งรอบ โมเดลท่ีไตร่ตรองจะใช้ส่วนหนึ่่งไปกบการคิด หากงบหมด คำตอบจะกลบมาเปลา ให้เพิ่มคา่นี',
     setAiGskTools: 'เครื่องมือคลาวด์ Genspark',
     setAiGskToolsDesc:
       'ค้นเว็บ สร้างภาพ AI และวิเคราะห์สื่อผ่านคลาวด์ Genspark และใช้เครดิต ปิดแล้วเครื่องมือภาพจะใช้ไม่ได้ และการค้นหาใช้แหล่งฟรี',
@@ -1709,6 +1765,7 @@ export const strings = {
     newMail: 'AI Mail',
     newPdf: 'AI PDF',
     openLocal: 'Buka File Lokal',
+    dropToOpenTitle: 'Lepaskan untuk membuka',
     greetMorning: 'Selamat pagi',
     greetAfternoon: 'Selamat siang',
     greetEvening: 'Selamat malam',
@@ -1733,6 +1790,9 @@ export const strings = {
     selectAll: 'Pilih semua',
     selectFile: 'Pilih {name}',
     removeFromList: 'Hapus dari daftar',
+    missingFileTitle: 'Berkas tidak tersedia',
+    missingFileBody:
+      '“{name}” tidak ditemukan. Mungkin berada di drive yang terputus, atau telah dipindahkan atau dihapus. Hapus dari daftar?',
     deleteFiles: 'Hapus file',
     cancel: 'Batal',
     star: 'Beri bintang',
@@ -1829,6 +1889,9 @@ export const strings = {
     setAiTesting: 'Menguji…',
     setAiTestOk: 'Koneksi berhasil',
     setAiTestFail: 'Koneksi gagal',
+    setAiMaxTokens: 'Token keluaran maks.',
+    setAiMaxTokensDesc:
+      'Anggaran keluaran untuk satu giliran. Model penalaran memakainya untuk berpikir; jika habis, balasan datang kosong — naikkan nilai ini.',
     setAiGskTools: 'Alat cloud Genspark',
     setAiGskToolsDesc:
       'Pencarian web, pembuatan gambar AI, dan analisis media berjalan lewat Genspark dan memakai kredit; jika dimatikan, alat gambar tidak tersedia dan pencarian memakai sumber gratis.',
@@ -1918,6 +1981,7 @@ export const strings = {
     newMail: 'AI Mail',
     newPdf: 'AI PDF',
     openLocal: 'Открыть локальный файл',
+    dropToOpenTitle: 'Отпустите, чтобы открыть',
     greetMorning: 'Доброе утро',
     greetAfternoon: 'Добрый день',
     greetEvening: 'Добрый вечер',
@@ -1942,6 +2006,9 @@ export const strings = {
     selectAll: 'Выбрать все',
     selectFile: 'Выбрать {name}',
     removeFromList: 'Убрать из списка',
+    missingFileTitle: 'Файл недоступен',
+    missingFileBody:
+      'Не удалось найти «{name}». Возможно, он находится на отключённом диске, либо был перемещён или удалён. Убрать его из списка?',
     deleteFiles: 'Удалить файлы',
     cancel: 'Отмена',
     star: 'В избранное',
@@ -2039,6 +2106,9 @@ export const strings = {
     setAiTesting: 'Проверка…',
     setAiTestOk: 'Подключение успешно',
     setAiTestFail: 'Ошибка подключения',
+    setAiMaxTokens: 'Макс. токенов на ответ',
+    setAiMaxTokensDesc:
+      'Бюджет вывода за один ход. Модели рассуждений тратят его на размышления: если бюджет иссякнет, ответ придёт пустым — увеличьте значение.',
     setAiGskTools: 'Облачные инструменты Genspark',
     setAiGskToolsDesc:
       'Веб-поиск, генерация изображений и анализ медиа идут через Genspark и расходуют кредиты; при отключении инструменты изображений недоступны, а поиск использует бесплатные источники.',
@@ -2128,6 +2198,7 @@ export const strings = {
     newMail: 'AI Mail',
     newPdf: 'AI PDF',
     openLocal: 'فتح ملف محلي',
+    dropToOpenTitle: 'أفلت للفتح',
     greetMorning: 'صباح الخير',
     greetAfternoon: 'مساء الخير',
     greetEvening: 'مساء الخير',
@@ -2152,6 +2223,9 @@ export const strings = {
     selectAll: 'تحديد الكل',
     selectFile: 'تحديد {name}',
     removeFromList: 'إزالة من القائمة',
+    missingFileTitle: 'الملف غير متاح',
+    missingFileBody:
+      'تعذّر العثور على “{name}”. قد يكون على قرص غير متصل، أو تم نقله أو حذفه. هل تريد إزالته من القائمة؟',
     deleteFiles: 'حذف الملفات',
     cancel: 'إلغاء',
     star: 'إضافة إلى المفضلة',
@@ -2247,6 +2321,9 @@ export const strings = {
     setAiTesting: 'جارٍ الاختبار…',
     setAiTestOk: 'نجح الاتصال',
     setAiTestFail: 'فشل الاتصال',
+    setAiMaxTokens: 'الحد الأقصى لرموز المخرجات',
+    setAiMaxTokensDesc:
+      'ميزانية الإخراج في الدورة الواحدة. نماذج الاستدلال تصرفها على التفكير، فإذا نفدت جاء الرد فارغًا؛ ارفع هذه القيمة عندئذ.',
     setAiGskTools: 'أدوات Genspark السحابية',
     setAiGskToolsDesc:
       'يمر بحث الويب وتوليد الصور وتحليل الوسائط عبر سحابة Genspark ويستهلك الرصيد؛ عند الإيقاف تصبح أدوات الصور غير متاحة ويستخدم البحث مصادر مجانية.',
@@ -2333,6 +2410,7 @@ export const strings = {
     newMail: 'AI Mail',
     newPdf: 'AI PDF',
     openLocal: 'Abrir arquivo local',
+    dropToOpenTitle: 'Solte para abrir',
     greetMorning: 'Bom dia',
     greetAfternoon: 'Boa tarde',
     greetEvening: 'Boa noite',
@@ -2355,6 +2433,9 @@ export const strings = {
     selectAll: 'Selecionar tudo',
     selectFile: 'Selecionar {name}',
     removeFromList: 'Remover da lista',
+    missingFileTitle: 'Arquivo indisponível',
+    missingFileBody:
+      'Não foi possível encontrar “{name}”. Ele pode estar em uma unidade desconectada, ou foi movido ou excluído. Removê-lo da lista?',
     deleteFiles: 'Excluir arquivos',
     cancel: 'Cancelar',
     star: 'Adicionar aos favoritos',
@@ -2449,6 +2530,9 @@ export const strings = {
     setAiTesting: 'Testando…',
     setAiTestOk: 'Conexão bem-sucedida',
     setAiTestFail: 'Falha na conexão',
+    setAiMaxTokens: 'Máx. de tokens de saída',
+    setAiMaxTokensDesc:
+      'Orçamento de saída por turno. Modelos de raciocínio gastam-no pensando; se esgotar, a resposta vem vazia — aumente este valor.',
     setAiGskTools: 'Ferramentas na nuvem Genspark',
     setAiGskToolsDesc:
       'Busca na web, geração de imagens e análise de mídia passam pela Genspark e consomem créditos; desligado, as ferramentas de imagem ficam indisponíveis e a busca usa fontes gratuitas.',
@@ -2534,6 +2618,7 @@ export const strings = {
     newMail: 'AI Mail',
     newPdf: 'AI PDF',
     openLocal: 'Apri file locale',
+    dropToOpenTitle: 'Rilascia per aprire',
     greetMorning: 'Buongiorno',
     greetAfternoon: 'Buon pomeriggio',
     greetEvening: 'Buonasera',
@@ -2556,6 +2641,9 @@ export const strings = {
     selectAll: 'Seleziona tutto',
     selectFile: 'Seleziona {name}',
     removeFromList: "Rimuovi dall'elenco",
+    missingFileTitle: 'File non disponibile',
+    missingFileBody:
+      "Impossibile trovare “{name}”. Potrebbe trovarsi su un'unità disconnessa, oppure è stato spostato o eliminato. Rimuoverlo dall'elenco?",
     deleteFiles: 'Elimina file',
     cancel: 'Annulla',
     star: 'Aggiungi ai preferiti',
@@ -2650,6 +2738,9 @@ export const strings = {
     setAiTesting: 'Test in corso…',
     setAiTestOk: 'Connessione riuscita',
     setAiTestFail: 'Connessione non riuscita',
+    setAiMaxTokens: 'Token di output massimi',
+    setAiMaxTokensDesc:
+      'Budget di uscita per singolo turno. I modelli di ragionamento lo consumano pensando: se si esaurisce, la risposta arriva vuota; aumentalo.',
     setAiGskTools: 'Strumenti cloud Genspark',
     setAiGskToolsDesc:
       'Ricerca web, generazione di immagini e analisi dei media passano da Genspark e consumano crediti; se disattivato, gli strumenti immagine non sono disponibili e la ricerca usa fonti gratuite.',
@@ -2734,6 +2825,7 @@ export const strings = {
     newMail: 'AI Mail',
     newPdf: 'AI PDF',
     openLocal: 'Otwórz plik lokalny',
+    dropToOpenTitle: 'Upuść, aby otworzyć',
     greetMorning: 'Dzień dobry',
     greetAfternoon: 'Dzień dobry',
     greetEvening: 'Dobry wieczór',
@@ -2756,6 +2848,9 @@ export const strings = {
     selectAll: 'Zaznacz wszystko',
     selectFile: 'Zaznacz {name}',
     removeFromList: 'Usuń z listy',
+    missingFileTitle: 'Plik niedostępny',
+    missingFileBody:
+      'Nie można znaleźć pliku „{name}”. Może znajdować się na odłączonym dysku albo został przeniesiony lub usunięty. Usunąć go z listy?',
     deleteFiles: 'Usuń pliki',
     cancel: 'Anuluj',
     star: 'Dodaj do ulubionych',
@@ -2850,6 +2945,9 @@ export const strings = {
     setAiTesting: 'Testowanie…',
     setAiTestOk: 'Połączenie działa',
     setAiTestFail: 'Połączenie nie powiodło się',
+    setAiMaxTokens: 'Maks. tokeny wyjścia',
+    setAiMaxTokensDesc:
+      'Budżet wyjścia na jedną turę. Modele rozumowania zużywają go na myślenie; gdy się wyczerpie, odpowiedź przychodzi pusta — zwiększ tę wartość.',
     setAiGskTools: 'Narzędzia chmurowe Genspark',
     setAiGskToolsDesc:
       'Wyszukiwanie w sieci, generowanie obrazów AI i analiza mediów przechodzą przez Genspark i zużywają kredyty; po wyłączeniu narzędzia obrazów są niedostępne, a wyszukiwanie korzysta z darmowych źródeł.',
@@ -2936,6 +3034,7 @@ export const strings = {
     newMail: 'AI Mail',
     newPdf: 'AI PDF',
     openLocal: 'Lokaal bestand openen',
+    dropToOpenTitle: 'Loslaten om te openen',
     greetMorning: 'Goedemorgen',
     greetAfternoon: 'Goedemiddag',
     greetEvening: 'Goedenavond',
@@ -2958,6 +3057,9 @@ export const strings = {
     selectAll: 'Alles selecteren',
     selectFile: '{name} selecteren',
     removeFromList: 'Uit lijst verwijderen',
+    missingFileTitle: 'Bestand niet beschikbaar',
+    missingFileBody:
+      '“{name}” is niet gevonden. Het staat mogelijk op een losgekoppelde schijf, of het is verplaatst of verwijderd. Uit de lijst verwijderen?',
     deleteFiles: 'Bestanden verwijderen',
     cancel: 'Annuleren',
     star: 'Aan favorieten toevoegen',
@@ -3051,6 +3153,9 @@ export const strings = {
     setAiTesting: 'Testen…',
     setAiTestOk: 'Verbinding geslaagd',
     setAiTestFail: 'Verbinding mislukt',
+    setAiMaxTokens: 'Max. outputtokens',
+    setAiMaxTokensDesc:
+      'Uitvoerbudget voor één beurt. Redeneermodellen geven dit uit aan denken; is het op, dan komt een leeg antwoord terug — verhoog deze waarde.',
     setAiGskTools: 'Genspark-cloudtools',
     setAiGskToolsDesc:
       'Webzoeken, AI-beeldgeneratie en media-analyse lopen via Genspark en verbruiken tegoed; uitgeschakeld zijn beeldtools niet beschikbaar en gebruikt zoeken gratis bronnen.',
@@ -3136,6 +3241,7 @@ export const strings = {
     newMail: 'AI Mail',
     newPdf: 'AI PDF',
     openLocal: 'Buka Fail Setempat',
+    dropToOpenTitle: 'Lepaskan untuk membuka',
     greetMorning: 'Selamat pagi',
     greetAfternoon: 'Selamat tengah hari',
     greetEvening: 'Selamat petang',
@@ -3158,6 +3264,9 @@ export const strings = {
     selectAll: 'Pilih semua',
     selectFile: 'Pilih {name}',
     removeFromList: 'Alih keluar daripada senarai',
+    missingFileTitle: 'Fail tidak tersedia',
+    missingFileBody:
+      '“{name}” tidak ditemui. Ia mungkin berada pada pemacu yang terputus, atau telah dipindahkan atau dipadamkan. Alih keluar daripada senarai?',
     deleteFiles: 'Padam fail',
     cancel: 'Batal',
     star: 'Tambah bintang',
@@ -3251,6 +3360,9 @@ export const strings = {
     setAiTesting: 'Menguji…',
     setAiTestOk: 'Sambungan berjaya',
     setAiTestFail: 'Sambungan gagal',
+    setAiMaxTokens: 'Token output maks.',
+    setAiMaxTokensDesc:
+      'Belanjawan output untuk satu pusingan. Model penaakulan menghabiskannya untuk berfikir; jika habis, balasan datang kosong — tingkatkan nilai ini.',
     setAiGskTools: 'Alat awan Genspark',
     setAiGskToolsDesc:
       'Carian web, penjanaan imej AI dan analisis media melalui awan Genspark dan menggunakan kredit; jika dimatikan, alat imej tidak tersedia dan carian menggunakan sumber percuma.',
@@ -3335,6 +3447,7 @@ export const strings = {
     newMail: 'AI Mail',
     newPdf: 'AI PDF',
     openLocal: 'פתיחת קובץ מקומי',
+    dropToOpenTitle: 'שחרר כדי לפתוח',
     greetMorning: 'בוקר טוב',
     greetAfternoon: 'צהריים טובים',
     greetEvening: 'ערב טוב',
@@ -3357,6 +3470,9 @@ export const strings = {
     selectAll: 'בחירת הכול',
     selectFile: 'בחירת {name}',
     removeFromList: 'הסרה מהרשימה',
+    missingFileTitle: 'הקובץ אינו זמין',
+    missingFileBody:
+      'לא ניתן למצוא את “{name}”. ייתכן שהוא נמצא בכונן מנותק, או שהועבר או נמחק. להסיר אותו מהרשימה?',
     deleteFiles: 'מחיקת קבצים',
     cancel: 'ביטול',
     star: 'הוספה למועדפים',
@@ -3448,6 +3564,9 @@ export const strings = {
     setAiTesting: 'בודק…',
     setAiTestOk: 'החיבור תקין',
     setAiTestFail: 'החיבור נכשל',
+    setAiMaxTokens: 'מקסימום טוקנים לתשובה',
+    setAiMaxTokensDesc:
+      'תקן פלט לסיבוב אחד. מודלי נימוק מבזבזים אותו על מחשבה, ואם הוא נגמר התשובה חוזרת ריקה — העלו את הערך.',
     setAiGskTools: 'כלי הענן של Genspark',
     setAiGskToolsDesc:
       'חיפוש ברשת, יצירת תמונות וניתוח מדיה עוברים דרך Genspark וצורכים קרדיטים; בכיבוי, כלי התמונות אינם זמינים והחיפוש משתמש במקורות חינמיים.',
@@ -3530,6 +3649,7 @@ export const strings = {
     newMail: 'AI Mail',
     newPdf: 'AI PDF',
     openLocal: 'स्थानीय फ़ाइल खोलें',
+    dropToOpenTitle: 'खोलने के लिए छोड़ें',
     greetMorning: 'सुप्रभात',
     greetAfternoon: 'नमस्ते',
     greetEvening: 'शुभ संध्या',
@@ -3552,6 +3672,9 @@ export const strings = {
     selectAll: 'सभी चुनें',
     selectFile: '{name} चुनें',
     removeFromList: 'सूची से हटाएँ',
+    missingFileTitle: 'फ़ाइल उपलब्ध नहीं है',
+    missingFileBody:
+      '“{name}” नहीं मिली। यह किसी डिस्कनेक्ट की गई ड्राइव पर हो सकती है, या इसे स्थानांतरित या हटा दिया गया है। इसे सूची से हटाएँ?',
     deleteFiles: 'फ़ाइलें हटाएँ',
     cancel: 'रद्द करें',
     star: 'तारांकित करें',
@@ -3647,6 +3770,9 @@ export const strings = {
     setAiTesting: 'परख रहे हैं…',
     setAiTestOk: 'कनेक्शन सफल',
     setAiTestFail: 'कनेक्शन विफल',
+    setAiMaxTokens: 'अधिकतम आउटपुट टोकन',
+    setAiMaxTokensDesc:
+      'एक मोड़ का आउटपुट बजट। तरक मॉडल इसमें से क्छ हिस्सा सोचने पर खरच करते हैं; बजट खत्म होने पर उत्तर खाली आ सकता है — ज़रूरत पर इसे बढ़ाएँ।',
     setAiGskTools: 'Genspark क्लाउड टूल',
     setAiGskToolsDesc:
       'वेब खोज, AI छवि निर्माण और मीडिया विश्लेषण Genspark क्लाउड से होते हैं और क्रेडिट खर्च करते हैं; बंद करने पर छवि टूल अनुपलब्ध होंगे और खोज मुफ्त स्रोतों का उपयोग करेगी।',
@@ -3730,6 +3856,7 @@ export const strings = {
     newMail: 'AI Mail',
     newPdf: 'AI PDF',
     openLocal: '開啟本機檔案',
+    dropToOpenTitle: '放開以開啟檔案',
     greetMorning: '早安',
     greetAfternoon: '午安',
     greetEvening: '晚安',
@@ -3752,6 +3879,9 @@ export const strings = {
     selectAll: '全選',
     selectFile: '選取 {name}',
     removeFromList: '從清單中移除',
+    missingFileTitle: '檔案無法使用',
+    missingFileBody:
+      '找不到「{name}」。它可能位於未連接的磁碟上，或已被移動或刪除。要從清單中移除嗎？',
     deleteFiles: '刪除檔案',
     cancel: '取消',
     star: '收藏',
@@ -3841,6 +3971,9 @@ export const strings = {
     setAiTesting: '測試中…',
     setAiTestOk: '連線成功',
     setAiTestFail: '連線失敗',
+    setAiMaxTokens: '單次輸出上限（tokens）',
+    setAiMaxTokensDesc:
+      '一次回合的輸出預算。推理模型會先消耗預算用於思考，預算用畢時回覆可能變成空白，遇到此情況請調高本項。',
     setAiGskTools: 'Genspark 雲端工具',
     setAiGskToolsDesc:
       '網頁搜尋、AI 生圖、媒體分析經 Genspark 雲端並消耗點數；關閉後生圖與媒體分析不可用，搜尋改用免費來源。',

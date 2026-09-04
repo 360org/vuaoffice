@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path'
 
 import { z } from 'zod'
 
+import { MAX_PATCH_ENTRY_BYTES } from '../shared/desktop-api'
 import type { WorkbookChartEdit, WorkbookVisualEdit } from '../shared/desktop-api'
 import type { SheetFilterState } from './xlsx-filter'
 import type { DefinedNamesState } from './xlsx-defined-names'
@@ -30,19 +31,9 @@ import type {
   SheetFormulaValues,
 } from './xlsx-gateway'
 import { planCellEditsToXlsx, syncFileBestEffort } from './xlsx-gateway'
+import { normalizeOoxmlPartPrefix } from './xlsx-namespace'
 import type { WorkbookThemeState } from './xlsx-theme'
 import type { SheetEditPlan } from './xlsx-sheets'
-
-/// Mirrors the sidecar's per-entry extraction cap: only entries the gateway
-/// patches must fit in memory — the archive as a whole has no size limit.
-///
-/// Large, densely styled worksheets routinely exceed 256 MiB as XML even
-/// when the .xlsx itself is modest (the 88k-row suppliers fixture is about
-/// 307 MiB). 500 MiB keeps those editable while retaining a finite
-/// decompression-bomb / main-process-memory bound — deliberately below
-/// V8's maximum string length (536,870,888 bytes), so an oversized entry
-/// fails here with a clear message instead of blowing up mid-stringify.
-const MAX_PATCH_ENTRY_BYTES = 500 * 1024 * 1024
 
 const archiveEntrySchema = z.object({
   name: z.string(),
@@ -137,7 +128,7 @@ export async function readArchiveEntryText(
     )
     const filePath = extracted.entries[0]?.path
     if (!filePath) throw new Error(`Workbook is missing ${entryName}.`)
-    return readFileSync(filePath, 'utf8')
+    return normalizeOoxmlPartPrefix(readFileSync(filePath, 'utf8'))
   } finally {
     await rm(workDir, { recursive: true, force: true })
   }
@@ -262,7 +253,7 @@ function createSidecarEntrySource(
       )
       const filePath = extracted.entries[0]?.path
       if (!filePath) throw new Error(`Sidecar did not extract ${path}.`)
-      const content = readFileSync(filePath, 'utf8')
+      const content = normalizeOoxmlPartPrefix(readFileSync(filePath, 'utf8'))
       cache.set(path, content)
       return content
     },

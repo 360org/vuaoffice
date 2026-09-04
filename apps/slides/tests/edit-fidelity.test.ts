@@ -211,6 +211,127 @@ describe('applyEditParagraphs: srcPara/srcRun tracing + unedited fields preserve
     expect(out[0]!.runs[1]!.field).toBe('slidenum')
   })
 
+  it('untraced paragraphs past the end continue the last paragraph (AI tools send plain paragraphs)', () => {
+    const oldParas: Paragraph[] = [
+      { runs: [{ text: 'Title', bold: true, fontSize: 24 }] },
+      { runs: [{ text: 'One', fontSize: 14 }], bullet: { type: 'char', char: '•' }, level: 1 },
+    ]
+    const out = applyEditParagraphs(oldParas, [
+      { runs: [{ text: 'New title' }] },
+      { runs: [{ text: 'First' }] },
+      { runs: [{ text: 'Second' }] },
+      { runs: [{ text: 'Third' }] },
+    ])
+    expect(out[0]!.runs[0]).toMatchObject({ text: 'New title', bold: true, fontSize: 24 })
+    for (const [i, text] of [
+      [1, 'First'],
+      [2, 'Second'],
+      [3, 'Third'],
+    ] as const) {
+      expect(out[i]!.bullet).toEqual({ type: 'char', char: '•' })
+      expect(out[i]!.level).toBe(1)
+      expect(out[i]!.runs[0]).toMatchObject({ text, fontSize: 14 })
+      expect(out[i]!.runs[0]!.bold).toBeUndefined()
+    }
+    // a traced paragraph never falls back: an out-of-range source stays unformatted
+    expect(
+      applyEditParagraphs(oldParas, [{ runs: [{ text: 'x' }], srcPara: 7 }])[0]!.bullet,
+    ).toBeUndefined()
+  })
+
+  it('an untraced single run over a mixed paragraph takes the dominant run, not the label run', () => {
+    const oldParas: Paragraph[] = [
+      {
+        runs: [
+          { text: 'Revenue: ', bold: true, fontSize: 14 },
+          { text: 'up 5% year over year on strong demand', fontSize: 14, color: '595959' },
+        ],
+      },
+    ]
+    const [rewritten] = applyEditParagraphs(oldParas, [{ runs: [{ text: 'Revenue grew 5%' }] }])
+    expect(rewritten!.runs).toHaveLength(1)
+    expect(rewritten!.runs[0]).toMatchObject({
+      text: 'Revenue grew 5%',
+      fontSize: 14,
+      color: '595959',
+    })
+    expect(rewritten!.runs[0]!.bold).toBeUndefined()
+    // traced (editor) and positional multi-run edits keep the first run's formatting
+    const [traced] = applyEditParagraphs(oldParas, [{ runs: [{ text: 'Revenue', srcRun: 0 }] }])
+    expect(traced!.runs[0]!.bold).toBe(true)
+    const [twoRuns] = applyEditParagraphs(oldParas, [
+      { runs: [{ text: 'Sales: ' }, { text: 'flat' }] },
+    ])
+    expect(twoRuns!.runs[0]!.bold).toBe(true)
+    expect(twoRuns!.runs[1]!.bold).toBeUndefined()
+  })
+
+  it('the dominant run is never a field or a link: plain replacement text stays plain text', () => {
+    // the longest run is a datetime field — a rewrite must not become a field
+    // PowerPoint overwrites on open
+    const [dated] = applyEditParagraphs(
+      [
+        {
+          runs: [
+            { text: 'As of ', fontSize: 12, color: '595959' },
+            { text: 'September 2, 2026', field: 'datetime1', fontSize: 12, bold: true },
+          ],
+        },
+      ],
+      [{ runs: [{ text: 'Updated quarterly' }] }],
+    )
+    expect(dated!.runs[0]).toMatchObject({
+      text: 'Updated quarterly',
+      fontSize: 12,
+      color: '595959',
+    })
+    expect(dated!.runs[0]!.field).toBeUndefined()
+    expect(dated!.runs[0]!.bold).toBeUndefined()
+
+    // the longest run is a hyperlink — the rewrite keeps the trailing plain run's look
+    const [linked] = applyEditParagraphs(
+      [
+        {
+          runs: [
+            {
+              text: 'Read the full report',
+              hyperlink: 'https://a.com/report',
+              hyperlinkRId: 'rId7',
+              underline: true,
+              underlineImplicit: true,
+              fontSize: 12,
+            },
+            { text: ' (PDF)', fontSize: 12, color: '595959' },
+          ],
+        },
+      ],
+      [{ runs: [{ text: 'Summary attached' }] }],
+    )
+    expect(linked!.runs[0]).toMatchObject({
+      text: 'Summary attached',
+      fontSize: 12,
+      color: '595959',
+    })
+    expect(linked!.runs[0]!.hyperlink).toBeUndefined()
+    expect(linked!.runs[0]!.hyperlinkRId).toBeUndefined()
+    expect(linked!.runs[0]!.underline).toBeUndefined()
+
+    // a short plain run next to a field still wins over the field
+    const [footer] = applyEditParagraphs(
+      [
+        {
+          runs: [
+            { text: 'p', fontSize: 9 },
+            { text: '12', field: 'slidenum', fontSize: 11 },
+          ],
+        },
+      ],
+      [{ runs: [{ text: 'Page 12' }] }],
+    )
+    expect(footer!.runs[0]).toMatchObject({ text: 'Page 12', fontSize: 9 })
+    expect(footer!.runs[0]!.field).toBeUndefined()
+  })
+
   it('explicit bold:false is not overridden by the old value via ?? fallback (unbolding must take effect)', () => {
     const oldParas: Paragraph[] = [{ runs: [{ text: 'x', bold: true }] }]
     const out = applyEditParagraphs(oldParas, [
@@ -220,6 +341,69 @@ describe('applyEditParagraphs: srcPara/srcRun tracing + unedited fields preserve
       },
     ])
     expect(out[0]!.runs[0]!.bold).toBe(false)
+  })
+
+  it('editor un-underline/un-strike sets the explicit-none markers so rebuilds keep the override', () => {
+    const oldParas: Paragraph[] = [
+      {
+        runs: [
+          {
+            text: 'u',
+            underline: true,
+            underlineStyle: 'dbl',
+            strike: true,
+            strikeStyle: 'sngStrike',
+          },
+        ],
+      },
+    ]
+    const out = applyEditParagraphs(oldParas, [
+      {
+        runs: [
+          { text: 'u', srcRun: 0, bold: false, italic: false, underline: false, strike: false },
+        ],
+        srcPara: 0,
+      },
+    ])
+    const r = out[0]!.runs[0]!
+    expect(r.underline).toBe(false)
+    expect(r.underlineExplicitNone).toBe(true)
+    expect(r.strikeExplicitNone).toBe(true)
+    // unchanged resolved-false values must NOT bake an override in
+    const out2 = applyEditParagraphs(
+      [{ runs: [{ text: 'p' }] }],
+      [
+        {
+          runs: [
+            { text: 'p', srcRun: 0, bold: false, italic: false, underline: false, strike: false },
+          ],
+          srcPara: 0,
+        },
+      ],
+    )
+    expect(out2[0]!.runs[0]!.underlineExplicitNone).toBeUndefined()
+    expect(out2[0]!.runs[0]!.strikeExplicitNone).toBeUndefined()
+    // link-derived underline (underlineImplicit): dropping it via unlink keeps
+    // omitting u — no explicit none baked in
+    const out3 = applyEditParagraphs(
+      [
+        {
+          runs: [
+            { text: 'l', underline: true, underlineImplicit: true, hyperlink: 'https://a.com' },
+          ],
+        },
+      ],
+      [
+        {
+          runs: [
+            { text: 'l', srcRun: 0, bold: false, italic: false, underline: false, link: null },
+          ],
+          srcPara: 0,
+        },
+      ],
+    )
+    expect(out3[0]!.runs[0]!.underline).toBe(false)
+    expect(out3[0]!.runs[0]!.underlineExplicitNone).toBeUndefined()
   })
 
   it('no srcPara/srcRun (newly typed paragraph) falls back to position without crashing', () => {
@@ -347,6 +531,66 @@ describe('theme colors: schemeClr is not needlessly baked into srgbClr by edits'
     ])
     expect(changed[0]!.runs[0]!.colorFollowsTheme).toBeUndefined()
     expect(changed[0]!.runs[0]!.color).toBe('#00FF00')
+  })
+})
+
+describe('implicit bold/italic/color: inherited values are not stamped into rewritten runs', () => {
+  // Model shape after parse of <a:r><a:rPr sz="1800"/>…</a:r> under a bold master style:
+  // resolved booleans plus the implicit markers, color resolved with colorInherited
+  const INHERIT_XML =
+    '<p:sp><p:nvSpPr><p:cNvPr id="7" name="T"/><p:cNvSpPr txBox="1"/><p:nvPr/></p:nvSpPr><p:spPr/>' +
+    '<p:txBody><a:bodyPr/><a:lstStyle/>' +
+    '<a:p><a:r><a:rPr lang="en-US" sz="1800"/><a:t>inherited style</a:t></a:r></a:p>' +
+    '</p:txBody></p:sp>'
+  const inheritParas: Paragraph[] = [
+    {
+      runs: [
+        {
+          text: 'inherited style',
+          bold: true,
+          boldImplicit: true,
+          italic: false,
+          italicImplicit: true,
+          fontSize: 18,
+          color: '#FFFFFF',
+          colorFollowsTheme: true,
+          colorInherited: true,
+        },
+      ],
+    },
+  ]
+
+  function patch(paras: Paragraph[]): string {
+    const el = { id: 'e7', type: 'text', text: { paragraphs: paras } } as unknown as TextElement
+    return patchTextElementXml(el, INHERIT_XML)
+  }
+
+  it('identity rewrite keeps b/i/solidFill out of the rPr (master linkage intact)', () => {
+    const out = patch(
+      applyEditParagraphs(inheritParas, [
+        { runs: [{ text: 'inherited style', srcRun: 0, bold: true, italic: false }], srcPara: 0 },
+      ]),
+    )
+    expect(out).not.toContain(' b="')
+    expect(out).not.toContain(' i="')
+    expect(out).not.toContain('solidFill')
+  })
+
+  it('a real bold/italic toggle clears the markers and writes explicit overrides', () => {
+    const out = patch(
+      applyEditParagraphs(inheritParas, [
+        { runs: [{ text: 'inherited style', srcRun: 0, bold: false, italic: true }], srcPara: 0 },
+      ]),
+    )
+    expect(out).toContain(' b="0"')
+    expect(out).toContain(' i="1"')
+  })
+
+  it('generateParagraphXml (rebuild path) also omits implicit b/i', () => {
+    const xml = generateParagraphXml(inheritParas[0]!)
+    expect(xml).not.toContain(' b="')
+    expect(xml).not.toContain(' i="')
+    expect(xml).not.toContain('solidFill')
   })
 })
 
@@ -929,5 +1173,41 @@ describe('vertical text editing (bodyPr vert)', () => {
     expect(fragments.length).toBeGreaterThan(0)
     expect(fragments.every((f) => f.style.width === '' && f.style.display === '')).toBe(true)
     div.remove()
+  })
+})
+
+describe('paragraph direction rtl: overlay marks + patch collection', () => {
+  it('populateEditorDom sets explicit dir only when the effective base disagrees with inference', () => {
+    const div = document.createElement('div')
+    document.body.appendChild(div)
+    populateEditorDom(
+      div,
+      layout([
+        { runs: [{ text: 'plain latin' }] }, // inferred LTR, effective LTR
+        { runs: [{ text: 'forced rtl' }], rtl: true }, // inferred LTR, explicit RTL base
+        { runs: [{ text: 'שלום' }], rtl: false }, // inferred RTL, explicit LTR base
+      ]).lines,
+    )
+    const blocks = Array.from(div.children) as HTMLElement[]
+    expect(blocks.map((b) => b.getAttribute('dir'))).toEqual(['auto', 'rtl', 'ltr'])
+    div.remove()
+  })
+
+  it('untoggled paragraphs commit no rtl; a data-rtl mark reaches the format patch', () => {
+    const clean = roundTrip([{ runs: [{ text: 'hello' }] }, { runs: [{ text: 'שלום' }] }])
+    expect(clean.every((p) => p.rtl === undefined)).toBe(true)
+    expect(collectParagraphFormatPatches(clean)).toEqual([])
+
+    const div = document.createElement('div')
+    document.body.appendChild(div)
+    populateEditorDom(div, layout([{ runs: [{ text: 'a' }] }, { runs: [{ text: 'b' }] }]).lines)
+    const second = div.children[1] as HTMLElement
+    second.dataset.rtl = '1'
+    second.dir = 'rtl'
+    const out = extractParagraphs(div, 1)
+    div.remove()
+    expect(out[0]!.rtl).toBeUndefined()
+    expect(out[1]!.rtl).toBe(true)
+    expect(collectParagraphFormatPatches(out)).toEqual([{ index: 1, patch: { rtl: true } }])
   })
 })
