@@ -3129,14 +3129,25 @@ export function registerSheetsAiIpc(): void {
       send({ requestId, type: 'ping' })
     }
     try {
+      let stopReason: string | undefined
       await streamForProvider(provider, config, system, messages, tools, maxTokens, {
         signal: controller.signal,
         onDelta: (text) => send({ requestId, type: 'delta', text }),
         onReasoningDelta: (text) => send({ requestId, type: 'reasoning', text }),
         onToolCall: (toolCall) => send({ requestId, type: 'tool-call', toolCall }),
         onActivity: ping,
+        onStopReason: (reason) => {
+          stopReason = reason
+        },
       })
-      send({ requestId, type: 'done' })
+      // sheets tsconfig sets exactOptionalPropertyTypes: an explicit
+      // `stopReason: undefined` is not assignable to AiStreamChunk, so only
+      // include the property when a reason was actually reported.
+      send(
+        stopReason === undefined
+          ? { requestId, type: 'done' }
+          : { requestId, type: 'done', stopReason },
+      )
     } catch (err) {
       if (controller.signal.aborted) {
         send({ requestId, type: 'done' })
