@@ -3,6 +3,25 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.24] - 2026-09-04
+
+### Giám định PDF Forensics & Nhận biết Tệp Gốc vs Đã qua Chỉnh sửa
+
+- **[NEW] Giám định & Nhận biết Tệp PDF Đã qua Chỉnh sửa (PDF Forensics Engine)**:
+  - Tự động phân tích cấu trúc nhị phân khi mở bất kỳ tệp PDF nào: phát hiện các bản cập nhật ghi đè nối tiếp (Incremental Updates) theo chuẩn ISO 32000-1 §7.5.6.
+  - Nhận biết chính xác tệp gốc ban đầu (Original) hay tệp đã qua chỉnh sửa thứ cấp (Modified).
+  - Tự động bóc tách bản sửa đổi Revision 1 và đối chiếu cấu trúc vi phân đối tượng (Structural Diffing): xác định chính xác các vị trí bị thay đổi bao gồm nội dung văn bản trang (`/Contents`), chú thích/chữ ký/hình vẽ (`/Annots`), trang chèn thêm/xóa bớt, trường biểu mẫu tương tác (`/AcroForm`), siêu dữ liệu và lịch sử XMP (`xmpMM:History`).
+- **[NEW] Huy hiệu Giám định & Hộp thoại Chi tiết Thay đổi (Interactive Forensics Modal)**:
+  - Hiển thị huy hiệu trực quan trên thanh Ribbon: `✓ Tệp gốc (Chưa chỉnh sửa)` (màu xanh) hoặc `⚠️ Tệp đã qua chỉnh sửa` (màu đỏ cam).
+  - Bấm vào huy hiệu để mở modal phân tích chi tiết: liệt kê số lượng bản sửa đổi (revisions), phần mềm tạo ban đầu, ngày tạo vs ngày sửa đổi, và danh sách từng thành phần bị thay đổi.
+  - Tích hợp nút **"Xem trang X"** cho phép nhảy trực tiếp đến trang có nội dung hoặc chú thích bị can thiệp.
+- **[MIGRATE] Đồng bộ Upstream `genspark-ai/genoffice` v0.8.1040**:
+  - Hợp nhất 5 PRs mới từ upstream: PR #155 (tuần tự hóa lưu song song Slides), PR #187 (sửa tool schema Gemini AI), PR #190 (khôi phục khi AI bị ngắt quãng token trong Sheets & Slides), PR #191 (xử lý phản hồi AI 200 non-JSON), PR #192 (sửa preview marker cho thumbnail AI Panels).
+- **[I18N] Hỗ trợ Toàn diện Đa ngôn ngữ (20 Locales)**:
+  - Bổ sung bộ từ khóa bản dịch giám định tệp cho toàn bộ 20 ngôn ngữ được hỗ trợ (Việt, Anh, Trung Giản thể, Trung Phồn thể, Nhật, Hàn, Pháp, Đức, Tây Ban Nha...).
+- **[TEST] Kiểm thử Tự động & Brand Gate Đạt 100%**:
+  - Bổ sung bộ unit test `pdf-forensics.test.ts` kiểm thử engine giám định phát hiện tệp gốc vs tệp có cập nhật nối tiếp; vượt qua cổng thương hiệu `brand:gate` và selftest song ánh.
+
 ## [1.0.23] - 2026-09-04
 
 ### Đồng bộ Upstream & Bảo vệ Tệp PDF Ngoài Ứng dụng
