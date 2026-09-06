@@ -3,6 +3,16 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.28] - 2026-09-06
+
+### Tinh chỉnh Tuyên bố Bản quyền Tác phẩm Phái sinh & Ghi nhận Nguồn gốc Bên Thứ Ba
+
+- **[LEGAL] Ưu tiên Hiển thị Bản quyền 360 CORP (Derivative Work & Customizations)**:
+  - Tinh chỉnh khối Ghi nhận tác giả (Attribution Notice) trong `AboutModal.tsx` và `README.md`: đưa bản quyền của 360 CORP (`Derivative Work & Customizations: Copyright 2026 360 CORP`) lên vị trí hàng đầu trước bản quyền của bên thứ ba (`Original Work: Copyright 2026 Mainfunc, Inc.`), khẳng định rõ nét quyền sở hữu và vị thế phát triển của 360 CORP.
+  - Chuẩn hóa văn phong pháp lý: nêu rõ VuaOffice là phần mềm do 360 CORP phát triển, có tích hợp mã nguồn mở của các bên thứ ba (như GenOffice và các thư viện mã nguồn mở khác), tuân thủ đầy đủ giấy phép mã nguồn mở trong Third-Party Notices và phân phối dưới dạng Phần mềm độc quyền miễn phí (Proprietary Freeware) cho người dùng cuối.
+- **[GATE] Đạt Toàn diện Bộ Cổng Kiểm tra Thương hiệu**:
+  - Selftest, trạng thái thương hiệu, rò rỉ thương hiệu và tính bất biến của bản ghi kiểm toán đạt 100% (`npm run brand:gate`).
+
 ## [1.0.27] - 2026-09-06
 
 ### Kích hoạt Inline Tab Rename Đổi Tên Tệp Trực Tiếp & Cập nhật Bản quyền Nguồn Mở Bên Thứ Ba
