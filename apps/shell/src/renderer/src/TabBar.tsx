@@ -149,6 +149,7 @@ export function TabBar() {
     widths: number[]
     target: number
     started: boolean
+    clickedTitle: boolean
   }
   const dragRef = useRef<DragInfo | null>(null)
   const [dragVisual, setDragVisual] = useState<{
@@ -169,6 +170,14 @@ export function TabBar() {
       stripRef.current
         ?.querySelector('.tab-item.active')
         ?.scrollIntoView({ inline: 'nearest', block: 'nearest' })
+      // If the user clicked on the title of an active tab without dragging, trigger inline rename
+      if (commit && drag.clickedTitle && drag.id !== 'home') {
+        const targetTab = tabs.find((t) => t.id === drag.id)
+        if (targetTab) {
+          setEditingTabId(targetTab.id)
+          setEditTitle(targetTab.title)
+        }
+      }
       return
     }
     setDragVisual(null)
@@ -297,6 +306,8 @@ export function TabBar() {
                 if (event.button !== 0) return
                 if ((event.target as HTMLElement).closest('.tab-close')) return
                 if ((event.target as HTMLElement).closest('.tab-title-input')) return
+                const wasActive = tab.active
+                const clickedTitle = !!(event.target as HTMLElement).closest('.tab-title')
                 // Chrome-style: pressing a tab activates it immediately, so
                 // activation never depends on the click that a drag would eat
                 if (!tab.active) void window.aiOfficeTabs.activate(tab.id)
@@ -316,6 +327,7 @@ export function TabBar() {
                   widths: rects.map((r) => r.width),
                   target: index,
                   started: false,
+                  clickedTitle: wasActive && clickedTitle,
                 }
                 event.currentTarget.setPointerCapture(event.pointerId)
               }}

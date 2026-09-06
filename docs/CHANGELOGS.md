@@ -3,6 +3,19 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.27] - 2026-09-06
+
+### Kích hoạt Inline Tab Rename Đổi Tên Tệp Trực Tiếp & Cập nhật Bản quyền Nguồn Mở Bên Thứ Ba
+
+- **[FIX] Kích hoạt Đổi tên Trực tiếp khi Click vào Tab Title trên Tab đang Mở**:
+  - Khắc phục triệt để cơ chế bắt sự kiện Pointer Capture trên Chromium/Electron: chuyển đổi cờ phát hiện nhấp chuột `clickedTitle` từ `onPointerDown` sang giai đoạn `onPointerUp` (`finishDrag`), loại bỏ hiện tượng nuốt sự kiện click của phần tử con (`.tab-title`) do `setPointerCapture` gây ra.
+  - Người dùng có thể nhấp chuột trực tiếp vào tiêu đề thẻ tab đang mở để lập tức chuyển sang chế độ gõ tên mới (`tab-title-input`), tự động bôi đen tên tệp (bảo toàn extension `.xlsx`, `.docx`, `.pptx`, `.pdf`, `.md`) và tự động lưu tên tệp vào đĩa khi nhấn phím Enter hoặc nhấp chuột ra ngoài (blur).
+- **[LEGAL] Chuẩn hóa Tuyên bố Bản quyền & Ghi nhận Nguồn gốc Bên thứ ba theo chỉ đạo 360 CORP**:
+  - Cập nhật thông báo bản quyền trong `AboutModal.tsx` và `README.md` (toàn bộ 4 ngôn ngữ `vi`, `en`, `zh`, `zh-TW`): nêu rõ VuaOffice là bộ ứng dụng văn phòng do 360 CORP phát triển dựa trên việc tích hợp các phần mềm nguồn mở của bên thứ ba (như GenOffice và các thư viện mã nguồn mở khác), tuân thủ đầy đủ quy định giấy phép mã nguồn mở của các bên này và phân phối ứng dụng dưới dạng Phần mềm độc quyền miễn phí (Proprietary Freeware) cho người dùng cuối.
+- **[GATE] Đạt Bộ Cổng Kiểm tra Thương hiệu & Chất lượng Mã nguồn**:
+  - Vượt qua kiểm thử thương hiệu `npm run brand:gate` (selftest song ánh, trạng thái thương hiệu, cổng rò rỉ và tính bất biến của bản ghi kiểm toán).
+  - Biên dịch và đóng gói thành công bản dựng shell.
+
 ## [1.0.26] - 2026-09-06
 
 ### Chuẩn hóa Bản quyền Phần mềm Độc quyền Miễn phí (Proprietary Freeware) & Apache 2.0 §4

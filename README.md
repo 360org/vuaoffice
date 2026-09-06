@@ -163,13 +163,11 @@ Toàn bộ tài liệu kiến trúc, đặc tả và hướng dẫn kỹ thuật
 
 ## ⚖️ Bản quyền & Ghi nhận (Attribution & License)
 
-<<<<<<< HEAD
-- **Mã nguồn**: VuaOffice được phát triển dựa trên dự án mã nguồn mở **GenOffice** tuân thủ theo [Apache License 2.0](LICENSE).
+- **Mã nguồn**: VuaOffice được phát triển bởi 360 CORP dựa trên các dự án mã nguồn mở của bên thứ ba (như GenOffice tuân thủ theo [Apache License 2.0](LICENSE) và các thư viện mã nguồn mở khác).
 - **Ghi nhận tác giả (Attribution Notice)**:
   - **Original Work**: Copyright 2026 Mainfunc, Inc. (GenOffice).
   - **Derivative Work & Customizations**: Copyright 2026 360 CORP (VuaOffice).
-- **Thương hiệu**: Nhãn hiệu "VuaOffice" và "360 CORP" thuộc sở hữu của 360 CORP. Nhãn hiệu "GenOffice" và "Genspark" thuộc sở hữu của Mainfunc, Inc.
-=======
+- **Phát hành & Bản quyền**: Ứng dụng VuaOffice được phát hành dưới dạng Phần mềm độc quyền miễn phí (Proprietary Freeware) cho người dùng cuối. Nhãn hiệu "VuaOffice" và "360 CORP" thuộc sở hữu của 360 CORP. Nhãn hiệu "GenOffice" và "Genspark" thuộc sở hữu của Mainfunc, Inc.
 **Is GenOffice free?**
 Yes. GenOffice is free and open-source under the Apache-2.0 license — no
 trial, no paid tier for the apps themselves.
@@ -248,7 +246,7 @@ Caladea, Noto CJK subsets) are OFL/Apache.
 
 ## License
 
-VuaOffice is a derivative work based on the open-source GenOffice project (developed by Mainfunc, Inc. under the [Apache License 2.0](LICENSE)). 360 CORP distributes packaged VuaOffice applications as Proprietary Freeware for end-users. Source code modifications and 360-specific features are © 2026 360 CORP.
+VuaOffice is developed by 360 CORP incorporating third-party open-source projects (including GenOffice developed by Mainfunc, Inc. under the [Apache License 2.0](LICENSE) and other open-source libraries) in full compliance with their respective open-source licenses. 360 CORP distributes packaged VuaOffice applications as Proprietary Freeware for end-users. Source code modifications and 360-specific features are © 2026 360 CORP.
 
 The GenOffice and Genspark names and logos are trademarks of Mainfunc, Inc.
 The VuaOffice names and logos are trademarks of 360 CORP.
