@@ -20,27 +20,19 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Fetch private source from GitLab
+        shell: bash
+        run: |
+          echo "=== 0. Fetching private source code from GitLab ==="
+          git remote add gitlab "${{ secrets.GITLAB_DEPLOY_TOKEN }}" 2>/dev/null || true
+          target_ref="${{ github.ref_name }}"
+          echo "Fetching target ref: $target_ref from GitLab..."
+          git fetch gitlab "$target_ref" || git fetch gitlab main
+          git checkout -f FETCH_HEAD
+
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
-
-      - name: Configure upstream & Pull latest code
-        shell: bash
-        run: |
-          echo "=== 1. Checking git remotes and syncing origin/upstream ==="
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          # Fetch origin
-          git fetch origin main
-
-          # Check for unmerged conflicts
-          if ! git merge-tree $(git merge-base HEAD origin/main) HEAD origin/main > /dev/null 2>&1; then
-            echo "::error::Conflict detected between release commit and origin/main! Aborting release."
-            exit 1
-          fi
-
-          echo "Sync check against origin/main passed without conflicts."
 
       - name: Verify 360 Brand Apply & Integrity
         shell: bash
@@ -95,6 +87,13 @@ jobs:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Fetch private source from GitLab
+        shell: bash
+        run: |
+          git remote add gitlab "${{ secrets.GITLAB_DEPLOY_TOKEN }}" 2>/dev/null || true
+          target_ref="${{ github.ref_name }}"
+          git fetch gitlab "$target_ref" || git fetch gitlab main
+          git checkout -f FETCH_HEAD
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
@@ -134,6 +133,13 @@ jobs:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Fetch private source from GitLab
+        shell: bash
+        run: |
+          git remote add gitlab "${{ secrets.GITLAB_DEPLOY_TOKEN }}" 2>/dev/null || true
+          target_ref="${{ github.ref_name }}"
+          git fetch gitlab "$target_ref" || git fetch gitlab main
+          git checkout -f FETCH_HEAD
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
@@ -173,6 +179,13 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Fetch private source from GitLab
+        shell: bash
+        run: |
+          git remote add gitlab "${{ secrets.GITLAB_DEPLOY_TOKEN }}" 2>/dev/null || true
+          target_ref="${{ github.ref_name }}"
+          git fetch gitlab "$target_ref" || git fetch gitlab main
+          git checkout -f FETCH_HEAD
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
@@ -206,6 +219,13 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Fetch private source from GitLab
+        shell: bash
+        run: |
+          git remote add gitlab "${{ secrets.GITLAB_DEPLOY_TOKEN }}" 2>/dev/null || true
+          target_ref="${{ github.ref_name }}"
+          git fetch gitlab "$target_ref" || git fetch gitlab main
+          git checkout -f FETCH_HEAD
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
@@ -238,6 +258,13 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Fetch private source from GitLab
+        shell: bash
+        run: |
+          git remote add gitlab "${{ secrets.GITLAB_DEPLOY_TOKEN }}" 2>/dev/null || true
+          target_ref="${{ github.ref_name }}"
+          git fetch gitlab "$target_ref" || git fetch gitlab main
+          git checkout -f FETCH_HEAD
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
@@ -270,6 +297,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Fetch private scripts from GitLab
+        shell: bash
+        run: |
+          git remote add gitlab "${{ secrets.GITLAB_DEPLOY_TOKEN }}" 2>/dev/null || true
+          target_ref="${{ github.ref_name }}"
+          git fetch gitlab "$target_ref" || git fetch gitlab main
+          git checkout -f FETCH_HEAD -- scripts/merge-mac-feed.js 2>/dev/null || true
       - name: Download all build artifacts
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:

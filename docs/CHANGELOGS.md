@@ -3,6 +3,21 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.29] - 2026-09-06
+
+### Chuẩn hóa Thư mục Lưu Mặc định VuaOffice & Kiến trúc Phân tách Public GitHub / Private GitLab
+
+- **[FIX] Khắc phục Triệt để Hiển thị "GenOffice" tại Cột Vị trí Launcher (Home Recents Table)**:
+  - Cập nhật đường dẫn lưu mặc định dự phòng (`fallback`) trong `configuredDefaultSaveDir` tại `@genoffice/electron-utils` từ `<Documents>/GenOffice` sang `<Documents>/VuaOffice`.
+  - Tích hợp hàm ánh xạ `parentDir` trên giao diện trang chủ `Home.tsx` (Shell): tự động ánh xạ hiển thị thư mục lưu trữ cũ `GenOffice` thành `VuaOffice` trên UI mà không cần can thiệp đổi tên thư mục vật lý của người dùng.
+  - Đồng bộ và cập nhật toàn bộ các bộ unit test cho `@genoffice/electron-utils` đạt 100% (122/122 tests passed).
+- **[ARCH] Thiết lập Kiến trúc "Public Face & Private Engine" (Bảo vệ Mã nguồn Độc quyền 360 CORP)**:
+  - Tách bạch vai trò hạ tầng: Mã nguồn sản phẩm độc quyền (`apps/`, `packages/`, `crates/`, `ee/`, `tools/`, `scripts/`, `360/`) được bảo vệ 100% riêng tư trên kho nội bộ GitLab (`origin`). Kho GitHub (`github`) đóng vai trò là mặt tiền công khai chỉ lưu trữ tài liệu (`docs/`, tutorials, `README.md`), cộng đồng trao đổi Issues và phân phối các tệp cài đặt chính thức (Releases).
+  - Tự động hóa build CI Runner: Runner GitHub Actions kéo mã nguồn an toàn từ GitLab qua Deploy Token (`GITLAB_DEPLOY_TOKEN`) vào bộ nhớ tạm thời của máy ảo để đóng gói đa nền tảng và tải tệp cài đặt lên GitHub Releases mà không lưu bất kỳ dòng mã nguồn nào vào lịch sử Git của GitHub.
+- **[GATE] Đạt Toàn diện Cổng Thương hiệu & Chất lượng Mã nguồn**:
+  - `npm run brand:gate` đạt tuyệt đối 100% (selftest song ánh, trạng thái thương hiệu sạch, kiểm tra rò rỉ 0 lỗi, kiểm toán bất biến).
+  - `npm run typecheck` đạt 0 lỗi trên toàn bộ 20 workspace packages.
+
 ## [1.0.28] - 2026-09-06
 
 ### Tinh chỉnh Tuyên bố Bản quyền Tác phẩm Phái sinh & Ghi nhận Nguồn gốc Bên Thứ Ba

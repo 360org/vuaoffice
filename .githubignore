@@ -27,3 +27,20 @@ logs/
 tmp/
 temp/
 audit-work/
+
+# =============================================================================
+# KIẾN TRÚC MÃ NGUỒN ĐỘC QUYỀN CỦA 360 CORP (PRIVATE TRÊN GITLAB)
+# GitHub chỉ làm mặt tiền lưu trữ tài liệu (docs/, tutorials), issues & release installer.
+# =============================================================================
+apps/
+packages/
+crates/
+ee/
+tools/
+scripts/
+360/
+eslint.config.mjs
+tsconfig.base.json
+vitest.config.ts
+package-lock.json
+

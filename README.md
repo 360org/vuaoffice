@@ -25,11 +25,11 @@ Tất cả các bản build phát hành được đóng gói và kiểm tra tự
 
 | Nền tảng                          | Yêu cầu hệ thống    | Tệp cài đặt                                                                                                         |
 | :-------------------------------- | :------------------ | :------------------------------------------------------------------------------------------------------------------ |
-| **macOS** (Apple Silicon `arm64`) | macOS 11+           | [VuaOffice-1.0.8-macOS-arm64.dmg](https://github.com/360org/vuaoffice/releases/latest) |
-| **macOS** (Intel `x64`)           | macOS 11+           | [VuaOffice-1.0.8-macOS-x64.dmg](https://github.com/360org/vuaoffice/releases/latest)     |
-| **Windows** (x64)                 | Windows 10 / 11     | [VuaOffice-1.0.8-Windows-x64-Setup.exe](https://github.com/360org/vuaoffice/releases/latest) |
-| **Linux** (Debian / Ubuntu)       | x86_64, glibc 2.34+ | [vuaoffice_1.0.8_amd64.deb](https://github.com/360org/vuaoffice/releases/latest) |
-| **Linux** (AppImage)              | x86_64, FUSE 2      | [VuaOffice-1.0.8.AppImage](https://github.com/360org/vuaoffice/releases/latest)   |
+| **macOS** (Apple Silicon `arm64`) | macOS 11+           | [VuaOffice-1.0.29-macOS-arm64.dmg](https://github.com/360org/vuaoffice/releases/latest) |
+| **macOS** (Intel `x64`)           | macOS 11+           | [VuaOffice-1.0.29-macOS-x64.dmg](https://github.com/360org/vuaoffice/releases/latest)     |
+| **Windows** (x64)                 | Windows 10 / 11     | [VuaOffice-1.0.29-Windows-x64-Setup.exe](https://github.com/360org/vuaoffice/releases/latest) |
+| **Linux** (Debian / Ubuntu)       | x86_64, glibc 2.34+ | [vuaoffice_1.0.29_amd64.deb](https://github.com/360org/vuaoffice/releases/latest) |
+| **Linux** (AppImage)              | x86_64, FUSE 2      | [VuaOffice-1.0.29.AppImage](https://github.com/360org/vuaoffice/releases/latest)   |
 
 ---
 
