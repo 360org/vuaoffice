@@ -3,6 +3,23 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.26] - 2026-09-06
+
+### Chuẩn hóa Bản quyền Phần mềm Độc quyền Miễn phí (Proprietary Freeware) & Apache 2.0 §4
+
+- **[LEGAL] Xác lập Mô hình Cấp phép Độc quyền Miễn phí (Proprietary Freeware) cho Người dùng Cuối**:
+  - Cập nhật và chuẩn hóa toàn diện tài liệu pháp lý (`LICENSE`, `NOTICE`, `README.md`, `AboutModal.tsx`): VuaOffice phân phối bản cài đặt nhị phân dưới dạng Phần mềm độc quyền miễn phí (Proprietary Freeware / EULA) cho người dùng cuối (chỉ cho phép sử dụng miễn phí, không cấp quyền sao chép, dịch ngược, sửa đổi hay tái phân phối mã nguồn thương mại của 360 CORP).
+  - Tuân thủ nghiêm ngặt điều khoản **Apache License 2.0 (§4)** đối với phần mềm nguồn mở gốc GenOffice (Mainfunc, Inc.): bảo lưu 100% bản quyền gốc, cung cấp bản sao giấy phép Apache 2.0, công bố thông báo nguồn gốc trong `NOTICE` và bảo toàn các ghi chú bản quyền của bên thứ ba trong hộp thoại giới thiệu ứng dụng (About Modal).
+
+### Đồng bộ An toàn Upstream `genspark-ai/genoffice` (v0.8.1360 Snapshot)
+
+- **[MIGRATE] Hợp nhất An toàn Tính năng Mới từ Upstream**:
+  - Đồng bộ nhánh upstream mới nhất bảo toàn 100% mã nguồn và các tính năng phát triển riêng của 360 CORP (Hệ thống Whitelabel 360, Đăng nhập 360 SSO, Giám định tài liệu PDF Forensics, Đổi tên tệp trực tiếp trên tab Title).
+  - Khắc phục các xung đột đồng bộ và hoàn thiện kiểu dữ liệu Typecheck: bổ sung các khóa dịch bảng biểu mới (`ribbonTableInsideHBorders`, `ribbonTableInsideHBordersTip`, `ribbonTableInsideVBorders`, `ribbonTableInsideVBordersTip`, `appTabClear`) trên toàn bộ 20 ngôn ngữ trong Docs và các khóa thu phóng (`zoom`, `zoomIn`, `zoomOut`) trong Markdown.
+- **[GATE] Đạt Toàn diện Bộ Cổng Kiểm định Chất lượng & Cổng Thương hiệu**:
+  - Selftest luật song ánh, trạng thái thương hiệu, rò rỉ thương hiệu và tính bất biến của lịch sử kiểm toán đạt 100% (`npm run brand:gate`).
+  - Toàn bộ bộ kiểm thử unit test workspace gồm 151 suites/1509 tests trong Docs, 193 suites/2267 tests trong Sheets (kèm universal binary cho Rust sidecar), Shell, Slides, PDF, Markdown, Mail đều xanh 100%.
+
 ## [1.0.25] - 2026-09-04
 
 ### Đổi tên Tệp Trực tiếp trên Thanh Tab (Inline Tab Rename & Auto-save)

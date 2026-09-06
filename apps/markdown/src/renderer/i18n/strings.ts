@@ -3305,5 +3305,8 @@ export const strings = {
     aiToolReplaceDone: 'Đã viết lại {n} khối',
     aiToolWebSearch: 'Tìm kiếm trực tuyến',
     aiToolWebSearchDone: 'Tìm kiếm "{query}" · {count} kết quả',
+    zoom: 'Thu phóng',
+    zoomIn: 'Phóng to',
+    zoomOut: 'Thu nhỏ',
   },
 } as const
