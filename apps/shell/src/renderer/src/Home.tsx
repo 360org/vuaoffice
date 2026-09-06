@@ -107,7 +107,9 @@ function formatSize(bytes: number): string {
 
 function parentDir(path: string): string {
   const parts = path.split(/[\\/]/).filter(Boolean)
-  return parts[parts.length - 2] ?? ''
+  const dir = parts[parts.length - 2] ?? ''
+  // ponytail: alias legacy GenOffice folder name on UI only; upgrade path: migrate disk directory if requested
+  return /^genoffice$/i.test(dir) ? 'VuaOffice' : dir
 }
 
 function fileName(path: string): string {

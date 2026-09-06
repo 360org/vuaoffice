@@ -84,14 +84,14 @@ describe('configuredDefaultSaveDir', () => {
     expect(configuredDefaultSaveDir(app)).toBe(custom)
   })
 
-  it('falls back to <Documents>/GenOffice without a setting', () => {
+  it('falls back to <Documents>/VuaOffice without a setting', () => {
     const userData = join(root, 'userData')
     const documents = join(root, 'Documents')
     mkdirSync(userData, { recursive: true })
     const app = {
       getPath: (name: 'userData' | 'documents') => (name === 'userData' ? userData : documents),
     }
-    expect(configuredDefaultSaveDir(app)).toBe(join(documents, 'GenOffice'))
-    expect(existsSync(join(documents, 'GenOffice'))).toBe(true)
+    expect(configuredDefaultSaveDir(app)).toBe(join(documents, 'VuaOffice'))
+    expect(existsSync(join(documents, 'VuaOffice'))).toBe(true)
   })
 })
