@@ -165,8 +165,8 @@ Toàn bộ tài liệu kiến trúc, đặc tả và hướng dẫn kỹ thuật
 
 - **Mã nguồn**: VuaOffice là phần mềm được phát triển bởi 360 CORP, có tích hợp mã nguồn mở của các bên thứ ba (như: GenOffice tuân thủ theo [Apache License 2.0](LICENSE) và các thư viện mã nguồn mở khác), tuân thủ đầy đủ giấy phép mã nguồn mở của các bên này trong Third-Party Notices.
 - **Ghi nhận tác giả (Attribution Notice)**:
-  - **Original Work**: Copyright 2026 Mainfunc, Inc. (GenOffice).
   - **Derivative Work & Customizations**: Copyright 2026 360 CORP (VuaOffice).
+  - **Original Work**: Copyright 2026 Mainfunc, Inc. (GenOffice).
 - **Phát hành & Bản quyền**: Ứng dụng VuaOffice được phát hành dưới dạng Phần mềm độc quyền miễn phí (Proprietary Freeware) cho người dùng cuối. Nhãn hiệu "VuaOffice" và "360 CORP" thuộc sở hữu của 360 CORP. Nhãn hiệu "GenOffice" và "Genspark" thuộc sở hữu của Mainfunc, Inc.
 **Is GenOffice free?**
 Yes. GenOffice is free and open-source under the Apache-2.0 license — no

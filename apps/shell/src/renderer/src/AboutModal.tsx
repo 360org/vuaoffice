@@ -101,8 +101,8 @@ export function AboutModal({ appVersion, onClose }: AboutModalProps) {
 
           <div style={{ background: 'var(--surface-hover)', padding: '10px 12px', borderRadius: '6px', fontSize: '12px', lineHeight: 1.4 }}>
             <div><strong>Attribution Notice:</strong></div>
-            <div>Original Work: Copyright 2026 Mainfunc, Inc. (GenOffice)</div>
             <div>Derivative Work & Customizations: Copyright 2026 360 CORP (VuaOffice)</div>
+            <div>Original Work: Copyright 2026 Mainfunc, Inc. (GenOffice)</div>
           </div>
 
           <div style={{ marginTop: '4px' }}>
