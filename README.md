@@ -248,11 +248,7 @@ Caladea, Noto CJK subsets) are OFL/Apache.
 
 ## License
 
-GenOffice is licensed under the [Apache License 2.0](LICENSE), with one
-exception: the `ee/` directory is reserved for future enterprise modules and
-is covered by the [GenOffice Enterprise License](ee/LICENSE).
+VuaOffice is a derivative work based on the open-source GenOffice project (developed by Mainfunc, Inc. under the [Apache License 2.0](LICENSE)). 360 CORP distributes packaged VuaOffice applications as Proprietary Freeware for end-users. Source code modifications and 360-specific features are © 2026 360 CORP.
 
 The GenOffice and Genspark names and logos are trademarks of Mainfunc, Inc.
-The Apache-2.0 license does not grant permission to use them (see section 6);
-forks should use their own branding.
->>>>>>> upstream/main
+The VuaOffice names and logos are trademarks of 360 CORP.

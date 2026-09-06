@@ -479,6 +479,17 @@ describe('file path bookkeeping', () => {
     expect(view.webContents.reload).toHaveBeenCalledTimes(1)
   })
 
+  it('supports getTab and setTabTitle', () => {
+    const id = manager.openDocsTab('/tmp/doc.docx')
+    expect(manager.getTab(id)?.title).toBe('doc.docx')
+    expect(manager.getTab('unknown')).toBeUndefined()
+
+    onChanged.mockClear()
+    manager.setTabTitle(id, 'renamed-title.docx')
+    expect(manager.getTab(id)?.title).toBe('renamed-title.docx')
+    expect(onChanged).toHaveBeenCalled()
+  })
+
   it('reports the active pdf tab with its id (so callers can re-activate it)', () => {
     const pdfId = manager.openPdfTab('/tmp/c.pdf')
     const active = manager.activePdfTab()

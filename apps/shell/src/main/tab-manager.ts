@@ -479,4 +479,15 @@ export class TabManager {
   activeTab(): { id: string; kind: TabKind; filePath?: string } | undefined {
     return this.tabs.find((t) => t.id === this.activeId)
   }
+
+  getTab(id: string): { id: string; kind: TabKind; title: string; filePath?: string; view: WebContentsView | null } | undefined {
+    return this.tabs.find((t) => t.id === id)
+  }
+
+  setTabTitle(id: string, title: string): void {
+    const tab = this.tabs.find((t) => t.id === id)
+    if (!tab) return
+    tab.title = title
+    this.onChanged()
+  }
 }

@@ -3455,6 +3455,60 @@ function registerTabsIpc(): void {
   ipcMain.handle(TABS_CHANNELS.reorder, (_event, id: string, toIndex: number) => {
     if (typeof id === 'string' && Number.isInteger(toIndex)) tabManager?.reorderTab(id, toIndex)
   })
+  ipcMain.handle(
+    TABS_CHANNELS.rename,
+    (_event, id: string, newTitle: string): { ok: boolean; error?: string; title?: string } => {
+      if (typeof id !== 'string' || typeof newTitle !== 'string') {
+        return { ok: false, error: tm('errBadArgs') }
+      }
+      const rawName = newTitle.trim()
+      if (!rawName || /[\\/:]/.test(rawName)) return { ok: false, error: tm('errBadName') }
+      const tab = tabManager?.getTab(id)
+      if (!tab) return { ok: false, error: tm('errMissing') }
+
+      if (!tab.filePath) {
+        // Tab has no backing file on disk (in-memory blank doc or similar)
+        tabManager?.setTabTitle(id, rawName)
+        return { ok: true, title: rawName }
+      }
+
+      const oldPath = tab.filePath
+      if (!assertSafeUserPath(oldPath)) return { ok: false, error: tm('errBadArgs') }
+      if (!existsSync(oldPath)) return { ok: false, error: tm('errMissing') }
+
+      const origExt = extname(oldPath)
+      const inputExt = extname(rawName)
+      // Ensure the extension matches the original file type
+      const targetName =
+        inputExt.toLowerCase() === origExt.toLowerCase()
+          ? rawName
+          : `${rawName.replace(/\.[^.]+$/, '')}${origExt}`
+      const targetPath = join(dirname(oldPath), targetName)
+
+      if (targetPath === oldPath) return { ok: true, title: targetName }
+      if (existsSync(targetPath)) return { ok: false, error: tm('errExists') }
+
+      try {
+        renameSync(oldPath, targetPath)
+      } catch (err) {
+        return { ok: false, error: err instanceof Error ? err.message : tm('errRenameFailed') }
+      }
+
+      replaceRecentFile(oldPath, targetPath)
+      projectFileRenamed(oldPath, targetPath)
+      if (/\.pptx$/i.test(targetPath)) void replaceSlidesRecentFile(oldPath, targetPath)
+
+      const affected = tabManager?.renameTabFile(oldPath, targetPath) ?? []
+      for (const t of affected) {
+        if (t.kind === 'slides') slidesFileRenamed(t.webContents, oldPath, targetPath)
+        else if (t.kind === 'docs') docsFileRenamed(t.webContents, oldPath, targetPath)
+        else if (t.kind === 'sheets') sheetsFileRenamed(t.webContents, oldPath, targetPath)
+        else if (t.kind === 'markdown') markdownFileRenamed(t.webContents, oldPath, targetPath)
+      }
+
+      return { ok: true, title: targetName }
+    },
+  )
   // "all tabs" overflow menu — native popup because the editors' WebContentsView
   // would cover any DOM dropdown the shell renderer draws below the tab strip
   ipcMain.handle(TABS_CHANNELS.showMenu, (_event, x: unknown, y: unknown) => {

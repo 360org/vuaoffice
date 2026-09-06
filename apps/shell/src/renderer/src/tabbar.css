@@ -211,6 +211,23 @@ html.genoffice-popover-open .tab-bar {
   white-space: nowrap;
 }
 
+.tab-title-input {
+  -webkit-app-region: no-drag;
+  flex: 1 1 auto;
+  min-width: 40px;
+  height: 22px;
+  padding: 0 4px;
+  margin: 0;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: inherit;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  outline: none;
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
 .tab-close {
   -webkit-app-region: no-drag;
   flex-shrink: 0;

@@ -5,6 +5,15 @@ Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaO
 
 ## [1.0.25] - 2026-09-04
 
+### Đổi tên Tệp Trực tiếp trên Thanh Tab (Inline Tab Rename & Auto-save)
+
+- **[NEW] Đổi tên tài liệu trực tiếp trên Tab Title**:
+  - Cho phép người dùng nhấp chuột trực tiếp vào tiêu đề thẻ tab đang mở (đặc biệt là các tệp tạo mới chưa đặt tên như `Untitled Spreadsheet-*.xlsx`, `Untitled Doc`, `Untitled.pdf`) để chỉnh sửa tên tệp ngay trên thanh tab.
+  - Tự động bôi đen phần tên cơ bản (loại trừ phần mở rộng `.xlsx`, `.docx`, `.pptx`, `.pdf`, `.md`) để người dùng gõ tên mới nhanh gọn mà không làm mất định dạng file.
+- **[NEW] Tự động Lưu tên mới (Auto-save) khi click ra ngoài hoặc gõ Enter**:
+  - Khi người dùng hoàn tất chỉnh sửa và bấm Enter hoặc click chuột ra ngoài (blur), ứng dụng tự động thực hiện đổi tên tệp trực tiếp trên ổ đĩa.
+  - Đồng bộ tức thì tên mới vào session của trình biên tập (Sheets, Docs, Slides, Markdown, PDF) và danh sách tệp gần đây (Recent Files), không cần qua bất kỳ hộp thoại trung gian nào.
+
 ### Chuẩn hóa Giám định PDF Forensics: Khắc phục False Positive & False Negative
 
 - **[FIX] Khắc phục Triệt để Nhận diện Sai Tệp Gốc (False Positive)**:

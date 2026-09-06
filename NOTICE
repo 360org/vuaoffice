@@ -1,7 +1,13 @@
-GenOffice
-Copyright 2026 Mainfunc, Inc.
+VuaOffice
+Derivative Work Copyright 2026 360 CORP (https://github.com/360org/vuaoffice).
+Original Work Copyright 2026 Mainfunc, Inc. (GenOffice).
 
-This product includes software developed at Mainfunc, Inc.
+This product includes software originally developed at Mainfunc, Inc. (GenOffice),
+licensed under the Apache License, Version 2.0.
+
+Distributed packaged binaries of VuaOffice are provided by 360 CORP as Proprietary
+Freeware for end users under 360 CORP terms of service, with original open-source
+copyright notices and third-party attributions strictly preserved.
 
 Bundled third-party components are listed in THIRD-PARTY-NOTICES.txt, which
 tools/gen-third-party-notices.mjs generates at packaging time. It is not

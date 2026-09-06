@@ -31,3 +31,6 @@ docs/360_BRAND_STRATEGY.md          merge=ours
 docs/RELEASE_PROTOCOL.md            merge=ours
 apps/shell/electron-builder.cjs     merge=ours
 .github/workflows/release.yml       merge=ours
+NOTICE                              merge=ours
+LICENSE                             merge=ours
+README.md                           merge=ours

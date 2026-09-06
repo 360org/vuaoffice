@@ -132,6 +132,9 @@ const KIND_ICON: Record<TabSummary['kind'], ReactElement> = {
 export function TabBar() {
   const { t } = useI18n()
   const [tabs, setTabs] = useState<TabSummary[]>([])
+  const [editingTabId, setEditingTabId] = useState<string | null>(null)
+  const [editTitle, setEditTitle] = useState('')
+  const editInputRef = useRef<HTMLInputElement>(null)
   const stripRef = useRef<HTMLDivElement>(null)
 
   // Chrome-style drag-to-reorder: the grabbed tab tracks the pointer 1:1 while
@@ -237,6 +240,34 @@ export function TabBar() {
       ?.scrollIntoView({ inline: 'nearest', block: 'nearest' })
   }, [activeId])
 
+  useEffect(() => {
+    if (editingTabId && editInputRef.current) {
+      editInputRef.current.focus()
+      const val = editInputRef.current.value
+      // Select filename without extension if present
+      const dotIdx = val.lastIndexOf('.')
+      if (dotIdx > 0) {
+        editInputRef.current.setSelectionRange(0, dotIdx)
+      } else {
+        editInputRef.current.select()
+      }
+    }
+  }, [editingTabId])
+
+  const commitRename = (id: string) => {
+    const newName = editTitle.trim()
+    setEditingTabId(null)
+    if (!newName) return
+    const currentTab = tabs.find((t) => t.id === id)
+    if (currentTab && newName === currentTab.title) return
+
+    void window.aiOfficeTabs.rename(id, newName).then((result) => {
+      if (result && !result.ok && result.error) {
+        console.warn('Tab rename failed:', result.error)
+      }
+    })
+  }
+
   return (
     <div className="tab-bar">
       <div className="tab-bar-drag-spacer" />
@@ -265,10 +296,12 @@ export function TabBar() {
               onPointerDown={(event) => {
                 if (event.button !== 0) return
                 if ((event.target as HTMLElement).closest('.tab-close')) return
+                if ((event.target as HTMLElement).closest('.tab-title-input')) return
                 // Chrome-style: pressing a tab activates it immediately, so
                 // activation never depends on the click that a drag would eat
                 if (!tab.active) void window.aiOfficeTabs.activate(tab.id)
                 if (tab.id === 'home') return
+                if (editingTabId === tab.id) return
                 const strip = stripRef.current
                 if (!strip) return
                 const rects = Array.from(strip.querySelectorAll<HTMLElement>('.tab-item'), (el) =>
@@ -349,7 +382,39 @@ export function TabBar() {
               {/* highlight plate behind the content — hover capsule / active white body */}
               <span className="tab-plate" aria-hidden="true" />
               <span className="tab-icon">{KIND_ICON[tab.kind]}</span>
-              <span className="tab-title">{tab.title}</span>
+              {editingTabId === tab.id ? (
+                <input
+                  ref={editInputRef}
+                  className="tab-title-input"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  onBlur={() => commitRename(tab.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.currentTarget.blur()
+                    } else if (e.key === 'Escape') {
+                      setEditingTabId(null)
+                    }
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                />
+              ) : (
+                <span
+                  className="tab-title"
+                  onClick={(e) => {
+                    if (tab.id === 'home') return
+                    // If the tab is already active, clicking on the title enters rename mode
+                    if (tab.active) {
+                      e.stopPropagation()
+                      setEditingTabId(tab.id)
+                      setEditTitle(tab.title)
+                    }
+                  }}
+                >
+                  {tab.title}
+                </span>
+              )}
               {tab.closable && (
                 <button
                   className="tab-close"

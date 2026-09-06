@@ -27,6 +27,8 @@ export interface TabsApi {
   showNewMenu(x: number, y: number): Promise<void>
   /** move a tab to a new index in the strip; Home stays pinned at index 0 */
   reorder(id: string, toIndex: number): Promise<void>
+  /** rename the document file backing this tab (or tab title if in-memory); commits to disk if backed */
+  rename(id: string, newName: string): Promise<{ ok: boolean; error?: string; title?: string }>
   /** subscribe to tab list changes (open/close/activate/title updates); returns unsubscribe */
   onChanged(handler: (tabs: TabSummary[]) => void): () => void
   /**
@@ -48,6 +50,7 @@ export const TABS_CHANNELS = {
   showMenu: 'tabs:show-menu',
   showNewMenu: 'tabs:show-new-menu',
   reorder: 'tabs:reorder',
+  rename: 'tabs:rename',
   changed: 'tabs:changed',
   chromePressed: 'tabs:chrome-pressed',
 } as const
