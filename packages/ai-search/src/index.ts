@@ -1,7 +1,8 @@
 /**
  * Search utilities (main process) — gsk (Genspark CLI) first, then Serper Google API,
- * with DuckDuckGo as the keyless last resort. Runs in the main process
- * (Node fetch / child process) to avoid renderer CORS; the Serper key reuses SERPER_API_KEY.
+ * then Tavily, with DuckDuckGo as the keyless last resort. Runs in the main process
+ * (Node fetch / child process) to avoid renderer CORS; the Serper key reuses SERPER_API_KEY,
+ * the Tavily key reuses TAVILY_API_KEY.
  * For gsk auth see ./gsk.ts (`gsk login` or GSK_API_KEY).
  */
 
@@ -19,6 +20,7 @@ export * from './gsk'
 export * from './genoffice-auth'
 
 const SERPER_KEY = () => process.env.SERPER_API_KEY ?? ''
+const TAVILY_KEY = () => process.env.TAVILY_API_KEY ?? ''
 
 // ── Web search ──────────────────────────────────────────────────────
 
@@ -38,7 +40,7 @@ export async function webSearch(
       const r = await gskWebSearch(query, maxResults)
       if (r.results.length) return { ...r, method: 'gsk' }
     } catch {
-      /* fall back to Serper/DuckDuckGo */
+      /* fall back to Serper/Tavily/DuckDuckGo */
     }
   }
   const key = SERPER_KEY()
@@ -68,6 +70,42 @@ export async function webSearch(
           return answer !== undefined
             ? { results, answer, method: 'serper' }
             : { results, method: 'serper' }
+        }
+      }
+    } catch {
+      /* fall back to Tavily/DuckDuckGo */
+    }
+  }
+  const tavilyKey = TAVILY_KEY()
+  if (tavilyKey) {
+    try {
+      const resp = await fetchWithTimeout('https://api.tavily.com/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          api_key: tavilyKey,
+          query,
+          max_results: maxResults,
+          include_answer: true,
+        }),
+      })
+      if (resp.ok) {
+        const data = asRecord(await resp.json())
+        const raw: unknown[] = Array.isArray(data.results) ? data.results : []
+        const results: WebSearchResult[] = raw.slice(0, maxResults).map((item) => {
+          const o = asRecord(item)
+          return {
+            title: String(o.title ?? ''),
+            url: String(o.url ?? ''),
+            snippet: String(o.content ?? ''),
+          }
+        })
+        const answerRaw = data.answer
+        const answer = typeof answerRaw === 'string' && answerRaw ? answerRaw : undefined
+        if (results.length) {
+          return answer !== undefined
+            ? { results, answer, method: 'tavily' }
+            : { results, method: 'tavily' }
         }
       }
     } catch {

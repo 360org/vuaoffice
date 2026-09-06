@@ -184,6 +184,7 @@ import type { TabKind } from '../shared/tabs-api'
 import { TABS_CHANNELS } from '../shared/tabs-api'
 import { showErrorDialog } from './error-dialog'
 import { normalizeRecentQuery, pageRecentPaths, statPathEntries } from './recent-files'
+import { isCaseOnlyRename, isValidRenameName } from './rename-validation'
 import { TabManager } from './tab-manager'
 import { applyUpdateChannel, checkForUpdatesManual, initAutoUpdater } from './updater'
 import { isUpdateChannel, type UpdateChannel } from '../shared/update-api'
@@ -3158,11 +3159,16 @@ function registerHomeIpc(): void {
         return { ok: false, error: tm('errBadArgs') }
       if (!assertSafeUserPath(path)) return { ok: false, error: tm('errBadArgs') }
       const name = newName.trim()
-      if (!name || /[\\/:]/.test(name)) return { ok: false, error: tm('errBadName') }
+      if (!isValidRenameName(name)) return { ok: false, error: tm('errBadName') }
       if (!existsSync(path)) return { ok: false, error: tm('errMissing') }
       const target = join(dirname(path), name)
       if (target === path) return { ok: true, path }
-      if (existsSync(target)) return { ok: false, error: tm('errExists') }
+      // A case-only rename (Report.pdf -> report.pdf) is the same file:
+      // existsSync sees the source itself on case-insensitive filesystems,
+      // so skip the gate and let the OS perform the case change.
+      if (!isCaseOnlyRename(path, target) && existsSync(target)) {
+        return { ok: false, error: tm('errExists') }
+      }
       try {
         renameSync(path, target)
       } catch (err) {
