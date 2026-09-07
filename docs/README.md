@@ -72,11 +72,11 @@ Trang web giới thiệu trực quan hoàn chỉnh được lưu tại [`index.h
 
 ---
 
-## 📥 Tải Cài Đặt & Đăng Ký Tài Khoản
+## 📥 Đăng Ký Tài Khoản & Tải Miễn Phí
 
 Tải về bộ cài đặt dành riêng cho hệ điều hành của bạn:
 
-👉 **[Tải VuaOffice & Đăng Ký Tài Khoản tại Vua Hệ Thống](https://vuahethong.net/free-download-360-office-suite)**  
+👉 **[Đăng Ký Tài Khoản & Tải VuaOffice tại Vua Hệ Thống](https://vuahethong.net/free-download-360-office-suite)**  
 👉 **[Khám phá Hệ sinh thái Vua Hệ Thống](https://vuahethong.net)**
 
 ---
