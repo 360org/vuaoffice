@@ -29,7 +29,7 @@ Trang web giới thiệu trực quan hoàn chỉnh được lưu tại [`index.h
 | **2** | **VuaOffice Sheets** | `.xlsx`, `.xls`, `.csv` | 400+ hàm tính, Pivot Table, Slicer, biểu đồ động; mở bảng tính hàng trăm ngàn dòng siêu mượt nhờ Rust Engine. |
 | **3** | **VuaOffice Slides** | `.pptx`, `.ppt` | Thiết kế bài thuyết trình trực quan, công nghệ HarfBuzz sắc nét, hỗ trợ trình chiếu 2 màn hình (Presenter View). |
 | **4** | **PDF Studio** | `.pdf` | Chỉnh sửa trực tiếp từng câu chữ trong tệp PDF giữ nguyên phông gốc; ký số điện tử không đóng dấu watermark. |
-| **5** | **VuaOffice Markdown** | `.md` | Soạn thảo tài liệu kỹ thuật WYSIWYG với Tiptap; live preview, hỗ trợ công thức toán, code highlight và xuất PDF/Word nhanh. |
+| **5** | **VuaOffice Markdown** | `.md` | Soạn thảo Markdown (Định dạng AI) trực quan với Tiptap; live preview, hỗ trợ công thức toán, code highlight và xuất PDF/Word nhanh. |
 | **6** | **Mail & Calendar** | IMAP / SMTP | Ứng dụng thư điện tử và lịch biểu đa tài khoản tích hợp AI tóm tắt luồng thư (*Sắp ra mắt*). |
 | **7** | **Native AI Agentic** | Gateway 360 | Trợ lý thông minh kết nối trực tiếp trong từng ứng dụng; hỗ trợ cả Developer Mode để dùng API Key riêng. |
 
