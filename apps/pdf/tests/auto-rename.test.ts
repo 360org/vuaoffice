@@ -150,6 +150,16 @@ describe('pdf auto-rename', () => {
     expect(basename(result.path!)).toBe('Q3 Plan draft.pdf')
   })
 
+  it('suffixes Windows reserved names so the rename works there too', () => {
+    const path = makePdfFile()
+    markPdfUntitledPath(path)
+    createPdfView(path)
+
+    const result = rename(lastWebContents.id, path, 'CON')
+    expect(result.renamed).toBe(true)
+    expect(basename(result.path!)).toBe('CON_.pdf')
+  })
+
   it('retries an occupied candidate without altering the winning file bytes', () => {
     const path = makePdfFile()
     const occupiedPath = join(path, '..', 'Report.pdf')
