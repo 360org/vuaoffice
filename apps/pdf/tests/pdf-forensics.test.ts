@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PDFDocument, rgb } from 'pdf-lib'
+import { PDFDocument } from 'pdf-lib'
 import { inspectPdfForensics, findEofOffsets } from '../src/main/pdf-inspector'
 
 describe('PDF Forensics Inspector', () => {

@@ -223,7 +223,7 @@ export const ar = {
   appSettingsLoggedInEmail: 'تم تسجيل الدخول: {email}',
   appSettingsLoggedOut: 'لم يتم تسجيل الدخول (تتطلب ميزات الذكاء الاصطناعي حساب Genspark)',
   appSettingsLoginPending: 'في انتظار تسجيل الدخول عبر المتصفح…',
-  appSettingsLogin: 'تسجيل الدخول إلى Genspark',
+  appSettingsLogin: 'تسجيل الدخول إلى VuaOffice',
   appSettingsModel: 'النموذج',
   appSettingsCancel: 'إلغاء',
   appSettingsSave: 'حفظ',

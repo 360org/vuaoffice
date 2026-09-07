@@ -508,7 +508,7 @@ async function createStandaloneDocument(
   if (request.type === 'docx') {
     return {
       ok: false,
-      error: 'Creating DOCX files requires the GenOffice shell or Docs app.',
+      error: 'Creating DOCX files requires the VuaOffice shell or Docs app.',
     }
   }
   const title = sanitizeGeneratedDocumentTitle(request.title)
@@ -562,7 +562,7 @@ const saveAsTargetByWc = new Map<number, string>()
 /** Disk state at the last PDF read/write, scoped to the granted renderer view. */
 const pdfDiskStates = new Map<number, Map<string, DiskFileState>>()
 
-const EXTERNAL_PDF_MODIFIED_ERROR = 'pdf: file changed outside GenOffice'
+const EXTERNAL_PDF_MODIFIED_ERROR = 'pdf: file changed outside VuaOffice'
 const sha256Hex = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex')
 
 async function rememberPdfDiskState(wcId: number, filePath: string, bytes: Buffer): Promise<void> {

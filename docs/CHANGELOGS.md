@@ -3,6 +3,23 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.30] - 2026-09-07
+
+### Đồng bộ Upstream v0.9.10 & Nâng cấp Toàn diện Mô đun Slides, PDF, Docs, Sheets
+
+- **[SYNC] Đồng bộ Toàn diện Upstream genoffice (v0.9.10)**:
+  - Tích hợp tính năng Thu gọn / Ghim dải băng Ribbon (`ribbonCollapse`, `ribbonPin`, `ribbonExpand`) đồng bộ trên Docs, Sheets, Slides, Markdown và PDF.
+  - Tích hợp bộ công cụ giám định và chỉnh sửa PDF nâng cao bằng AI: Di chuyển khối văn bản (`aiToolMoveTextBlock`), chỉnh sửa đánh dấu/ghi chú, dấu biểu mẫu, cùng hộp thoại xác nhận thao tác tệp an toàn (`aiFileOp*`).
+  - Nâng cấp mô đun Slides: Kiến trúc bản dịch đa phân mảnh (modular i18n shards) chuyên biệt theo khu vực chức năng (`ribbon`, `app`, `panes`, `ai`).
+- **[I18N] Bản địa hóa Tiếng Việt Đầy đủ & An toàn Kiểu Dữ liệu 100%**:
+  - Bổ sung và cập nhật đầy đủ các bản dịch Tiếng Việt cho toàn bộ các công cụ mới trong Docs, Sheets, Slides, PDF và Markdown.
+  - Đảm bảo an toàn kiểm tra kiểu tại thời điểm biên dịch (`LangDicts` TS2345 type safety) trên tất cả 20 gói workspace.
+- **[GATE] Vượt qua Toàn bộ Cổng Kiểm thử Chất lượng & Thương hiệu 360**:
+  - `npm run brand:gate`: Selftest song ánh, trạng thái thương hiệu, phát hiện rò rỉ và kiểm toán bất biến đạt 100%.
+  - `npm run typecheck`: 0 lỗi biên dịch TypeScript trên toàn bộ 20 workspaces.
+  - `npm run lint`: 0 lỗi ESLint.
+  - `npm test`: 100% unit tests passed trên toàn bộ packages/apps.
+
 ## [1.0.29] - 2026-09-06
 
 ### Chuẩn hóa Thư mục Lưu Mặc định VuaOffice & Kiến trúc Phân tách Public GitHub / Private GitLab

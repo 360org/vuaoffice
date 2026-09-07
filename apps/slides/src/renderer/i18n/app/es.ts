@@ -235,7 +235,7 @@ export const es = {
   appSettingsLoggedInEmail: 'Sesión iniciada: {email}',
   appSettingsLoggedOut: 'Sesión no iniciada (las funciones de IA requieren una cuenta de Genspark)',
   appSettingsLoginPending: 'Esperando el inicio de sesión en el navegador…',
-  appSettingsLogin: 'Iniciar sesión en Genspark',
+  appSettingsLogin: 'Iniciar sesión en VuaOffice',
   appSettingsModel: 'Modelo',
   appSettingsCancel: 'Cancelar',
   appSettingsSave: 'Guardar',

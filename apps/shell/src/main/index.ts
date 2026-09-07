@@ -75,9 +75,7 @@ import {
 import { ProjectStore } from '@genoffice/project-store'
 import {
   genofficeLogout,
-  gskLoginInfo,
   loadGenofficeAuth,
-  resolveGskEntry,
   saveGenofficeAuth,
   setGskProxyUrl,
 } from '@genoffice/ai-search'
@@ -209,7 +207,7 @@ import type { DiagnosticReportData } from '../shared/home-api'
 if (!app.isPackaged)
   app.setPath(
     'userData',
-    process.env.GENOFFICE_USER_DATA ?? join(app.getPath('appData'), 'GenOffice Dev'),
+    process.env.GENOFFICE_USER_DATA ?? join(app.getPath('appData'), 'VuaOffice Dev'),
   )
 
 // The product rename from "AI Office" to VuaOffice changed the userData path; migrate old user data once
@@ -431,7 +429,7 @@ let cachedGithubStars: number | null = null
 async function fetchGithubStars(): Promise<number | null> {
   if (cachedGithubStars !== null) return cachedGithubStars
   try {
-    const response = await fetch('https://api.github.com/repos/genspark-ai/genoffice', {
+    const response = await fetch('https://api.github.com/repos/360org/vuaoffice', {
       headers: { Accept: 'application/vnd.github+json' },
       signal: AbortSignal.timeout(5000),
     })
@@ -2169,22 +2167,9 @@ const tMain = createI18n({
     menuCheckForUpdates: 'Kiểm tra cập nhật…',
     thirdPartyNotices: 'Thông báo phần mềm bên thứ ba',
     menuExportDocx: 'Xuất thành Word…',
-    pdfDocxLoginMsg: 'Xuất thành Word yêu cầu đăng nhập tài khoản 360 CORP.',
-    pdfDocxLoginDetail:
-      'Bấm "Đăng nhập" sẽ mở trình duyệt để xác thực, sau khi hoàn tất vui lòng bấm Xuất lại.',
-    pdfDocxBtnLogin: 'Đăng nhập',
-    pdfDocxConfirmMsg: 'Tải tệp PDF này lên đám mây 360 CORP để chuyển thành Word?',
-    pdfDocxConfirmDetail:
-      'Lần chuyển đổi này sẽ tiêu tốn 5 lượt dùng AI, tệp sẽ được tải lên đám mây để xử lý.',
-    pdfDocxConfirmBalance: 'Số dư hiện tại: {balance} lượt dùng.',
-    pdfDocxBtnConvert: 'Tiếp tục',
     btnCancel: 'Hủy',
     pdfDocxFailedMsg: 'Xuất thành Word thất bại',
-    pdfDocxNoCliMsg:
-      'Không thể đăng nhập 360 CORP: Thiếu thành phần cần thiết (gsk), vui lòng cài đặt lại ứng dụng.',
     pdfDocxBusyMsg: 'Đang chuyển đổi, vui lòng đợi lượt xuất hiện tại hoàn tất.',
-    menuExportDocxLocal: 'Xuất thành Word (chuyển đổi cục bộ)…',
-    menuExportDocxCloud: 'Xuất thành Word (chuyển đổi đám mây)…',
     menuExportPptx: 'Xuất thành PPT…',
     pdfPptxFailedMsg: 'Xuất thành PPT thất bại',
     pdfPptxBusyMsg: 'Đang chuyển đổi, vui lòng đợi lượt xuất hiện tại hoàn tất.',
@@ -2302,7 +2287,7 @@ function createShellWindow(): void {
     height: 900,
     minWidth: 720,
     minHeight: 550,
-    title: 'GenOffice',
+    title: 'VuaOffice',
     // vibrancy: editor modules punch translucent regions (e.g. the slides
     // thumbnail pane) through to the desktop
     ...(process.platform === 'darwin'
@@ -4265,7 +4250,7 @@ registerTabsIpc()
 setSessionPathResolver(resolveSheetsSessionPath)
 
 /** Dev-only pid marker for the takeover below; scoped to userData like the lock itself. */
-app.name = 'GenOffice'
+app.name = 'VuaOffice'
 const devPidFile = () => join(app.getPath('userData'), 'dev-instance.pid')
 
 app.whenReady().then(async () => {
