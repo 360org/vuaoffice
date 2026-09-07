@@ -35,6 +35,7 @@
     "whitelabel:restore": "npm run brand:restore",
     "whitelabel:status": "npm run brand:status",
     "whitelabel:selftest": "npm run brand:selftest",
+    "site:sync": "node tools/sync-site-updates.mjs",
     "brand:check": "node tools/check-brand.mjs",
     "audit:check": "node tools/check-audit-immutable.mjs",
     "brand:gate": "npm run brand:selftest && npm run brand:status && npm run brand:check && npm run audit:check",

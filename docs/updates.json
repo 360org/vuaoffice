@@ -1,0 +1,77 @@
+[
+  {
+    "version": "1.0.30",
+    "date": "Tháng 9/2026",
+    "highlight": "Giải pháp văn phòng trọn gói thay thế hoàn toàn Microsoft Office.",
+    "features": [
+      {
+        "title": "Dải băng Ribbon gập mở linh hoạt",
+        "desc": "Tích hợp tính năng Thu gọn / Ghim dải băng thao tác nhanh trên toàn bộ ứng dụng Docs, Sheets, Slides, PDF, Markdown giúp mở rộng tối đa không gian soạn thảo."
+      },
+      {
+        "title": "Nâng cấp bộ công cụ AI PDF & Slides",
+        "desc": "Bổ sung công cụ di chuyển khối văn bản, chỉnh sửa đánh dấu, dấu biểu mẫu và hộp thoại xác nhận an toàn tệp; tối ưu hóa toàn diện bản dịch Tiếng Việt."
+      }
+    ]
+  },
+  {
+    "version": "1.0.29",
+    "date": "Tháng 9/2026",
+    "highlight": "Quản lý tệp thông minh và tối ưu tốc độ khởi động.",
+    "features": [
+      {
+        "title": "Quản lý tệp thông minh",
+        "desc": "Tự động tổ chức và chuẩn hóa thư mục lưu trữ tài liệu mặc định vào ~/Documents/VuaOffice, giúp người dùng dễ dàng tìm kiếm và đồng bộ dữ liệu."
+      },
+      {
+        "title": "Tối ưu hiệu năng khởi động",
+        "desc": "Tăng tốc độ mở tệp lớn và xử lý đa nhiệm giữa nhiều thẻ văn bản, bảng tính và tài liệu trình chiếu cùng lúc."
+      }
+    ]
+  },
+  {
+    "version": "1.0.27",
+    "date": "Tháng 9/2026",
+    "highlight": "Đổi tên tệp nhanh ngay trên Tab không cần Save As.",
+    "features": [
+      {
+        "title": "Đổi tên tệp trực tiếp trên thẻ Tab (Inline Rename)",
+        "desc": "Cho phép người dùng click thẳng vào tên tệp trên thanh tab để đổi tên và lưu vào ổ cứng tức thì mà không cần phải vào hộp thoại \"Save As\"."
+      },
+      {
+        "title": "Tự động bảo toàn đuôi mở rộng",
+        "desc": "Tự động khóa và bảo vệ định dạng .docx, .xlsx, .pptx, .pdf khi đổi tên nhanh, chống nguy cơ lỗi tệp."
+      }
+    ]
+  },
+  {
+    "version": "1.0.26",
+    "date": "Tháng 9/2026",
+    "highlight": "Kẻ viền bảng nâng cao và công cụ thu phóng thông minh.",
+    "features": [
+      {
+        "title": "Bổ sung hệ thống kẻ viền bảng phong phú",
+        "desc": "Thêm tính năng kẻ viền trong dọc/ngang (Inside Borders) trực tiếp trên Ribbon Docs giúp lập báo cáo chuẩn mực."
+      },
+      {
+        "title": "Công cụ thu phóng linh hoạt",
+        "desc": "Bổ sung tính năng Zoom in / Zoom out và căn lề thông minh cho tài liệu Markdown."
+      }
+    ]
+  },
+  {
+    "version": "1.0.20",
+    "date": "Tháng 8/2026",
+    "highlight": "Chỉnh sửa trực tiếp file PDF và ký số không Watermark.",
+    "features": [
+      {
+        "title": "Chỉnh sửa văn bản trong tệp PDF",
+        "desc": "Cho phép can thiệp gõ sửa trực tiếp từng từ ngữ trong PDF mà không làm lệch phông chữ gốc của tài liệu."
+      },
+      {
+        "title": "Ký số điện tử không Watermark",
+        "desc": "Ký số tài liệu hợp đồng thuận tiện, cam kết không chèn chữ ký thương hiệu gây phản cảm."
+      }
+    ]
+  }
+]

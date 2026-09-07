@@ -70,12 +70,16 @@ npm test
 
 Cả ba phải đạt. Cấm phát hành khi có bài kiểm thử đỏ.
 
-### ☑️ Bước 5 — Bump version ĐỒNG BỘ ở CẢ HAI tệp
+### ☑️ Bước 5 — Bump version ĐỒNG BỘ & Cập nhật Website Docs
 
 ```bash
-# BẮT BUỘC cả hai, cùng một số phiên bản
+# 1. BẮT BUỘC cả hai, cùng một số phiên bản
 package.json              → "version": "0.7.1"
 apps/shell/package.json   → "version": "0.7.1"
+
+# 2. Cập nhật tính năng mới hướng người dùng vào docs/updates.json (không viết thuật ngữ kỹ thuật)
+# 3. Chạy lệnh tự động đồng bộ lên giao diện website và sitemap:
+npm run site:sync
 ```
 
 > ⚠️ Workflow `release.yml` **xác thực tag khớp chính xác `apps/shell/package.json`**. Lệch nhau → build thất bại ở job đầu tiên.
