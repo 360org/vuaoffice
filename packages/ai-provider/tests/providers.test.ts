@@ -45,6 +45,17 @@ describe('provider model catalog', () => {
     expect(genspark.models).not.toContain('deep-seek-v4-flash')
     expect(genspark.models).not.toContain('deep-seek-v4-flash-vision-exp-openrouter')
   })
+
+  it('keeps Responses-only models out of the OpenCode tiers (no such protocol yet)', () => {
+    for (const id of ['opencode-zen', 'opencode-go'] as const) {
+      const meta = AI_PROVIDERS.find((provider) => provider.id === id)!
+      expect(meta.models).toContain(meta.defaultModel)
+      expect(meta.needsBaseUrl).toBeUndefined()
+      for (const model of meta.models) {
+        expect(model).not.toMatch(/^(gpt-|grok-|muse-spark-)/)
+      }
+    }
+  })
 })
 
 describe('resolveAiSettings', () => {
@@ -164,23 +175,42 @@ describe('resolveAiSettings', () => {
     const resolved = resolveAiSettings(
       {
         providers: {
-          deepseek: { apiKey: ' sk-user\n', model: 'deepseek-v4-pro' },
-          custom: { apiKey: 'k', model: 'm', baseUrl: ' http://localhost:1234/v1 ' },
+          deepseek: { apiKey: ' sk-user\n', model: ' deepseek-v4-pro ' },
+          custom: { apiKey: 'k', model: ' m ', baseUrl: ' http://localhost:1234/v1 ' },
         } as never,
       },
       defaultAiSettings(),
     )
     expect(resolved.providers.deepseek.apiKey).toBe('sk-user')
+    expect(resolved.providers.deepseek.model).toBe('deepseek-v4-pro')
     expect(resolved.providers.deepseek.baseUrl).toBeUndefined()
+    expect(resolved.providers.custom.model).toBe('m')
     expect(resolved.providers.custom.baseUrl).toBe('http://localhost:1234/v1')
+  })
+
+  it('still remaps retired model ids padded with whitespace', () => {
+    const resolved = resolveAiSettings(
+      {
+        providers: {
+          deepseek: { apiKey: 'sk-user', model: ' deepseek-reasoner ' },
+        } as never,
+      },
+      defaultAiSettings(),
+    )
+    expect(resolved.providers.deepseek.model).toBe('deepseek-v4-flash')
   })
 
   it('trims the legacy single-endpoint key and base URL too', () => {
     const resolved = resolveAiSettings(
-      { apiKey: ' legacy-key ', baseUrl: ' https://legacy.example.com/v1 ' },
+      {
+        apiKey: ' legacy-key ',
+        model: ' legacy-model ',
+        baseUrl: ' https://legacy.example.com/v1 ',
+      },
       defaultAiSettings(),
     )
     expect(resolved.providers.custom.apiKey).toBe('legacy-key')
+    expect(resolved.providers.custom.model).toBe('legacy-model')
     expect(resolved.providers.custom.baseUrl).toBe('https://legacy.example.com/v1')
   })
 
@@ -248,6 +278,15 @@ describe('activeProvider', () => {
     settings.providers.custom.baseUrl = 'http://localhost:1234/v1'
     expect(activeProvider(settings)).toBe('vuaairouter') // custom's default model is empty
     settings.providers.custom.model = 'my-model'
+    expect(activeProvider(settings)).toBe('custom')
+  })
+
+  it('allows keyless custom endpoints for local servers', () => {
+    const settings = defaultAiSettings()
+    settings.provider = 'custom'
+    settings.providers.custom.apiKey = ''
+    settings.providers.custom.baseUrl = 'http://localhost:11434/v1'
+    settings.providers.custom.model = 'llama3'
     expect(activeProvider(settings)).toBe('custom')
   })
 

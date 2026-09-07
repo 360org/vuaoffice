@@ -14,6 +14,8 @@ export type AiProviderId =
   | 'xai'
   | 'mistral'
   | 'openrouter'
+  | 'opencode-zen'
+  | 'opencode-go'
   | 'custom'
   | 'omirouter'
   | 'vuaairouter'

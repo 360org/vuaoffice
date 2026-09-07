@@ -59,6 +59,7 @@ import {
   cloudToolsEnabled,
   resolveAiSettings,
   maxOutputTokensOf,
+  setAiUserAgent,
   setRescueFetch,
   streamForProvider,
   type AiChatRequest,
@@ -3152,6 +3153,7 @@ export function registerProjectIpc(): void {
 export function registerDocsIpc(): void {
   // Node fetch (undici) direct connections get reset under VPN/tun setups; retry over Chromium's stack
   setRescueFetch((url, init) => net.fetch(url, init))
+  setAiUserAgent(`GenOffice/${app.getVersion()}`)
 
   // shared with the other editor modules — last (identical) registration wins
   ipcMain.removeHandler('app:get-language')
@@ -3577,17 +3579,25 @@ export function registerDocsIpc(): void {
     },
   )
 
-  ipcMain.handle('docs:print', async (event) => {
+  // renderer print scale (inverse of the preview's print zoom, see print-zoom.ts)
+  const pdfScale = (scale?: number) => (scale && scale > 0 && scale !== 1 ? { scale } : {})
+  const printScale = (scale?: number) =>
+    scale && scale > 0 && scale !== 1 ? { scaleFactor: Math.round(scale * 100) } : {}
+
+  ipcMain.handle('docs:print', async (event, scale?: number) => {
     // print the calling tab's own content; zero margins — the docx page padding provides them.
     // Resolves when the system dialog is dismissed; the print dialog stays open on cancel
     // (ok=false without error) and surfaces real failures.
     return new Promise<{ ok: boolean; error?: string }>((resolve) => {
-      event.sender.print({ margins: { marginType: 'none' } }, (success, failureReason) => {
-        resolve({
-          ok: success,
-          ...(failureReason && !/cancel/i.test(failureReason) ? { error: failureReason } : {}),
-        })
-      })
+      event.sender.print(
+        { margins: { marginType: 'none' }, ...printScale(scale) },
+        (success, failureReason) => {
+          resolve({
+            ok: success,
+            ...(failureReason && !/cancel/i.test(failureReason) ? { error: failureReason } : {}),
+          })
+        },
+      )
     })
   })
 
@@ -3599,6 +3609,7 @@ export function registerDocsIpc(): void {
       pageWidthTwips: number,
       pageHeightTwips: number,
       outPath?: string,
+      scale?: number,
     ) => {
       // renderer-supplied outPath is only honored when a save dialog authorized it before
       let filePath = outPath ?? null
@@ -3624,6 +3635,7 @@ export function registerDocsIpc(): void {
             height: pageHeightTwips / TWIPS_PER_INCH,
           },
           margins: { top: 0, bottom: 0, left: 0, right: 0 },
+          ...pdfScale(scale),
         })
         writeFileSync(filePath, data)
         openGeneratedFile(filePath)
@@ -3638,7 +3650,7 @@ export function registerDocsIpc(): void {
   // mixed paper-size export: the renderer prints group by group per size (other pages hidden via CSS); this produces one group's bytes
   ipcMain.handle(
     'docs:print-pdf-buffer',
-    async (event, pageWidthTwips: number, pageHeightTwips: number) => {
+    async (event, pageWidthTwips: number, pageHeightTwips: number, scale?: number) => {
       try {
         const data = await event.sender.printToPDF({
           printBackground: true,
@@ -3647,6 +3659,7 @@ export function registerDocsIpc(): void {
             height: pageHeightTwips / TWIPS_PER_INCH,
           },
           margins: { top: 0, bottom: 0, left: 0, right: 0 },
+          ...pdfScale(scale),
         })
         return { ok: true, base64: data.toString('base64') }
       } catch (err) {
@@ -4086,8 +4099,8 @@ export function createDocsWindow(openPath?: string): BrowserWindow {
   const win = new BrowserWindow({
     width: 1360,
     height: 900,
-    minWidth: 980,
-    minHeight: 600,
+    minWidth: 720,
+    minHeight: 550,
     title: 'GenOffice Docs',
     // Word-like custom title bar (document name centered, quick-access buttons)
     ...(process.platform === 'darwin'
