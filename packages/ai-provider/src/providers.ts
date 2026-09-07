@@ -257,8 +257,14 @@ export function activeProvider(settings: AiSettings): AiProviderId {
   if (provider === 'genspark') return 'genspark'
   const meta = AI_PROVIDERS.find((m) => m.id === provider)
   const config = settings.providers?.[provider]
-  if (!meta || !config?.apiKey || !config.model) return 'genspark'
-  if (meta.needsBaseUrl && !config.baseUrl) return 'genspark'
+  if (!meta || !config?.model) return 'genspark'
+  if (meta.needsBaseUrl) {
+    // Custom OpenAI-compatible endpoints (Ollama, LM Studio, vLLM) accept
+    // anonymous requests: base URL + model suffice, the key stays optional.
+    if (!config.baseUrl) return 'genspark'
+    return provider
+  }
+  if (!config.apiKey) return 'genspark'
   return provider
 }
 
