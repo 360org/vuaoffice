@@ -86,9 +86,9 @@ Tải về bộ cài đặt dành riêng cho hệ điều hành của bạn:
 VuaOffice là một cấu phần thuộc hệ sinh thái số hóa & tự động hóa doanh nghiệp toàn diện do **360 CORP** phát triển:
 
 1. **Vua Hệ Thống (Cloud ERP):** Hệ điều hành doanh nghiệp all-in-one quản trị CRM, Bán hàng, Kho vận, Kế toán & Nhân sự với 2,000+ modules tích hợp ([vuahethong.net](https://vuahethong.net)).
-2. **Vua AI (Vua Nhân Sự Số):** Trợ lý AI Agentic vận hành tự động 24/7 (Chăm sóc khách hàng, Telesale, tổng hợp và xử lý dữ liệu thông minh).
-3. **Vua Website:** Thiết kế website doanh nghiệp chuẩn SEO, trải nghiệm cao cấp và tối ưu tỷ lệ chuyển đổi.
-4. **Vua App Mobile:** Phát triển ứng dụng di động iOS, Android và Zalo Mini App kết nối trực tiếp vào luồng vận hành ERP.
-5. **Vua Sáng Tạo:** Tư vấn chiến lược thương hiệu, thiết kế bộ nhận diện thương hiệu độc bản và ấn phẩm truyền thông doanh nghiệp.
-6. **Vua SEO Top AI:** Chiến lược và giải pháp tự động hóa đẩy thứ hạng từ khóa Google bằng trí tuệ nhân tạo, mang lại dòng khách hàng tự nhiên.
+2. **Vua AI (Vua Nhân Sự Số):** Trợ lý AI Agentic vận hành tự động 24/7 (Chăm sóc khách hàng, Telesale, tổng hợp và xử lý dữ liệu thông minh) ([vuaai.net](https://vuaai.net)).
+3. **Vua Website:** Thiết kế website doanh nghiệp chuẩn SEO, trải nghiệm cao cấp và tối ưu tỷ lệ chuyển đổi ([vuawebsite.net](https://vuawebsite.net)).
+4. **Vua App Mobile:** Phát triển ứng dụng di động iOS, Android và Zalo Mini App kết nối trực tiếp vào luồng vận hành ERP ([vuahethong.net/#download-desktop-app](https://vuahethong.net/#download-desktop-app)).
+5. **Vua Sáng Tạo:** Tư vấn chiến lược thương hiệu, thiết kế bộ nhận diện thương hiệu độc bản và ấn phẩm truyền thông doanh nghiệp ([vuasangtao.com](https://vuasangtao.com)).
+6. **Vua SEO Top AI:** Chiến lược và giải pháp tự động hóa đẩy thứ hạng từ khóa Google bằng trí tuệ nhân tạo, mang lại dòng khách hàng tự nhiên ([vuahethong.net](https://vuahethong.net)).
 
