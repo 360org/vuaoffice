@@ -722,8 +722,8 @@ export function SettingsModal({
                   label={t('setGithub')}
                   value={
                     githubStars === null
-                      ? 'github.com/360org/vuaoffice'
-                      : `github.com/360org/vuaoffice · ★ ${formatStars(githubStars)}`
+                      ? 'github.com/genspark-ai/genoffice'
+                      : `github.com/genspark-ai/genoffice · ★ ${formatStars(githubStars)}`
                   }
                   action={
                     <button

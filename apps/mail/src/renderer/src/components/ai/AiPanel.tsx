@@ -58,7 +58,7 @@ export const AiPanel: React.FC<AiPanelProps> = ({
   const [chat, setChat] = useState<ChatEntry[]>([
     {
       role: 'assistant',
-      text: 'Xin chào Sếp! Em là VuaOffice AI Mail Agent. Em có thể hỗ trợ Sếp tóm tắt email, soạn thư trả lời chuyên nghiệp, tạo công việc To-Do hoặc lên lịch họp Calendar.',
+      text: 'Xin chào Sếp! Em là Genspark AI Mail Agent. Em có thể hỗ trợ Sếp tóm tắt email, soạn thư trả lời chuyên nghiệp, tạo công việc To-Do hoặc lên lịch họp Calendar.',
     },
   ])
   const [input, setInput] = useState('')
@@ -285,7 +285,7 @@ export const AiPanel: React.FC<AiPanelProps> = ({
         <button
           className="ai-rail"
           onClick={onClose}
-          title="Mở VuaOffice AI Mail"
+          title="Mở Genspark AI Mail"
         >
           <GensparkMark size={18} />
           <span className="ai-rail-text">VUAOFFICE AI</span>
@@ -304,7 +304,7 @@ export const AiPanel: React.FC<AiPanelProps> = ({
         <div className="ai-panel-header">
           <div className="ai-header-left">
             <GensparkMark size={18} />
-            <span>VuaOffice AI</span>
+            <span>Genspark AI</span>
           </div>
           <div className="ai-header-actions">
             <button
@@ -427,7 +427,7 @@ export const AiPanel: React.FC<AiPanelProps> = ({
             onSend={() => runWith(input)}
             onStop={handleStop}
             busy={busy}
-            placeholder="Hỏi hoặc yêu cầu VuaOffice AI Mail..."
+            placeholder="Hỏi hoặc yêu cầu Genspark AI Mail..."
             hintIdle=""
             hintBusy=""
             sendLabel="Gửi"

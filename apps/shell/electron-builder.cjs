@@ -18,7 +18,7 @@ const { execFileSync } = require('node:child_process')
 const { existsSync } = require('node:fs')
 const { join } = require('node:path')
 
-const updateUrl = process.env.GENOFFICE_UPDATE_URL || 'https://github.com/360org/vuaoffice/releases/latest/download'
+const updateUrl = process.env.GENOFFICE_UPDATE_URL || 'https://github.com/genspark-ai/genoffice/releases/latest/download'
 
 // GENOFFICE_MAC_X64=1 — opt into packaging the Intel (x64) dmg/zip alongside
 // arm64. Off by default: Intel packages must only ever ship signed with the
@@ -105,11 +105,11 @@ function assertModuleTreesPresent() {
 
 /** @type {import('electron-builder').Configuration} */
 const config = {
-  appId: 'com.vuahethong.vuaoffice',
-  productName: 'VuaOffice',
+  appId: 'com.genspark.genoffice',
+  productName: 'GenOffice',
   protocols: [
     {
-      name: 'VuaOffice Deep Link',
+      name: 'GenOffice Deep Link',
       schemes: ['vuaoffice'],
       role: 'Viewer',
     },
@@ -233,7 +233,7 @@ const config = {
   ],
   npmRebuild: false,
   mac: {
-    artifactName: 'VuaOffice-${version}-macOS-${arch}.${ext}',
+    artifactName: 'GenOffice-${version}-macOS-${arch}.${ext}',
     // Two separate arch packages (NOT universal): arm64 keeps the exact
     // artifact names and update-feed entries it always had, x64 (opt-in via
     // GENOFFICE_MAC_X64=1, see includeMacX64 above) adds Intel support with
@@ -259,7 +259,7 @@ const config = {
     ],
   },
   win: {
-    artifactName: 'VuaOffice-${version}-Windows-${arch}-Setup.${ext}',
+    artifactName: 'GenOffice-${version}-Windows-${arch}-Setup.${ext}',
     target: [
       {
         target: 'nsis',

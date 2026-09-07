@@ -13,11 +13,11 @@ import {
 const DEMO_EVENTS: CalendarEvent[] = [
   {
     id: 'ev_1',
-    title: 'Họp ban điều hành 360 CORP & VuaOffice Suite',
+    title: 'Họp ban điều hành 360 CORP & GenOffice Suite',
     startIso: '2026-08-16T09:00:00.000Z',
     endIso: '2026-08-16T10:30:00.000Z',
     location: 'Phòng Họp Trực Tuyến / Hội trường A',
-    description: 'Rà soát tiến độ VuaOffice Mail v0.7.0 và kế hoạch ra mắt thị trường. Đánh giá tính năng đồng bộ SQLite offline và Fluent Ribbon UI.',
+    description: 'Rà soát tiến độ GenOffice Mail v0.7.0 và kế hoạch ra mắt thị trường. Đánh giá tính năng đồng bộ SQLite offline và Fluent Ribbon UI.',
     category: 'important',
   },
   {
@@ -44,7 +44,7 @@ const DEMO_EVENTS: CalendarEvent[] = [
     startIso: '2026-08-18T15:00:00.000Z',
     endIso: '2026-08-18T16:30:00.000Z',
     location: 'Văn phòng R&D 360 CORP',
-    description: 'Kiểm tra mở tài liệu DOCX/PDF/XLSX đính kèm trực tiếp trong VuaOffice mà không cần cài phần mềm thứ 3.',
+    description: 'Kiểm tra mở tài liệu DOCX/PDF/XLSX đính kèm trực tiếp trong GenOffice mà không cần cài phần mềm thứ 3.',
     category: 'work',
   },
 ]
@@ -88,7 +88,7 @@ export const CalendarView: React.FC = () => {
       startIso: new Date(currentDate.getTime() + 1000 * 60 * 60 * 2).toISOString(),
       endIso: new Date(currentDate.getTime() + 1000 * 60 * 60 * 3).toISOString(),
       location: 'Văn phòng 360 CORP',
-      description: 'Sự kiện tạo từ VuaOffice Mail Calendar',
+      description: 'Sự kiện tạo từ GenOffice Mail Calendar',
       category: 'work',
     }
     setEvents((prev) => [newEv, ...prev])
@@ -200,7 +200,7 @@ export const CalendarView: React.FC = () => {
           </div>
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: 'var(--text-primary, #232425)', cursor: 'pointer', marginBottom: '8px' }}>
             <input type="checkbox" defaultChecked />
-            <span>Lịch công tác VuaOffice</span>
+            <span>Lịch công tác GenOffice</span>
           </label>
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: 'var(--text-primary, #232425)', cursor: 'pointer', marginBottom: '8px' }}>
             <input type="checkbox" defaultChecked />

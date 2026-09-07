@@ -3033,7 +3033,7 @@ export default function App() {
 
   /** Localize known structured main-process errors; other messages pass through raw */
   const friendlySaveError = (error: string): string => {
-    if (error === 'pdf: file changed outside VuaOffice') return t('fileChangedExternally')
+    if (error === 'pdf: file changed outside GenOffice') return t('fileChangedExternally')
     const verify = /save-verify-failed pages=([\d,]+)/.exec(error)
     if (verify) return t('saveVerifyFailed', { pages: verify[1]!.split(',').join(', ') })
     return error
@@ -5750,7 +5750,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <GensparkMark size={26} />
                     </span>
-                    <span>VuaOffice AI</span>
+                    <span>Genspark AI</span>
                   </button>
                   <button
                     className="rb-big ai-entry"

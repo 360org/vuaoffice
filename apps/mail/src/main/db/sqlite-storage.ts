@@ -116,8 +116,8 @@ export class SQLiteMailStorage {
         senderName: '360 CORP Engineering',
         senderEmail: 'support@360.org.vn',
         recipientEmails: ['chau.le@360.org.vn'],
-        subject: 'Chào mừng Sếp đến với VuaOffice Mail trong hệ sinh thái VuaOffice Suite',
-        snippet: 'VuaOffice Mail tích hợp AI Smart Summary, Smart Reply và Offline SQLite Sync hoàn toàn mới...',
+        subject: 'Chào mừng Sếp đến với GenOffice Mail trong hệ sinh thái GenOffice Suite',
+        snippet: 'GenOffice Mail tích hợp AI Smart Summary, Smart Reply và Offline SQLite Sync hoàn toàn mới...',
         dateIso: new Date(now - 1000 * 60 * 15).toISOString(),
         isRead: false,
         isStarred: true,
@@ -128,7 +128,7 @@ export class SQLiteMailStorage {
         id: 'msg_2',
         accountId,
         folderId: 'f_inbox',
-        senderName: 'VuaOffice AI Agent',
+        senderName: 'Genspark AI Agent',
         senderEmail: 'ai@vuahethong.com',
         recipientEmails: ['chau.le@360.org.vn'],
         subject: 'Báo cáo tổng kết tuần & Lịch họp rà soát tính năng mới',
@@ -147,7 +147,7 @@ export class SQLiteMailStorage {
           },
           {
             id: 'att_2',
-            filename: 'Ke_hoach_trien_khai_VuaOffice Mail_v0.7.pdf',
+            filename: 'Ke_hoach_trien_khai_GenOffice Mail_v0.7.pdf',
             sizeBytes: 524288,
             mimeType: 'application/pdf',
           },
@@ -160,7 +160,7 @@ export class SQLiteMailStorage {
         senderName: 'GitHub Notifications',
         senderEmail: 'notifications@github.com',
         recipientEmails: ['chau.le@360.org.vn'],
-        subject: '[360org/vuaoffice] Release v0.6.6 published successfully',
+        subject: '[genspark-ai/genoffice] Release v0.6.6 published successfully',
         snippet: 'Branch main release v0.6.6 with updated updater URL is now live on releases page...',
         dateIso: new Date(now - 1000 * 60 * 60 * 24).toISOString(),
         isRead: true,
@@ -177,7 +177,7 @@ export class SQLiteMailStorage {
         senderName: 'Châu Lê',
         senderEmail: 'chau.le@360.org.vn',
         recipientEmails: ['partners@microsoft.com'],
-        subject: '[Bản nháp] Đề xuất hợp tác tích hợp định dạng Outlook PST vào VuaOffice',
+        subject: '[Bản nháp] Đề xuất hợp tác tích hợp định dạng Outlook PST vào GenOffice',
         snippet: 'Kính gửi đại diện Microsoft, chúng tôi gửi đề xuất hợp tác...',
         dateIso: new Date(now - 1000 * 60 * 60 * 5).toISOString(),
         isRead: true,
@@ -194,7 +194,7 @@ export class SQLiteMailStorage {
         senderName: 'Châu Lê',
         senderEmail: 'chau.le@360.org.vn',
         recipientEmails: ['team@360.org.vn'],
-        subject: 'Chỉ đạo hoàn thiện hệ thống VuaOffice Mail chuẩn Fluent UI Outlook 365',
+        subject: 'Chỉ đạo hoàn thiện hệ thống GenOffice Mail chuẩn Fluent UI Outlook 365',
         snippet: 'Yêu cầu toàn bộ các bộ phận kiểm tra kỹ lưỡng các module trước khi phát hành...',
         dateIso: new Date(now - 1000 * 60 * 60 * 12).toISOString(),
         isRead: true,
@@ -262,20 +262,20 @@ export class SQLiteMailStorage {
         emailId: 'msg_1',
         html: `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #242424;">
-            <h2 style="color: #0078d4; margin-top: 0;">Chào mừng Sếp đến với VuaOffice Mail — VuaOffice Suite</h2>
+            <h2 style="color: #0078d4; margin-top: 0;">Chào mừng Sếp đến với GenOffice Mail — GenOffice Suite</h2>
             <p>Kính gửi Sếp Châu,</p>
-            <p>Ứng dụng <strong>VuaOffice Mail</strong> đã được nâng cấp toàn diện với kiến trúc hiện đại:</p>
+            <p>Ứng dụng <strong>GenOffice Mail</strong> đã được nâng cấp toàn diện với kiến trúc hiện đại:</p>
             <ul>
               <li><strong>Local Engine</strong>: SQLite Storage siêu tốc, đồng bộ Op-Queue offline.</li>
               <li><strong>Giao diện Microsoft Outlook</strong>: Ribbon Fluent UI 3 cột chuẩn Microsoft 365.</li>
               <li><strong>Đa tài khoản & Cây thư mục</strong>: Hỗ trợ cây thư mục Accordion chuyển đổi tức thì.</li>
-              <li><strong>VuaOffice AI</strong>: Hỗ trợ tóm tắt chuỗi thư và soạn thảo phản hồi tự động thông minh.</li>
+              <li><strong>Genspark AI</strong>: Hỗ trợ tóm tắt chuỗi thư và soạn thảo phản hồi tự động thông minh.</li>
               <li><strong>To-Do, Calendar & People</strong>: Đồng bộ hóa toàn bộ công việc, lịch biểu và danh bạ đối tác.</li>
             </ul>
             <p>Trân trọng,<br/><strong>360 CORP Engineering Team</strong></p>
           </div>
         `,
-        plainText: 'Chào mừng Sếp đến với VuaOffice Mail trong hệ sinh thái VuaOffice Suite...',
+        plainText: 'Chào mừng Sếp đến với GenOffice Mail trong hệ sinh thái GenOffice Suite...',
       },
       msg_2: {
         emailId: 'msg_2',
@@ -285,10 +285,10 @@ export class SQLiteMailStorage {
             <p>Chào Sếp Châu,</p>
             <p>AI Agent xin gửi Sếp báo cáo tổng kết tuần và các tài liệu đính kèm bên dưới:</p>
             <ul>
-              <li><strong>Báo cáo tuần</strong>: File DOCX chi tiết tiến độ các module VuaOffice.</li>
-              <li><strong>Kế hoạch triển khai VuaOffice Mail</strong>: File PDF lộ trình phát triển v0.7.0.</li>
+              <li><strong>Báo cáo tuần</strong>: File DOCX chi tiết tiến độ các module GenOffice.</li>
+              <li><strong>Kế hoạch triển khai GenOffice Mail</strong>: File PDF lộ trình phát triển v0.7.0.</li>
             </ul>
-            <p>Sếp có thể nhấn nút <strong>"Tóm tắt email này với VuaOffice AI"</strong> hoặc chọn phản hồi nhanh bên dưới nhé.</p>
+            <p>Sếp có thể nhấn nút <strong>"Tóm tắt email này với Genspark AI"</strong> hoặc chọn phản hồi nhanh bên dưới nhé.</p>
           </div>
         `,
         plainText: 'Báo cáo tổng kết tuần & Lịch họp rà soát tính năng mới...',
@@ -300,7 +300,7 @@ export class SQLiteMailStorage {
       },
       msg_draft_1: {
         emailId: 'msg_draft_1',
-        html: '<div style="font-family: sans-serif; line-height: 1.6;"><p>Kính gửi Quý đại diện đối tác Microsoft,</p><p>Chúng tôi đề xuất phối hợp thử nghiệm khả năng tương thích chuẩn lưu trữ tệp .pst trong VuaOffice Suite...</p></div>',
+        html: '<div style="font-family: sans-serif; line-height: 1.6;"><p>Kính gửi Quý đại diện đối tác Microsoft,</p><p>Chúng tôi đề xuất phối hợp thử nghiệm khả năng tương thích chuẩn lưu trữ tệp .pst trong GenOffice Suite...</p></div>',
         plainText: 'Kính gửi Quý đại diện đối tác Microsoft...',
       },
       msg_sent_1: {
@@ -371,11 +371,11 @@ export class SQLiteMailStorage {
       id: welcomeMsgId,
       accountId: id,
       folderId: `f_${id}_inbox`,
-      senderName: 'VuaOffice Mail Setup',
+      senderName: 'GenOffice Mail Setup',
       senderEmail: 'mailer-daemon@360.org.vn',
       recipientEmails: [account.email],
       subject: `Kết nối tài khoản ${account.email} thành công`,
-      snippet: `Tài khoản mail ${account.email} đã được cấu hình thành công với giao thức ${account.provider.toUpperCase()} trên VuaOffice Mail...`,
+      snippet: `Tài khoản mail ${account.email} đã được cấu hình thành công với giao thức ${account.provider.toUpperCase()} trên GenOffice Mail...`,
       dateIso: new Date().toISOString(),
       isRead: false,
       isStarred: true,
@@ -389,12 +389,12 @@ export class SQLiteMailStorage {
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6;">
           <h3 style="color: #0078d4;">Cấu hình tài khoản ${account.email} hoàn tất</h3>
           <p>Kính gửi ${account.name || 'Người dùng'},</p>
-          <p>Tài khoản email của bạn đã được kết nối thành công vào VuaOffice Mail trong hệ sinh thái VuaOffice Suite.</p>
+          <p>Tài khoản email của bạn đã được kết nối thành công vào GenOffice Mail trong hệ sinh thái GenOffice Suite.</p>
           <ul>
             <li><strong>Email:</strong> ${account.email}</li>
             <li><strong>Nhà cung cấp:</strong> ${account.provider}</li>
             <li><strong>Đồng bộ Offline SQLite:</strong> Đã kích hoạt</li>
-            <li><strong>Trình đọc tệp đính kèm:</strong> Tích hợp VuaOffice Engine</li>
+            <li><strong>Trình đọc tệp đính kèm:</strong> Tích hợp GenOffice Engine</li>
           </ul>
           <p>Chúc bạn có trải nghiệm làm việc hiệu quả và bảo mật tuyệt đối.</p>
         </div>

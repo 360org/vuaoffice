@@ -235,7 +235,7 @@ export const pl = {
   appSettingsLoggedInEmail: 'Zalogowano: {email}',
   appSettingsLoggedOut: 'Nie zalogowano (funkcje AI wymagają konta Genspark)',
   appSettingsLoginPending: 'Oczekiwanie na logowanie w przeglądarce…',
-  appSettingsLogin: 'Zaloguj się do VuaOffice',
+  appSettingsLogin: 'Zaloguj się do Genspark',
   appSettingsModel: 'Model',
   appSettingsCancel: 'Anuluj',
   appSettingsSave: 'Zapisz',
