@@ -2,9 +2,8 @@
 
 > 🌐 **Trang chủ chính thức:** [https://vuaoffice.com](https://vuaoffice.com)  
 > 📥 **Tải về & Đăng ký tài khoản (Đếm lượt tải):** [https://vuahethong.net/free-download-360-office-suite](https://vuahethong.net/free-download-360-office-suite)  
-> 💻 **GitHub:** [https://github.com/360org/vuaoffice](https://github.com/360org/vuaoffice)
 
-Trang web giới thiệu trực quan hoàn chỉnh được lưu tại [`index.html`](./index.html) sẵn sàng kích hoạt làm **GitHub Pages** (Settings > Pages > Deploy from a branch > `/docs` folder).
+Trang web giới thiệu trực quan hoàn chỉnh được lưu tại [`index.html`](./index.html).
 
 ---
 
@@ -39,7 +38,7 @@ Trang web giới thiệu trực quan hoàn chỉnh được lưu tại [`index.h
 
 | Tiêu chí & Lợi ích khách hàng | 👑 VuaOffice | Microsoft 365 | WPS Office | LibreOffice |
 | :--- | :---: | :---: | :---: | :---: |
-| **Chi phí bản quyền (TCO)** | **100% Miễn phí trọn đời** (Tiết kiệm 100% ngân sách) | 1.6tr - 3.5tr/năm/người | Miễn phí có QC / Bản Pro thu phí | 0đ (Mã nguồn mở) |
+| **Chi phí bản quyền (TCO)** | **100% Miễn phí trọn đời** (Tiết kiệm 100% ngân sách) | 1.6tr - 3.5tr/năm/người | Miễn phí có QC / Bản Pro thu phí | 0đ (Bản miễn phí) |
 | **Quảng cáo & Watermark PDF** | ❌ **Tuyệt đối KHÔNG** (Không pop-up, xuất file sạch) | ❌ Không (khi trả phí) | ⚠️ Quảng cáo & popup, watermark | ❌ Không |
 | **Tương thích MS Office (.docx, .xlsx)** | ✅ **Chuẩn 100% Layout & Font** (Không vỡ bố cục) | ✅ Gốc | Khá tốt (đôi khi lệch) | ⚠️ Thường lệch font & bảng |
 | **Chỉnh sửa chữ trực tiếp trong PDF** | ✅ **Tích hợp sẵn** (Giữ phông gốc, ký số miễn phí) | ❌ Cần mua thêm Adobe Acrobat | ⚠️ Khóa tính năng với bản Free | ⚠️ Vỡ layout khi mở qua Draw |
