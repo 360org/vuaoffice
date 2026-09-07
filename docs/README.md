@@ -74,10 +74,10 @@ Trang web giới thiệu trực quan hoàn chỉnh được lưu tại [`index.h
 
 ## 📥 Tải Cài Đặt & Đăng Ký Tài Khoản
 
-Hơn **4,054+ lượt tải hoàn tất**. Tải về bộ cài đặt dành riêng cho hệ điều hành của bạn:
+Tải về bộ cài đặt dành riêng cho hệ điều hành của bạn:
 
 👉 **[Tải VuaOffice & Đăng Ký Tài Khoản tại Vua Hệ Thống](https://vuahethong.net/free-download-360-office-suite)**  
-👉 **[Khám phá chi tiết tại VuaOffice.com](https://vuaoffice.com)**
+👉 **[Khám phá Hệ sinh thái Vua Hệ Thống](https://vuahethong.net)**
 
 ---
 
