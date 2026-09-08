@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import type { PointerEvent as ReactPointerEvent, ReactElement, ReactNode } from 'react'
+import type {
+  DragEvent as ReactDragEvent,
+  PointerEvent as ReactPointerEvent,
+  ReactElement,
+  ReactNode,
+} from 'react'
 import { AgentLoop, composeSkills } from '@genoffice/agent-core'
+import type { AgentImage } from '@genoffice/agent-core'
 import type { AiSettings } from '@genoffice/ai-provider'
 import { AiComposer, AiTypingIndicator, Markdown } from '@genoffice/ui'
 import type { Editor } from '@tiptap/core'
@@ -11,8 +17,18 @@ import sendStop from '../assets/send-stop.png'
 import { clearAiHighlights } from '../editor/aiHighlight'
 import { createMarkdownSkill } from './markdown-skill'
 import { createSearchSkill } from './search-skill'
+import { createFilesSkill } from './files-skill'
 import { createElectronTransport } from './transport'
+import type { AttachmentAddResult, AttachmentMeta } from '../../shared/ipc'
+import { ATTACHMENT_IMAGE_EXTS } from '../../shared/ipc'
 import { EditQueueCard } from './EditQueueCard'
+
+const PASTE_MIME_EXT: Record<string, string> = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+}
 import {
   buildQueueInstruction,
   buildQueueSummary,
@@ -74,6 +90,7 @@ interface ChatEntry {
   /** the run failed and this user message was rolled back out of the model context */
   undelivered?: boolean
   tools?: ToolActivity[]
+  attachments?: AttachmentMeta[]
 }
 
 /** structured, not the serialized file text: a body starting with `---` must
@@ -139,6 +156,9 @@ export function AiPanel({
   const [chat, setChat] = useState<ChatEntry[]>([])
   const [prompt, setPrompt] = useState('')
   const [busy, setBusy] = useState(false)
+  const [attachments, setAttachments] = useState<AttachmentMeta[]>([])
+  const [attachNotice, setAttachNotice] = useState<string | null>(null)
+  const [dragOver, setDragOver] = useState(false)
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null)
   const [snapshots, setSnapshots] = useState<Snapshot[]>([])
   // bumped on selection/doc changes so the scope chip & queue rows stay fresh
@@ -176,6 +196,15 @@ export function AiPanel({
   /** tool activity of the whole run, for transcript persistence */
   const runToolsRef = useRef<ToolActivity[]>([])
   const chatIdsRef = useRef<{ projectId: string; chatId: string } | null>(null)
+  const attachmentsRef = useRef(attachments)
+  attachmentsRef.current = attachments
+  const sentAttachmentsRef = useRef<AttachmentMeta[]>([])
+  const availableAttachments = (): AttachmentMeta[] => {
+    const seen = new Set<string>()
+    return [...sentAttachmentsRef.current, ...attachmentsRef.current].filter((a) =>
+      seen.has(a.path) ? false : (seen.add(a.path), true),
+    )
+  }
   /** messages sent before resolveChat returned, flushed once the chat id is known */
   const pendingPersistRef = useRef<
     Array<{ role: 'user' | 'assistant'; text: string; tools?: ToolActivity[] }>
@@ -191,7 +220,12 @@ export function AiPanel({
     })
   }
 
-  const persistMessage = (role: 'user' | 'assistant', text: string, tools?: ToolActivity[]) => {
+  const persistMessage = (
+    role: 'user' | 'assistant',
+    text: string,
+    tools?: ToolActivity[],
+    messageAttachments?: AttachmentMeta[],
+  ) => {
     const ids = chatIdsRef.current
     if (!window.projectApi) return
     if (!ids) {
@@ -205,6 +239,9 @@ export function AiPanel({
         role,
         text,
         ...(tools && tools.length > 0 ? { tools } : {}),
+        ...(messageAttachments && messageAttachments.length > 0
+          ? { attachments: messageAttachments }
+          : {}),
       })
       .catch(() => {
         /* persistence failures are silent */
@@ -216,12 +253,13 @@ export function AiPanel({
   if (!loopRef.current) {
     loopRef.current = new AgentLoop<DocSnapshot>({
       transport: createElectronTransport(() => settingsRef.current!),
-      skill: composeSkills('markdown+search', '', [
+      skill: composeSkills('markdown+search+files', '', [
         createMarkdownSkill(() => depsRef.current.getEditor(), {
           read: () => depsRef.current.getFrontmatter(),
           write: (inner) => depsRef.current.setFrontmatter(inner),
         }),
         createSearchSkill(),
+        createFilesSkill(availableAttachments),
       ]),
       captureSnapshot: () => depsRef.current.getSnapshot(),
       systemSuffix: () => aiLangDirective(langRef.current),
@@ -399,26 +437,30 @@ export function AiPanel({
     const instruction = text.trim()
     const loop = loopRef.current
     if (!instruction || !loop || loop.busy) return
+    const sentAttachments = [...attachmentsRef.current]
     stickToBottomRef.current = true
     runInstructionRef.current = instruction
     runDisplayRef.current = displayText ?? instruction
     runMutatedRef.current = false
     runToolsRef.current = []
+    sentAttachmentsRef.current = availableAttachments()
     setChat((prev) => [
       ...prev,
-      { role: 'user', text: displayText ?? instruction },
+      { role: 'user', text: displayText ?? instruction, attachments: sentAttachments },
       { role: 'assistant', text: '', streaming: true },
     ])
+    setAttachments([])
     setPrompt('')
     setBusy(true)
     // persist what the user saw — a restored transcript must not surface the
     // internal batch protocol text behind a queue submission
-    persistMessage('user', displayText ?? instruction)
+    persistMessage('user', displayText ?? instruction, undefined, sentAttachments)
     void (async () => {
       try {
         settingsRef.current = await window.markdownApi.getAiSettings()
         if (!mountedRef.current) return
-        await loop.run(instruction)
+        const images = await collectAgentImages(sentAttachments)
+        await loop.run(instruction, images)
       } catch (err) {
         if (!mountedRef.current) return
         patchLast({
@@ -430,6 +472,60 @@ export function AiPanel({
       }
     })()
   }
+
+  const collectAgentImages = async (atts: AttachmentMeta[]): Promise<AgentImage[]> => {
+    const out: AgentImage[] = []
+    for (const a of atts) {
+      if (!ATTACHMENT_IMAGE_EXTS.has(a.ext)) continue
+      const img = await window.markdownApi.readAttachmentImage(a.path)
+      if (img.ok && img.base64 && img.mime) out.push({ base64: img.base64, mime: img.mime })
+    }
+    return out
+  }
+
+  const mergeAttachments = (result: AttachmentAddResult | null): void => {
+    if (!result) return
+    if (result.accepted.length > 0) {
+      setAttachments((prev) => {
+        const seen = new Set(prev.map((a) => a.path))
+        return [...prev, ...result.accepted.filter((a) => !seen.has(a.path))]
+      })
+    }
+    if (result.rejected.length > 0) {
+      setAttachNotice(result.rejected.join('; '))
+      window.setTimeout(() => setAttachNotice(null), 5000)
+    }
+  }
+
+  const pickAttachments = async (): Promise<void> =>
+    mergeAttachments(await window.markdownApi.pickAttachments())
+
+  const onDrop = async (e: ReactDragEvent): Promise<void> => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragOver(false)
+    const paths = Array.from(e.dataTransfer.files)
+      .map((f) => window.markdownApi.getPathForFile(f))
+      .filter(Boolean)
+    if (paths.length > 0) mergeAttachments(await window.markdownApi.addAttachmentPaths(paths))
+  }
+
+  const onPasteFiles = async (files: File[]): Promise<void> => {
+    const paths: string[] = []
+    for (const f of files) {
+      const path = window.markdownApi.getPathForFile(f)
+      if (path) {
+        paths.push(path)
+        continue
+      }
+      const ext = PASTE_MIME_EXT[f.type] ?? f.name.split('.').pop()?.toLowerCase() ?? 'bin'
+      mergeAttachments(await window.markdownApi.addPastedImage(await f.arrayBuffer(), ext))
+    }
+    if (paths.length > 0) mergeAttachments(await window.markdownApi.addAttachmentPaths(paths))
+  }
+
+  const removeAttachment = (path: string): void =>
+    setAttachments((prev) => prev.filter((a) => a.path !== path))
 
   const stop = (): void => loopRef.current?.cancel()
 
@@ -563,9 +659,20 @@ export function AiPanel({
   return (
     <aside
       ref={asideRef}
-      className={`copilot${resizing ? ' ai-panel-resizing' : ''}`}
+      className={`copilot${dragOver ? ' ai-panel-dragover' : ''}${resizing ? ' ai-panel-resizing' : ''}`}
       style={{ width: '100%' }}
       dir={lang === 'ar' || lang === 'he' ? 'rtl' : undefined}
+      onDragOver={(e) => {
+        if (e.dataTransfer.types.includes('Files')) {
+          e.preventDefault()
+          e.stopPropagation()
+          setDragOver(true)
+        }
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragOver(false)
+      }}
+      onDrop={onDrop}
     >
       <div
         className="ai-panel-resizer"
@@ -637,6 +744,15 @@ export function AiPanel({
           if (entry.role === 'user') {
             return (
               <div key={i} className="ai-msg ai-msg-user">
+                {entry.attachments && entry.attachments.length > 0 && (
+                  <div className="ai-msg-attachments">
+                    {entry.attachments.map((a) => (
+                      <span key={a.path} className="ai-attachment-chip sent" title={a.path}>
+                        {a.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <span dir="auto">{entry.text}</span>
                 {entry.undelivered && (
                   <div className="ai-msg-undelivered">
@@ -757,6 +873,23 @@ export function AiPanel({
       )}
 
       <div className="ai-composer">
+        {attachNotice && <div className="ai-attach-notice">{attachNotice}</div>}
+        {attachments.length > 0 && (
+          <div className="ai-attachments">
+            {attachments.map((a) => (
+              <span key={a.path} className="ai-attachment-chip" title={a.path}>
+                {a.name}
+                <button
+                  type="button"
+                  onClick={() => removeAttachment(a.path)}
+                  aria-label={`Remove ${a.name}`}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
         {editor && editQueue.length > 0 && (
           <EditQueueCard
             items={editQueue}
@@ -818,6 +951,17 @@ export function AiPanel({
           sendIconEnabled={<img src={sendEnterOn} alt="" aria-hidden />}
           sendIconDisabled={<img src={sendEnterOff} alt="" aria-hidden />}
           stopIcon={<img src={sendStop} alt="" aria-hidden />}
+          footerStart={
+            <button
+              type="button"
+              className="ai-attach-btn"
+              onClick={pickAttachments}
+              aria-label="Attach file"
+            >
+              +
+            </button>
+          }
+          onPasteFiles={onPasteFiles}
           textareaRef={inputRef}
           onChange={setPrompt}
           onSend={() => send(prompt)}
@@ -1028,7 +1172,7 @@ function IconClock(): ReactElement {
 }
 
 /** VuaOffice brand mark, inline for crisp device-resolution rendering */
-export function GensparkMark({ size = 18 }: { size?: number }): React.JSX.Element {
+export function GensparkMark({ size = 18 }: { size?: number }): ReactElement {
   return (
     <svg
       width={size}

@@ -65,16 +65,29 @@ Lộ trình thi công chia làm các mốc trọng tâm:
   - 1-Click kích hoạt mở browser tới Odoo Auth Portal, tự động đăng nhập callback qua deep link không cần chờ polling.
 
 ### Mốc 3: Hỗ trợ Kéo Thả (Drag & Drop) Tài Liệu & Ảnh Vào Khung Chat AI Đa Nền Tảng
+> Mốc này **chỉ** là attachment native cho AI Chat; không trộn với OCR native PDF.
+
 - [x] **Kéo thả & Paste vào AI Chat trên Docs, Sheets, Slides**: Đã hoàn thành hỗ trợ đính kèm tài liệu (`.docx`, `.xlsx`, `.pptx`, `.pdf`, `.txt`, `.md`) và hình ảnh (`.png`, `.jpg`, `.webp`) qua `createFilesSkill` & `files:add`.
 - [ ] **Mở rộng Drag & Drop & Paste vào AI Chat trên PDF, Markdown và Mail**:
-  - Bổ sung `onDragOver`, `onDragLeave`, `onDrop` và `onPasteFiles` vào `AiPanel.tsx` của **VuaOffice PDF** và **VuaOffice Markdown** (tích hợp cùng `createFilesSkill` của `agent-core`).
-  - Mở rộng xử lý đa phương thức (multimodal vision prompt) cho AI khi nhận ảnh đính kèm trên toàn bộ các ứng dụng.
+  - Bổ sung chọn file, kéo thả, paste ảnh/tệp vào `AiPanel.tsx` của **VuaOffice PDF**, **VuaOffice Markdown** và **VuaOffice Mail**.
+  - Tệp văn bản/PDF/Office được parse nội bộ qua `read_attachment`; ảnh được gửi trực tiếp theo multimodal vision prompt để AI tự quyết định tác vụ (ví dụ: hóa đơn → Sheets, ảnh minh họa → Docs).
 - [x] **Trợ lý AI Trích xuất & Phân tích Tệp Đính Kèm**: Tự động trích xuất nội dung văn bản từ tệp đính kèm (`extractAttachmentText` qua `@genoffice/file-parse`) trên Docs, Sheets, Slides.
-- [ ] **Trợ lý AI Thực Thi Nhiệm Vụ Mở Rộng**: Tối ưu hóa tác vụ AI đối chiếu, tóm tắt chéo tài liệu đa nguồn cho PDF và Markdown.
+- [ ] **Trợ lý AI Thực Thi Nhiệm Vụ Mở Rộng**: Tối ưu hóa tác vụ AI đối chiếu, tóm tắt chéo tài liệu đa nguồn cho PDF, Markdown và Mail.
 
-### Mốc 4: Kiểm thử Toàn diện & Nghiệm thu
+### Mốc 4: OCR Native PDF Offline bằng PaddleOCR.js / PP-OCRv6
+> Mốc này là tính năng native của **VuaOffice PDF**: mở PDF scan hoặc right-click page/image → convert “to PDF native”; AI chỉ là bước sửa lỗi hậu xử lý khi OCR chưa hoàn hảo.
+
+- [ ] **Đóng gói OCR offline dưới `360/`**: Lưu manifest/cấu hình PP-OCRv6 và adapter tải model ở `360/ocr/*`; không hardcode vào `packages/file-parse/src/*` trừ khi bắt buộc để tránh conflict upstream.
+- [ ] **Nhận dạng offline không cần AI**: PaddleOCR.js với model `PP-OCRv6_tiny_det` / `PP-OCRv6_tiny_rec` phải trả được text từ ảnh/trang scan ngay cả khi không cấu hình AI.
+- [ ] **Tích hợp VuaOffice PDF**: Dùng seam hiện có `window.pdfApi.ocrPage(png)` để render trang scan → OCR lines → overlay searchable/selectable trong viewer.
+- [ ] **Xuất kết quả native/searchable**: Tạo text output và nền tảng text-insert cho PDF searchable; phần hidden-text hoàn chỉnh sẽ mở rộng pipeline `textInserts` khi cần giữ ảnh gốc nhưng thêm lớp chữ không nhìn thấy.
+- [ ] **AI correction tùy chọn**: Chỉ gửi vùng confidence thấp / kết quả chưa hoàn hảo sang AI để sửa, không phụ thuộc AI cho OCR cơ bản.
+
+### Mốc 5: Kiểm thử Toàn diện & Nghiệm thu
 - [x] Test luồng kéo thả tài liệu và ảnh vào khung chat AI trên Docs, Sheets, Slides.
 - [ ] Test luồng kéo thả tài liệu và ảnh trên PDF, Markdown, Mail.
+- [ ] Test OCR PDF scan offline bằng PaddleOCR.js / PP-OCRv6 khi không có AI.
+- [ ] Test xuất text/searchable PDF từ trang scan và xác minh text có thể search/select trong VuaOffice PDF.
 - [x] Test luồng SSO 1-click từ VuaOffice qua Odoo 360 CORP và deep link `vuaoffice://auth/callback`.
 - [x] Test Deep Link trên macOS và Windows không bị xung đột hay treo ứng dụng.
 

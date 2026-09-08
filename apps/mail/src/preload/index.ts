@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import { VUA_MAIL_IPC } from '../shared/ipc-events'
 import type { EmailAccount, EmailBody, EmailMessage, MailFolder, VuaMailApi } from '../shared/types'
 
@@ -40,6 +40,13 @@ const api: VuaMailApi = {
   getAiSettings: (): Promise<any> => ipcRenderer.invoke('ai:get-settings'),
   aiStream: (request: any): Promise<void> => ipcRenderer.invoke('ai:stream', request),
   aiStreamCancel: (requestId: string): Promise<void> => ipcRenderer.invoke('ai:stream-cancel', requestId),
+  pickAttachments: () => ipcRenderer.invoke('files:pick'),
+  addAttachmentPaths: (paths: string[]) => ipcRenderer.invoke('files:add', paths),
+  addPastedImage: (data: ArrayBuffer, ext: string) => ipcRenderer.invoke('files:add-pasted-image', data, ext),
+  readAttachment: (path: string, offset: number, maxChars: number) =>
+    ipcRenderer.invoke('files:read', path, offset, maxChars),
+  readAttachmentImage: (path: string) => ipcRenderer.invoke('files:read-image', path),
+  getPathForFile: (file: File) => webUtils.getPathForFile(file),
   onAiStream: (handler: (chunk: any) => void) => {
     const listener = (_event: any, chunk: any) => handler(chunk)
     ipcRenderer.on('ai:stream-chunk', listener)

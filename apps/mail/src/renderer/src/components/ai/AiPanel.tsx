@@ -1,9 +1,15 @@
-import React, { useState, useRef, useEffect } from 'react'
-import type { EmailMessage, EmailBody } from '../../../../shared/types'
-import { AgentLoop } from '@genoffice/agent-core'
+import React, { useState, useRef, useEffect, DragEvent as ReactDragEvent } from 'react'
+import type {
+  EmailMessage,
+  EmailBody,
+  AttachmentMeta,
+  AttachmentAddResult,
+} from '../../../../shared/types'
+import { AgentLoop, composeSkills, type AgentImage } from '@genoffice/agent-core'
 import { Markdown, AiComposer, AiTypingIndicator } from '@genoffice/ui'
 import { createMailSkill } from './mail-skill'
 import { createMailTransport } from './mail-transport'
+import { createFilesSkill, isImageAttachment } from './files-skill'
 import { GensparkMark } from '../ribbon/GensparkMark'
 import {
   IconMail,
@@ -38,6 +44,7 @@ interface ChatEntry {
   error?: string
   streaming?: boolean
   tools?: ToolActivity[]
+  attachments?: AttachmentMeta[]
 }
 
 const STARTER_PROMPTS = [
@@ -64,6 +71,9 @@ export const AiPanel: React.FC<AiPanelProps> = ({
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [panelWidth, setPanelWidth] = useState(360)
+  const [attachments, setAttachments] = useState<AttachmentMeta[]>([])
+  const [attachNotice, setAttachNotice] = useState<string | null>(null)
+  const [dragOver, setDragOver] = useState(false)
 
   const isDraggingRef = useRef(false)
   const startXRef = useRef(0)
@@ -71,6 +81,15 @@ export const AiPanel: React.FC<AiPanelProps> = ({
   const logRef = useRef<HTMLDivElement>(null)
   const loopRef = useRef<AgentLoop | null>(null)
   const aiSettingsRef = useRef<any>(null)
+  const attachmentsRef = useRef(attachments)
+  attachmentsRef.current = attachments
+  const sentAttachmentsRef = useRef<AttachmentMeta[]>([])
+  const availableAttachments = (): AttachmentMeta[] => {
+    const seen = new Set<string>()
+    return [...sentAttachmentsRef.current, ...attachmentsRef.current].filter((a) =>
+      seen.has(a.path) ? false : (seen.add(a.path), true),
+    )
+  }
 
   // Resizing logic for AI Dock
   useEffect(() => {
@@ -144,10 +163,15 @@ export const AiPanel: React.FC<AiPanelProps> = ({
       },
     })
 
+    const combinedSkill = composeSkills('mail+files', 'Mail actions and local file attachments', [
+      mailSkill,
+      createFilesSkill(availableAttachments),
+    ])
+
     const transport = createMailTransport(() => aiSettingsRef.current)
 
     loopRef.current = new AgentLoop({
-      skill: mailSkill,
+      skill: combinedSkill,
       transport,
       events: {
         onText: (text: string) => {
@@ -244,19 +268,104 @@ export const AiPanel: React.FC<AiPanelProps> = ({
     }
   }, [selectedEmail, onApplyReply, onCreateTask, onCreateCalendar])
 
+  const collectAgentImages = async (atts: AttachmentMeta[]): Promise<AgentImage[]> => {
+    const out: AgentImage[] = []
+    for (const a of atts) {
+      if (!isImageAttachment(a.ext)) continue
+      const img = await window.vuaMail?.readAttachmentImage?.(a.path)
+      if (img?.ok && img.base64 && img.mime) out.push({ base64: img.base64, mime: img.mime })
+    }
+    return out
+  }
+
+  const mergeAttachments = (result: AttachmentAddResult | null | undefined): void => {
+    if (!result) return
+    if (result.accepted.length > 0) {
+      setAttachments((prev) => {
+        const seen = new Set(prev.map((a) => a.path))
+        return [...prev, ...result.accepted.filter((a) => !seen.has(a.path))]
+      })
+    }
+    if (result.rejected.length > 0) {
+      setAttachNotice(result.rejected.join('; '))
+      window.setTimeout(() => setAttachNotice(null), 5000)
+    }
+  }
+
+  const pickAttachments = async (): Promise<void> => {
+    const res = await window.vuaMail?.pickAttachments?.()
+    mergeAttachments(res)
+  }
+
+  const onDrop = async (e: ReactDragEvent): Promise<void> => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragOver(false)
+    const files = Array.from(e.dataTransfer.files)
+    const paths = files
+      .map((f) => (window.vuaMail?.getPathForFile ? window.vuaMail.getPathForFile(f) : (f as any).path))
+      .filter(Boolean) as string[]
+    if (paths.length > 0) {
+      const res = await window.vuaMail?.addAttachmentPaths?.(paths)
+      mergeAttachments(res)
+    }
+  }
+
+  const onPasteFiles = async (files: File[]): Promise<void> => {
+    const paths: string[] = []
+    for (const f of files) {
+      const path = window.vuaMail?.getPathForFile ? window.vuaMail.getPathForFile(f) : (f as any).path
+      if (path) {
+        paths.push(path)
+      } else {
+        const ext = f.name.includes('.') ? f.name.split('.').pop()!.toLowerCase() : 'png'
+        const buf = await f.arrayBuffer()
+        const res = await window.vuaMail?.addPastedImage?.(buf, ext)
+        mergeAttachments(res)
+      }
+    }
+    if (paths.length > 0) {
+      const res = await window.vuaMail?.addAttachmentPaths?.(paths)
+      mergeAttachments(res)
+    }
+  }
+
   const runWith = (query: string) => {
     const trimmed = query.trim()
-    if (!trimmed || busy || !loopRef.current) return
+    const loop = loopRef.current
+    if (!trimmed || busy || !loop) return
 
+    const sentAttachments = [...attachmentsRef.current]
+    sentAttachmentsRef.current = availableAttachments()
     setInput('')
+    setAttachments([])
     setChat((prev) => [
       ...prev,
-      { role: 'user', text: trimmed },
+      { role: 'user', text: trimmed, attachments: sentAttachments },
       { role: 'assistant', text: '', streaming: true },
     ])
     setBusy(true)
 
-    loopRef.current.run(trimmed)
+    void (async () => {
+      try {
+        const images = await collectAgentImages(sentAttachments)
+        await loop.run(trimmed, images)
+      } catch (err) {
+        setChat((prev) => {
+          const next = [...prev]
+          const last = next.at(-1)
+          if (last && last.role === 'assistant') {
+            next[next.length - 1] = {
+              ...last,
+              streaming: false,
+              error: err instanceof Error ? err.message : String(err),
+            }
+          }
+          return next
+        })
+        setBusy(false)
+      }
+    })()
   }
 
   const handleStop = () => {
@@ -295,7 +404,21 @@ export const AiPanel: React.FC<AiPanelProps> = ({
   }
 
   return (
-    <aside className="ai-dock" style={{ width: panelWidth }}>
+    <aside
+      className={`ai-dock ${dragOver ? 'ai-panel-dragover' : ''}`}
+      style={{ width: panelWidth }}
+      onDragOver={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setDragOver(true)
+      }}
+      onDragLeave={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setDragOver(false)
+      }}
+      onDrop={onDrop}
+    >
       {/* Resizer handle */}
       <div className="ai-dock-resizer" onMouseDown={handleStartResize} />
 
@@ -367,6 +490,9 @@ export const AiPanel: React.FC<AiPanelProps> = ({
               )}
 
               {/* Message text with Markdown rendering */}
+              {msg.attachments && msg.attachments.length > 0 && (
+                <SentAttachments atts={msg.attachments} />
+              )}
               {msg.text && (
                 <div className="ai-message-bubble">
                   {msg.role === 'assistant' ? (
@@ -421,11 +547,33 @@ export const AiPanel: React.FC<AiPanelProps> = ({
 
         {/* Unified VuaOffice AiComposer */}
         <div style={{ padding: '0 12px 12px' }}>
+          {attachments.length > 0 && (
+            <div className="ai-attachments">
+              {attachments.map((a) => (
+                <span key={a.path} className="ai-attachment-chip" title={a.path}>
+                  <span style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {a.name}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label={`Xoá ${a.name}`}
+                    onClick={() =>
+                      setAttachments((prev) => prev.filter((x) => x.path !== a.path))
+                    }
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          {attachNotice && <div className="ai-attach-notice">{attachNotice}</div>}
           <AiComposer
             value={input}
             onChange={setInput}
             onSend={() => runWith(input)}
             onStop={handleStop}
+            onPasteFiles={onPasteFiles}
             busy={busy}
             placeholder="Hỏi hoặc yêu cầu VuaOffice AI Mail..."
             hintIdle=""
@@ -441,7 +589,7 @@ export const AiPanel: React.FC<AiPanelProps> = ({
                 type="button"
                 className="ai-attach-btn"
                 title="Đính kèm tài liệu tham khảo"
-                onClick={() => {}}
+                onClick={pickAttachments}
               >
                 <img src={attachIcon} alt="" aria-hidden />
               </button>
@@ -450,5 +598,17 @@ export const AiPanel: React.FC<AiPanelProps> = ({
         </div>
       </div>
     </aside>
+  )
+}
+
+function SentAttachments({ atts }: { atts: AttachmentMeta[] }) {
+  return (
+    <div className="ai-msg-attachments">
+      {atts.map((a) => (
+        <span key={a.path} className="ai-attachment-chip sent" title={a.path}>
+          {a.name}
+        </span>
+      ))}
+    </div>
   )
 }

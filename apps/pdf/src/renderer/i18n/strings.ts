@@ -34,10 +34,20 @@ const fillFormStrings = {
   formPlaceStaticHint: 'Click to place; select the result to move or resize it',
   formXfaWarning:
     'This PDF contains XFA. Only AcroForm is supported; saving may not preserve XFA data.',
+  ocrScanToPdfNative: 'Convert Scanned Page to Native PDF (OCR)',
+  ocrConvertImageToPdfNative: 'Recognize & Convert to Native PDF',
+  ocrRunning: 'Recognizing text (OCR)…',
+  ocrSuccess: 'Successfully added {count} native text line(s)',
+  ocrNoText: 'No text recognized',
 }
 
 const localizedFillFormStrings = {
   zh: {
+    ocrScanToPdfNative: '将扫描页转换为原生 PDF (OCR)',
+    ocrConvertImageToPdfNative: '识别文字并转为原生 PDF',
+    ocrRunning: '正在文字识别 (OCR)…',
+    ocrSuccess: '成功识别并添加 {count} 行原生文本',
+    ocrNoText: '未识别到文字',
     ribbonTabFillForm: '填写表单',
     formPreviousField: '上一字段',
     formNextField: '下一字段',
@@ -72,6 +82,11 @@ const localizedFillFormStrings = {
     formXfaWarning: '此 PDF 包含 XFA；当前仅支持 AcroForm，保存可能无法保留 XFA 数据',
   },
   vi: {
+    ocrScanToPdfNative: 'Chuyển trang quét thành PDF Native (OCR)',
+    ocrConvertImageToPdfNative: 'Nhận dạng chữ & chuyển thành PDF Native',
+    ocrRunning: 'Đang nhận dạng chữ (OCR)…',
+    ocrSuccess: 'Đã nhận dạng và thêm {count} dòng chữ native',
+    ocrNoText: 'Không tìm thấy chữ trong hình ảnh/trang',
     ribbonTabFillForm: 'Điền biểu mẫu',
     formPreviousField: 'Trường trước',
     formNextField: 'Trường sau',
@@ -108,6 +123,11 @@ const localizedFillFormStrings = {
       'Tệp PDF này chứa XFA; hiện chỉ hỗ trợ AcroForm, lưu có thể không giữ lại dữ liệu XFA',
   },
   'zh-TW': {
+    ocrScanToPdfNative: '將掃描頁轉換為原生 PDF (OCR)',
+    ocrConvertImageToPdfNative: '辨識文字並轉為原生 PDF',
+    ocrRunning: '正在文字辨識 (OCR)…',
+    ocrSuccess: '成功辨識並新增 {count} 行原生文字',
+    ocrNoText: '未辨識到文字',
     ribbonTabFillForm: '填寫表單',
     formPreviousField: '上一欄位',
     formNextField: '下一欄位',

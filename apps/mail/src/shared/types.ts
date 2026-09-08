@@ -104,6 +104,34 @@ export interface SyncStatus {
   error: string | null
 }
 
+export interface AttachmentMeta {
+  path: string
+  name: string
+  ext: string
+  sizeBytes: number
+}
+
+export interface AttachmentAddResult {
+  accepted: AttachmentMeta[]
+  rejected: string[]
+}
+
+export interface AttachmentReadResult {
+  ok: boolean
+  error?: string
+  name?: string
+  totalChars?: number
+  text?: string
+  offset?: number
+}
+
+export interface AttachmentImageResult {
+  ok: boolean
+  base64?: string
+  mime?: string
+  error?: string
+}
+
 export interface VuaMailApi {
   getAccounts: () => Promise<EmailAccount[]>
   addAccount: (account: {
@@ -156,6 +184,12 @@ export interface VuaMailApi {
   aiStream?: (request: any) => Promise<void>
   aiStreamCancel?: (requestId: string) => Promise<void>
   onAiStream?: (handler: (chunk: any) => void) => () => void
+  pickAttachments?: () => Promise<AttachmentAddResult | null>
+  addAttachmentPaths?: (paths: string[]) => Promise<AttachmentAddResult>
+  addPastedImage?: (data: ArrayBuffer, ext: string) => Promise<AttachmentAddResult>
+  readAttachment?: (path: string, offset: number, maxChars: number) => Promise<AttachmentReadResult>
+  readAttachmentImage?: (path: string) => Promise<AttachmentImageResult>
+  getPathForFile?: (file: File) => string
 }
 
 declare global {

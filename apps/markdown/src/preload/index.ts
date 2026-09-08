@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { Lang } from '@genoffice/i18n'
 import type { AiStreamChunk } from '@genoffice/ai-provider'
 import type { ProjectApi } from '@genoffice/project-store'
@@ -63,6 +63,12 @@ const api: MarkdownApi = {
   getAiSettings: () => ipcRenderer.invoke(AI_CHANNELS.getSettings),
   aiStream: (request) => ipcRenderer.invoke(AI_CHANNELS.stream, request),
   aiStreamCancel: (requestId) => ipcRenderer.invoke(AI_CHANNELS.streamCancel, requestId),
+  pickAttachments: () => ipcRenderer.invoke('files:pick'),
+  addAttachmentPaths: (paths) => ipcRenderer.invoke('files:add', paths),
+  addPastedImage: (data, ext) => ipcRenderer.invoke('files:add-pasted-image', data, ext),
+  readAttachment: (path, offset, maxChars) => ipcRenderer.invoke('files:read', path, offset, maxChars),
+  readAttachmentImage: (path) => ipcRenderer.invoke('files:read-image', path),
+  getPathForFile: (file) => webUtils.getPathForFile(file),
   onAiStream: (handler) => {
     const listener = (_e: Electron.IpcRendererEvent, chunk: AiStreamChunk) => handler(chunk)
     ipcRenderer.on(AI_CHANNELS.streamChunk, listener)

@@ -15,6 +15,7 @@ import {
   renderPageForOcr,
   type OcrPageData,
 } from './ocr-layer'
+import { ocrLinesToLocalTextInserts } from './ocr-native'
 import type { CropRect, FileOpCanceled, FileOpResult, PdfAppDeps, RotateDelta } from './ai/tools'
 import {
   MARKUP_COLORS,
@@ -4999,6 +5000,96 @@ export default function App() {
     void cropPagesOnDisk(pages, crop)
   }
 
+  /**
+   * Native OCR: Run offline OCR on the scanned page and commit recognized text lines
+   * directly into the PDF content stream as selectable/searchable text objects.
+   */
+  const runPageOcrToNative = async (origIdx: number) => {
+    if (!doc || origIdx < 0) return
+    showNotice(t('ocrRunning'))
+    try {
+      const geom = pageGeomRef.current(origIdx)
+      const png = await renderPageForOcr(doc, origIdx, geom)
+      if (!png) {
+        showNotice(t('ocrNoText'))
+        return
+      }
+      const lines = await window.pdfApi.ocrPage(png)
+      if (!lines || lines.length === 0) {
+        showNotice(t('ocrNoText'))
+        return
+      }
+      const pSize = sizes[origIdx] ?? { width: 612, height: 792 }
+      const newInserts = ocrLinesToLocalTextInserts(
+        lines,
+        origIdx,
+        pSize.width,
+        pSize.height,
+        geom.rot,
+      )
+      if (newInserts.length === 0) {
+        showNotice(t('ocrNoText'))
+        return
+      }
+      pushUndoRef.current()
+      commitTextInserts([...textInsertsRef.current, ...newInserts])
+      const data = buildOcrPageData(lines, geom)
+      if (data) setOcrPages((prev) => new Map(prev).set(origIdx, data))
+      showNotice(t('ocrSuccess', { count: newInserts.length }))
+    } catch (err) {
+      showNotice(err instanceof Error ? err.message : String(err))
+    }
+  }
+
+  /**
+   * Native OCR for selected image: Recognize text inside the image and place native text inserts.
+   */
+  const runImageOcrToNative = async (imgRef: PageImageRef, origIdx: number) => {
+    if (!doc || origIdx < 0) return
+    showNotice(t('ocrRunning'))
+    try {
+      let png = existingPngs.get(`${origIdx}:${imageRectKey(imgRef.rect)}`)
+      if (!png) {
+        png = (await window.pdfApi.pageImagePng({
+          path: filePath,
+          pageIndex: origIdx,
+          rect: imgRef.rect,
+        })) ?? undefined
+      }
+      if (!png) {
+        showNotice(t('ocrNoText'))
+        return
+      }
+      const lines = await window.pdfApi.ocrPage(png)
+      if (!lines || lines.length === 0) {
+        showNotice(t('ocrNoText'))
+        return
+      }
+      const [rx0, ry0, rx1, ry1] = imgRef.rect
+      const imgW = Math.max(1, rx1 - rx0)
+      const imgH = Math.max(1, ry1 - ry0)
+      const newInserts = ocrLinesToLocalTextInserts(lines, origIdx, imgW, imgH, 0).map((ins) => ({
+        ...ins,
+        input: {
+          ...ins.input,
+          origin: [
+            Math.round((rx0 + ins.input.origin[0]) * 10) / 10,
+            Math.round((ry0 + ins.input.origin[1]) * 10) / 10,
+          ] as [number, number],
+        },
+      }))
+      if (newInserts.length === 0) {
+        showNotice(t('ocrNoText'))
+        return
+      }
+      pushUndoRef.current()
+      commitTextInserts([...textInsertsRef.current, ...newInserts])
+      showNotice(t('ocrSuccess', { count: newInserts.length }))
+    } catch (err) {
+      showNotice(err instanceof Error ? err.message : String(err))
+    }
+  }
+
   /** Print: save first (markups/forms/page ops all into the file), then reload from the file to render, avoiding a destroyed old doc */
   // Synchronous re-entry guard: the menu accelerator and the renderer's own ⌘P can both
   // fire, and the `printing` state only updates after the async flush has started
@@ -6541,6 +6632,16 @@ export default function App() {
                       <IconReplacePages />
                     </span>
                     {t('replacePages')}
+                  </button>
+                  <button
+                    className="rb-big"
+                    disabled={curOrigIdx < 0 || readOnly}
+                    onClick={() => void runPageOcrToNative(curOrigIdx)}
+                  >
+                    <span className="rb-big-icon">
+                      <IconCompleteForm />
+                    </span>
+                    {t('ocrScanToPdfNative')}
                   </button>
                 </div>
               </div>
@@ -8221,6 +8322,26 @@ export default function App() {
                           : 'imageLayerAbove',
                       )}
                     </button>
+                    <button
+                      type="button"
+                      data-tip={t('ocrConvertImageToPdfNative')}
+                      aria-label={t('ocrConvertImageToPdfNative')}
+                      onClick={() => {
+                        const target = bakeTargetOf(selected)
+                        if (target?.kind === 'existing') {
+                          void runImageOcrToNative(target.ref, target.ref.pageIndex)
+                        } else if (target?.kind === 'edit') {
+                          const inp = target.before
+                          const r = 'rect' in inp ? inp.rect : [0, 0, 100, 100]
+                          void runImageOcrToNative(
+                            { pageIndex: inp.pageIndex, rect: r as [number, number, number, number], aboveText: false },
+                            inp.pageIndex,
+                          )
+                        }
+                      }}
+                    >
+                      <IconCompleteForm />
+                    </button>
                     <span className="pdf-del-popup-sep" />
                   </>
                 )}
@@ -8312,6 +8433,14 @@ export default function App() {
                   }}
                 >
                   {t('insertBlankPage')}
+                </button>
+                <button
+                  onClick={() => {
+                    setThumbMenu(null)
+                    void runPageOcrToNative(menuOrig)
+                  }}
+                >
+                  {t('ocrScanToPdfNative')}
                 </button>
               </div>
             )}
