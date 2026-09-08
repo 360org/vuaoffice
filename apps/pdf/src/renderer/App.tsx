@@ -5043,8 +5043,13 @@ export default function App() {
 
   /**
    * Native OCR for selected image: Recognize text inside the image and place native text inserts.
+   * If replaceImage is true, the underlying image object is deleted and replaced with native text.
    */
-  const runImageOcrToNative = async (imgRef: PageImageRef, origIdx: number) => {
+  const runImageOcrToNative = async (
+    imgRef: PageImageRef,
+    origIdx: number,
+    replaceImage = false,
+  ) => {
     if (!doc || origIdx < 0) return
     showNotice(t('ocrRunning'))
     try {
@@ -5083,6 +5088,42 @@ export default function App() {
         return
       }
       pushUndoRef.current()
+      if (replaceImage) {
+        // Delete underlying image object
+        if (selected?.kind === 'pageImage') {
+          setImageEdits((prev) => [
+            ...prev,
+            {
+              id: newId(),
+              input: { kind: 'deleteImage', pageIndex: selected.ref.pageIndex, oldRect: selected.ref.rect },
+              staticFill: savedStaticFillForRef(selected.ref),
+            },
+          ])
+        } else if (selected?.kind === 'imageEdit') {
+          setImageEdits((prev) =>
+            prev.flatMap((edit) => {
+              if (edit.id !== selected.id) return [edit]
+              if (
+                edit.staticFill &&
+                (edit.input.kind === 'transformImage' || edit.input.kind === 'replaceImage')
+              ) {
+                return [
+                  {
+                    ...edit,
+                    input: {
+                      kind: 'deleteImage' as const,
+                      pageIndex: edit.input.pageIndex,
+                      oldRect: edit.input.oldRect,
+                    },
+                  },
+                ]
+              }
+              return []
+            }),
+          )
+        }
+        setSelected(null)
+      }
       commitTextInserts([...textInsertsRef.current, ...newInserts])
       showNotice(t('ocrSuccess', { count: newInserts.length }))
     } catch (err) {
@@ -6197,6 +6238,16 @@ export default function App() {
                           {t('convertToExcel')}
                         </button>
                         <button onClick={() => void convertTo('pptx')}>{t('convertToPpt')}</button>
+                        <div style={{ height: 1, margin: '4px 0', background: 'var(--border, rgba(128, 128, 128, 0.2))' }} />
+                        <button
+                          disabled={curOrigIdx < 0 || readOnly}
+                          onClick={() => {
+                            setConvertOpen(false)
+                            void runPageOcrToNative(curOrigIdx)
+                          }}
+                        >
+                          {t('ocrScanToPdfNative')}
+                        </button>
                       </div>
                     )}
                   </div>
@@ -8329,18 +8380,40 @@ export default function App() {
                       onClick={() => {
                         const target = bakeTargetOf(selected)
                         if (target?.kind === 'existing') {
-                          void runImageOcrToNative(target.ref, target.ref.pageIndex)
+                          void runImageOcrToNative(target.ref, target.ref.pageIndex, false)
                         } else if (target?.kind === 'edit') {
                           const inp = target.before
                           const r = 'rect' in inp ? inp.rect : [0, 0, 100, 100]
                           void runImageOcrToNative(
                             { pageIndex: inp.pageIndex, rect: r as [number, number, number, number], aboveText: false },
                             inp.pageIndex,
+                            false,
                           )
                         }
                       }}
                     >
                       <IconCompleteForm />
+                    </button>
+                    <button
+                      type="button"
+                      data-tip={t('ocrReplaceImageWithPdfNative')}
+                      aria-label={t('ocrReplaceImageWithPdfNative')}
+                      onClick={() => {
+                        const target = bakeTargetOf(selected)
+                        if (target?.kind === 'existing') {
+                          void runImageOcrToNative(target.ref, target.ref.pageIndex, true)
+                        } else if (target?.kind === 'edit') {
+                          const inp = target.before
+                          const r = 'rect' in inp ? inp.rect : [0, 0, 100, 100]
+                          void runImageOcrToNative(
+                            { pageIndex: inp.pageIndex, rect: r as [number, number, number, number], aboveText: false },
+                            inp.pageIndex,
+                            true,
+                          )
+                        }
+                      }}
+                    >
+                      <IconSwapImage />
                     </button>
                     <span className="pdf-del-popup-sep" />
                   </>

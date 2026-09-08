@@ -11,7 +11,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "build:ocr:mac": "clang -O3 -arch x86_64 -arch arm64 -framework Foundation -framework AppKit -framework Vision ocr-helper/vision-ocr.m -o ocr-helper/vision-ocr"
   },
   "dependencies": {
     "@embedpdf/pdfium": "^2.15.0",

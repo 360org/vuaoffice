@@ -256,6 +256,10 @@ const config = {
         from: '../sheets/native/xlsx-engine/target/release/xlsx-sidecar',
         to: 'native/xlsx-sidecar',
       },
+      {
+        from: '../../packages/pdf2docx/ocr-helper/vision-ocr',
+        to: 'ocr/vision-ocr',
+      },
     ],
   },
   win: {
@@ -271,6 +275,14 @@ const config = {
         from: '../sheets/native/xlsx-engine/target/x86_64-pc-windows-gnu/release/xlsx-sidecar.exe',
         to: 'native/xlsx-sidecar.exe',
       },
+      ...(existsSync(join(__dirname, '../../packages/pdf2docx/ocr-helper/win-ocr.exe'))
+        ? [
+            {
+              from: '../../packages/pdf2docx/ocr-helper/win-ocr.exe',
+              to: 'ocr/win-ocr.exe',
+            },
+          ]
+        : []),
     ],
   },
   // Unlike win (which cross-compiles the sidecar to an explicit target

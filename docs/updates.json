@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.0.32",
+    "date": "Tháng 9/2026",
+    "highlight": "Nâng cấp nhận dạng chữ tiếng Việt ngoại tuyến, thay thế ảnh bằng PDF Native và tối ưu trang Changelog.",
+    "features": [
+      {
+        "title": "Nhận dạng chữ tiếng Việt & đa ngôn ngữ ngoại tuyến",
+        "desc": "Tối ưu hóa bộ xử lý OCR Apple Vision tự động nhận dạng đầy đủ 16 ngôn ngữ bao gồm tiếng Việt và tiếng Anh mà không cần mạng internet, loại bỏ triệt để lỗi không tìm thấy chữ."
+      },
+      {
+        "title": "Chuyển trang quét & thay thế ảnh bằng PDF Native",
+        "desc": "Bổ sung tùy chọn chuyển trang quét thành PDF văn bản trực tiếp trên thanh công cụ Ribbon và hỗ trợ nhận dạng chữ thay thế hoàn toàn hình ảnh scan bằng văn bản vector có thể tìm kiếm, bôi đen."
+      },
+      {
+        "title": "Trang lịch sử cập nhật chuyên biệt & tối ưu giao diện",
+        "desc": "Giao diện trang chủ hiển thị 6 phiên bản cập nhật mới nhất, bổ sung trang riêng biệt lưu trữ toàn bộ lịch sử phát hành của bộ ứng dụng văn phòng VuaOffice."
+      }
+    ]
+  },
+  {
     "version": "1.0.31",
     "date": "Tháng 9/2026",
     "highlight": "Kéo thả tài liệu & hình ảnh vào Trợ lý AI và Nhận dạng chữ PDF Scan ngoại tuyến.",

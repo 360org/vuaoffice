@@ -36,6 +36,7 @@ const fillFormStrings = {
     'This PDF contains XFA. Only AcroForm is supported; saving may not preserve XFA data.',
   ocrScanToPdfNative: 'Convert Scanned Page to Native PDF (OCR)',
   ocrConvertImageToPdfNative: 'Recognize & Convert to Native PDF',
+  ocrReplaceImageWithPdfNative: 'Recognize & Replace Image with Native PDF',
   ocrRunning: 'Recognizing text (OCR)…',
   ocrSuccess: 'Successfully added {count} native text line(s)',
   ocrNoText: 'No text recognized',
@@ -45,6 +46,7 @@ const localizedFillFormStrings = {
   zh: {
     ocrScanToPdfNative: '将扫描页转换为原生 PDF (OCR)',
     ocrConvertImageToPdfNative: '识别文字并转为原生 PDF',
+    ocrReplaceImageWithPdfNative: '识别文字并替换为原生 PDF',
     ocrRunning: '正在文字识别 (OCR)…',
     ocrSuccess: '成功识别并添加 {count} 行原生文本',
     ocrNoText: '未识别到文字',
@@ -84,6 +86,7 @@ const localizedFillFormStrings = {
   vi: {
     ocrScanToPdfNative: 'Chuyển trang quét thành PDF Native (OCR)',
     ocrConvertImageToPdfNative: 'Nhận dạng chữ & chuyển thành PDF Native',
+    ocrReplaceImageWithPdfNative: 'Nhận dạng chữ & thay thế hình ảnh bằng PDF Native',
     ocrRunning: 'Đang nhận dạng chữ (OCR)…',
     ocrSuccess: 'Đã nhận dạng và thêm {count} dòng chữ native',
     ocrNoText: 'Không tìm thấy chữ trong hình ảnh/trang',
@@ -125,6 +128,7 @@ const localizedFillFormStrings = {
   'zh-TW': {
     ocrScanToPdfNative: '將掃描頁轉換為原生 PDF (OCR)',
     ocrConvertImageToPdfNative: '辨識文字並轉為原生 PDF',
+    ocrReplaceImageWithPdfNative: '辨識文字並替換為原生 PDF',
     ocrRunning: '正在文字辨識 (OCR)…',
     ocrSuccess: '成功辨識並新增 {count} 行原生文字',
     ocrNoText: '未辨識到文字',
