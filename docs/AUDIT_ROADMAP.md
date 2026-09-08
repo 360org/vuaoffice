@@ -81,8 +81,18 @@ Lộ trình thi công chia làm 5 mốc trọng tâm:
   - Thay nút đăng nhập thành "Đăng nhập bằng 360 CORP" (`Home.tsx`).
   - 1-Click kích hoạt mở browser tới Odoo Auth Portal, tự động đăng nhập không cần chờ polling.
 
-### Mốc 5: Kiểm thử Toàn diện & Nghiệm thu
+### Mốc 5: Hỗ trợ Kéo Thả (Drag & Drop) Tài Liệu & Ảnh Vào Khung Chat AI Đa Nền Tảng
+- [ ] **Mở rộng Drag & Drop & Paste vào AI Chat trên PDF, Markdown và Mail**:
+  - Hiện tại Docs, Sheets, Slides đã hỗ trợ kéo thả tệp (`.docx`, `.xlsx`, `.pptx`, `.pdf`, `.txt`, `.md`, ảnh `.png`, `.jpg`, `.webp`) vào AI Panel thông qua `createFilesSkill` & `files:add`.
+  - Bổ sung `onDragOver`, `onDragLeave`, `onDrop` và `onPasteFiles` vào `AiPanel.tsx` của **VuaOffice PDF** và **VuaOffice Markdown** (tích hợp cùng `createFilesSkill` của `agent-core`).
+  - Mở rộng xử lý đa phương thức (multimodal vision prompt) cho AI khi nhận ảnh đính kèm trên toàn bộ các ứng dụng.
+- [ ] **Trợ lý AI Thực Thi Nhiệm Vụ Trực Tiếp Từ Tệp Đính Kèm**:
+  - Tự động trích xuất nội dung văn bản từ tệp đính kèm (`extractAttachmentText` qua `@genoffice/file-parse`).
+  - Hỗ trợ các tác vụ AI đối chiếu, tóm tắt chéo tài liệu, trích xuất bảng biểu từ ảnh hoặc tài liệu khác đưa vào tài liệu đang mở.
+
+### Mốc 6: Kiểm thử Toàn diện & Nghiệm thu
 - [ ] Test tạo file `.docx`, `.xlsx`, `.pptx`, `.md`, `.pdf` và kiểm tra tính toàn vẹn khi mở bằng MS Office / VuaOffice.
+- [ ] Test luồng kéo thả tài liệu và ảnh vào khung chat AI trên cả 5 ứng dụng (Docs, Sheets, Slides, PDF, Markdown).
 - [ ] Test luồng SSO 1-click từ VuaOffice: Bấm đăng nhập ➔ Browser mở trang Odoo 360 CORP ➔ Đăng ký / Đăng nhập ➔ Redirect về VuaOffice ➔ Giao diện cập nhật ngay trạng thái đã đăng nhập kèm tên người dùng.
 - [ ] Test Deep Link trên macOS và Windows không bị xung đột hay treo ứng dụng.
 
