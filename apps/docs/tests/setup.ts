@@ -1,5 +1,8 @@
 import { vi } from 'vitest'
 
+// Configure React act environment for jsdom
+;(globalThis as any).IS_REACT_ACT_ENVIRONMENT = true
+
 // Mock localStorage to bypass Node's experimental localStorage limitations in jsdom
 const localStorageMock = (() => {
   let store: Record<string, string> = {}

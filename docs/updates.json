@@ -1,5 +1,20 @@
 [
   {
+    "version": "1.0.31",
+    "date": "Tháng 9/2026",
+    "highlight": "Kéo thả tài liệu & hình ảnh vào Trợ lý AI và Nhận dạng chữ PDF Scan ngoại tuyến.",
+    "features": [
+      {
+        "title": "Kéo thả tài liệu và hình ảnh trực tiếp vào AI Chat",
+        "desc": "Hỗ trợ kéo thả hoặc dán tệp văn bản, bảng tính, trình chiếu, PDF và hình ảnh trực tiếp vào khung chat AI trên toàn bộ ứng dụng PDF, Markdown và Mail để phân tích và xử lý nội dung tức thì."
+      },
+      {
+        "title": "Nhận dạng chữ PDF quét sang PDF chuẩn văn bản (Native OCR)",
+        "desc": "Tích hợp công nghệ nhận dạng ký tự quang học hoạt động hoàn toàn ngoại tuyến 100%, cho phép chuyển đổi trang quét và hình ảnh trong PDF thành văn bản có thể bôi đen, tìm kiếm và chỉnh sửa trực tiếp."
+      }
+    ]
+  },
+  {
     "version": "1.0.30",
     "date": "Tháng 9/2026",
     "highlight": "Giải pháp văn phòng trọn gói thay thế hoàn toàn Microsoft Office.",

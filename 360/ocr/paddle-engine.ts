@@ -92,8 +92,7 @@ export function ocrLineToNativeTextInsert(
   pageHeightPt: number,
   rotate = 0,
 ): NativeTextInsert {
-  const [x0, y0, x1, y1] = line.box
-  const boxWidthPt = Math.max(1, (x1 - x0) * pageWidthPt)
+  const [x0, y0, , y1] = line.box
   const boxHeightPt = Math.max(1, (y1 - y0) * pageHeightPt)
 
   // Typical text baseline sits at approx 15% from the bottom of the bounding box
