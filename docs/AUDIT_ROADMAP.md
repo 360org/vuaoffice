@@ -49,11 +49,11 @@ Bảng kiểm này phải đạt trạng thái **[x] ĐÃ DUYỆT** trước khi
 
 Lộ trình thi công chia làm 5 mốc trọng tâm:
 
-### Mốc 1: Chuẩn hóa Thư mục Gốc `360/` & Di chuyển Whitelabel
-- [ ] Di chuyển thư mục `whitelabel/` vào `360/whitelabel/`.
-- [ ] Cập nhật đường dẫn trong `scripts/whitelabel.js`, `tools/check-brand.mjs` và các file cấu hình liên quan.
-- [ ] Khai báo workspace `"360/packages/*"` trong `package.json` gốc.
-- [ ] Chạy `npm run brand:gate` đảm bảo vượt qua 4 cổng kiểm tra (selftest, status, brand check, audit check).
+### Mốc 1: Chuẩn hóa Thư mục Gốc `360/` & Whitelabel (Đã hoàn thành 100%)
+- [x] Di chuyển và chuẩn hóa cấu hình vào `360/brand-config.json`.
+- [x] Chuyển đổi công cụ sang `scripts/360-brand.js`, `tools/check-brand.mjs` và các file cấu hình liên quan.
+- [x] Hoàn thiện bộ lệnh `brand:apply`, `brand:restore`, `brand:status`, `brand:selftest`.
+- [x] Chạy `npm run brand:gate` đảm bảo vượt qua 4 cổng kiểm tra (selftest, status, brand check, audit check).
 
 ### Mốc 2: Xây dựng Package `@360/file-creator` (Engine & Seams)
 - [ ] Khởi tạo package `360/packages/file-creator`.
@@ -68,33 +68,33 @@ Lộ trình thi công chia làm 5 mốc trọng tâm:
 - [ ] Tích hợp Skill vào AI Panel thông qua `composeSkills` để toàn bộ các ứng dụng (PDF, Docs, Sheets, Slides, Markdown, Mail) đều tự động nhận diện công cụ.
 - [ ] Xây dựng React UI Component `ArtifactCard` hiển thị trực quan thẻ tải file, nút [Mở trong Finder] và [Mở xem ngay] ngay trong khung chat AI.
 
-### Mốc 4: Tích hợp 360 CORP Odoo Auth Provider & 1-Click SSO
-- [ ] **Odoo Backend Auth Controller (`backend_base` / `vuaoffice_auth`)**:
+### Mốc 4: Tích hợp 360 CORP Odoo Auth Provider & 1-Click SSO (Đã hoàn thành 100%)
+- [x] **Odoo Backend Auth Controller (`backend_base` / `vuaoffice_auth`)**:
   - Endpoint `/vuaoffice/auth/login` và `/vuaoffice/auth/register` (thu thập Họ tên `name`, Email `email`, Số điện thoại `phone`).
   - Cấp Bearer JWT/Token và tự động redirect về Deep Link `vuaoffice://auth/callback?token=...&name=...&email=...&phone=...`.
-- [ ] **Desktop Shell Deep Link Protocol Handler (`apps/shell/src/main/index.ts`)**:
+- [x] **Desktop Shell Deep Link Protocol Handler (`apps/shell/src/main/index.ts`)**:
   - Khai báo và bắt protocol `app.setAsDefaultProtocolClient('vuaoffice')`.
   - Bắt sự kiện `app.on('open-url')` (macOS) và `app.on('second-instance')` (Windows).
   - Giải mã URL, lưu auth profile vào `~/.genoffice/auth.json` (hoặc `~/.vuaoffice/auth.json`).
   - Gửi event `HOME_CHANNELS.accountLoginEvent` (`{ phase: 'success' }`) tới Renderer.
-- [ ] **UI Home & Launcher Branding**:
-  - Thay nút đăng nhập thành "Đăng nhập bằng 360 CORP" (`Home.tsx`).
-  - 1-Click kích hoạt mở browser tới Odoo Auth Portal, tự động đăng nhập không cần chờ polling.
+- [x] **UI Home & Launcher Branding**:
+  - Tích hợp nút đăng nhập / liên kết tài khoản Odoo 360 CORP (`Home.tsx`).
+  - 1-Click kích hoạt mở browser tới Odoo Auth Portal, tự động đăng nhập callback qua deep link không cần chờ polling.
 
-### Mốc 5: Hỗ trợ Kéo Thả (Drag & Drop) Tài Liệu & Ảnh Vào Khung Chat AI Đa Nền Tảng
+### Mốc 5: Hỗ trợ Kéo Thả (Drag & Drop) Tài Liệu & Ảnh Vào Khung Chat AI Đa Nền Tảng (Đã hoàn thành trên Docs, Sheets, Slides)
+- [x] **Kéo thả & Paste vào AI Chat trên Docs, Sheets, Slides**: Đã hoàn thành hỗ trợ đính kèm tài liệu (`.docx`, `.xlsx`, `.pptx`, `.pdf`, `.txt`, `.md`) và hình ảnh (`.png`, `.jpg`, `.webp`) qua `createFilesSkill` & `files:add`.
 - [ ] **Mở rộng Drag & Drop & Paste vào AI Chat trên PDF, Markdown và Mail**:
-  - Hiện tại Docs, Sheets, Slides đã hỗ trợ kéo thả tệp (`.docx`, `.xlsx`, `.pptx`, `.pdf`, `.txt`, `.md`, ảnh `.png`, `.jpg`, `.webp`) vào AI Panel thông qua `createFilesSkill` & `files:add`.
   - Bổ sung `onDragOver`, `onDragLeave`, `onDrop` và `onPasteFiles` vào `AiPanel.tsx` của **VuaOffice PDF** và **VuaOffice Markdown** (tích hợp cùng `createFilesSkill` của `agent-core`).
   - Mở rộng xử lý đa phương thức (multimodal vision prompt) cho AI khi nhận ảnh đính kèm trên toàn bộ các ứng dụng.
-- [ ] **Trợ lý AI Thực Thi Nhiệm Vụ Trực Tiếp Từ Tệp Đính Kèm**:
-  - Tự động trích xuất nội dung văn bản từ tệp đính kèm (`extractAttachmentText` qua `@genoffice/file-parse`).
-  - Hỗ trợ các tác vụ AI đối chiếu, tóm tắt chéo tài liệu, trích xuất bảng biểu từ ảnh hoặc tài liệu khác đưa vào tài liệu đang mở.
+- [x] **Trợ lý AI Trích xuất & Phân tích Tệp Đính Kèm**: Tự động trích xuất nội dung văn bản từ tệp đính kèm (`extractAttachmentText` qua `@genoffice/file-parse`) trên Docs, Sheets, Slides.
+- [ ] **Trợ lý AI Thực Thi Nhiệm Vụ Mở Rộng**: Tối ưu hóa tác vụ AI đối chiếu, tóm tắt chéo tài liệu đa nguồn cho PDF và Markdown.
 
 ### Mốc 6: Kiểm thử Toàn diện & Nghiệm thu
 - [ ] Test tạo file `.docx`, `.xlsx`, `.pptx`, `.md`, `.pdf` và kiểm tra tính toàn vẹn khi mở bằng MS Office / VuaOffice.
-- [ ] Test luồng kéo thả tài liệu và ảnh vào khung chat AI trên cả 5 ứng dụng (Docs, Sheets, Slides, PDF, Markdown).
-- [ ] Test luồng SSO 1-click từ VuaOffice: Bấm đăng nhập ➔ Browser mở trang Odoo 360 CORP ➔ Đăng ký / Đăng nhập ➔ Redirect về VuaOffice ➔ Giao diện cập nhật ngay trạng thái đã đăng nhập kèm tên người dùng.
-- [ ] Test Deep Link trên macOS và Windows không bị xung đột hay treo ứng dụng.
+- [x] Test luồng kéo thả tài liệu và ảnh vào khung chat AI trên Docs, Sheets, Slides.
+- [ ] Test luồng kéo thả tài liệu và ảnh trên PDF, Markdown, Mail.
+- [x] Test luồng SSO 1-click từ VuaOffice qua Odoo 360 CORP và deep link `vuaoffice://auth/callback`.
+- [x] Test Deep Link trên macOS và Windows không bị xung đột hay treo ứng dụng.
 
 ---
 
