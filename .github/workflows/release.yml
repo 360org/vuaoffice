@@ -74,7 +74,11 @@ jobs:
             echo "Release tag must be a semantic version, got: $tag" >&2
             exit 1
           fi
-          manifest="$(node -p "require('./apps/shell/package.json').version")"
+          if [[ -f apps/shell/package.json ]]; then
+            manifest="$(node -p "require('./apps/shell/package.json').version")"
+          else
+            manifest="$(node -p "require('./package.json').version")"
+          fi
           if [[ "$version" != "$manifest" ]]; then
             echo "Tag $tag does not match package.json ($manifest). Bump the version first." >&2
             exit 1

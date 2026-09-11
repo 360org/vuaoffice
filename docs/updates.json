@@ -1,5 +1,20 @@
 [
   {
+    "version": "1.0.34",
+    "date": "Tháng 9/2026",
+    "highlight": "Sửa quy trình build và phát hành installer đa nền tảng.",
+    "features": [
+      {
+        "title": "Build release ổn định hơn",
+        "desc": "Sửa cách truyền Deploy Token GitLab trong GitHub Actions và đồng bộ kiểm tra version giữa source private với public mirror."
+      },
+      {
+        "title": "Giữ an toàn ranh giới source",
+        "desc": "GitHub tiếp tục chỉ lưu docs, workflow và metadata; installer được build từ source private trên GitLab."
+      }
+    ]
+  },
+  {
     "version": "1.0.33",
     "date": "Tháng 9/2026",
     "highlight": "Khắc phục mở bảng tính trắng trên Windows và nâng cấp nền tảng văn phòng.",

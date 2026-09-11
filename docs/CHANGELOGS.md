@@ -3,6 +3,19 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.34] - 2026-09-11
+
+### Sửa quy trình phát hành đa nền tảng
+
+- **[FIX] Sửa truyền Deploy Token GitLab trong GitHub Actions**: truyền secret qua biến môi trường, tránh lỗi shell interpolation khiến job build release dừng trước khi tạo artifact.
+- **[FIX] Đồng bộ kiểm tra version giữa public mirror và source private**: workflow dùng manifest shell khi build đầy đủ và fallback về manifest root khi kiểm tra mirror đã lọc.
+- **[GATE] Giữ nguyên ranh giới public/private**: GitHub chỉ chứa docs, workflow và metadata phát hành; installer tiếp tục được build từ source private trên GitLab.
+
+### Ghi chú xác minh
+
+- `npm run brand:gate` đạt trong môi trường local.
+- GitHub Actions cần xác minh lại bằng tag `v1.0.34`; không retag `v1.0.33`.
+
 ## [1.0.33] - 2026-09-11
 
 ### Sửa lỗi đóng gói Excel trên Windows & đồng bộ upstream
