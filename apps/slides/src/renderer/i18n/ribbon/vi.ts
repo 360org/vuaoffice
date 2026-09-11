@@ -162,7 +162,7 @@ export const vi = {
     ribbonFlipH: 'Lật ngang',
     ribbonFlipV: 'Lật dọc',
     ribbonDistributeHint: '{title} (chọn từ 3 phần tử trở lên)',
-    ribbonAiAssistant: 'VuaOffice AI',
+    ribbonAiAssistant: 'Genspark AI',
     ribbonAiAssistantTip: 'Hiện hoặc ẩn bảng trợ lý AI',
     ribbonGroupTable: 'Bảng',
     ribbonInsertTableTip: 'Chèn bảng (kiểu mặc định; chọn số hàng và số cột)',

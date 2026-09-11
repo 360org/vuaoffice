@@ -207,7 +207,7 @@ import type { DiagnosticReportData } from '../shared/home-api'
 if (!app.isPackaged)
   app.setPath(
     'userData',
-    process.env.GENOFFICE_USER_DATA ?? join(app.getPath('appData'), 'VuaOffice Dev'),
+    process.env.GENOFFICE_USER_DATA ?? join(app.getPath('appData'), 'GenOffice Dev'),
   )
 
 // The product rename from "AI Office" to VuaOffice changed the userData path; migrate old user data once
@@ -429,7 +429,7 @@ let cachedGithubStars: number | null = null
 async function fetchGithubStars(): Promise<number | null> {
   if (cachedGithubStars !== null) return cachedGithubStars
   try {
-    const response = await fetch('https://api.github.com/repos/360org/vuaoffice', {
+    const response = await fetch('https://api.github.com/repos/genspark-ai/genoffice', {
       headers: { Accept: 'application/vnd.github+json' },
       signal: AbortSignal.timeout(5000),
     })
@@ -2287,7 +2287,7 @@ function createShellWindow(): void {
     height: 900,
     minWidth: 720,
     minHeight: 550,
-    title: 'VuaOffice',
+    title: 'GenOffice',
     // vibrancy: editor modules punch translucent regions (e.g. the slides
     // thumbnail pane) through to the desktop
     ...(process.platform === 'darwin'
@@ -4250,7 +4250,7 @@ registerTabsIpc()
 setSessionPathResolver(resolveSheetsSessionPath)
 
 /** Dev-only pid marker for the takeover below; scoped to userData like the lock itself. */
-app.name = 'VuaOffice'
+app.name = 'GenOffice'
 const devPidFile = () => join(app.getPath('userData'), 'dev-instance.pid')
 
 app.whenReady().then(async () => {

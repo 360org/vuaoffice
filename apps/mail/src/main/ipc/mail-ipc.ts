@@ -88,7 +88,7 @@ export function registerMailIpc(
 
   ipcMain.handle(VUA_MAIL_IPC.OPEN_ATTACHMENT, async (_evt, attachment: EmailAttachment) => {
     try {
-      const tempDir = join(app.getPath('temp'), 'VuaOffice-Attachments')
+      const tempDir = join(app.getPath('temp'), 'GenOffice-Attachments')
       if (!existsSync(tempDir)) {
         mkdirSync(tempDir, { recursive: true })
       }
@@ -295,7 +295,7 @@ export function registerMailIpc(
       height: 700,
       minWidth: 600,
       minHeight: 400,
-      title: email ? `${email.subject} - VuaOffice Mail` : 'Chi tiết thư',
+      title: email ? `${email.subject} - GenOffice Mail` : 'Chi tiết thư',
       autoHideMenuBar: true,
       webPreferences: {
         nodeIntegration: false,
@@ -309,7 +309,7 @@ export function registerMailIpc(
       <html>
         <head>
           <meta charset="utf-8" />
-          <title>${email?.subject || 'VuaOffice Mail'}</title>
+          <title>${email?.subject || 'GenOffice Mail'}</title>
           <style>
             body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 24px; background: #ffffff; color: #232425; }
             .header { border-bottom: 1px solid #e3e6ea; padding-bottom: 16px; margin-bottom: 20px; }
@@ -358,7 +358,7 @@ export function registerMailIpc(
       <html>
         <head>
           <meta charset="utf-8" />
-          <title>${email?.subject || 'VuaOffice Mail'}</title>
+          <title>${email?.subject || 'GenOffice Mail'}</title>
           <style>
             body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 20px; color: #000; }
             .header { border-bottom: 2px solid #333; padding-bottom: 12px; margin-bottom: 16px; }

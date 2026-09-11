@@ -239,7 +239,7 @@ export const it = {
   appSettingsLoggedOut:
     'Accesso non effettuato (le funzionalità IA richiedono un account Genspark)',
   appSettingsLoginPending: "In attesa dell'accesso dal browser…",
-  appSettingsLogin: 'Accedi a VuaOffice',
+  appSettingsLogin: 'Accedi a Genspark',
   appSettingsModel: 'Modello',
   appSettingsCancel: 'Annulla',
   appSettingsSave: 'Salva',

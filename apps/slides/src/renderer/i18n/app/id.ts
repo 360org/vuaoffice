@@ -229,7 +229,7 @@ export const id = {
   appSettingsLoggedInEmail: 'Sudah masuk: {email}',
   appSettingsLoggedOut: 'Belum masuk (fitur AI memerlukan akun Genspark)',
   appSettingsLoginPending: 'Menunggu proses masuk di browser…',
-  appSettingsLogin: 'Masuk ke VuaOffice',
+  appSettingsLogin: 'Masuk ke Genspark',
   appSettingsModel: 'Model',
   appSettingsCancel: 'Batal',
   appSettingsSave: 'Simpan',
