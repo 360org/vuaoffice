@@ -21,6 +21,7 @@ jobs:
           fetch-depth: 0
 
       - name: Fetch private source from GitLab
+        if: ${{ secrets.GITLAB_DEPLOY_TOKEN != '' }}
         shell: bash
         run: |
           echo "=== 0. Fetching private source code from GitLab ==="
