@@ -1,4 +1,4 @@
-export type TabKind = 'home' | 'docs' | 'sheets' | 'slides' | 'pdf' | 'markdown' | 'mail'
+export type TabKind = 'home' | 'docs' | 'sheets' | 'slides' | 'pdf' | 'markdown' | 'html' | 'mail'
 
 /** one open tab in the top tab strip; Home is always id 'home' and not closable */
 export interface TabSummary {

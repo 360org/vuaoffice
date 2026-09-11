@@ -73,6 +73,23 @@ describe('provider registry', () => {
     }
   })
 
+  it('marks the OpenAI o-series reasoning models as fixed-sampling', () => {
+    for (const model of ['o1', 'o1-mini', 'o1-preview', 'o3', 'o3-mini', 'o4-mini']) {
+      expect(AI_PROVIDER_ADAPTERS.openai.resolveEndpoint(config(model))).toEqual({
+        protocol: 'openai-compatible',
+        baseUrl: 'https://api.openai.com/v1',
+        omitTemperature: true,
+        useMaxCompletionTokens: true,
+      })
+    }
+    // Non-reasoning models still carry the configured temperature.
+    expect(AI_PROVIDER_ADAPTERS.openai.resolveEndpoint(config('gpt-4o'))).toEqual({
+      protocol: 'openai-compatible',
+      baseUrl: 'https://api.openai.com/v1',
+      useMaxCompletionTokens: true,
+    })
+  })
+
   it('resolves the catalog additions to their OpenAI-compatible endpoints', () => {
     const cases: Array<[AiProviderId, string, string]> = [
       ['glm', 'glm-5.3', 'https://open.bigmodel.cn/api/paas/v4'],
@@ -195,8 +212,24 @@ describe('provider registry', () => {
 
   it('only genspark authenticates through the gsk login', () => {
     for (const [id, adapter] of Object.entries(AI_PROVIDER_ADAPTERS)) {
-      expect(adapter.capabilities.auth).toBe(id === 'genspark' ? 'gsk-login' : 'api-key')
+      expect(adapter.capabilities.auth).toBe(
+        id === 'genspark' ? 'gsk-login' : id === 'codex' ? 'codex-chatgpt' : 'api-key',
+      )
     }
+  })
+
+  it('routes Codex to the auto-discovered local process bridge', () => {
+    expect(
+      AI_PROVIDER_ADAPTERS.codex.resolveEndpoint({
+        apiKey: '',
+        model: 'gpt-5.6-terra',
+        cliPath: 'C:\\Tools\\codex.exe',
+      }),
+    ).toEqual({ protocol: 'codex-app-server', baseUrl: '' })
+    expect(AI_PROVIDER_ADAPTERS.codex.resolveEndpoint(config('gpt-5.6-terra'))).toEqual({
+      protocol: 'codex-app-server',
+      baseUrl: '',
+    })
   })
 
   it('throws a typed error for ids outside the registry', () => {

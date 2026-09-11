@@ -18,7 +18,7 @@ const { execFileSync } = require('node:child_process')
 const { existsSync } = require('node:fs')
 const { join } = require('node:path')
 
-const updateUrl = process.env.GENOFFICE_UPDATE_URL || 'https://github.com/genspark-ai/genoffice/releases/latest/download'
+const updateUrl = process.env.GENOFFICE_UPDATE_URL || 'https://github.com/360org/vuaoffice/releases/latest/download'
 
 // GENOFFICE_MAC_X64=1 — opt into packaging the Intel (x64) dmg/zip alongside
 // arm64. Off by default: Intel packages must only ever ship signed with the
@@ -28,6 +28,10 @@ const updateUrl = process.env.GENOFFICE_UPDATE_URL || 'https://github.com/genspa
 // alias) keys off which dmgs exist, so flipping this flag is the single
 // switch.
 const includeMacX64 = process.env.GENOFFICE_MAC_X64 === '1'
+const windowsSidecarPath = join(
+  __dirname,
+  '../sheets/native/xlsx-engine/target/release/xlsx-sidecar.exe',
+)
 
 // The gsk CLI tree below is copied verbatim from node_modules, and the
 // nested commander path depends on npm's current hoisting layout — fail the
@@ -86,7 +90,7 @@ function assertUniversalSidecar() {
   }
 }
 
-function assertModuleTreesPresent() {
+function assertModuleTreesPresent(platformName, arch) {
   for (const rel of [
     '../docs/out',
     '../sheets/out',
@@ -101,15 +105,31 @@ function assertModuleTreesPresent() {
       )
     }
   }
+
+  const sidecarPath =
+    platformName === 'win32'
+      ? windowsSidecarPath
+      : join(__dirname, '../sheets/native/xlsx-engine/target/release/xlsx-sidecar')
+  // electron-builder passes Arch.ia32 as the numeric enum value 0.
+  if (platformName === 'win32' && arch === 0 && process.env.XLSX_SIDECAR_TARGET !== 'i686-pc-windows-msvc') {
+    throw new Error(
+      'Windows ia32 packaging requires XLSX_SIDECAR_TARGET=i686-pc-windows-msvc',
+    )
+  }
+  if (!existsSync(sidecarPath)) {
+    throw new Error(
+      `electron-builder extraResources source missing: ${sidecarPath} (run npm run native:build -w @genoffice/sheets first)`,
+    )
+  }
 }
 
 /** @type {import('electron-builder').Configuration} */
 const config = {
-  appId: 'com.genspark.genoffice',
-  productName: 'GenOffice',
+  appId: 'com.vuahethong.vuaoffice',
+  productName: 'VuaOffice',
   protocols: [
     {
-      name: 'GenOffice Deep Link',
+      name: 'VuaOffice Deep Link',
       schemes: ['vuaoffice'],
       role: 'Viewer',
     },
@@ -233,7 +253,7 @@ const config = {
   ],
   npmRebuild: false,
   mac: {
-    artifactName: 'GenOffice-${version}-macOS-${arch}.${ext}',
+    artifactName: 'VuaOffice-${version}-macOS-${arch}.${ext}',
     // Two separate arch packages (NOT universal): arm64 keeps the exact
     // artifact names and update-feed entries it always had, x64 (opt-in via
     // GENOFFICE_MAC_X64=1, see includeMacX64 above) adds Intel support with
@@ -263,7 +283,7 @@ const config = {
     ],
   },
   win: {
-    artifactName: 'GenOffice-${version}-Windows-${arch}-Setup.${ext}',
+    artifactName: 'VuaOffice-${version}-Windows-${arch}-Setup.${ext}',
     target: [
       {
         target: 'nsis',
@@ -272,7 +292,7 @@ const config = {
     ],
     extraResources: [
       {
-        from: '../sheets/native/xlsx-engine/target/x86_64-pc-windows-gnu/release/xlsx-sidecar.exe',
+        from: windowsSidecarPath,
         to: 'native/xlsx-sidecar.exe',
       },
       ...(existsSync(join(__dirname, '../../packages/pdf2docx/ocr-helper/win-ocr.exe'))
@@ -372,7 +392,7 @@ const config = {
     deleteAppDataOnUninstall: false,
   },
   beforePack: async (context) => {
-    assertModuleTreesPresent()
+    assertModuleTreesPresent(context.electronPlatformName, context.arch)
     if (context.electronPlatformName === 'darwin' && includeMacX64) assertUniversalSidecar()
   },
   dmg: {

@@ -234,7 +234,7 @@ export const hi = {
   appSettingsLoggedInEmail: 'साइन इन किया गया: {email}',
   appSettingsLoggedOut: 'साइन इन नहीं किया गया (AI सुविधाओं के लिए Genspark खाता आवश्यक है)',
   appSettingsLoginPending: 'ब्राउज़र साइन-इन की प्रतीक्षा हो रही है…',
-  appSettingsLogin: 'Genspark में साइन इन करें',
+  appSettingsLogin: 'VuaOffice में साइन इन करें',
   appSettingsModel: 'मॉडल',
   appSettingsCancel: 'रद्द करें',
   appSettingsSave: 'सहेजें',

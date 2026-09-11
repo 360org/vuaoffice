@@ -1,5 +1,20 @@
 [
   {
+    "version": "1.0.33",
+    "date": "Tháng 9/2026",
+    "highlight": "Khắc phục mở bảng tính trắng trên Windows và nâng cấp nền tảng văn phòng.",
+    "features": [
+      {
+        "title": "Mở file Excel ổn định trên Windows",
+        "desc": "Đóng gói đúng bộ máy xử lý bảng tính native cho Windows 64-bit và 32-bit, khắc phục lỗi mở file Excel thành màn hình trắng."
+      },
+      {
+        "title": "Cải tiến Docs, Sheets, Slides, PDF và HTML",
+        "desc": "Đồng bộ các bản vá và tính năng nền tảng mới nhất, đồng thời tăng độ tin cậy của quy trình đóng gói ứng dụng."
+      }
+    ]
+  },
+  {
     "version": "1.0.32",
     "date": "Tháng 9/2026",
     "highlight": "Nâng cấp nhận dạng chữ tiếng Việt ngoại tuyến, thay thế ảnh bằng PDF Native và tối ưu trang Changelog.",

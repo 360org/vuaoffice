@@ -23,7 +23,6 @@ export const OAUTH_CONFIGS: Record<'google' | 'microsoft' | 'microsoft_personal'
     tokenEndpoint: 'https://oauth2.googleapis.com/token',
     // Public Native Desktop Client ID for Thunderbird / standard mail clients
     clientId: '406964657835-aq8lmia8j95dhl1a2bvharmfk3t1hgqj.apps.googleusercontent.com',
-    clientSecret: 'WSyXVxiBNAMLSIq4RLua2TwX',
     scopes: [
       'openid',
       'profile',
@@ -422,7 +421,7 @@ export class OAuthClient {
 <html>
 <head>
   <meta charset="utf-8">
-  <title>GenOffice — ${title}</title>
+  <title>VuaOffice — ${title}</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f8fafc; color: #1e293b; }
     .card { background: #ffffff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: center; max-width: 440px; border: 1px solid #e2e8f0; }
@@ -437,7 +436,7 @@ export class OAuthClient {
     <div class="icon">${icon}</div>
     <h2>${title}</h2>
     <p>${messageHtml}</p>
-    <div class="footer">Bạn có thể đóng tab trình duyệt này và quay lại ứng dụng <strong>GenOffice</strong>.</div>
+    <div class="footer">Bạn có thể đóng tab trình duyệt này và quay lại ứng dụng <strong>VuaOffice</strong>.</div>
   </div>
 </body>
 </html>`

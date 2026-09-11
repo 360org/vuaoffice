@@ -80,21 +80,31 @@ jobs:
 
       # Cổng thương hiệu: chặn chuỗi upstream lọt ra bề mặt người dùng sau mỗi
       # lần đồng bộ upstream. `brand:gate` = selftest (song ánh) + status (đã
-      # apply đầy đủ) + check-brand (không rò rỉ). Xem docs/WHITELABEL_STRATEGY.md
+      # apply đầy đủ) + check-brand (không rò rỉ). Xem docs/360_BRAND_STRATEGY.md
       - name: Check brand integrity
         run: npm run brand:gate
 
-      # Bản ghi kiểm toán là ảnh chụp kho mã tại một thời điểm. Cổng này chặn
-      # việc sửa/xoá/đổi tên một bản đã tồn tại — lỗi đã từng xảy ra và xoá mất
-      # bản kiểm toán v0.7.0. Xem docs/AUDIT_REPORT.md.
-      - name: Check audit records are immutable
+      # Added lines only: Han text outside locale tables, review-tool tags,
+      # feedback-ledger ids, sample-corpus ids, internal PR numbers, personal
+      # paths/e-mails, credentials, NUL bytes (tools/check-public-hygiene.mjs).
+      - name: Check public-repo hygiene
         env:
           FORMAT_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             FORMAT_BASE_REF=$(git rev-parse HEAD^1)
           fi
-          npm run audit:check
+          if [ -f tools/check-public-hygiene.mjs ]; then
+            node tools/check-public-hygiene.mjs
+          else
+            echo "public-hygiene gate not present in this checkout; skipped"
+          fi
+
+      # Bản ghi kiểm toán là ảnh chụp kho mã tại một thời điểm. Cổng này chặn
+      # việc sửa/xoá/đổi tên một bản đã tồn tại — lỗi đã từng xảy ra và xoá mất
+      # bản kiểm toán v0.7.0. Xem docs/AUDIT_REPORT.md.
+      - name: Check audit records are immutable
+        run: npm run audit:check
 
       # Keep tracked code comments and contributor-facing documentation
       # English-only; functional CJK strings and AI prompt examples are allowed.

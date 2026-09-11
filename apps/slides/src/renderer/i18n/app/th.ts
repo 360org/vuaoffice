@@ -220,7 +220,7 @@ export const th = {
   appSettingsLoggedInEmail: 'ลงชื่อเข้าใช้แล้ว: {email}',
   appSettingsLoggedOut: 'ยังไม่ได้ลงชื่อเข้าใช้ (ฟีเจอร์ AI ต้องใช้บัญชี Genspark)',
   appSettingsLoginPending: 'กำลังรอการลงชื่อเข้าใช้ในเบราว์เซอร์…',
-  appSettingsLogin: 'ลงชื่อเข้าใช้ Genspark',
+  appSettingsLogin: 'ลงชื่อเข้าใช้ VuaOffice',
   appSettingsModel: 'โมเดล',
   appSettingsCancel: 'ยกเลิก',
   appSettingsSave: 'บันทึก',

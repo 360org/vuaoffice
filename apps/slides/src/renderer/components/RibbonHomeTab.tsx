@@ -9,7 +9,6 @@ import { useSystemFontFamilies } from '../system-fonts'
 import { useFontCatalog } from '../font-manager'
 import {
   GensparkMark,
-  IconAiAskSelection,
   IconAiBeautify,
   IconAiFactCheck,
   IconAiImage,
@@ -93,7 +92,6 @@ export function RibbonHomeTab({ rb }: { rb: RibbonTabCtx }) {
     onAddSlide,
     onAddSlideWithLayout,
     onAiPreset,
-    onAskSelection,
     onAlign,
     onDirection,
     onArrange,
@@ -186,7 +184,7 @@ export function RibbonHomeTab({ rb }: { rb: RibbonTabCtx }) {
   }
   return (
     <>
-      <Group label="Genspark AI">
+      <Group label="VuaOffice AI">
         <button
           className={`rb-big ai-entry${aiOpen ? ' active' : ''}`}
           data-tip={t('aiOpenAssistant')}
@@ -195,20 +193,7 @@ export function RibbonHomeTab({ rb }: { rb: RibbonTabCtx }) {
           <span className="rb-big-icon">
             <GensparkMark size={26} />
           </span>
-          <span>Genspark AI</span>
-        </button>
-        <button
-          className="rb-big ai-entry"
-          disabled={!hasDoc || !hasSelection}
-          data-tip={t('aiAskBtnTip')}
-          onClick={onAskSelection}
-        >
-          <span className="rb-big-icon">
-            <span className="ai-feature-icon" aria-hidden="true">
-              <IconAiAskSelection />
-            </span>
-          </span>
-          <span>{t('aiAskBtn')}</span>
+          <span>VuaOffice AI</span>
         </button>
         <button
           className="rb-big ai-entry"

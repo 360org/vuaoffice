@@ -13,6 +13,7 @@ import { ar } from './dialogs/ar'
 import { pt } from './dialogs/pt'
 import { it } from './dialogs/it'
 import { pl } from './dialogs/pl'
+import { cs } from './dialogs/cs'
 import { nl } from './dialogs/nl'
 import { ms } from './dialogs/ms'
 import { he } from './dialogs/he'
@@ -36,6 +37,7 @@ export const dialogStrings = defineStrings({
   pt,
   it,
   pl,
+  cs,
   nl,
   ms,
   he,

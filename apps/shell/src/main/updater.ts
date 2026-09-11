@@ -239,6 +239,21 @@ const tUpd = createI18n({
       'Automatyczna aktualizacja nie powiodła się. Pobierz najnowszą wersję ze strony pobierania i zainstaluj ją ręcznie.',
     updOpenDownload: 'Otwórz stronę pobierania',
   },
+  cs: {
+    updTitle: 'Aktualizace softwaru',
+    updHeadline: 'Je k dispozici nová verze',
+    updDesc:
+      'Tato aktualizace obsahuje vylepšení výkonu a opravy chyb. Doporučujeme aktualizovat hned.',
+    updDownload: 'Aktualizovat nyní',
+    updLater: 'Připomenout později',
+    updInstall: 'Restartovat a nainstalovat',
+    updDownloading: 'Stahování aktualizace…',
+    updFailed: 'Stažení aktualizace se nezdařilo. Zkontrolujte síť a zkuste to znovu.',
+    updRetry: 'Zkusit znovu',
+    updManual:
+      'Automatická aktualizace se nezdařila. Stáhněte si nejnovější verzi ze stránky pro stažení a nainstalujte ji ručně.',
+    updOpenDownload: 'Otevřít stránku pro stažení',
+  },
   nl: {
     updTitle: 'Software-update',
     updHeadline: 'Er is een nieuwe versie beschikbaar',
@@ -334,7 +349,7 @@ const RECHECK_INTERVAL_MS = 4 * 60 * 60 * 1000
 // code-signing identity (Apple Team ID) change, which Squirrel.Mac rejects
 // on every retry while the error looks like a download failure to the user.
 const MANUAL_FALLBACK_AFTER = 2
-const DEFAULT_UPDATE_URL = 'https://github.com/genspark-ai/genoffice/releases/latest/download'
+const DEFAULT_UPDATE_URL = 'https://github.com/360org/vuaoffice/releases/latest/download'
 const DOWNLOAD_PAGE_URL = 'https://vuahethong.net/#download-desktop-app'
 
 /// Trusted HTTPS base URL baked into resources/app-update.yml. Manual download
@@ -634,7 +649,7 @@ export function checkForUpdatesManual(): void {
     dialog.showMessageBox(win as any, {
       type: 'info',
       title: tUpd(getUiLang(), 'updTitle'),
-      message: 'GenOffice (Development Mode)',
+      message: 'VuaOffice (Development Mode)',
       detail: `You are running in development mode (v${app.getVersion()}). Auto-update is only available in packaged release builds.`,
       buttons: ['OK'],
     }).catch(() => {})

@@ -4,6 +4,8 @@
 
 import JSZip from 'jszip'
 
+import { encodeXlsxEscapes } from './xlsx-escapes'
+
 const DELIMITERS = [',', ';', '\t'] as const
 
 // Excel writes CSV in the system's legacy charset, not UTF-8 (GBK on Chinese
@@ -82,9 +84,18 @@ export function sniffDelimiter(text: string): string {
   const counts = new Map<string, number>(DELIMITERS.map((d) => [d, 0]))
   for (const line of sample) {
     let quoted = false
-    for (const character of line) {
-      if (character === '"') quoted = !quoted
-      else if (!quoted && counts.has(character)) {
+    for (let index = 0; index < line.length; index += 1) {
+      const character = line[index]
+      if (character === undefined) continue
+      if (character === '"') {
+        // An escaped quote ("") stays inside the quoted field; only a lone
+        // quote toggles quoting, mirroring parseCsv below.
+        if (quoted && line[index + 1] === '"') {
+          index += 1
+        } else {
+          quoted = !quoted
+        }
+      } else if (!quoted && counts.has(character)) {
         counts.set(character, (counts.get(character) ?? 0) + 1)
       }
     }
@@ -184,7 +195,7 @@ export function buildWorksheetXml(rows: readonly (readonly string[])[]): string 
       cells.push(
         isNumericCell(value)
           ? `<c r="${reference}"><v>${value}</v></c>`
-          : `<c r="${reference}" t="inlineStr"><is><t xml:space="preserve">${escapeXml(value)}</t></is></c>`,
+          : `<c r="${reference}" t="inlineStr"><is><t xml:space="preserve">${escapeXml(encodeXlsxEscapes(value))}</t></is></c>`,
       )
     })
     if (cells.length > 0) lines.push(`<row r="${rowIndex + 1}">${cells.join('')}</row>`)

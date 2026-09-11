@@ -1,7 +1,7 @@
 {
   "name": "@genoffice/shell",
   "productName": "VuaOffice",
-  "version": "1.0.32",
+  "version": "1.0.33",
   "license": "Apache-2.0",
   "homepage": "https://github.com/360org/vuaoffice",
   "private": true,
@@ -30,6 +30,8 @@
     "@genoffice/docx-engine": "*",
     "@genoffice/electron-utils": "*",
     "@genoffice/i18n": "*",
+    "@genoffice/mail": "*",
+    "@genoffice/mail-engine": "*",
     "@genoffice/pptx-engine": "*",
     "@genoffice/pptx-render": "*",
     "@genoffice/sheets": "*",
@@ -47,9 +49,7 @@
     "react-dom": "^19.2.4",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
-    "vitest": "^4.1.10",
-    "@genoffice/mail": "*",
-    "@genoffice/mail-engine": "*"
+    "vitest": "^4.1.11"
   },
   "author": "360 CORP"
 }

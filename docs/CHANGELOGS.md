@@ -3,6 +3,23 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.33] - 2026-09-11
+
+### Sửa lỗi đóng gói Excel trên Windows & đồng bộ upstream
+
+- **[FIX] Khắc phục lỗi mở Excel trắng trên Windows**:
+  - Đóng gói đúng `xlsx-sidecar.exe` vào `resources/native/xlsx-sidecar.exe` cho Windows x64 và x86, tránh lỗi `spawn ... ENOENT` khi mở workbook.
+  - Chuyển quy trình build sidecar sang script Node.js portable, dùng target MSVC rõ ràng và fail-fast khi binary native bị thiếu.
+  - Bổ sung cấu hình static MSVC CRT cho target Windows x86 để installer không phụ thuộc runtime DLL ngoài.
+- **[SECURITY] Loại bỏ Google OAuth client secret khỏi mã nguồn**: OAuth desktop client dùng PKCE và không còn gửi secret được hardcode trong ứng dụng phân phối.
+- **[MIGRATE] Đồng bộ snapshot upstream mới nhất**, gồm các cải tiến Docs, Sheets, Slides, PDF, Markdown, AI provider và HTML.
+
+### Ghi chú xác minh
+
+- Lint và các cổng thương hiệu được chạy trong môi trường local.
+- Build native Windows chưa được xác minh trên máy macOS; cần chờ Windows CI xác nhận target MSVC và binary trong installer.
+- Full typecheck/test local có thể bị chặn bởi dependency chưa có trong `node_modules` (`mermaid`, `docx`).
+
 ## [1.0.30] - 2026-09-07
 
 ### Đồng bộ Upstream v0.9.10 & Nâng cấp Toàn diện Mô đun Slides, PDF, Docs, Sheets

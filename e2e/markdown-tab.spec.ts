@@ -25,14 +25,14 @@ test.describe('markdown editor', () => {
     }
   })
 
-  test('slash menu inserts a callout that serializes as a fenced div', async () => {
+  test('legacy fenced divs degrade on open; slash menu inserts a GFM task list', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'genoffice-md-'))
-    const mdPath = join(dir, 'callout.md')
-    await writeFile(mdPath, '# Doc\n\nBody.\n')
+    const mdPath = join(dir, 'legacy.md')
+    await writeFile(mdPath, '# Doc\n\n:::callout {type="info"}\nBe careful.\n:::\n')
 
     const launched = await launchShell({
       onboardingSeen: true,
-      videoDir: 'markdown-slash-callout',
+      videoDir: 'markdown-slash-task',
       openFile: mdPath,
     })
     const { app } = launched
@@ -40,24 +40,28 @@ test.describe('markdown editor', () => {
       const editorPage = await waitForPageWithUrl(app, 'markdown/out')
       const editor = editorPage.locator('.doc-editor')
       await expect(editor.locator('h1')).toHaveText('Doc')
+      // the legacy callout fences are stripped on open; the body text survives
+      await expect(editor).toContainText('Be careful.')
+      await expect(editor).not.toContainText(':::')
 
       await editor.click()
       await editorPage.keyboard.press('ControlOrMeta+End')
       await editorPage.keyboard.press('Enter')
       await editorPage.keyboard.type('/')
       await expect(editorPage.locator('.slash-menu')).toBeVisible()
-      await editorPage.keyboard.type('call')
-      await editorPage.locator('.slash-item', { hasText: /Callout|标注块/ }).click()
-      await expect(editor.locator('.md-callout')).toBeVisible()
+      await editorPage.keyboard.type('task')
+      await editorPage.locator('.slash-item', { hasText: /Task list/ }).click()
+      await expect(editor.locator('ul[data-type="taskList"]')).toBeVisible()
       await editorPage.keyboard.type('Heads up!')
       await editorPage.keyboard.press('ControlOrMeta+s')
-      await expect(editorPage.locator('.status-save')).toHaveText(/Saved|已保存/)
+      await expect(editorPage.locator('.status-save')).toHaveText(/Saved/)
 
       const saved = await readFile(mdPath, 'utf8')
-      expect(saved).toContain(':::callout')
-      expect(saved).toContain('Heads up!')
+      expect(saved).toContain('- [ ] Heads up!')
+      expect(saved).toContain('Be careful.')
+      expect(saved).not.toContain(':::')
     } finally {
-      await closeAndSaveVideo(launched, 'markdown-slash-callout')
+      await closeAndSaveVideo(launched, 'markdown-slash-task')
     }
   })
 
@@ -91,7 +95,7 @@ test.describe('markdown editor', () => {
       await editorPage.keyboard.press('Enter')
       await editorPage.keyboard.type('Appended line.')
       await editorPage.keyboard.press('ControlOrMeta+s')
-      await expect(editorPage.locator('.status-save')).toHaveText(/Saved|已保存/)
+      await expect(editorPage.locator('.status-save')).toHaveText(/Saved/)
       await editorPage.screenshot({ path: screenshotPath('open-markdown-saved') })
 
       const saved = await readFile(mdPath, 'utf8')
@@ -121,17 +125,56 @@ test.describe('markdown editor', () => {
       await expect(editorPage.locator('.doc-editor h1')).toHaveText('Topic')
 
       const summarizeBtn = editorPage.locator('.rb-big.ai-entry', {
-        hasText: /AI 总结|AI Summarize/,
+        hasText: /AI Summarize/,
       })
       await expect(summarizeBtn).toBeEnabled()
       await summarizeBtn.click()
 
       await expect(editorPage.locator('.copilot')).toBeVisible()
       // the preset lands as a sent user message (the model reply itself needs credentials)
-      await expect(editorPage.locator('.ai-msg-user')).toContainText(/总结|Summarize/)
+      await expect(editorPage.locator('.ai-msg-user')).toContainText(/Summarize/)
       await editorPage.screenshot({ path: screenshotPath('markdown-ai-preset') })
     } finally {
       await closeAndSaveVideo(launched, 'markdown-ai-preset')
+    }
+  })
+
+  test('ribbon bold serializes as GFM; quick-access save and undo work', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'genoffice-md-'))
+    const mdPath = join(dir, 'style.md')
+    await writeFile(mdPath, 'Hello style\n')
+
+    const launched = await launchShell({
+      onboardingSeen: true,
+      videoDir: 'markdown-bold-qat',
+      openFile: mdPath,
+    })
+    const { app } = launched
+    try {
+      const editorPage = await waitForPageWithUrl(app, 'markdown/out')
+      const editor = editorPage.locator('.doc-editor')
+      await expect(editor).toContainText('Hello style')
+
+      await editor.click()
+      await editorPage.keyboard.press('ControlOrMeta+a')
+      await editorPage.getByLabel(/^Bold$/).click()
+      await expect(editor.locator('strong')).toHaveText('Hello style')
+
+      // quick-access row: save button writes the file, undo reverts the mark
+      const qaButtons = editorPage.locator('.ribbon-tabs .qa-btn')
+      await qaButtons.nth(0).click()
+      await expect(editorPage.locator('.status-save')).toHaveText(/Saved/)
+      const saved = await readFile(mdPath, 'utf8')
+      expect(saved).toContain('**Hello style**')
+
+      await qaButtons.nth(1).click()
+      await expect(editor.locator('strong')).toHaveCount(0)
+
+      // save again so the window closes without a dirty-document prompt
+      await qaButtons.nth(0).click()
+      await expect.poll(() => readFile(mdPath, 'utf8')).not.toContain('**')
+    } finally {
+      await closeAndSaveVideo(launched, 'markdown-bold-qat')
     }
   })
 
@@ -162,6 +205,52 @@ test.describe('markdown editor', () => {
       await editorPage.screenshot({ path: screenshotPath('markdown-image-display') })
     } finally {
       await closeAndSaveVideo(launched, 'markdown-image-display')
+    }
+  })
+
+  test('Ctrl+F finds across the document and Replace All rewrites the saved file', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'genoffice-md-'))
+    const mdPath = join(dir, 'find.md')
+    await writeFile(mdPath, '# Alpha\n\nalpha beta **alpha**\n')
+
+    const launched = await launchShell({
+      onboardingSeen: true,
+      videoDir: 'markdown-find-replace',
+      openFile: mdPath,
+    })
+    const { app } = launched
+    try {
+      const editorPage = await waitForPageWithUrl(app, 'markdown/out')
+      const editor = editorPage.locator('.doc-editor')
+      await expect(editor.locator('h1')).toHaveText('Alpha')
+
+      await editor.click()
+      await editorPage.keyboard.press('ControlOrMeta+f')
+      const panel = editorPage.locator('.find-panel')
+      await expect(panel).toBeVisible()
+      await editorPage.keyboard.type('alpha')
+      await expect(panel.locator('.find-count')).toHaveText('1/3')
+      await expect(editor.locator('.search-hit')).toHaveCount(3)
+      await editorPage.keyboard.press('Enter')
+      await expect(panel.locator('.find-count')).toHaveText('2/3')
+
+      // Ctrl+F on an already-open panel must bring focus back to the query
+      await editor.click()
+      await editorPage.keyboard.press('ControlOrMeta+f')
+      await expect(panel.locator('.find-input').first()).toBeFocused()
+
+      await panel.locator('.find-input').nth(1).fill('omega')
+      await panel.locator('.find-action', { hasText: /Replace All/ }).click()
+      await expect(panel.locator('.find-count')).toHaveText(/No results/)
+      await expect(editor).toContainText('omega beta omega')
+      await panel.locator('.find-close').click()
+      await expect(panel).toHaveCount(0)
+
+      await editorPage.keyboard.press('ControlOrMeta+s')
+      await expect(editorPage.locator('.status-save')).toHaveText(/Saved/)
+      expect(await readFile(mdPath, 'utf8')).toBe('# omega\n\nomega beta **omega**\n')
+    } finally {
+      await closeAndSaveVideo(launched, 'markdown-find-replace')
     }
   })
 })

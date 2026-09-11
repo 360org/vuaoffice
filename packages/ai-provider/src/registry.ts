@@ -3,12 +3,12 @@ import { GEMINI_BASE_URL } from './protocols/gemini'
 import { AI_PROVIDERS, GENSPARK_LLM_BASE_URLS } from './providers'
 import type { AiProviderConfig, AiProviderId, AiProviderMeta } from './types'
 
-/** The three wire protocols every provider maps onto. */
-export type AiProtocol = 'anthropic' | 'gemini' | 'openai-compatible'
+/** Wire protocols every provider maps onto, including the official Codex app-server bridge. */
+export type AiProtocol = 'anthropic' | 'gemini' | 'openai-compatible' | 'codex-app-server'
 
 export interface ProviderCapabilities {
-  /** 'gsk-login': the Genspark session key is injected by the main process; 'api-key': the user supplies their own key */
-  auth: 'gsk-login' | 'api-key'
+  /** How the provider authenticates: app login, user key, or the Codex CLI's existing login. */
+  auth: 'gsk-login' | 'api-key' | 'codex-chatgpt'
   /** chat models accept image input (declarative; for custom endpoints it is assumed, not known) */
   vision: boolean
 }
@@ -40,13 +40,14 @@ function metaOf(id: AiProviderId): AiProviderMeta {
  * route — vendor API, the Genspark proxy, OpenRouter's vendor-prefixed ids,
  * or a mirror behind a custom base URL. Kimi K3 answers "only 1 is allowed";
  * OpenAI's GPT-5 reasoning family rejects any temperature other than the
- * default outright. Google's Gemini 3 docs strongly recommend keeping the
- * default temperature of 1.0 for the whole Gemini 3 family, since lower
+ * default outright, and the o-series reasoning models (o1/o3/o4) likewise
+ * only accept the default. Google's Gemini 3 docs strongly recommend keeping
+ * the default temperature of 1.0 for the whole Gemini 3 family, since lower
  * values may cause looping or degraded reasoning, so our hard-coded 0.3
  * must not be sent there either.
  */
 export function modelHasFixedSampling(model: string): boolean {
-  return /(^|\/)(kimi-k3|gpt-5|gemini-3)/.test(model)
+  return /(^|\/)(kimi-k3|gpt-5|gemini-3|o1(-mini|-preview)?|o3(-mini)?|o4-mini)/.test(model)
 }
 
 /**
@@ -147,6 +148,13 @@ export const AI_PROVIDER_ADAPTERS: Record<AiProviderId, ProviderAdapter> = {
         baseUrl: GENSPARK_LLM_BASE_URLS.openai,
         ...(modelHasFixedSampling(config.model) ? { omitTemperature: true } : {}),
       }
+    },
+  },
+  codex: {
+    meta: metaOf('codex'),
+    capabilities: { auth: 'codex-chatgpt', vision: true },
+    resolveEndpoint() {
+      return { protocol: 'codex-app-server', baseUrl: '' }
     },
   },
   anthropic: {

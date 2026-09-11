@@ -10,7 +10,10 @@
     "dev": "electron-vite dev",
     "dev:renderer": "vite --config vite.renderer.config.ts",
     "build": "npm run native:build && electron-vite build",
-    "native:build": "node -e \"if (process.platform === 'darwin') { console.log('Building universal binary for macOS...'); require('child_process').execSync('cargo build --release --manifest-path native/xlsx-engine/Cargo.toml --config native/xlsx-engine/.cargo/config.toml --target x86_64-apple-darwin --bin xlsx-sidecar && cargo build --release --manifest-path native/xlsx-engine/Cargo.toml --config native/xlsx-engine/.cargo/config.toml --target aarch64-apple-darwin --bin xlsx-sidecar && mkdir -p native/xlsx-engine/target/release && lipo -create native/xlsx-engine/target/x86_64-apple-darwin/release/xlsx-sidecar native/xlsx-engine/target/aarch64-apple-darwin/release/xlsx-sidecar -output native/xlsx-engine/target/release/xlsx-sidecar', {stdio: 'inherit'}); } else { require('child_process').execSync('cargo build --release --manifest-path native/xlsx-engine/Cargo.toml --config native/xlsx-engine/.cargo/config.toml', {stdio: 'inherit'}); }\"",
+    "native:build": "node scripts/build-sidecar.mjs",
+    "native:build:win:x64": "node scripts/build-sidecar.mjs --target x86_64-pc-windows-msvc",
+    "native:build:win:ia32": "node scripts/build-sidecar.mjs --target i686-pc-windows-msvc",
+    "native:build:universal": "node scripts/build-sidecar-universal.mjs",
     "native:test": "cargo test --manifest-path native/xlsx-engine/Cargo.toml --config native/xlsx-engine/.cargo/config.toml",
     "typecheck": "tsc --noEmit",
     "test": "npm run native:test && npm run native:build && vitest run",
@@ -65,7 +68,7 @@
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.11"
   },
   "author": "GenOffice"
 }

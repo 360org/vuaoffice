@@ -99,6 +99,13 @@ describe('parseCsv', () => {
     ])
   })
 
+  it('ignores delimiters inside escaped quotes when sniffing', () => {
+    // The "" escape keeps the field quoted: all five inner ; must not count,
+    // or they outvote the two true commas and the columns mis-split.
+    expect(sniffDelimiter('a,"; ""; ""; ""; """,d')).toBe(',')
+    expect(parseCsv('a,"; ""; ""; ""; """,d')).toEqual([['a', '; ""; ""; ""; ""', 'd']])
+  })
+
   it('drops the trailing empty row from a final newline', () => {
     expect(parseCsv('a,b\n1,2\n')).toEqual([
       ['a', 'b'],
@@ -137,6 +144,7 @@ describe('csvToXlsxBuffer', () => {
   it('rejects an empty file and escapes XML metacharacters', async () => {
     await expect(csvToXlsxBuffer('')).rejects.toThrow('no data rows')
     expect(buildWorksheetXml([['<b>&"']])).toContain('&lt;b&gt;&amp;&quot;')
+    expect(buildWorksheetXml([['a\rb_x000D_']])).toContain('>a_x000D_b_x005F_x000D_<')
   })
 })
 

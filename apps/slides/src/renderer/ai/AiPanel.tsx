@@ -7,6 +7,7 @@ import {
   type ToolDisplay,
 } from '@genoffice/agent-core'
 import type { RenderSlide } from '@genoffice/pptx-render'
+import { imageGenerationAvailable, mediaAnalysisAvailable } from '@genoffice/ai-provider/browser'
 import type { AiSettings, AttachmentAddResult, AttachmentMeta } from '../../shared/ipc'
 import { ATTACHMENT_IMAGE_EXTS } from '../../shared/ipc'
 import {
@@ -37,7 +38,7 @@ import {
   settingsSupportVision,
 } from './slide-qc'
 import { useI18n, t as tGlobal, aiLangDirective, type TFunc } from '../i18n/locale'
-import { Markdown } from '@genoffice/ui'
+import { AiScopeQuote, Markdown, useAiPanelPrefs, type AiScopeQuoteData } from '@genoffice/ui'
 import { GensparkMark } from '../components/icons'
 import sendEnterOn from '../assets/send-enter-on.png'
 import sendEnterOff from '../assets/send-enter-off.png'
@@ -254,6 +255,8 @@ interface ChatEntry {
   snapshotId?: number
   /** attachments consumed from the composer by this user message (read-only echo chips) */
   attachments?: AttachmentMeta[]
+  /** the selection this user message targeted, frozen at send */
+  scope?: AiScopeQuoteData
 }
 
 /** Empty deck → generation starters; deck with content → polish starters */
@@ -284,6 +287,7 @@ interface AiPanelProps {
     displayText?: string
     attachments?: AttachmentMeta[]
     slideShot?: boolean
+    scope?: AiScopeQuoteData
   } | null
   /** false shows only the collapsed rail; the component stays mounted so panel state survives */
   open?: boolean
@@ -399,6 +403,9 @@ export function AiPanel({
   // Panel chrome follows the UI language; message text follows its own content (dir=auto below)
   const isRtl = lang === 'ar' || lang === 'he'
   const [input, setInput] = useState('')
+  // Shared AI panel pref (Settings → General): the bespoke slides composer
+  // must honor it like the shared AiComposer does.
+  const { spellcheck } = useAiPanelPrefs()
   const [busy, setBusy] = useState(false)
   const [chat, setChat] = useState<ChatEntry[]>([])
   /** Past conversation restored from JSONL (read-only transcript, not fed to the model) */
@@ -544,6 +551,8 @@ export function AiPanel({
   attachmentsRef.current = attachments
   /** attachments consumed by the most recent send — retry resends the same set */
   const lastAttachmentsRef = useRef<AttachmentMeta[]>([])
+  /** the scope quote of the last send, so a retry reuses it instead of re-reading the live selection */
+  const lastScopeRef = useRef<AiScopeQuoteData | undefined>(undefined)
   /** composer attachments plus everything already sent this session (deduped by path) */
   const availableAttachments = (): AttachmentMeta[] => {
     const seen = new Set<string>()
@@ -602,6 +611,7 @@ export function AiPanel({
                 ext: a.ext ?? '',
                 sizeBytes: a.sizeBytes ?? 0,
               })),
+            ...(m.scope ? { scope: m.scope } : {}),
           })),
         )
         // Restore model context: follow-ups after reopening a file continue the earlier conversation (only when the loop is idle with no history)
@@ -644,6 +654,7 @@ export function AiPanel({
       output?: string
     }>,
     attachments?: AttachmentMeta[],
+    scope?: AiScopeQuoteData,
   ) => {
     const ids = chatRefIds.current
     const api = (window as Window & { projectApi?: typeof window.projectApi }).projectApi
@@ -665,6 +676,7 @@ export function AiPanel({
               })),
             }
           : {}),
+        ...(scope ? { scope } : {}),
       })
       .catch(() => {
         /* Silent */
@@ -1312,7 +1324,10 @@ export function AiPanel({
           return { ok: false, error: String('') }
         }
       },
-      gskTools: () => gskLoggedInRef.current && settingsRef.current?.gskToolsEnabled !== false,
+      imageGenAvailable: () =>
+        imageGenerationAvailable(settingsRef.current, gskLoggedInRef.current),
+      mediaAnalysisAvailable: () =>
+        mediaAnalysisAvailable(settingsRef.current, gskLoggedInRef.current),
       unreadTextAttachments: () =>
         availableAttachments()
           .filter(
@@ -1479,7 +1494,10 @@ export function AiPanel({
       setAttachments(merged)
     }
     if (preset.autoRun)
-      runWith(preset.text, preset.displayText, { slideShot: preset.slideShot ?? false })
+      runWith(preset.text, preset.displayText, {
+        slideShot: preset.slideShot ?? false,
+        ...(preset.scope ? { scope: preset.scope } : {}),
+      })
     else {
       setInput(preset.text)
       inputRef.current?.focus()
@@ -1560,7 +1578,13 @@ export function AiPanel({
   const runWith = (
     instruction: string,
     displayText?: string,
-    opts?: { slideShot?: boolean; attachments?: AttachmentMeta[] },
+    opts?: {
+      slideShot?: boolean
+      attachments?: AttachmentMeta[]
+      scope?: AiScopeQuoteData
+      /** resend of the last message: quote what it quoted */
+      retry?: boolean
+    },
   ) => {
     const loop = loopRef.current
     // runStartingRef: loop.run is called only after attachments are read asynchronously, during which loop.busy is still false,
@@ -1594,16 +1618,31 @@ export function AiPanel({
     stickToBottomRef.current = true
     // Internal orchestration prompts (like generate_deck step notes) skip the chat bubble and go only to the model
     const shown = displayText ?? instruction
+    // a composer send with elements selected is scoped to them; Send now hands its frozen targets over explicitly
+    const scope = opts?.retry
+      ? lastScopeRef.current
+      : (opts?.scope ??
+        (displayText === undefined && selectedRef.current.length > 0
+          ? {
+              label: `${t('aiScopeSlide', { n: current + 1 })} · ${t('aiScopeSelection', { count: selectedRef.current.length })}`,
+            }
+          : undefined))
+    lastScopeRef.current = scope
     setChat((prev) => [
       // Fallback: clear leftover streaming flags on history entries, avoiding orphan "thinking" placeholders
       ...prev.map((e) => (e.role === 'assistant' && e.streaming ? { ...e, streaming: false } : e)),
-      { role: 'user', text: shown, ...(sentAtts.length > 0 ? { attachments: sentAtts } : {}) },
+      {
+        role: 'user',
+        text: shown,
+        ...(sentAtts.length > 0 ? { attachments: sentAtts } : {}),
+        ...(scope ? { scope } : {}),
+      },
       { role: 'assistant', text: '', streaming: true },
     ])
     runStartedAtRef.current = Date.now()
     setBusy(true)
     // Persist the user message (store display text + attachment metadata; loop.restore rebuilds model context on file reopen)
-    persistMessage('user', shown, undefined, sentAtts)
+    persistMessage('user', shown, undefined, sentAtts, scope)
     void collectImageAttachments(sentAtts)
       .then(async (images) => {
         // AI Beautify sends the current slide's rendering along, so the model sees what it edits;
@@ -1858,6 +1897,7 @@ export function AiPanel({
   const retry = () =>
     runWith(lastInstructionRef.current, lastDisplayTextRef.current, {
       attachments: lastAttachmentsRef.current,
+      retry: true,
     })
 
   const newChat = () => {
@@ -2006,7 +2046,7 @@ export function AiPanel({
         onPointerDown={startResize}
         role="separator"
         aria-orientation="vertical"
-        aria-label="Genspark AI"
+        aria-label="VuaOffice AI"
       />
       <div className="ai-panel-header">
         <span className="ai-panel-title">
@@ -2043,6 +2083,7 @@ export function AiPanel({
           <>
             {historicChat.map((entry, i) => (
               <div key={`h${i}`} className={`ai-msg ai-msg-${entry.role} ai-msg-historic`}>
+                {entry.role === 'user' && entry.scope && <AiScopeQuote scope={entry.scope} />}
                 {entry.role === 'user' && entry.attachments && entry.attachments.length > 0 && (
                   <SentAttachments atts={entry.attachments} previews={attachmentPreviews} />
                 )}
@@ -2109,6 +2150,7 @@ export function AiPanel({
               key={i}
               className={`ai-msg ai-msg-${entry.role}${entry.role === 'assistant' && entry.streaming ? ' ai-msg-streaming' : ''}`}
             >
+              {entry.role === 'user' && entry.scope && <AiScopeQuote scope={entry.scope} />}
               {entry.role === 'user' && entry.attachments && entry.attachments.length > 0 && (
                 <SentAttachments atts={entry.attachments} previews={attachmentPreviews} />
               )}
@@ -2328,6 +2370,7 @@ export function AiPanel({
               ref={inputRef}
               value={input}
               dir="auto"
+              spellCheck={spellcheck}
               data-slides-ai-input="true"
               data-deck-undo-ready={!busy && !inputEditedSinceRunRef.current ? 'true' : 'false'}
               placeholder={t(deckEmpty ? 'aiInputPlaceholderGen' : 'aiInputPlaceholder')}

@@ -231,7 +231,7 @@ export const ru = {
   appSettingsLoggedInEmail: 'Выполнен вход: {email}',
   appSettingsLoggedOut: 'Вход не выполнен (для функций ИИ требуется учетная запись Genspark)',
   appSettingsLoginPending: 'Ожидание входа в браузере…',
-  appSettingsLogin: 'Войти в Genspark',
+  appSettingsLogin: 'Войти в VuaOffice',
   appSettingsModel: 'Модель',
   appSettingsCancel: 'Отмена',
   appSettingsSave: 'Сохранить',

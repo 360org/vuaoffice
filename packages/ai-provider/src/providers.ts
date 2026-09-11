@@ -1,3 +1,5 @@
+import { defaultAiMediaSettings, resolveAiMediaSettings } from './media'
+import { defaultAiSearchSettings, resolveAiSearchSettings } from './search-settings'
 import type { AiProviderId, AiProviderMeta, AiSettings, LegacyAiSettings } from './types'
 
 /**
@@ -38,6 +40,16 @@ export const AI_PROVIDERS: AiProviderMeta[] = [
     ],
     defaultModel: 'claude-opus-4-7',
     keyPlaceholder: 'Not required - sign in to Genspark',
+  },
+  {
+    id: 'codex',
+    label: 'Codex CLI',
+    // Populated at runtime from codex app-server model/list. Empty also lets
+    // the CLI select the account's current default without a stale hardcode.
+    models: [],
+    defaultModel: '',
+    keyPlaceholder: '',
+    needsCliPath: true,
   },
   {
     id: 'anthropic',
@@ -272,9 +284,16 @@ export function defaultAiSettings(
       apiKey: defaultApiKeys?.[meta.id] ?? '',
       model: meta.defaultModel,
       baseUrl: meta.needsBaseUrl ? (DEFAULT_BASE_URLS[meta.id] ?? '') : undefined,
+      cliPath: meta.needsCliPath ? '' : undefined,
     }
   }
-  return { provider: 'vuaairouter', providers, gskToolsEnabled: true }
+  return {
+    provider: 'vuaairouter',
+    providers,
+    gskToolsEnabled: true,
+    media: defaultAiMediaSettings(),
+    search: defaultAiSearchSettings(),
+  }
 }
 
 /** false only on an explicit opt-out; absent (pre-toggle settings files) means on */
@@ -284,8 +303,8 @@ export function cloudToolsEnabled(settings: Pick<AiSettings, 'gskToolsEnabled'>)
 
 /**
  * The stored provider selection is honored only when its config is usable
- * (api-key providers need a key and a model id; providers flagged
- * needsBaseUrl also need a base URL). Anything else — including unknown
+ * (api-key providers need a key and a model id; custom also needs a base URL).
+ * Codex can auto-discover its executable. Anything else — including unknown
  * ids from a hand-edited
  * settings file — falls back to vuaairouter, so a half-filled setup degrades
  * to the signed-in default instead of silently disabling AI.
@@ -295,7 +314,9 @@ export function activeProvider(settings: AiSettings): AiProviderId {
   if (provider === 'genspark') return 'genspark'
   const meta = AI_PROVIDERS.find((m) => m.id === provider)
   const config = settings.providers?.[provider]
-  if (!meta || !config?.model) return 'vuaairouter'
+  if (!meta || !config) return 'vuaairouter'
+  if (meta.needsCliPath) return provider
+  if (!config.model) return 'vuaairouter'
   if (meta.needsBaseUrl) {
     // Custom OpenAI-compatible endpoints (Ollama, LM Studio, vLLM) accept
     // anonymous requests: base URL + model suffice, the key stays optional.
@@ -366,6 +387,7 @@ function trimConfigs(providers: AiSettings['providers']): AiSettings['providers'
       apiKey: config.apiKey?.trim() ?? '',
       model: config.model?.trim() ?? '',
       ...(config.baseUrl !== undefined ? { baseUrl: config.baseUrl.trim() } : {}),
+      ...(config.cliPath !== undefined ? { cliPath: config.cliPath.trim() } : {}),
     }
   }
   return trimmed
@@ -416,6 +438,8 @@ export function resolveAiSettings(
     providers: migrateRetiredModels(trimConfigs(providers)),
     developerMode: stored.developerMode ?? defaults.developerMode,
     gskToolsEnabled: stored.gskToolsEnabled ?? defaults.gskToolsEnabled ?? true,
+    media: resolveAiMediaSettings(stored.media ?? defaults.media),
+    search: resolveAiSearchSettings(stored.search ?? defaults.search),
     // clamped on read: a hand-edited settings file with an absurd cap must not be
     // forwarded to the endpoint verbatim
     ...(stored.maxOutputTokens !== undefined || defaults.maxOutputTokens !== undefined

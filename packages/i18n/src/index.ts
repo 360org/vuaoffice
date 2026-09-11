@@ -13,6 +13,7 @@ export type Lang =
   | 'pt'
   | 'it'
   | 'pl'
+  | 'cs'
   | 'nl'
   | 'ms'
   | 'he'
@@ -35,6 +36,7 @@ export const LANGS: readonly Lang[] = [
   'pt',
   'it',
   'pl',
+  'cs',
   'nl',
   'ms',
   'he',
@@ -78,6 +80,7 @@ const HTML_LANGS: Record<Lang, string> = {
   pt: 'pt-BR',
   it: 'it-IT',
   pl: 'pl-PL',
+  cs: 'cs-CZ',
   nl: 'nl-NL',
   ms: 'ms-MY',
   he: 'he-IL',
