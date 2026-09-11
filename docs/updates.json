@@ -2,7 +2,7 @@
   {
     "version": "1.0.34",
     "date": "Tháng 9/2026",
-    "highlight": "Sửa quy trình build và phát hành installer đa nền tảng.",
+    "highlight": "Ổn định hóa quy trình build và phát hành installer đa nền tảng.",
     "features": [
       {
         "title": "Build release ổn định hơn",

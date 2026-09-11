@@ -14,7 +14,7 @@ Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaO
 ### Ghi chú xác minh
 
 - `npm run brand:gate` đạt trong môi trường local.
-- GitHub Actions cần xác minh lại bằng tag `v1.0.34`; không retag `v1.0.33`.
+- GitHub Actions `v1.0.34` đã dừng ở bước verify do job chạy `npm ci` trước các cổng Node.js core; không retag `v1.0.34`, bản sửa pipeline sẽ phát hành bằng version mới.
 
 ## [1.0.33] - 2026-09-11
 

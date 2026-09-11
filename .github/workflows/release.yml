@@ -45,8 +45,8 @@ jobs:
         run: |
           echo "=== 2. Verifying 360 Brand engine application ==="
           if [[ -f package-lock.json && -d scripts && -d tools ]]; then
-            npm ci
-
+            # Các cổng brand/audit chỉ dùng Node.js core; không cài dependency ở job này.
+            # Build jobs vẫn chạy npm ci riêng, tránh làm verify fail vì registry/network.
             # 2a. Bộ quy tắc phải SONG ÁNH. Một mẫu `protected` chặn một chiều mà
             #     thiếu cặp đối xứng sẽ làm hỏng mã nguồn vĩnh viễn sau một chu kỳ
             #     restore->apply (vd VuaOfficeIcon -> GenOfficeIcon, không đảo lại được).
