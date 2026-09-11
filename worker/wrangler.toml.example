@@ -1,0 +1,19 @@
+name = "vuaoffice-feedback"
+main = "index.js"
+compatibility_date = "2026-09-10"
+
+[vars]
+GITHUB_OWNER = "360org"
+GITHUB_REPO = "vuaoffice"
+
+# Create these bindings in Cloudflare before deploying.
+[[r2_buckets]]
+binding = "FEEDBACK_IMAGES"
+bucket_name = "vuaoffice-feedback-images"
+
+[[kv_namespaces]]
+binding = "FEEDBACK_RATE_LIMIT"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+# Set the token with:
+# wrangler secret put GITHUB_TOKEN

@@ -29,6 +29,9 @@ electron-builder.env
 # Playwright artifacts
 /test-results/
 
+# Code knowledge graph scratch cache (graph.json is tracked, cache is per-machine)
+/graphify-out/cache/
+
 .cursor/rules/git-remote.mdc
 __pycache__/
 /notes/

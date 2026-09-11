@@ -39,8 +39,17 @@ ee/
 tools/
 scripts/
 360/
+e2e/
+fixtures/
+graphify-out/
 eslint.config.mjs
 tsconfig.base.json
 vitest.config.ts
 package-lock.json
+
+# Cấu hình nội bộ dành cho AI agent — lộ đường dẫn máy trạm và quy trình nội bộ
+AGENTS.md
+CLAUDE.md
+.mcp.json
+.claude/
 
