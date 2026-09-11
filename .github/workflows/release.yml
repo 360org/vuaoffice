@@ -21,11 +21,16 @@ jobs:
           fetch-depth: 0
 
       - name: Fetch private source from GitLab
-        if: ${{ secrets.GITLAB_DEPLOY_TOKEN != '' }}
         shell: bash
+        env:
+          GITLAB_DEPLOY_TOKEN: ${{ secrets.GITLAB_DEPLOY_TOKEN }}
         run: |
+          if [[ -z "$GITLAB_DEPLOY_TOKEN" ]]; then
+            echo "GITLAB_DEPLOY_TOKEN is required for release builds." >&2
+            exit 1
+          fi
           echo "=== 0. Fetching private source code from GitLab ==="
-          git remote add gitlab "${{ secrets.GITLAB_DEPLOY_TOKEN }}" 2>/dev/null || true
+          git remote add gitlab "$GITLAB_DEPLOY_TOKEN" 2>/dev/null || true
           target_ref="${{ github.ref_name }}"
           echo "Fetching target ref: $target_ref from GitLab..."
           git fetch gitlab "$target_ref" || git fetch gitlab main
@@ -84,10 +89,15 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Fetch private source from GitLab
-        if: ${{ secrets.GITLAB_DEPLOY_TOKEN != '' }}
         shell: bash
+        env:
+          GITLAB_DEPLOY_TOKEN: ${{ secrets.GITLAB_DEPLOY_TOKEN }}
         run: |
-          git remote add gitlab "${{ secrets.GITLAB_DEPLOY_TOKEN }}" 2>/dev/null || true
+          if [[ -z "$GITLAB_DEPLOY_TOKEN" ]]; then
+            echo "GITLAB_DEPLOY_TOKEN is required for release builds." >&2
+            exit 1
+          fi
+          git remote add gitlab "$GITLAB_DEPLOY_TOKEN" 2>/dev/null || true
           target_ref="${{ github.ref_name }}"
           git fetch gitlab "$target_ref" || git fetch gitlab main
           git checkout -f FETCH_HEAD
@@ -131,10 +141,15 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Fetch private source from GitLab
-        if: ${{ secrets.GITLAB_DEPLOY_TOKEN != '' }}
         shell: bash
+        env:
+          GITLAB_DEPLOY_TOKEN: ${{ secrets.GITLAB_DEPLOY_TOKEN }}
         run: |
-          git remote add gitlab "${{ secrets.GITLAB_DEPLOY_TOKEN }}" 2>/dev/null || true
+          if [[ -z "$GITLAB_DEPLOY_TOKEN" ]]; then
+            echo "GITLAB_DEPLOY_TOKEN is required for release builds." >&2
+            exit 1
+          fi
+          git remote add gitlab "$GITLAB_DEPLOY_TOKEN" 2>/dev/null || true
           target_ref="${{ github.ref_name }}"
           git fetch gitlab "$target_ref" || git fetch gitlab main
           git checkout -f FETCH_HEAD
@@ -178,10 +193,15 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Fetch private source from GitLab
-        if: ${{ secrets.GITLAB_DEPLOY_TOKEN != '' }}
         shell: bash
+        env:
+          GITLAB_DEPLOY_TOKEN: ${{ secrets.GITLAB_DEPLOY_TOKEN }}
         run: |
-          git remote add gitlab "${{ secrets.GITLAB_DEPLOY_TOKEN }}" 2>/dev/null || true
+          if [[ -z "$GITLAB_DEPLOY_TOKEN" ]]; then
+            echo "GITLAB_DEPLOY_TOKEN is required for release builds." >&2
+            exit 1
+          fi
+          git remote add gitlab "$GITLAB_DEPLOY_TOKEN" 2>/dev/null || true
           target_ref="${{ github.ref_name }}"
           git fetch gitlab "$target_ref" || git fetch gitlab main
           git checkout -f FETCH_HEAD
@@ -220,10 +240,15 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Fetch private source from GitLab
-        if: ${{ secrets.GITLAB_DEPLOY_TOKEN != '' }}
         shell: bash
+        env:
+          GITLAB_DEPLOY_TOKEN: ${{ secrets.GITLAB_DEPLOY_TOKEN }}
         run: |
-          git remote add gitlab "${{ secrets.GITLAB_DEPLOY_TOKEN }}" 2>/dev/null || true
+          if [[ -z "$GITLAB_DEPLOY_TOKEN" ]]; then
+            echo "GITLAB_DEPLOY_TOKEN is required for release builds." >&2
+            exit 1
+          fi
+          git remote add gitlab "$GITLAB_DEPLOY_TOKEN" 2>/dev/null || true
           target_ref="${{ github.ref_name }}"
           git fetch gitlab "$target_ref" || git fetch gitlab main
           git checkout -f FETCH_HEAD
@@ -261,10 +286,15 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Fetch private source from GitLab
-        if: ${{ secrets.GITLAB_DEPLOY_TOKEN != '' }}
         shell: bash
+        env:
+          GITLAB_DEPLOY_TOKEN: ${{ secrets.GITLAB_DEPLOY_TOKEN }}
         run: |
-          git remote add gitlab "${{ secrets.GITLAB_DEPLOY_TOKEN }}" 2>/dev/null || true
+          if [[ -z "$GITLAB_DEPLOY_TOKEN" ]]; then
+            echo "GITLAB_DEPLOY_TOKEN is required for release builds." >&2
+            exit 1
+          fi
+          git remote add gitlab "$GITLAB_DEPLOY_TOKEN" 2>/dev/null || true
           target_ref="${{ github.ref_name }}"
           git fetch gitlab "$target_ref" || git fetch gitlab main
           git checkout -f FETCH_HEAD
@@ -301,13 +331,18 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Fetch private scripts from GitLab
-        if: ${{ secrets.GITLAB_DEPLOY_TOKEN != '' }}
         shell: bash
+        env:
+          GITLAB_DEPLOY_TOKEN: ${{ secrets.GITLAB_DEPLOY_TOKEN }}
         run: |
-          git remote add gitlab "${{ secrets.GITLAB_DEPLOY_TOKEN }}" 2>/dev/null || true
+          if [[ -z "$GITLAB_DEPLOY_TOKEN" ]]; then
+            echo "GITLAB_DEPLOY_TOKEN is required for release publishing." >&2
+            exit 1
+          fi
+          git remote add gitlab "$GITLAB_DEPLOY_TOKEN" 2>/dev/null || true
           target_ref="${{ github.ref_name }}"
           git fetch gitlab "$target_ref" || git fetch gitlab main
-          git checkout -f FETCH_HEAD -- scripts/merge-mac-feed.js 2>/dev/null || true
+          git checkout -f FETCH_HEAD -- scripts/merge-mac-feed.js
       - name: Download all build artifacts
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
