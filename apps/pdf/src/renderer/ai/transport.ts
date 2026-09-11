@@ -1,5 +1,5 @@
 import { createIpcTransport, type AgentTransport } from '@genoffice/agent-core'
-import type { AiSettings } from '@genoffice/ai-provider'
+import type { AiSettings } from '@genoffice/ai-provider/browser'
 import { t } from '../i18n/locale'
 
 /** The shared IPC transport wired to the pdf preload bridge (window.pdfApi). */

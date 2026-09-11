@@ -1,8 +1,14 @@
 /** Browser-safe settings surface. Keep Node-backed transports out of renderer bundles. */
 export type {
+  AiMediaProviderId,
+  AiMediaProviderMeta,
+  AiMediaSettings,
   AiProviderConfig,
   AiProviderId,
   AiProviderMeta,
+  AiSearchProviderId,
+  AiSearchProviderMeta,
+  AiSearchSettings,
   AiSettings,
   CodexModelCatalog,
 } from './types'

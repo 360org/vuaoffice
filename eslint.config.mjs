@@ -69,6 +69,28 @@ export default tseslint.config(
     },
   },
   {
+    // Renderer code runs in the browser environment: the @genoffice/ai-provider
+    // barrel re-exports chat/stream, which pull in the Node-backed
+    // codex-app-server transport and break the bundle with
+    // `"stat" is not exported by "__vite-browser-external"`. The /browser
+    // subpath is the renderer-safe surface.
+    files: ['apps/*/src/renderer/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@genoffice/ai-provider',
+              message:
+                'Renderer code must import from @genoffice/ai-provider/browser — the barrel pulls in Node-only transports.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // Plain JS build/tool scripts run in Node without type info.
     files: ['**/*.{js,mjs,cjs}'],
     languageOptions: {

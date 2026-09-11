@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
-import { AI_PROVIDERS } from '@genoffice/ai-provider'
-import type { AiSettings, AiProviderId, AiProviderConfig } from '@genoffice/ai-provider'
+// browser subpath only: the barrel re-exports chat/stream, which pull in the
+// Node-backed codex-app-server transport and break the renderer bundle
+import { AI_PROVIDERS } from '@genoffice/ai-provider/browser'
+import type { AiSettings, AiProviderId, AiProviderConfig } from '@genoffice/ai-provider/browser'
 import { useI18n } from './locale'
 
 const LOCAL_STRINGS: Record<string, Record<string, string>> = {

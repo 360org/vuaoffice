@@ -1,5 +1,20 @@
 [
   {
+    "version": "1.0.38",
+    "date": "Tháng 9/2026",
+    "highlight": "Hoàn tất khôi phục bộ cài đa nền tảng.",
+    "features": [
+      {
+        "title": "Đóng gói lại trọn bộ macOS, Windows và Linux",
+        "desc": "Khắc phục xung đột giữa mã riêng của VuaOffice và bản cập nhật từ dự án gốc khiến giao diện cài đặt AI không đóng gói được, đưa quy trình phát hành trở lại bình thường."
+      },
+      {
+        "title": "Chặn lỗi tái phát ngay từ khâu kiểm tra mã",
+        "desc": "Bổ sung cổng kiểm tra tự động phát hiện sớm kiểu xung đột này, thay vì để tiến trình đóng gói thất bại sau nhiều phút chờ."
+      }
+    ]
+  },
+  {
     "version": "1.0.37",
     "date": "Tháng 9/2026",
     "highlight": "Khôi phục bộ cài đa nền tảng và bổ sung tiếng Việt cho ứng dụng HTML.",

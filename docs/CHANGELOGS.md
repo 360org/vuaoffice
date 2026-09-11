@@ -3,6 +3,21 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.38] - 2026-09-11
+
+### Sửa bundle renderer vỡ do va chạm 360 × upstream
+
+- **[FIX] Renderer kéo nhầm transport Node-only vào bundle**: `AiSettingsModal.tsx` (mã của 360, có từ `v1.0.18`) nhập giá trị `AI_PROVIDERS` từ barrel `@genoffice/ai-provider`. Upstream PR #267 sau đó thêm `codex-app-server` vào barrel qua `chat.ts`/`stream.ts`; transport này dùng `node:fs/promises`, nên Vite dựng bundle renderer báo `"stat" is not exported by "__vite-browser-external"` và toàn bộ 5 job build của `v1.0.37` vỡ ở bước đóng gói. Chuyển sang mặt phẳng an toàn `@genoffice/ai-provider/browser` cho toàn bộ mã renderer (8 tệp trên shell, html, markdown, pdf, sheets).
+- **[IMPROVE] Mở rộng mặt phẳng browser**: `packages/ai-provider/src/browser.ts` tái xuất thêm các kiểu media/search (`AiMediaProviderId`, `AiMediaSettings`, `AiSearchSettings`…) vốn nằm sẵn trong `types.ts`, để renderer không còn lý do chạm vào barrel.
+- **[GATE] Chặn tái phát bằng ESLint**: thêm `no-restricted-imports` cho `apps/*/src/renderer/**`, cấm nhập trực tiếp barrel `@genoffice/ai-provider`. Lần merge upstream kế tiếp sẽ bị chặn ngay ở `npm run lint` thay vì vỡ ở runner sau 5 phút build.
+
+### Ghi chú xác minh
+
+- `npm run brand:gate` đạt · `npm run lint` đạt (0 lỗi, 13 cảnh báo) · `npm run typecheck` đạt toàn bộ 23 workspace.
+- `npm run build` đạt trên docs, slides, pdf, markdown, html, mail, shell — bundle renderer của shell còn 92 mô-đun, không còn `codex-app-server`.
+- `npm test` đạt trên 13 workspace đã chạy cục bộ.
+- **Chưa xác minh cục bộ**: `@genoffice/sheets` cần `cargo test`/`cargo build` cho bộ máy XLSX native; máy phát triển không cài Rust toolchain nên chỉ runner CI kiểm chứng được.
+
 ## [1.0.37] - 2026-09-11
 
 ### Khôi phục build release đa nền tảng
