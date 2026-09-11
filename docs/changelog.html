@@ -45,7 +45,7 @@
         "alternateName": ["360 Office Suite", "Vua Office", "VuaOffice AI"],
         "operatingSystem": "Windows 10, Windows 11, macOS 12+, Linux (Ubuntu, Debian, Fedora)",
         "applicationCategory": "BusinessApplication, OfficeApplication",
-        "softwareVersion": "1.0.34",
+        "softwareVersion": "1.0.36",
         "offers": {
           "@type": "Offer",
           "price": "0",
@@ -597,7 +597,7 @@
 </head>
 <body>
   <div class="top-bar">
-    ⚡ <strong>VuaOffice v1.0.34:</strong> Toàn bộ lịch sử nâng cấp và cải tiến sản phẩm. <a href="index.html">← Quay lại Trang Chủ</a>
+    ⚡ <strong>VuaOffice v1.0.36:</strong> Toàn bộ lịch sử nâng cấp và cải tiến sản phẩm. <a href="index.html">← Quay lại Trang Chủ</a>
   </div>
 
   <header>
@@ -635,12 +635,54 @@
       </div>
 
       <div class="timeline">
+        <!-- v1.0.36 -->
+        <div class="timeline-item">
+          <div class="timeline-header">
+            <span class="timeline-ver">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+              Phiên bản v1.0.36 (Mới nhất)
+            </span>
+            <span class="timeline-date">Tháng 9/2026</span>
+          </div>
+          <ul>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Manifest release đồng nhất:</strong> Root package, shell package và lockfile cùng lên một version trước khi tạo tag, tránh public workflow kiểm tra nhầm source cũ.</span>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Giữ cổng verify ổn định:</strong> Cổng brand và audit tiếp tục chạy không phụ thuộc registry; dependency chỉ được cài trong các job build.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- v1.0.35 -->
+        <div class="timeline-item">
+          <div class="timeline-header">
+            <span class="timeline-ver">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+              Phiên bản v1.0.35
+            </span>
+            <span class="timeline-date">Tháng 9/2026</span>
+          </div>
+          <ul>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Verify release không phụ thuộc registry:</strong> Các cổng brand và audit chạy bằng Node.js core, không cài dependency thừa trước khi xác minh source private.</span>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Đồng bộ version trước khi phát hành:</strong> Manifest root, shell và lockfile được bump đồng nhất trước khi tạo tag release.</span>
+            </li>
+          </ul>
+        </div>
+
         <!-- v1.0.34 -->
         <div class="timeline-item">
           <div class="timeline-header">
             <span class="timeline-ver">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-              Phiên bản v1.0.34 (Mới nhất)
+              Phiên bản v1.0.34
             </span>
             <span class="timeline-date">Tháng 9/2026</span>
           </div>

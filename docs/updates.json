@@ -1,5 +1,35 @@
 [
   {
+    "version": "1.0.36",
+    "date": "Tháng 9/2026",
+    "highlight": "Đồng bộ version trước khi phát hành installer.",
+    "features": [
+      {
+        "title": "Manifest release đồng nhất",
+        "desc": "Root package, shell package và lockfile cùng lên một version trước khi tạo tag, tránh public workflow kiểm tra nhầm source cũ."
+      },
+      {
+        "title": "Giữ cổng verify ổn định",
+        "desc": "Cổng brand và audit tiếp tục chạy không phụ thuộc registry; dependency chỉ được cài trong các job build."
+      }
+    ]
+  },
+  {
+    "version": "1.0.35",
+    "date": "Tháng 9/2026",
+    "highlight": "Sửa cổng xác minh phát hành đa nền tảng.",
+    "features": [
+      {
+        "title": "Verify release không phụ thuộc registry",
+        "desc": "Các cổng brand và audit chạy bằng Node.js core, không cài dependency thừa trước khi xác minh source private."
+      },
+      {
+        "title": "Đồng bộ version trước khi phát hành",
+        "desc": "Manifest root, shell và lockfile được bump đồng nhất trước khi tạo tag release."
+      }
+    ]
+  },
+  {
     "version": "1.0.34",
     "date": "Tháng 9/2026",
     "highlight": "Ổn định hóa quy trình build và phát hành installer đa nền tảng.",

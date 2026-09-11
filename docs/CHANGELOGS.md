@@ -3,6 +3,30 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.36] - 2026-09-11
+
+### Sửa đồng bộ version release
+
+- **[FIX] Đồng bộ manifest trước khi gắn tag**: root package, shell package và lockfile cùng lên `1.0.36`, tránh workflow public kiểm tra nhầm source private còn ở version cũ.
+- **[GATE] Giữ nguyên cổng verify không phụ thuộc registry**: brand/audit chạy bằng Node.js core; build jobs mới cài dependency khi cần đóng gói.
+
+### Ghi chú xác minh
+
+- `npm run brand:gate` và `npm run lint` đạt trong môi trường local.
+- Workflow `v1.0.35` đã vượt qua brand verify nhưng bị chặn ở kiểm tra tag/version vì source GitLab vẫn là `1.0.34`; bản này không retag `v1.0.35`.
+
+## [1.0.35] - 2026-09-11
+
+### Sửa cổng xác minh phát hành
+
+- **[FIX] Bỏ cài dependency thừa ở job verify**: các cổng brand và audit chỉ dùng Node.js core, nên không còn chạy `npm ci` trước bước kiểm tra; tránh lỗi registry/network chặn release trước khi build.
+- **[FIX] Đồng bộ tag với source private**: tag phát hành được tạo sau khi bump đủ manifest root, shell và lockfile, không để public mirror mang version khác GitLab.
+
+### Ghi chú xác minh
+
+- `npm run brand:gate` và `npm run lint` đạt trong môi trường local.
+- Workflow `v1.0.35` đã chạy qua bước `Verify 360 Brand Apply & Integrity`; bước version fail do source private vẫn là `1.0.34` tại thời điểm tag, cần phát hành lại sau khi commit bump `1.0.35`.
+
 ## [1.0.34] - 2026-09-11
 
 ### Sửa quy trình phát hành đa nền tảng
