@@ -113,10 +113,13 @@ jobs:
         with:
           targets: x86_64-apple-darwin,aarch64-apple-darwin
       - name: Install dependencies & Apply 360 Brand
+        shell: bash
         run: |
+          set -euo pipefail
           npm ci
           node scripts/360-brand.js apply
       - name: Build macOS Intel (x64)
+        shell: bash
         run: |
           npm run notices
           npm run build:all
@@ -165,10 +168,13 @@ jobs:
         with:
           targets: aarch64-apple-darwin,x86_64-apple-darwin
       - name: Install dependencies & Apply 360 Brand
+        shell: bash
         run: |
+          set -euo pipefail
           npm ci
           node scripts/360-brand.js apply
       - name: Build macOS Silicon (arm64)
+        shell: bash
         run: |
           npm run notices
           npm run build:all
@@ -217,10 +223,13 @@ jobs:
         with:
           targets: x86_64-pc-windows-msvc
       - name: Install dependencies & Apply 360 Brand
+        shell: bash
         run: |
+          set -euo pipefail
           npm ci
           node scripts/360-brand.js apply
       - name: Build Windows (x64)
+        shell: bash
         run: |
           npm run notices
           npm run build:all
@@ -264,10 +273,13 @@ jobs:
         with:
           targets: i686-pc-windows-msvc
       - name: Install dependencies & Apply 360 Brand
+        shell: bash
         run: |
+          set -euo pipefail
           npm ci
           node scripts/360-brand.js apply
       - name: Build Windows (x86)
+        shell: bash
         run: |
           npm run notices
           npm run build:all
@@ -308,10 +320,13 @@ jobs:
           cache: npm
       - uses: dtolnay/rust-toolchain@stable
       - name: Install dependencies & Apply 360 Brand
+        shell: bash
         run: |
+          set -euo pipefail
           npm ci
           node scripts/360-brand.js apply
       - name: Build Linux (AppImage & deb)
+        shell: bash
         run: |
           npm run notices
           npm run build:all

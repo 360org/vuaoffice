@@ -3,6 +3,27 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.37] - 2026-09-11
+
+### Khôi phục build release đa nền tảng
+
+- **[FIX] Lockfile lệch manifest sau merge upstream**: snapshot upstream đã ghi đè `package-lock.json`, kéo `glob` về `7.2.3` (yêu cầu `^13.0.6`) và `harfbuzzjs` về `1.5.0` (yêu cầu `^1.6.1`). `npm ci` chết với `EUSAGE` trên toàn bộ 5 job build của `v1.0.36`. Lockfile đã được tái tạo: 1142 gói, không còn gói nào lệch.
+- **[FIX] Job Windows báo xanh giả**: step trên `windows-latest` chạy PowerShell nên chỉ lấy exit code của lệnh cuối; `npm ci` chết nhưng `node scripts/360-brand.js apply` phía sau chạy được khiến step "Install dependencies" báo thành công rồi mới vỡ ở bước build. Toàn bộ 10 step build/install của workflow nay khai báo `shell: bash` kèm `set -euo pipefail` để fail ngay tại lệnh hỏng.
+
+### Bổ sung ngôn ngữ
+
+- **[NEW] Bản dịch tiếng Việt cho ứng dụng HTML**: `apps/html` là ứng dụng upstream thêm sau đợt dịch tiếng Việt đầu tiên nên chưa từng có shard `vi`, khiến `tsc` báo thiếu ngôn ngữ bắt buộc. Bổ sung `app/vi.ts` (113 chuỗi) và `ai/vi.ts` (159 chuỗi), nối vào `strings-app.ts`, `strings-ai.ts`, `strings.ts` và chỉ dẫn ngôn ngữ AI trong `locale.tsx`.
+
+### Sửa kiểm thử
+
+- **[FIX] Test spellcheck của Slides**: bài kiểm thử đến từ upstream đọc thuộc tính IDL `textarea.spellcheck` mà jsdom 28 chưa hiện thực (luôn trả `undefined`). Chuyển sang đọc thuộc tính HTML `getAttribute('spellcheck')`, đồng nhất với cách `apps/docs/tests/spellcheck-toggle.test.ts` đang làm.
+
+### Ghi chú xác minh
+
+- `npm run brand:gate` đạt · `npm run lint` đạt (0 lỗi, 13 cảnh báo) · `npm run typecheck` đạt toàn bộ 23 workspace.
+- `npm test`: 3964 bài kiểm thử đạt trên 369 tệp (i18n, engines, docs, shell, slides, pdf, markdown, html, mail).
+- **Chưa xác minh cục bộ**: `@genoffice/sheets` chạy `cargo test` cho bộ máy XLSX native; máy phát triển không cài Rust toolchain nên bước này chỉ được kiểm chứng trên runner CI.
+
 ## [1.0.36] - 2026-09-11
 
 ### Sửa đồng bộ version release

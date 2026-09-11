@@ -22,4 +22,5 @@ export const strings = {
   he: { ...appStrings.he, ...aiStrings.he },
   hi: { ...appStrings.hi, ...aiStrings.hi },
   'zh-TW': { ...appStrings['zh-TW'], ...aiStrings['zh-TW'] },
+  vi: { ...appStrings.vi, ...aiStrings.vi },
 }

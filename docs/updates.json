@@ -1,5 +1,20 @@
 [
   {
+    "version": "1.0.37",
+    "date": "Tháng 9/2026",
+    "highlight": "Khôi phục bộ cài đa nền tảng và bổ sung tiếng Việt cho ứng dụng HTML.",
+    "features": [
+      {
+        "title": "Phát hành bộ cài macOS, Windows và Linux trở lại",
+        "desc": "Khắc phục lỗi khiến toàn bộ tiến trình đóng gói thất bại ở bước cài đặt thư viện, đồng thời siết quy trình để lỗi được phát hiện ngay thay vì báo thành công nhầm."
+      },
+      {
+        "title": "Giao diện tiếng Việt cho ứng dụng HTML",
+        "desc": "Bổ sung trọn bộ bản dịch tiếng Việt cho trình soạn thảo HTML và trợ lý AI đi kèm, đồng bộ thuật ngữ với Docs, Sheets, Slides và PDF."
+      }
+    ]
+  },
+  {
     "version": "1.0.36",
     "date": "Tháng 9/2026",
     "highlight": "Đồng bộ version trước khi phát hành installer.",
