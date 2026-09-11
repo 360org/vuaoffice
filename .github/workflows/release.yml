@@ -84,6 +84,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Fetch private source from GitLab
+        if: ${{ secrets.GITLAB_DEPLOY_TOKEN != '' }}
         shell: bash
         run: |
           git remote add gitlab "${{ secrets.GITLAB_DEPLOY_TOKEN }}" 2>/dev/null || true
@@ -130,6 +131,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Fetch private source from GitLab
+        if: ${{ secrets.GITLAB_DEPLOY_TOKEN != '' }}
         shell: bash
         run: |
           git remote add gitlab "${{ secrets.GITLAB_DEPLOY_TOKEN }}" 2>/dev/null || true
@@ -176,6 +178,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Fetch private source from GitLab
+        if: ${{ secrets.GITLAB_DEPLOY_TOKEN != '' }}
         shell: bash
         run: |
           git remote add gitlab "${{ secrets.GITLAB_DEPLOY_TOKEN }}" 2>/dev/null || true
@@ -217,6 +220,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Fetch private source from GitLab
+        if: ${{ secrets.GITLAB_DEPLOY_TOKEN != '' }}
         shell: bash
         run: |
           git remote add gitlab "${{ secrets.GITLAB_DEPLOY_TOKEN }}" 2>/dev/null || true
@@ -257,6 +261,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Fetch private source from GitLab
+        if: ${{ secrets.GITLAB_DEPLOY_TOKEN != '' }}
         shell: bash
         run: |
           git remote add gitlab "${{ secrets.GITLAB_DEPLOY_TOKEN }}" 2>/dev/null || true
@@ -296,6 +301,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Fetch private scripts from GitLab
+        if: ${{ secrets.GITLAB_DEPLOY_TOKEN != '' }}
         shell: bash
         run: |
           git remote add gitlab "${{ secrets.GITLAB_DEPLOY_TOKEN }}" 2>/dev/null || true
