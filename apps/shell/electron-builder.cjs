@@ -284,12 +284,11 @@ const config = {
   },
   win: {
     artifactName: 'VuaOffice-${version}-Windows-${arch}-Setup.${ext}',
-    target: [
-      {
-        target: 'nsis',
-        arch: ['x64', 'ia32'],
-      },
-    ],
+    // No `arch` here on purpose: computeArchToTargetNamesMap() ignores the CLI
+    // arch flag whenever a target declares its own `arch`, so `--win --x64`
+    // would still queue an ia32 pass whose sidecar was never cross-compiled.
+    // Each release job passes --x64 / --ia32 and builds the matching sidecar.
+    target: ['nsis'],
     extraResources: [
       {
         from: windowsSidecarPath,
