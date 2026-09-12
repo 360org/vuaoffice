@@ -3843,6 +3843,8 @@ export const strings = {
     mathPlaceholder: 'Nhập công thức LaTeX, vd: E = mc^2',
     slashNoResults: 'Không có kết quả phù hợp',
     fmProperties: 'Thuộc tính',
+    outline: 'Dàn bài',
+    outlineEmpty: 'Chưa có tiêu đề nào',
     codeCopy: 'Sao chép',
     codeCopied: 'Đã sao chép',
     tableRowAbove: 'Chèn hàng phía trên',
