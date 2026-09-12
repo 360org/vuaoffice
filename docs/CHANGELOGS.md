@@ -3,6 +3,29 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.39] - 2026-09-12
+
+### Sửa job đóng gói Windows x64
+
+- **[FIX] Cấu hình `win.target` lấn át cờ kiến trúc của CLI**: `electron-builder.cjs` khai `target: [{ target: 'nsis', arch: ['x64', 'ia32'] }]`. Hàm `computeArchToTargetNamesMap()` chỉ dùng kiến trúc do CLI chọn khi target **không** tự khai `arch`; vì config khai sẵn nên `electron-builder --win --x64` vẫn xếp thêm một lượt đóng gói `ia32`. Lượt đó không có sidecar 32-bit (job chỉ biên dịch `x86_64-pc-windows-msvc`) nên guard `assertModuleTreesPresent()` ném lỗi và job thoát mã 1 — trong khi job x86 lại qua được vì `XLSX_SIDECAR_TARGET` của nó thỏa đúng điều kiện guard. Bỏ `arch` khỏi config, để mỗi job tự quyết bằng `--x64` / `--ia32`.
+- **[GATE] Cổng hồi quy kiến trúc**: thêm `apps/shell/tests/windows-arch-isolation.test.ts` gọi thẳng `computeArchToTargetNamesMap()` của electron-builder để khẳng định `--x64` chỉ sinh `x64` và `--ia32` chỉ sinh `ia32`, đồng thời ghim lại hình dạng config đã gây lỗi. Một lần chỉnh sai trong tương lai sẽ vỡ ở `npm test` thay vì sau 6 phút chạy runner.
+
+### Hợp nhất upstream
+
+- **[MERGE] 16 commit từ `genspark-ai/genoffice`**: gồm sửa lỗi `docx-engine` (cờ bảo vệ ghi theo cặp), `docs` (đếm từ Hy Lạp/Kirin/Do Thái/Ả Rập, cờ bảo vệ trong kiểm tra thay đổi), `sheets` (phân biệt kiểu khi đếm phân biệt, giữ ngắt dòng CR liên tiếp khi dán TSV), `pdf` (kẹp và làm tròn kênh màu, bỏ qua cỡ chữ không hợp lệ), `pdf2docx`, `i18n` (yêu cầu biên BCP-47), `electron-utils`; hai tính năng mới là thanh bên dàn bài cho Markdown (#289) và nhà cung cấp Requesty (#296).
+- **[FIX] Xung đột logo nhà cung cấp**: `provider-logos.tsx` được ghép thủ công để giữ cả ba logo riêng của 360 (`omirouter`, `vuairouter`, `hermes`) lẫn logo `requesty` mới của upstream.
+- **[NEW] Chuỗi dàn bài tiếng Việt cho Markdown**: upstream #289 thêm hai khóa `outline`/`outlineEmpty` cho 20 ngôn ngữ; shard `vi` là bổ sung riêng của 360 nên không nằm trong PR đó và làm `tsc` báo thiếu khóa.
+- **[FIX] Whitelabel tiêu đề cửa sổ**: upstream sửa lại `title` của cửa sổ Docs và Sheets về `GenOffice`; cổng `brand:gate` bắt được và đã áp dụng lại thương hiệu.
+
+### Ghi chú xác minh
+
+- `npm run brand:gate` đạt — selftest song ánh trên 9 mẫu/1001 tệp, trạng thái SẠCH, `[Brand] ĐẠT`, `[Audit] ĐẠT`.
+- `npm run lint` đạt (0 lỗi, 13 cảnh báo) · `npm run typecheck` đạt toàn bộ 23 workspace.
+- `npm test`: **6.358 bài kiểm thử đạt, 0 thất bại** trên 13 workspace.
+- `npm run build` đạt trên docs, slides, pdf, markdown, html, mail, shell — bundle renderer của shell 92 mô-đun, không còn dấu vết `__vite-browser-external`.
+- **Chưa xác minh cục bộ**: `@genoffice/sheets` cần Rust toolchain (`cargo` không có trên máy phát triển); bước này chỉ runner CI kiểm chứng được.
+- **Chưa xác minh**: bộ cài Windows x64 thực tế và sự hiện diện của `resources/native/xlsx-sidecar.exe` bên trong — chỉ khẳng định được sau khi runner chạy xong.
+
 ## [1.0.38] - 2026-09-11
 
 ### Sửa bundle renderer vỡ do va chạm 360 × upstream

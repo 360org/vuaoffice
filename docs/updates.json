@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.0.39",
+    "date": "Tháng 9/2026",
+    "highlight": "Hoàn tất bộ cài Windows 64-bit và đồng bộ bản vá từ dự án gốc.",
+    "features": [
+      {
+        "title": "Bộ cài Windows 64-bit trở lại đầy đủ",
+        "desc": "Khắc phục lỗi khiến tiến trình đóng gói bản 64-bit thất bại do bị yêu cầu dựng nhầm cả bản 32-bit, đồng thời bổ sung kiểm tra tự động chặn lỗi tái phát."
+      },
+      {
+        "title": "Dàn bài tài liệu Markdown",
+        "desc": "Bổ sung thanh bên hiển thị dàn bài theo tiêu đề, bấm để nhảy nhanh đến từng mục, kèm bản dịch tiếng Việt."
+      },
+      {
+        "title": "Nhiều bản vá cho Docs, Sheets và PDF",
+        "desc": "Đếm đúng số từ với tiếng Hy Lạp, Nga, Do Thái và Ả Rập; giữ nguyên ngắt dòng khi dán bảng tính; xử lý chính xác màu sắc và cỡ chữ trong tệp PDF."
+      }
+    ]
+  },
+  {
     "version": "1.0.38",
     "date": "Tháng 9/2026",
     "highlight": "Hoàn tất khôi phục bộ cài đa nền tảng.",
