@@ -10,7 +10,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/genspark-ai/genoffice.git"
+    "url": "git+https://github.com/360org/vuaoffice.git"
   },
   "workspaces": [
     "apps/*",

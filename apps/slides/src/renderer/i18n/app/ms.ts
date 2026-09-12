@@ -233,7 +233,7 @@ export const ms = {
   appSettingsLoggedInEmail: 'Telah log masuk: {email}',
   appSettingsLoggedOut: 'Belum log masuk (ciri AI memerlukan akaun Genspark)',
   appSettingsLoginPending: 'Menunggu log masuk pelayar…',
-  appSettingsLogin: 'Log masuk ke Genspark',
+  appSettingsLogin: 'Log masuk ke VuaOffice',
   appSettingsModel: 'Model',
   appSettingsCancel: 'Batal',
   appSettingsSave: 'Simpan',

@@ -17,8 +17,8 @@ export const en = {
   aiQcPageSkipped: 'Page {n}: automatic layout check skipped',
   aiQcStopped: 'Layout check stopped',
   aiQcCapped: '{count} more page(s) not checked (per-run cap)',
-  aiGskLoginBtn: 'Sign in to Genspark',
-  aiPanelTitle: 'Genspark',
+  aiGskLoginBtn: 'Sign in to VuaOffice',
+  aiPanelTitle: 'VuaOffice AI',
   aiOpenAssistant: 'Open AI assistant',
   aiFactCheckBtn: 'AI Fact Check',
   aiFactCheckPrompt:

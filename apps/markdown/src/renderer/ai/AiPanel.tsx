@@ -768,12 +768,12 @@ export function AiPanel({
         onPointerDown={startResize}
         role="separator"
         aria-orientation="vertical"
-        aria-label="Genspark AI"
+        aria-label="VuaOffice AI"
       />
       <header className="ai-panel-header">
         <span className="ai-panel-title">
           <GensparkMark size={22} />
-          Genspark
+          VuaOffice AI
         </span>
         <div className="ai-panel-header-actions">
           {chat.length > 0 && (
