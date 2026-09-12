@@ -258,7 +258,7 @@ export const strings = {
     savedOk: '已保存',
     saveFailed: '保存失败',
     fileChangedExternally:
-      '该文件自上次打开或保存后已在 VuaOffice 外被修改。为保护数据，未覆盖原文件；请重新打开文件或使用“另存为”。',
+      '该文件自上次打开或保存后已在 GenOffice 外被修改。为保护数据，未覆盖原文件；请重新打开文件或使用“另存为”。',
     saveVerifyFailed:
       '第 {pages} 页的修改未能完整写回，已取消保存以保护原文件；请撤销该页的相关修改后重试',
     textEditNoMatch: '无法编辑这段文字：未能在文档中定位到对应的文本',
@@ -515,7 +515,7 @@ export const strings = {
     removeStamp: '点击选中此水印/页眉页脚',
     props: '属性',
     propsTitle: '文档属性',
-    ribbonAiAssistant: 'VuaOffice AI',
+    ribbonAiAssistant: 'Genspark AI',
     ribbonAiAssistantTip: '打开 AI 助手',
     propTitle: '标题',
     propAuthor: '作者',
@@ -592,7 +592,7 @@ export const strings = {
     savedOk: 'Saved',
     saveFailed: 'Save failed',
     fileChangedExternally:
-      'This file changed outside VuaOffice since it was last opened or saved. The original was not overwritten; reopen it or use Save As to protect your work.',
+      'This file changed outside GenOffice since it was last opened or saved. The original was not overwritten; reopen it or use Save As to protect your work.',
     saveVerifyFailed:
       'Changes on page {pages} could not be written back intact, so the save was cancelled and the file left untouched; undo the affected edit and try again',
     textEditNoMatch: 'This text cannot be edited: it could not be located in the document',
@@ -857,7 +857,7 @@ export const strings = {
     removeStamp: 'Click to select this watermark / header / footer',
     props: 'Properties',
     propsTitle: 'Document properties',
-    ribbonAiAssistant: 'VuaOffice AI',
+    ribbonAiAssistant: 'Genspark AI',
     ribbonAiAssistantTip: 'Open the AI assistant',
     propTitle: 'Title',
     propAuthor: 'Author',
@@ -934,7 +934,7 @@ export const strings = {
     savedOk: '保存しました',
     saveFailed: '保存に失敗しました',
     fileChangedExternally:
-      'このファイルは前回の読み込みまたは保存後に VuaOffice 外で変更されました。データ保護のため上書きしていません。再度開くか、「名前を付けて保存」を使用してください。',
+      'このファイルは前回の読み込みまたは保存後に GenOffice 外で変更されました。データ保護のため上書きしていません。再度開くか、「名前を付けて保存」を使用してください。',
     saveVerifyFailed:
       'ページ {pages} の変更を完全に書き込めなかったため、保存を中止しました（ファイルは変更されていません）。該当の編集を取り消してからもう一度お試しください',
     textEditNoMatch: 'このテキストは編集できません：文書内で該当箇所を特定できませんでした',
@@ -1198,7 +1198,7 @@ export const strings = {
     removeStamp: 'クリックでこの透かし/ヘッダーを選択',
     props: 'プロパティ',
     propsTitle: '文書のプロパティ',
-    ribbonAiAssistant: 'VuaOffice AI',
+    ribbonAiAssistant: 'Genspark AI',
     ribbonAiAssistantTip: 'AI アシスタントを開く',
     propTitle: 'タイトル',
     propAuthor: '作成者',
@@ -1275,7 +1275,7 @@ export const strings = {
     savedOk: '저장됨',
     saveFailed: '저장 실패',
     fileChangedExternally:
-      '이 파일은 마지막으로 열거나 저장한 뒤 VuaOffice 외부에서 변경되었습니다. 데이터를 보호하기 위해 원본을 덮어쓰지 않았습니다. 다시 열거나 다른 이름으로 저장을 사용하세요.',
+      '이 파일은 마지막으로 열거나 저장한 뒤 GenOffice 외부에서 변경되었습니다. 데이터를 보호하기 위해 원본을 덮어쓰지 않았습니다. 다시 열거나 다른 이름으로 저장을 사용하세요.',
     saveVerifyFailed:
       '{pages}페이지의 변경 사항을 온전히 기록할 수 없어 저장을 취소했으며 파일은 변경되지 않았습니다. 해당 편집을 실행 취소한 후 다시 시도하세요',
     textEditNoMatch: '이 텍스트는 편집할 수 없습니다: 문서에서 해당 텍스트를 찾지 못했습니다',
@@ -1539,7 +1539,7 @@ export const strings = {
     removeStamp: '클릭하여 이 워터마크/머리글 선택',
     props: '속성',
     propsTitle: '문서 속성',
-    ribbonAiAssistant: 'VuaOffice AI',
+    ribbonAiAssistant: 'Genspark AI',
     ribbonAiAssistantTip: 'AI 도우미 열기',
     propTitle: '제목',
     propAuthor: '작성자',
@@ -1616,7 +1616,7 @@ export const strings = {
     savedOk: 'Enregistré',
     saveFailed: "Échec de l'enregistrement",
     fileChangedExternally:
-      'Ce fichier a été modifié hors de VuaOffice depuis sa dernière ouverture ou sauvegarde. L’original n’a pas été écrasé ; rouvrez-le ou utilisez Enregistrer sous pour protéger votre travail.',
+      'Ce fichier a été modifié hors de GenOffice depuis sa dernière ouverture ou sauvegarde. L’original n’a pas été écrasé ; rouvrez-le ou utilisez Enregistrer sous pour protéger votre travail.',
     saveVerifyFailed:
       "Les modifications de la page {pages} n'ont pas pu être réécrites intégralement ; l'enregistrement a été annulé et le fichier est resté intact. Annulez la modification concernée puis réessayez",
     textEditNoMatch:
@@ -1887,7 +1887,7 @@ export const strings = {
     removeStamp: 'Cliquer pour sélectionner ce filigrane / en-tête',
     props: 'Propriétés',
     propsTitle: 'Propriétés du document',
-    ribbonAiAssistant: 'VuaOffice AI',
+    ribbonAiAssistant: 'Genspark AI',
     ribbonAiAssistantTip: "Ouvrir l'assistant IA",
     propTitle: 'Titre',
     propAuthor: 'Auteur',
@@ -1964,7 +1964,7 @@ export const strings = {
     savedOk: 'Gespeichert',
     saveFailed: 'Speichern fehlgeschlagen',
     fileChangedExternally:
-      'Diese Datei wurde seit dem letzten Öffnen oder Speichern außerhalb von VuaOffice geändert. Das Original wurde nicht überschrieben; öffnen Sie sie erneut oder verwenden Sie Speichern unter.',
+      'Diese Datei wurde seit dem letzten Öffnen oder Speichern außerhalb von GenOffice geändert. Das Original wurde nicht überschrieben; öffnen Sie sie erneut oder verwenden Sie Speichern unter.',
     saveVerifyFailed:
       'Die Änderungen auf Seite {pages} konnten nicht vollständig zurückgeschrieben werden; das Speichern wurde abgebrochen und die Datei blieb unverändert. Machen Sie die betroffene Bearbeitung rückgängig und versuchen Sie es erneut',
     textEditNoMatch:
@@ -2233,7 +2233,7 @@ export const strings = {
     removeStamp: 'Klicken, um dieses Wasserzeichen / diese Kopfzeile auszuwählen',
     props: 'Eigenschaften',
     propsTitle: 'Dokumenteigenschaften',
-    ribbonAiAssistant: 'VuaOffice AI',
+    ribbonAiAssistant: 'Genspark AI',
     ribbonAiAssistantTip: 'KI-Assistenten öffnen',
     propTitle: 'Titel',
     propAuthor: 'Autor',
@@ -2310,7 +2310,7 @@ export const strings = {
     savedOk: 'Guardado',
     saveFailed: 'Error al guardar',
     fileChangedExternally:
-      'Este archivo cambió fuera de VuaOffice desde la última vez que se abrió o guardó. El original no se sobrescribió; vuelve a abrirlo o usa Guardar como para proteger tu trabajo.',
+      'Este archivo cambió fuera de GenOffice desde la última vez que se abrió o guardó. El original no se sobrescribió; vuelve a abrirlo o usa Guardar como para proteger tu trabajo.',
     saveVerifyFailed:
       'Los cambios de la página {pages} no se pudieron escribir íntegramente; se canceló el guardado y el archivo quedó intacto. Deshaz la edición afectada e inténtalo de nuevo',
     textEditNoMatch: 'Este texto no se puede editar: no se pudo localizar en el documento',
@@ -2580,7 +2580,7 @@ export const strings = {
     removeStamp: 'Haz clic para seleccionar esta marca de agua / encabezado',
     props: 'Propiedades',
     propsTitle: 'Propiedades del documento',
-    ribbonAiAssistant: 'VuaOffice AI',
+    ribbonAiAssistant: 'Genspark AI',
     ribbonAiAssistantTip: 'Abrir el asistente de IA',
     propTitle: 'Título',
     propAuthor: 'Autor',
@@ -2657,7 +2657,7 @@ export const strings = {
     savedOk: 'บันทึกแล้ว',
     saveFailed: 'บันทึกไม่สำเร็จ',
     fileChangedExternally:
-      'ไฟล์นี้ถูกแก้ไขภายนอก VuaOffice หลังจากเปิดหรือบันทึกครั้งล่าสุด จึงไม่ได้เขียนทับไฟล์ต้นฉบับเพื่อปกป้องข้อมูล โปรดเปิดใหม่หรือใช้บันทึกเป็นเพื่อเก็บงานของคุณ',
+      'ไฟล์นี้ถูกแก้ไขภายนอก GenOffice หลังจากเปิดหรือบันทึกครั้งล่าสุด จึงไม่ได้เขียนทับไฟล์ต้นฉบับเพื่อปกป้องข้อมูล โปรดเปิดใหม่หรือใช้บันทึกเป็นเพื่อเก็บงานของคุณ',
     saveVerifyFailed:
       'ไม่สามารถเขียนการแก้ไขในหน้า {pages} กลับได้ครบถ้วน จึงยกเลิกการบันทึกและไฟล์ไม่ถูกแก้ไข โปรดเลิกทำการแก้ไขที่เกี่ยวข้องแล้วลองอีกครั้ง',
     textEditNoMatch: 'ไม่สามารถแก้ไขข้อความนี้ได้: ไม่พบข้อความดังกล่าวในเอกสาร',
@@ -2921,7 +2921,7 @@ export const strings = {
     removeStamp: 'คลิกเพื่อเลือกลายน้ำ/หัวท้ายนี้',
     props: 'คุณสมบัติ',
     propsTitle: 'คุณสมบัติเอกสาร',
-    ribbonAiAssistant: 'VuaOffice AI',
+    ribbonAiAssistant: 'Genspark AI',
     ribbonAiAssistantTip: 'เปิดผู้ช่วย AI',
     propTitle: 'ชื่อเรื่อง',
     propAuthor: 'ผู้เขียน',
@@ -2998,7 +2998,7 @@ export const strings = {
     savedOk: 'Tersimpan',
     saveFailed: 'Gagal menyimpan',
     fileChangedExternally:
-      'File ini berubah di luar VuaOffice sejak terakhir dibuka atau disimpan. File asli tidak ditimpa; buka kembali atau gunakan Simpan Sebagai untuk melindungi pekerjaan Anda.',
+      'File ini berubah di luar GenOffice sejak terakhir dibuka atau disimpan. File asli tidak ditimpa; buka kembali atau gunakan Simpan Sebagai untuk melindungi pekerjaan Anda.',
     saveVerifyFailed:
       'Perubahan di halaman {pages} tidak dapat ditulis kembali secara utuh; penyimpanan dibatalkan dan file tidak diubah. Urungkan pengeditan terkait lalu coba lagi',
     textEditNoMatch: 'Teks ini tidak dapat diedit: tidak dapat ditemukan di dalam dokumen',
@@ -3265,7 +3265,7 @@ export const strings = {
     removeStamp: 'Klik untuk memilih tanda air / header ini',
     props: 'Properti',
     propsTitle: 'Properti dokumen',
-    ribbonAiAssistant: 'VuaOffice AI',
+    ribbonAiAssistant: 'Genspark AI',
     ribbonAiAssistantTip: 'Buka asisten AI',
     propTitle: 'Judul',
     propAuthor: 'Penulis',
@@ -3342,7 +3342,7 @@ export const strings = {
     savedOk: 'Сохранено',
     saveFailed: 'Ошибка сохранения',
     fileChangedExternally:
-      'Этот файл был изменён вне VuaOffice после последнего открытия или сохранения. Исходный файл не перезаписан; откройте его заново или используйте «Сохранить как».',
+      'Этот файл был изменён вне GenOffice после последнего открытия или сохранения. Исходный файл не перезаписан; откройте его заново или используйте «Сохранить как».',
     saveVerifyFailed:
       'Изменения на странице {pages} не удалось записать полностью; сохранение отменено, файл не изменён. Отмените затронутую правку и попробуйте снова',
     textEditNoMatch: 'Этот текст нельзя отредактировать: не удалось найти его в документе',
@@ -3610,7 +3610,7 @@ export const strings = {
     removeStamp: 'Нажмите, чтобы выбрать этот знак / колонтитул',
     props: 'Свойства',
     propsTitle: 'Свойства документа',
-    ribbonAiAssistant: 'VuaOffice AI',
+    ribbonAiAssistant: 'Genspark AI',
     ribbonAiAssistantTip: 'Открыть помощника ИИ',
     propTitle: 'Заголовок',
     propAuthor: 'Автор',
@@ -3687,7 +3687,7 @@ export const strings = {
     savedOk: 'تم الحفظ',
     saveFailed: 'فشل الحفظ',
     fileChangedExternally:
-      'تم تغيير هذا الملف خارج VuaOffice منذ آخر فتح أو حفظ. لم يتم استبدال الملف الأصلي؛ أعد فتحه أو استخدم «حفظ باسم» لحماية عملك.',
+      'تم تغيير هذا الملف خارج GenOffice منذ آخر فتح أو حفظ. لم يتم استبدال الملف الأصلي؛ أعد فتحه أو استخدم «حفظ باسم» لحماية عملك.',
     saveVerifyFailed:
       'تعذّرت كتابة تعديلات الصفحة {pages} بالكامل؛ أُلغي الحفظ ولم يتغيّر الملف. تراجع عن التعديل المعني ثم حاول مجددًا',
     textEditNoMatch: 'تعذّر تحرير هذا النص: لم يتم العثور عليه في المستند',
@@ -3950,7 +3950,7 @@ export const strings = {
     removeStamp: 'انقر لتحديد هذه العلامة/الرأس',
     props: 'الخصائص',
     propsTitle: 'خصائص المستند',
-    ribbonAiAssistant: 'VuaOffice AI',
+    ribbonAiAssistant: 'Genspark AI',
     ribbonAiAssistantTip: 'فتح مساعد الذكاء الاصطناعي',
     propTitle: 'العنوان',
     propAuthor: 'المؤلف',
@@ -4027,7 +4027,7 @@ export const strings = {
     savedOk: 'Salvo',
     saveFailed: 'Falha ao salvar',
     fileChangedExternally:
-      'Este arquivo foi alterado fora do VuaOffice desde que foi aberto ou salvo pela última vez. O original não foi sobrescrito; abra-o novamente ou use Salvar como para proteger seu trabalho.',
+      'Este arquivo foi alterado fora do GenOffice desde que foi aberto ou salvo pela última vez. O original não foi sobrescrito; abra-o novamente ou use Salvar como para proteger seu trabalho.',
     saveVerifyFailed:
       'As alterações na página {pages} não puderam ser gravadas integralmente; o salvamento foi cancelado e o arquivo permaneceu intacto. Desfaça a edição afetada e tente novamente',
     textEditNoMatch: 'Este texto não pode ser editado: não foi possível localizá-lo no documento',
@@ -4295,7 +4295,7 @@ export const strings = {
     removeStamp: "Clique para selecionar esta marca d'água / cabeçalho",
     props: 'Propriedades',
     propsTitle: 'Propriedades do documento',
-    ribbonAiAssistant: 'VuaOffice AI',
+    ribbonAiAssistant: 'Genspark AI',
     ribbonAiAssistantTip: 'Abrir o assistente de IA',
     propTitle: 'Título',
     propAuthor: 'Autor',
@@ -4372,7 +4372,7 @@ export const strings = {
     savedOk: 'Salvato',
     saveFailed: 'Salvataggio non riuscito',
     fileChangedExternally:
-      'Questo file è stato modificato fuori da VuaOffice dall’ultima apertura o salvataggio. L’originale non è stato sovrascritto; riaprilo o usa Salva con nome per proteggere il tuo lavoro.',
+      'Questo file è stato modificato fuori da GenOffice dall’ultima apertura o salvataggio. L’originale non è stato sovrascritto; riaprilo o usa Salva con nome per proteggere il tuo lavoro.',
     saveVerifyFailed:
       'Le modifiche a pagina {pages} non sono state riscritte integralmente; il salvataggio è stato annullato e il file è rimasto invariato. Annulla la modifica interessata e riprova',
     textEditNoMatch:
@@ -4643,7 +4643,7 @@ export const strings = {
     removeStamp: 'Fai clic per selezionare questa filigrana / intestazione',
     props: 'Proprietà',
     propsTitle: 'Proprietà del documento',
-    ribbonAiAssistant: 'VuaOffice AI',
+    ribbonAiAssistant: 'Genspark AI',
     ribbonAiAssistantTip: "Apri l'assistente IA",
     propTitle: 'Titolo',
     propAuthor: 'Autore',
@@ -4720,7 +4720,7 @@ export const strings = {
     savedOk: 'Zapisano',
     saveFailed: 'Nie udało się zapisać',
     fileChangedExternally:
-      'Ten plik został zmieniony poza VuaOffice od ostatniego otwarcia lub zapisu. Oryginał nie został nadpisany; otwórz go ponownie lub użyj opcji Zapisz jako.',
+      'Ten plik został zmieniony poza GenOffice od ostatniego otwarcia lub zapisu. Oryginał nie został nadpisany; otwórz go ponownie lub użyj opcji Zapisz jako.',
     saveVerifyFailed:
       'Zmian na stronie {pages} nie udało się zapisać w całości; zapis anulowano, a plik pozostał nietknięty. Cofnij problematyczną edycję i spróbuj ponownie',
     textEditNoMatch: 'Nie można edytować tego tekstu: nie udało się go zlokalizować w dokumencie',
@@ -4988,7 +4988,7 @@ export const strings = {
     removeStamp: 'Kliknij, aby zaznaczyć ten znak wodny / nagłówek',
     props: 'Właściwości',
     propsTitle: 'Właściwości dokumentu',
-    ribbonAiAssistant: 'VuaOffice AI',
+    ribbonAiAssistant: 'Genspark AI',
     ribbonAiAssistantTip: 'Otwórz asystenta AI',
     propTitle: 'Tytuł',
     propAuthor: 'Autor',
@@ -5065,7 +5065,7 @@ export const strings = {
     savedOk: 'Uloženo',
     saveFailed: 'Uložení se nezdařilo',
     fileChangedExternally:
-      'Tento soubor byl od posledního otevření nebo uložení změněn mimo VuaOffice. Původní soubor nebyl přepsán; otevřete ho znovu nebo použijte Uložit jako.',
+      'Tento soubor byl od posledního otevření nebo uložení změněn mimo GenOffice. Původní soubor nebyl přepsán; otevřete ho znovu nebo použijte Uložit jako.',
     saveVerifyFailed:
       'Změny na stránce {pages} se nepodařilo zapsat zpět beze změny, uložení bylo proto zrušeno a soubor zůstal nedotčen; vraťte dotčenou úpravu zpět a zkuste to znovu',
     textEditNoMatch: 'Tento text nelze upravit: nepodařilo se ho v dokumentu najít',
@@ -5410,7 +5410,7 @@ export const strings = {
     savedOk: 'Opgeslagen',
     saveFailed: 'Opslaan mislukt',
     fileChangedExternally:
-      'Dit bestand is buiten VuaOffice gewijzigd sinds het voor het laatst is geopend of opgeslagen. Het origineel is niet overschreven; open het opnieuw of gebruik Opslaan als.',
+      'Dit bestand is buiten GenOffice gewijzigd sinds het voor het laatst is geopend of opgeslagen. Het origineel is niet overschreven; open het opnieuw of gebruik Opslaan als.',
     saveVerifyFailed:
       'De wijzigingen op pagina {pages} konden niet volledig worden weggeschreven; het opslaan is geannuleerd en het bestand is ongewijzigd. Maak de betreffende bewerking ongedaan en probeer het opnieuw',
     textEditNoMatch:
@@ -5678,7 +5678,7 @@ export const strings = {
     removeStamp: 'Klik om dit watermerk / deze koptekst te selecteren',
     props: 'Eigenschappen',
     propsTitle: 'Documenteigenschappen',
-    ribbonAiAssistant: 'VuaOffice AI',
+    ribbonAiAssistant: 'Genspark AI',
     ribbonAiAssistantTip: 'De AI-assistent openen',
     propTitle: 'Titel',
     propAuthor: 'Auteur',
@@ -5755,7 +5755,7 @@ export const strings = {
     savedOk: 'Disimpan',
     saveFailed: 'Gagal menyimpan',
     fileChangedExternally:
-      'Fail ini telah berubah di luar VuaOffice sejak kali terakhir dibuka atau disimpan. Fail asal tidak ditindih; buka semula atau gunakan Simpan Sebagai untuk melindungi kerja anda.',
+      'Fail ini telah berubah di luar GenOffice sejak kali terakhir dibuka atau disimpan. Fail asal tidak ditindih; buka semula atau gunakan Simpan Sebagai untuk melindungi kerja anda.',
     saveVerifyFailed:
       'Perubahan pada halaman {pages} tidak dapat ditulis semula sepenuhnya; penyimpanan dibatalkan dan fail tidak diubah. Buat asal suntingan berkaitan dan cuba lagi',
     textEditNoMatch: 'Teks ini tidak boleh diedit: tidak dapat ditemui dalam dokumen',
@@ -6022,7 +6022,7 @@ export const strings = {
     removeStamp: 'Klik untuk memilih tera air / pengepala ini',
     props: 'Sifat',
     propsTitle: 'Sifat dokumen',
-    ribbonAiAssistant: 'VuaOffice AI',
+    ribbonAiAssistant: 'Genspark AI',
     ribbonAiAssistantTip: 'Buka pembantu AI',
     propTitle: 'Tajuk',
     propAuthor: 'Pengarang',
@@ -6099,7 +6099,7 @@ export const strings = {
     savedOk: 'נשמר',
     saveFailed: 'השמירה נכשלה',
     fileChangedExternally:
-      'קובץ זה השתנה מחוץ ל-VuaOffice מאז הפתיחה או השמירה האחרונות. הקובץ המקורי לא נדרס; פתחו אותו מחדש או השתמשו בשמירה בשם כדי להגן על עבודתכם.',
+      'קובץ זה השתנה מחוץ ל-GenOffice מאז הפתיחה או השמירה האחרונות. הקובץ המקורי לא נדרס; פתחו אותו מחדש או השתמשו בשמירה בשם כדי להגן על עבודתכם.',
     saveVerifyFailed:
       'לא ניתן היה לכתוב את השינויים בעמוד {pages} במלואם; השמירה בוטלה והקובץ לא שונה. בטלו את העריכה הרלוונטית ונסו שוב',
     textEditNoMatch: 'לא ניתן לערוך טקסט זה: לא ניתן היה לאתר אותו במסמך',
@@ -6358,7 +6358,7 @@ export const strings = {
     removeStamp: 'לחצו לבחירת סימן המים/הכותרת הזו',
     props: 'מאפיינים',
     propsTitle: 'מאפייני המסמך',
-    ribbonAiAssistant: 'VuaOffice AI',
+    ribbonAiAssistant: 'Genspark AI',
     ribbonAiAssistantTip: 'פתח את עוזר ה-AI',
     propTitle: 'כותרת',
     propAuthor: 'מחבר',
@@ -6435,7 +6435,7 @@ export const strings = {
     savedOk: 'सहेजा गया',
     saveFailed: 'सहेजना विफल',
     fileChangedExternally:
-      'यह फ़ाइल पिछली बार खोले या सहेजे जाने के बाद VuaOffice के बाहर बदल दी गई थी। मूल फ़ाइल को अधिलेखित नहीं किया गया; अपना काम सुरक्षित रखने के लिए इसे फिर से खोलें या इस रूप में सहेजें का उपयोग करें।',
+      'यह फ़ाइल पिछली बार खोले या सहेजे जाने के बाद GenOffice के बाहर बदल दी गई थी। मूल फ़ाइल को अधिलेखित नहीं किया गया; अपना काम सुरक्षित रखने के लिए इसे फिर से खोलें या इस रूप में सहेजें का उपयोग करें।',
     saveVerifyFailed:
       'पृष्ठ {pages} के बदलाव पूरी तरह लिखे नहीं जा सके; सहेजना रद्द कर दिया गया और फ़ाइल अपरिवर्तित रही। प्रभावित संपादन को पूर्ववत करें और फिर से प्रयास करें',
     textEditNoMatch: 'इस टेक्स्ट को संपादित नहीं किया जा सकता: दस्तावेज़ में इसे ढूँढा नहीं जा सका',
@@ -6700,7 +6700,7 @@ export const strings = {
     removeStamp: 'इस वॉटरमार्क/शीर्षलेख-पादलेख को चुनने के लिए क्लिक करें',
     props: 'गुण',
     propsTitle: 'दस्तावेज़ गुण',
-    ribbonAiAssistant: 'VuaOffice AI',
+    ribbonAiAssistant: 'Genspark AI',
     ribbonAiAssistantTip: 'AI सहायक खोलें',
     propTitle: 'शीर्षक',
     propAuthor: 'लेखक',
@@ -6777,7 +6777,7 @@ export const strings = {
     savedOk: '已儲存',
     saveFailed: '儲存失敗',
     fileChangedExternally:
-      '此檔案自上次開啟或儲存後已在 VuaOffice 外被變更。為保護資料，原始檔未被覆寫；請重新開啟檔案或使用另存新檔。',
+      '此檔案自上次開啟或儲存後已在 GenOffice 外被變更。為保護資料，原始檔未被覆寫；請重新開啟檔案或使用另存新檔。',
     saveVerifyFailed:
       '第 {pages} 頁的修改未能完整寫回，已取消儲存以保護原檔；請復原該頁的相關修改後重試',
     textEditNoMatch: '無法編輯這段文字：未能在文件中定位到對應的文字',
@@ -7034,7 +7034,7 @@ export const strings = {
     removeStamp: '點一下選取此浮水印/頁首頁尾',
     props: '屬性',
     propsTitle: '文件屬性',
-    ribbonAiAssistant: 'VuaOffice AI',
+    ribbonAiAssistant: 'Genspark AI',
     ribbonAiAssistantTip: '開啟 AI 助理',
     propTitle: '標題',
     propAuthor: '作者',
@@ -7115,7 +7115,7 @@ export const strings = {
     printRangeCustom: 'Phạm vi tùy chỉnh',
     printRangeHint: 'VD: 1,3,5-8',
     fileChangedExternally:
-      'Tệp đã bị thay đổi ngoài VuaOffice kể từ lần mở hoặc lưu gần nhất; chưa ghi đè để bảo vệ dữ liệu. Hãy mở lại tệp hoặc dùng Lưu thành…',
+      'Tệp đã bị thay đổi ngoài GenOffice kể từ lần mở hoặc lưu gần nhất; chưa ghi đè để bảo vệ dữ liệu. Hãy mở lại tệp hoặc dùng Lưu thành…',
     saveVerifyFailed:
       'Các thay đổi trên trang {pages} không thể ghi lại nguyên vẹn nên đã hủy lưu để bảo vệ tệp; hãy hoàn tác chỉnh sửa bị ảnh hưởng và thử lại',
     textEditNoMatch: 'Không thể chỉnh sửa văn bản này: không tìm thấy vị trí trong tài liệu',
@@ -7375,7 +7375,7 @@ export const strings = {
     removeStamp: 'Nhấp để chọn hình mờ / đầu trang / chân trang này',
     props: 'Thuộc tính',
     propsTitle: 'Thuộc tính tài liệu',
-    ribbonAiAssistant: 'VuaOffice AI',
+    ribbonAiAssistant: 'Genspark AI',
     ribbonAiAssistantTip: 'Mở trợ lý AI',
     propTitle: 'Tiêu đề',
     propAuthor: 'Tác giả',

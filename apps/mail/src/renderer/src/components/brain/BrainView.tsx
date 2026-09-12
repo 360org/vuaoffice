@@ -66,7 +66,7 @@ export const BrainView: React.FC = () => {
           <div className="brain-header-main">
             <h1 className="brain-title">Email Brain</h1>
             <div className="brain-subtitle">
-              Trí tuệ nhân tạo VuaOffice phân tích & học hỏi từ hộp thư của Sếp Chau Le
+              Trí tuệ nhân tạo GenOffice phân tích & học hỏi từ hộp thư của Sếp Chau Le
             </div>
           </div>
           <div className="brain-badge-group">

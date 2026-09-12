@@ -2046,7 +2046,7 @@ export function AiPanel({
         onPointerDown={startResize}
         role="separator"
         aria-orientation="vertical"
-        aria-label="VuaOffice AI"
+        aria-label="Genspark AI"
       />
       <div className="ai-panel-header">
         <span className="ai-panel-title">

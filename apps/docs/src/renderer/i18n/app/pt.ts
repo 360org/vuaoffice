@@ -243,7 +243,7 @@ export const pt = {
   appLoggedInEmail: 'Conectado: {email}',
   appNotLoggedIn: 'Não conectado (os recursos de IA exigem uma conta Genspark)',
   appWaitingBrowserLogin: 'Aguardando login no navegador…',
-  appLoginGenspark: 'Entrar no VuaOffice',
+  appLoginGenspark: 'Entrar no Genspark',
   appModel: 'Modelo',
   appCut: 'Recortar',
   appCopy: 'Copiar',

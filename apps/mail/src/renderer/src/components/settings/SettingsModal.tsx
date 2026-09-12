@@ -78,13 +78,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     {
       id: 'sig_1',
       name: 'Chữ ký 360 CORP (Mặc định)',
-      content: '--\nTrân trọng,\nChâu Lê | 360 CORP\nEmail: chau.le@360.org.vn | Website: https://360.org.vn\nVuaOffice Suite — Văn phòng thông minh thời đại AI',
+      content: '--\nTrân trọng,\nChâu Lê | 360 CORP\nEmail: chau.le@360.org.vn | Website: https://360.org.vn\nGenOffice Suite — Văn phòng thông minh thời đại AI',
       isDefault: true,
     },
     {
       id: 'sig_2',
       name: 'Chữ ký Ngắn gọn (Di động / Trả lời)',
-      content: 'Trân trọng,\nChâu Lê (Gửi từ VuaOffice Mail)',
+      content: 'Trân trọng,\nChâu Lê (Gửi từ GenOffice Mail)',
       isDefault: false,
     },
   ])
@@ -130,7 +130,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   // Categories state
   const [categories, setCategories] = useState([
     { id: 'cat_red', name: 'Khẩn cấp / Quan trọng', color: '#e11d48' },
-    { id: 'cat_blue', name: 'Dự án VuaOffice', color: '#0077cd' },
+    { id: 'cat_blue', name: 'Dự án GenOffice', color: '#0077cd' },
     { id: 'cat_green', name: 'Tài chính & Hợp đồng', color: '#10b981' },
     { id: 'cat_yellow', name: 'Khách hàng 360 CORP', color: '#f59e0b' },
     { id: 'cat_purple', name: 'Hội thảo & Sự kiện', color: '#8b5cf6' },
@@ -310,7 +310,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             )}
 
             <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary, #232425)' }}>
-              {currentSection === 'grid' && 'Cài đặt VuaOffice Mail (Outlook Preferences)'}
+              {currentSection === 'grid' && 'Cài đặt GenOffice Mail (Outlook Preferences)'}
               {currentSection === 'general' && 'Cài đặt Chung (General)'}
               {currentSection === 'accounts' && 'Tài khoản Mail (Accounts)'}
               {currentSection === 'notifications' && 'Thông báo & Âm thanh (Notifications)'}
@@ -1218,7 +1218,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px' }}>
                   <span style={{ fontSize: '12.5px' }}>Định dạng soạn thư mặc định:</span>
                   <select style={selectStyle} defaultValue="html">
-                    <option value="html">HTML chuẩn VuaOffice Docs (Rich Text)</option>
+                    <option value="html">HTML chuẩn GenOffice Docs (Rich Text)</option>
                     <option value="plain">Văn bản thuần (Plain Text)</option>
                   </select>
                 </div>
@@ -1451,7 +1451,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {currentSection === 'privacy' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={sectionCardStyle}>
-                <div style={cardTitleStyle}>VuaOffice AI & Quyền riêng tư</div>
+                <div style={cardTitleStyle}>Genspark AI & Quyền riêng tư</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
                   <label style={checkboxRowStyle}>
                     <input
@@ -1459,7 +1459,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       checked={aiAutoSummarize}
                       onChange={(e) => setAiAutoSummarize(e.target.checked)}
                     />
-                    <span>Bật tính năng AI Tóm tắt thư thông minh (VuaOffice AI Summary)</span>
+                    <span>Bật tính năng AI Tóm tắt thư thông minh (Genspark AI Summary)</span>
                   </label>
                   <label style={checkboxRowStyle}>
                     <input

@@ -20,7 +20,7 @@ const DEFAULT_SIGNATURES: EmailSignature[] = [
     contentHtml: `<p style="margin-top: 16px; font-family: Segoe UI, sans-serif; font-size: 13px; color: #232425; line-height: 1.6;">
 --<br/>
 <strong>Châu Lê</strong><br/>
-<span style="color: #0077cd; font-weight: 600;">360 CORP | VuaOffice Suite Team</span><br/>
+<span style="color: #0077cd; font-weight: 600;">360 CORP | GenOffice Suite Team</span><br/>
 <span style="color: #606366; font-size: 12px;">Email: support@360.org.vn | Hotline: 1900 xxxx<br/>Website: <a href="https://360.org.vn" style="color: #0077cd; text-decoration: none;">https://360.org.vn</a></span>
 </p>`,
     isDefault: true,
@@ -30,7 +30,7 @@ const DEFAULT_SIGNATURES: EmailSignature[] = [
     name: 'Chữ ký ngắn gọn',
     contentHtml: `<p style="margin-top: 12px; font-family: Segoe UI, sans-serif; font-size: 12.5px; color: #606366;">
 Trân trọng,<br/>
-<strong>Châu Lê</strong> (VuaOffice)
+<strong>Châu Lê</strong> (GenOffice)
 </p>`,
     isDefault: false,
   },
@@ -47,7 +47,7 @@ const DEFAULT_TEMPLATES: EmailTemplate[] = [
 <p><strong>Thông tin chi tiết buổi họp:</strong></p>
 <ul>
   <li><strong>Thời gian:</strong> 09:30 - 10:30, Thứ Hai</li>
-  <li><strong>Hình thức:</strong> Trực tuyến qua VuaOffice Meeting / Văn phòng 360 CORP</li>
+  <li><strong>Hình thức:</strong> Trực tuyến qua GenOffice Meeting / Văn phòng 360 CORP</li>
   <li><strong>Nội dung chính:</strong> Rà soát tiến độ, thống nhất giải pháp và phân công nhiệm vụ.</li>
 </ul>
 <p>Kính đề nghị Anh/Chị chuẩn bị trước các tài liệu liên quan để buổi làm việc đạt hiệu quả cao nhất.</p>
@@ -56,11 +56,11 @@ const DEFAULT_TEMPLATES: EmailTemplate[] = [
   {
     id: 'tpl-quotation',
     title: 'Gửi báo giá & Đề xuất giải pháp',
-    subject: 'Gửi Báo giá & Đề xuất giải pháp VuaOffice Suite - 360 CORP',
+    subject: 'Gửi Báo giá & Đề xuất giải pháp GenOffice Suite - 360 CORP',
     category: 'Kinh doanh',
     bodyHtml: `<p>Kính gửi Quý khách hàng / Đối tác,</p>
 <p>Lời đầu tiên, <strong>360 CORP</strong> xin gửi lời chào trân trọng và lời chúc sức khỏe - thành công đến Quý đơn vị.</p>
-<p>Theo trao đổi trước đó, chúng tôi xin trân trọng gửi bảng đề xuất chi phí và lộ trình triển khai chi tiết giải pháp <strong>VuaOffice Suite</strong> như đính kèm.</p>
+<p>Theo trao đổi trước đó, chúng tôi xin trân trọng gửi bảng đề xuất chi phí và lộ trình triển khai chi tiết giải pháp <strong>GenOffice Suite</strong> như đính kèm.</p>
 <p>Nếu có bất kỳ thắc mắc hoặc cần tùy biến thêm tính năng, Quý khách vui lòng liên hệ lại để được hỗ trợ giải đáp nhanh nhất.</p>
 <p>Rất mong có cơ hội đồng hành và hợp tác cùng Quý khách!</p>
 <p>Trân trọng,</p>`,
@@ -88,7 +88,7 @@ const DEFAULT_TEMPLATES: EmailTemplate[] = [
     subject: 'Thư cảm ơn sự tham gia và đồng hành của Quý đối tác',
     category: 'Quan hệ đối ngoại',
     bodyHtml: `<p>Kính gửi Quý đối tác,</p>
-<p>Thay mặt <strong>360 CORP / VuaOffice Team</strong>, chúng tôi xin gửi lời cảm ơn chân thành nhất đến Quý đơn vị đã dành thời gian quý báu tham dự sự kiện vừa qua.</p>
+<p>Thay mặt <strong>360 CORP / GenOffice Team</strong>, chúng tôi xin gửi lời cảm ơn chân thành nhất đến Quý đơn vị đã dành thời gian quý báu tham dự sự kiện vừa qua.</p>
 <p>Sự hiện diện và những ý kiến đóng góp quý báu của Quý vị là nguồn động viên to lớn cho sự phát triển của sản phẩm.</p>
 <p>Chúng tôi sẽ sớm gửi tài liệu tổng kết và biên bản thảo luận trong email tiếp theo.</p>
 <p>Kính chúc Quý đối tác luôn phát triển và gặt hái nhiều thành công mới!</p>

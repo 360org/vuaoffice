@@ -246,7 +246,7 @@ export const ms = {
   appLoggedInEmail: 'Sudah log masuk: {email}',
   appNotLoggedIn: 'Belum log masuk (ciri AI memerlukan akaun Genspark)',
   appWaitingBrowserLogin: 'Menunggu log masuk pelayar…',
-  appLoginGenspark: 'Log masuk ke VuaOffice',
+  appLoginGenspark: 'Log masuk ke Genspark',
   appModel: 'Model',
   appCut: 'Potong',
   appCopy: 'Salin',
