@@ -209,8 +209,9 @@ export function registerMailIpc(
           smtpPort: 587,
         })
 
-        // Save real secure token in TokenStore
-        tokenStore.setCredentials(account.id, oauthRes.credentials)
+        // Save real secure token in TokenStore. Phải ghi kèm nhà cung cấp OAuth gốc:
+        // tài khoản cá nhân lưu provider 'microsoft' nhưng refresh qua /consumers.
+        tokenStore.setCredentials(account.id, { ...oauthRes.credentials, oauthProvider: provider })
 
         // Trigger real background sync
         syncOrchestrator.syncAllAccounts().catch(() => {})

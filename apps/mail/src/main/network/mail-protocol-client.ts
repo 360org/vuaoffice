@@ -50,6 +50,10 @@ export function buildXOAuth2Token(user: string, accessToken: string): string {
   return Buffer.from(authString).toString('base64')
 }
 
+export function createTlsConnectionOptions(host: string, port: number): tls.ConnectionOptions {
+  return { host, port, rejectUnauthorized: true }
+}
+
 /**
  * Native IMAP Client Engine using Node.js TLS/TCP sockets
  * Implements standard IMAP RFC3501 & RFC6161 XOAUTH2 state machine:
@@ -78,9 +82,7 @@ export class NativeImapClient {
 
       try {
         const options: tls.ConnectionOptions = {
-          host: this.config.host,
-          port,
-          rejectUnauthorized: false,
+          ...createTlsConnectionOptions(this.config.host, port),
           timeout: 8000,
         }
 
@@ -255,12 +257,60 @@ export class NativeSmtpClient {
       try {
         let socket: tls.TLSSocket | net.Socket
         let step = 0
+        // Cổng gửi thư chuẩn (587) không mã hoá ngay từ đầu; phải nâng cấp bằng
+        // STARTTLS trước khi gửi AUTH, nếu không mật khẩu đi qua mạng dạng base64
+        // (không phải mã hoá). Không nâng cấp được thì huỷ luôn, không gửi thông tin đăng nhập.
+        let isSecure = useTls
+
+        const attachHandlers = (s: tls.TLSSocket | net.Socket) => {
+          s.setEncoding('utf8')
+          s.on('data', handleData)
+          s.on('error', (err) => {
+            clearTimeout(timeoutTimer)
+            s.destroy()
+            reject(err)
+          })
+        }
+
+        const upgradeToTls = () => {
+          try {
+            const plainSocket = socket
+            plainSocket.removeAllListeners('data')
+            plainSocket.removeAllListeners('error')
+            const secureSocket = tls.connect({
+              ...createTlsConnectionOptions(this.config.host, port),
+              socket: plainSocket,
+              // SNI chỉ hợp lệ với tên miền; đặt bằng IP thì Node ném lỗi đồng bộ.
+              ...(net.isIP(this.config.host) ? {} : { servername: this.config.host }),
+            })
+            socket = secureSocket
+            isSecure = true
+            attachHandlers(secureSocket)
+            secureSocket.on('secureConnect', () => {
+              step = 1
+              secureSocket.write(`EHLO ${this.config.host || 'localhost'}\r\n`)
+            })
+          } catch (err) {
+            clearTimeout(timeoutTimer)
+            socket.destroy()
+            reject(err)
+          }
+        }
 
         const handleData = (chunk: string) => {
           // 1. Initial Greeting (220) -> EHLO
           if (step === 0 && chunk.startsWith('220')) {
             step++
             socket.write(`EHLO ${this.config.host || 'localhost'}\r\n`)
+          }
+          // 1b. EHLO xong nhưng kênh chưa mã hoá -> STARTTLS
+          else if (step === 1 && !isSecure && chunk.startsWith('250')) {
+            step = 90
+            socket.write(`STARTTLS\r\n`)
+          }
+          // 1c. Máy chủ chấp nhận STARTTLS (220) -> bắt tay TLS rồi EHLO lại
+          else if (step === 90 && chunk.startsWith('220')) {
+            upgradeToTls()
           }
           // 2. EHLO response (250) -> AUTH XOAUTH2 / AUTH LOGIN
           else if (step === 1 && chunk.startsWith('250')) {
@@ -329,21 +379,250 @@ export class NativeSmtpClient {
         }
 
         if (useTls) {
-          socket = tls.connect({ host: this.config.host, port, rejectUnauthorized: false }, () => {})
+          socket = tls.connect(createTlsConnectionOptions(this.config.host, port), () => {})
         } else {
           socket = net.connect({ host: this.config.host, port }, () => {})
         }
 
-        socket.setEncoding('utf8')
-        socket.on('data', handleData)
-        socket.on('error', (err) => {
-          clearTimeout(timeoutTimer)
-          socket.destroy()
-          reject(err)
-        })
+        attachHandlers(socket)
       } catch (err) {
         clearTimeout(timeoutTimer)
         reject(err)
+      }
+    })
+  }
+}
+
+export interface Pop3AuthOptions {
+  host: string
+  port?: number
+  tls?: boolean
+  user: string
+  pass?: string
+  accessToken?: string
+  authType: 'oauth2' | 'app_password' | 'password'
+}
+
+/**
+ * Native POP3 Client (RFC 1939 + RFC 5034 SASL XOAUTH2).
+ * Máy chủ cũ và một số nhà cung cấp trong nước chỉ mở POP3.
+ * State machine: greeting -> USER/PASS hoặc AUTH XOAUTH2 -> LIST -> RETR x N -> QUIT
+ *
+ * ponytail: chỉ tải thư, không xoá trên máy chủ (không gửi DELE) — POP3 ở đây
+ * đóng vai trò đọc một chiều. Muốn đồng bộ hai chiều thì dùng IMAP.
+ */
+export class NativePop3Client {
+  constructor(private config: Pop3AuthOptions) {}
+
+  async connectAndFetchRecent(limit = 10): Promise<FetchedMailItem[]> {
+    return new Promise((resolve, reject) => {
+      // Thiếu thông tin xác thực thì dừng ngay, không mở kết nối vô ích.
+      const hasOAuth = this.config.authType === 'oauth2' && this.config.accessToken
+      if (!hasOAuth && !this.config.pass) {
+        reject(new Error('Không có thông tin xác thực POP3 (Password hoặc Token)'))
+        return
+      }
+
+      const port = this.config.port || (this.config.tls !== false ? 995 : 110)
+      const useTls = this.config.tls !== false
+
+      let socket: tls.TLSSocket | net.Socket
+      let settled = false
+      let buffer = ''
+      let stage: 'greet' | 'auth' | 'pass' | 'list' | 'retr' = 'greet'
+      let isSecure = useTls
+      const messageIds: number[] = []
+      const items: FetchedMailItem[] = []
+      let retrIndex = 0
+
+      const timeoutTimer = setTimeout(() => {
+        finish(() => reject(new Error(`POP3 connection timeout tới ${this.config.host}:${port}`)))
+      }, 10000)
+
+      const finish = (fn: () => void) => {
+        if (settled) return
+        settled = true
+        clearTimeout(timeoutTimer)
+        try {
+          socket?.destroy()
+        } catch {}
+        fn()
+      }
+
+      const send = (cmd: string) => {
+        if (socket && !socket.destroyed) socket.write(`${cmd}\r\n`)
+      }
+
+      const startAuth = () => {
+        if (this.config.authType === 'oauth2' && this.config.accessToken) {
+          stage = 'auth'
+          // RFC 5034: AUTH XOAUTH2 <base64>, một lượt là xong.
+          send(`AUTH XOAUTH2 ${buildXOAuth2Token(this.config.user, this.config.accessToken)}`)
+        } else if (this.config.pass) {
+          stage = 'auth'
+          send(`USER ${this.config.user}`)
+        } else {
+          finish(() => reject(new Error('Không có thông tin xác thực POP3 (Password hoặc Token)')))
+        }
+      }
+
+      const upgradeToTls = () => {
+        try {
+          const plainSocket = socket
+          plainSocket.removeAllListeners('data')
+          plainSocket.removeAllListeners('error')
+          const secureSocket = tls.connect({
+            ...createTlsConnectionOptions(this.config.host, port),
+            socket: plainSocket,
+            ...(net.isIP(this.config.host) ? {} : { servername: this.config.host }),
+          })
+          socket = secureSocket
+          isSecure = true
+          attachHandlers(secureSocket)
+          secureSocket.on('secureConnect', () => startAuth())
+        } catch (err) {
+          finish(() => reject(err))
+        }
+      }
+
+      // Thân thư kết thúc bằng dòng "." riêng lẻ (RFC 1939 §3).
+      const takeFullResponse = (): string | null => {
+        const end = buffer.indexOf('\r\n.\r\n')
+        if (end < 0) return null
+        const body = buffer.slice(0, end)
+        buffer = buffer.slice(end + 5)
+        return body
+      }
+
+      const requestNext = () => {
+        if (retrIndex >= messageIds.length) {
+          send('QUIT')
+          finish(() => resolve(items))
+          return
+        }
+        stage = 'retr'
+        send(`RETR ${messageIds[retrIndex]}`)
+      }
+
+      const handleData = (chunk: string) => {
+        buffer += chunk
+
+        if (buffer.startsWith('-ERR')) {
+          const msg = buffer.split('\r\n')[0]
+          finish(() => reject(new Error(`POP3 error: ${msg}`)))
+          return
+        }
+
+        if (stage === 'greet' && buffer.includes('\r\n')) {
+          if (!buffer.startsWith('+OK')) {
+            finish(() => reject(new Error('POP3 greeting không hợp lệ')))
+            return
+          }
+          buffer = ''
+          // Cổng 110 chưa mã hoá: phải STLS trước khi gửi mật khẩu, giống STARTTLS bên SMTP.
+          if (!isSecure) {
+            stage = 'auth'
+            send('STLS')
+            return
+          }
+          startAuth()
+          return
+        }
+
+        if (stage === 'auth' && buffer.includes('\r\n')) {
+          const line = buffer.split('\r\n')[0]
+          buffer = ''
+          if (!line.startsWith('+OK')) {
+            finish(() => reject(new Error(`POP3 xác thực thất bại: ${line}`)))
+            return
+          }
+          if (!isSecure) {
+            upgradeToTls()
+            return
+          }
+          if (this.config.authType !== 'oauth2' && this.config.pass) {
+            stage = 'pass'
+            send(`PASS ${this.config.pass}`)
+            return
+          }
+          stage = 'list'
+          send('LIST')
+          return
+        }
+
+        if (stage === 'pass' && buffer.includes('\r\n')) {
+          const line = buffer.split('\r\n')[0]
+          buffer = ''
+          if (!line.startsWith('+OK')) {
+            finish(() => reject(new Error(`POP3 sai tài khoản hoặc mật khẩu: ${line}`)))
+            return
+          }
+          stage = 'list'
+          send('LIST')
+          return
+        }
+
+        if (stage === 'list') {
+          const body = takeFullResponse()
+          if (body === null) return
+          for (const line of body.split('\r\n').slice(1)) {
+            const id = Number(line.split(' ')[0])
+            if (Number.isFinite(id) && id > 0) messageIds.push(id)
+          }
+          // Thư mới nhất nằm cuối danh sách.
+          messageIds.splice(0, Math.max(0, messageIds.length - limit))
+          requestNext()
+          return
+        }
+
+        if (stage === 'retr') {
+          const body = takeFullResponse()
+          if (body === null) return
+          const emlStart = body.indexOf('\r\n')
+          const eml = emlStart >= 0 ? body.slice(emlStart + 2) : body
+          try {
+            const parsed = parseEml(eml)
+            items.push({
+              uid: `pop3_${parsed.messageId ? parsed.messageId.replace(/[^a-zA-Z0-9]/g, '_') : `${messageIds[retrIndex]}_${Date.now()}`}`,
+              from: parsed.from.address || parsed.from.name || 'unknown@domain',
+              to: parsed.to.map((t) => t.address).join(', ') || this.config.user,
+              subject: parsed.subject,
+              dateIso: new Date(parsed.date).toISOString(),
+              snippet: parsed.snippet,
+              bodyHtml: parsed.bodyHtml,
+              plainText: parsed.bodyText,
+              hasAttachments: parsed.attachments.length > 0,
+              attachments: parsed.attachments.map((a) => ({
+                id: a.id,
+                filename: a.filename,
+                mimeType: a.mimeType,
+                sizeBytes: a.sizeBytes,
+                contentBase64: a.contentBase64,
+              })),
+            })
+          } catch {
+            // Thư hỏng định dạng thì bỏ qua, vẫn tải tiếp các thư còn lại.
+          }
+          retrIndex++
+          requestNext()
+        }
+      }
+
+      const attachHandlers = (s: tls.TLSSocket | net.Socket) => {
+        s.setEncoding('utf8')
+        s.on('data', handleData)
+        s.on('error', (err) => finish(() => reject(err)))
+      }
+
+      try {
+        if (useTls) {
+          socket = tls.connect(createTlsConnectionOptions(this.config.host, port), () => {})
+        } else {
+          socket = net.connect({ host: this.config.host, port }, () => {})
+        }
+        attachHandlers(socket)
+      } catch (err) {
+        finish(() => reject(err))
       }
     })
   }

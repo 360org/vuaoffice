@@ -3,6 +3,47 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Chưa phát hành]
+
+### Bảo mật giao thức thư (apps/mail)
+
+- **[SECURITY] TLS fail-closed cho IMAP & SMTP**: `mail-protocol-client.ts` đặt `rejectUnauthorized: false` ở cả hai điểm kết nối, nghĩa là chứng chỉ giả mạo vẫn được chấp nhận ngay khi đang gửi thông tin đăng nhập. Gom về một hàm dùng chung `createTlsConnectionOptions()` với `rejectUnauthorized: true`.
+- **[SECURITY] Bắt buộc STARTTLS cho SMTP cổng 587**: cổng gửi thư mặc định toàn ứng dụng là 587, trong khi điều kiện bật TLS lại là `smtpPort === 465` — hệ quả là mọi lần gửi thư đi qua `net.connect` **không mã hoá** rồi `AUTH LOGIN` đẩy mật khẩu dạng base64 qua mạng. Bổ sung chu trình `EHLO → STARTTLS → bắt tay TLS → EHLO lại → AUTH`; máy chủ từ chối STARTTLS thì huỷ phiên, không hạ cấp về kênh trần.
+- **[FIX] Sập tiến trình chính khi máy chủ khai báo bằng địa chỉ IP**: `tls.connect` ném lỗi **đồng bộ** nếu `servername` (SNI) là IP, thoát khỏi mọi `.on('error')` và làm sập main process. Bỏ SNI khi host là IP và bọc try/catch.
+- **[SECURITY] Kiểm tra `state` chống CSRF chặt chẽ**: điều kiện `returnedState && returnedState !== state` cho phép bỏ hẳn tham số `state` là qua được cửa. Đổi thành so sánh tuyệt đối.
+- **[SECURITY] Escape HTML trên trang callback OAuth**: email và thông báo lỗi do nhà cung cấp trả về được nội suy thẳng vào HTML.
+
+### Đăng nhập OAuth (Google / Microsoft)
+
+- **[FIX] Mất refresh token xoay vòng**: `refreshAccessToken()` bỏ qua `refresh_token` mới do nhà cung cấp cấp lại, nên lần hết hạn kế tiếp dùng token đã chết và người dùng bị đăng xuất không rõ lý do.
+- **[FIX] Tài khoản Outlook.com cá nhân chết sau 1 giờ**: `microsoft_personal` bị ép lưu thành `provider: 'microsoft'`, khiến vòng làm mới token gọi endpoint `/common` thay vì `/consumers`. Bổ sung `oauthProvider` vào kho thông tin đăng nhập để ghi nhớ nhà cung cấp gốc.
+- **[FIX] Thử lại vô hạn khi token bị thu hồi**: `invalid_grant` là lỗi vĩnh viễn nhưng vòng đồng bộ vẫn thử lại mỗi 60 giây. Nay phân biệt lỗi vĩnh viễn, xoá token chết và báo người dùng đăng nhập lại.
+- **[FIX] Đăng nhập thành công nhưng không có refresh token**: phiên sẽ chết lặng lẽ sau ~1 giờ. Nay báo hỏng ngay lúc đăng nhập kèm hướng dẫn gỡ quyền rồi thử lại.
+- **[DOCS] Quy trình xin cấp OAuth Client chính chủ**: bổ sung `docs/OAUTH_PROVISIONING.md`. Mã nguồn đang dùng Client ID công khai của **Mozilla Thunderbird** cho cả Google lẫn Microsoft — vừa vi phạm điều khoản dịch vụ, vừa khiến màn hình đồng ý hiện sai tên ứng dụng, và gần như chắc chắn bị Google từ chối. Tài liệu đặc tả đầy đủ các bước Entra ID (~1 buổi) và Google CASA Assessment (**4–8 tuần, có phí**).
+
+### Nhận thư qua POP3
+
+- **[NEW] `NativePop3Client` (RFC 1939 + RFC 5034)**: giao diện cài đặt ghi nhãn "IMAP / POP" nhưng thực tế không có đường POP3 nào. Bổ sung client đầy đủ với `STLS` bắt buộc trước khi xác thực, hỗ trợ cả mật khẩu lẫn `AUTH XOAUTH2`, dùng lại `parseEml` sẵn có. Chỉ tải thư, không gửi `DELE`.
+- **[NEW] Chọn giao thức nhận thư trong cài đặt**: thêm trường `incomingProtocol` (`imap` | `pop3`) xuyên suốt giao diện → IPC → lưu trữ → vòng đồng bộ; cổng mặc định tự đổi 993 ↔ 995.
+
+### Sửa lỗi chặn dùng tài khoản thật (apps/mail)
+
+- **[FIX] `addAccount()` đánh rơi cấu hình máy chủ**: `imapHost` / `imapPort` / `smtpHost` / `smtpPort` không được ghi vào bản ghi tài khoản, nên không tài khoản thật nào kết nối được.
+- **[FIX] Thư gửi rơi vào thư mục không tồn tại**: `sendEmail()` gán cứng `folderId: 'f_sent'`, trong khi ID thư mục sinh theo tài khoản (`f_<accountId>_sent`). Bổ sung `resolveFolderId()` tra cứu theo tài khoản.
+- **[FIX] Thư đồng bộ về rơi vào `f_inbox` cố định**: vòng đồng bộ gán cứng ID hộp thư đến, thư của tài khoản thật không hiển thị.
+- **[FIX] Chống trùng thư theo tiêu đề**: hai thư khác nhau trùng tiêu đề (VD "Báo cáo hàng ngày") bị nuốt mất. Đổi sang so theo UID máy chủ.
+- **[SECURITY] Bỏ máy chủ SMTP mặc định `smtp.office365.com`**: hàng đợi gửi thư đoán máy chủ khi thiếu cấu hình, đồng nghĩa đẩy thư **của mọi khách hàng** kèm thông tin đăng nhập sang máy chủ Microsoft. Nay báo lỗi rõ ràng và giữ lại trong hàng đợi.
+
+> ⚠️ Bốn lỗi trên **không lộ ra** khi thử bằng hai tài khoản demo có sẵn, vì ID thư mục của chúng trùng đúng giá trị bị gán cứng. Kiểm thử thủ công bằng dữ liệu demo sẽ thấy "chạy tốt" dù mã đang hỏng.
+
+### Ghi chú xác minh
+
+- `npx tsc --noEmit -p apps/mail/tsconfig.json` đạt — 0 lỗi.
+- `npx vitest run` trong `apps/mail`: **60 bài kiểm thử đạt / 7 tệp**, 0 thất bại.
+- Bộ kiểm thử mới: `mail-protocol-client.test.ts` (10 case TLS), `mail-real-account.test.ts` (10 case tài khoản thật), `smtp-starttls.test.ts` (8 case, máy chủ SMTP giả khẳng định mật khẩu thô/base64/tên đăng nhập/AUTH/MAIL FROM/DATA đều không xuất hiện trên kênh chưa mã hoá), `oauth-token-lifecycle.test.ts` (11 case vòng đời token), `pop3-client.test.ts` (10 case POP3 + STLS).
+- **Chưa xác minh**: đăng nhập OAuth thật với Google và Microsoft — bị chặn bởi việc chưa có Client ID chính chủ (xem `docs/OAUTH_PROVISIONING.md`).
+- **Chưa xác minh**: kết nối POP3 tới máy chủ thật — mới kiểm chứng bằng máy chủ giả cục bộ.
+
 ## [1.0.39] - 2026-09-12
 
 ### Sửa job đóng gói Windows x64

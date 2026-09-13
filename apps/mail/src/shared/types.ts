@@ -7,6 +7,10 @@ export interface EmailAccount {
   isDefault?: boolean
   imapHost?: string
   imapPort?: number
+  smtpHost?: string
+  smtpPort?: number
+  /** Giao thức nhận thư. Mặc định 'imap' khi không khai báo (tài khoản cũ). */
+  incomingProtocol?: 'imap' | 'pop3'
 }
 
 export type FolderKind = 'inbox' | 'sent' | 'drafts' | 'archive' | 'trash' | 'junk' | 'custom'
@@ -142,6 +146,7 @@ export interface VuaMailApi {
     imapPort?: number
     smtpHost?: string
     smtpPort?: number
+    incomingProtocol?: 'imap' | 'pop3'
     password?: string
   }) => Promise<EmailAccount>
   removeAccount: (accountId: string) => Promise<boolean>

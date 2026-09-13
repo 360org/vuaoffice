@@ -91,6 +91,14 @@ export class OAuthClient {
     return false
   }
 
+  /** Chặn chuỗi từ nhà cung cấp (email, thông báo lỗi) chèn HTML vào trang callback. */
+  private static escapeHtml(str: string): string {
+    return str.replace(
+      /[&<>"']/g,
+      (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string
+    )
+  }
+
   private static base64URLEncode(buffer: Buffer): string {
     return buffer
       .toString('base64')
@@ -172,7 +180,7 @@ export class OAuthClient {
 
             if (errorParam) {
               res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' })
-              res.end(this.renderHtmlResponse(false, `Xác thực bị từ chối: ${errorDesc || errorParam}`))
+              res.end(this.renderHtmlResponse(false, `Xác thực bị từ chối: ${this.escapeHtml(errorDesc || errorParam)}`))
               clearTimeout(timeoutTimer)
               finish({ success: false, error: errorDesc || errorParam })
               return
@@ -186,7 +194,9 @@ export class OAuthClient {
               return
             }
 
-            if (returnedState && returnedState !== state) {
+            // Thiếu state cũng phải chặn: `returnedState && ...` cho phép kẻ tấn công
+            // bỏ hẳn tham số state là qua được cửa chống CSRF.
+            if (returnedState !== state) {
               res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' })
               res.end(this.renderHtmlResponse(false, 'Mã bảo mật State không trùng khớp'))
               clearTimeout(timeoutTimer)
@@ -205,7 +215,7 @@ export class OAuthClient {
 
             if (!tokenResult.success || !tokenResult.credentials) {
               res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' })
-              res.end(this.renderHtmlResponse(false, tokenResult.error || 'Trao đổi token thất bại'))
+              res.end(this.renderHtmlResponse(false, this.escapeHtml(tokenResult.error || 'Trao đổi token thất bại')))
               clearTimeout(timeoutTimer)
               finish(tokenResult)
               return
@@ -221,7 +231,12 @@ export class OAuthClient {
             const finalName = userInfo.name || finalEmail.split('@')[0]
 
             res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
-            res.end(this.renderHtmlResponse(true, `Tài khoản <strong>${finalEmail}</strong> đã được xác thực an toàn.`))
+            res.end(
+              this.renderHtmlResponse(
+                true,
+                `Tài khoản <strong>${this.escapeHtml(finalEmail)}</strong> đã được xác thực an toàn.`
+              )
+            )
 
             clearTimeout(timeoutTimer)
             finish({
@@ -233,7 +248,7 @@ export class OAuthClient {
           }
         } catch (err: any) {
           res.writeHead(500, { 'Content-Type': 'text/html; charset=utf-8' })
-          res.end(this.renderHtmlResponse(false, err?.message || 'Server Error'))
+          res.end(this.renderHtmlResponse(false, this.escapeHtml(err?.message || 'Server Error')))
           clearTimeout(timeoutTimer)
           finish({ success: false, error: err?.message || 'Lỗi xử lý callback' })
         }
@@ -319,6 +334,16 @@ export class OAuthClient {
       const expiresIn = data.expires_in ? Number(data.expires_in) : 3600
       const tokenExpiryEpochMs = Date.now() + expiresIn * 1000
 
+      // Không có refresh token thì phiên chết sau ~1 giờ và người dùng bị đăng xuất
+      // không rõ lý do. Báo hỏng ngay lúc đăng nhập để còn xử lý được.
+      if (!data.refresh_token) {
+        return {
+          success: false,
+          error:
+            'Nhà cung cấp không cấp refresh token. Hãy gỡ quyền truy cập của ứng dụng trong phần bảo mật tài khoản rồi đăng nhập lại.',
+        }
+      }
+
       return {
         success: true,
         credentials: {
@@ -342,7 +367,14 @@ export class OAuthClient {
   static async refreshAccessToken(
     providerKey: 'google' | 'microsoft' | 'microsoft_personal',
     refreshToken: string
-  ): Promise<{ success: boolean; accessToken?: string; expiresIn?: number; error?: string }> {
+  ): Promise<{
+    success: boolean
+    accessToken?: string
+    refreshToken?: string
+    expiresIn?: number
+    error?: string
+    isPermanent?: boolean
+  }> {
     const config = OAUTH_CONFIGS[providerKey]
     if (!config) {
       return { success: false, error: 'Config provider không tồn tại' }
@@ -370,12 +402,18 @@ export class OAuthClient {
         return {
           success: false,
           error: data.error_description || data.error || 'Làm mới token thất bại',
+          // invalid_grant = refresh token đã bị thu hồi/hết hạn vĩnh viễn.
+          // Thử lại mỗi 60 giây là vô ích và dễ bị nhà cung cấp chặn IP.
+          isPermanent: data.error === 'invalid_grant',
         }
       }
 
       return {
         success: true,
         accessToken: data.access_token,
+        // Google/Microsoft có thể xoay vòng refresh token; bỏ qua giá trị mới
+        // là lần hết hạn sau sẽ dùng token cũ đã chết -> người dùng bị đăng xuất.
+        refreshToken: data.refresh_token,
         expiresIn: data.expires_in ? Number(data.expires_in) : 3600,
       }
     } catch (err: any) {

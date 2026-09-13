@@ -68,6 +68,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [accPassword, setAccPassword] = useState('')
   const [imapHost, setImapHost] = useState('imap.360.org.vn')
   const [imapPort, setImapPort] = useState(993)
+  const [incomingProtocol, setIncomingProtocol] = useState<'imap' | 'pop3'>('imap')
   const [smtpHost, setSmtpHost] = useState('smtp.360.org.vn')
   const [smtpPort, setSmtpPort] = useState(587)
   const [isSaving, setIsSaving] = useState(false)
@@ -213,6 +214,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         provider,
         imapHost: provider === 'custom_imap' ? imapHost : undefined,
         imapPort: provider === 'custom_imap' ? Number(imapPort) : undefined,
+        incomingProtocol: provider === 'custom_imap' ? incomingProtocol : undefined,
         smtpHost: provider === 'custom_imap' ? smtpHost : undefined,
         smtpPort: provider === 'custom_imap' ? Number(smtpPort) : undefined,
         password: accPassword,
@@ -858,7 +860,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             onChange={(e: any) => setProvider(e.target.value)}
                             style={{ width: '100%', padding: '5px 8px', fontSize: '11px', boxSizing: 'border-box' }}
                           >
-                            <option value="custom_imap">Custom IMAP / SMTP</option>
+                            <option value="custom_imap">Custom IMAP / POP3 / SMTP</option>
                             <option value="microsoft">Microsoft Exchange</option>
                             <option value="google">Google Workspace</option>
                           </select>
@@ -866,9 +868,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       </div>
 
                       {provider === 'custom_imap' && (
+                        <div style={{ marginBottom: '6px' }}>
+                          <label style={{ fontSize: '10px', fontWeight: 500 }}>Giao thức nhận thư:</label>
+                          <select
+                            value={incomingProtocol}
+                            onChange={(e: any) => {
+                              const next = e.target.value as 'imap' | 'pop3'
+                              setIncomingProtocol(next)
+                              // Cổng mặc định đổi theo giao thức để người dùng không phải nhớ.
+                              setImapPort(next === 'pop3' ? 995 : 993)
+                            }}
+                            style={{ width: '100%', padding: '4px 6px', fontSize: '10.5px', boxSizing: 'border-box' }}
+                          >
+                            <option value="imap">IMAP — đồng bộ hai chiều (khuyến nghị)</option>
+                            <option value="pop3">POP3 — chỉ tải thư về máy</option>
+                          </select>
+                        </div>
+                      )}
+
+                      {provider === 'custom_imap' && (
                         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 2fr 1fr', gap: '6px' }}>
                           <div>
-                            <label style={{ fontSize: '10px', fontWeight: 500 }}>Máy chủ IMAP:</label>
+                            <label style={{ fontSize: '10px', fontWeight: 500 }}>
+                              {incomingProtocol === 'pop3' ? 'Máy chủ POP3:' : 'Máy chủ IMAP:'}
+                            </label>
                             <input
                               type="text"
                               value={imapHost}

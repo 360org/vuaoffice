@@ -1,7 +1,7 @@
 import { app } from 'electron'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
-import type { EmailAccount, EmailBody, EmailMessage, MailFolder } from '../../shared/types'
+import type { EmailAccount, EmailBody, EmailMessage, FolderKind, MailFolder } from '../../shared/types'
 
 interface OpQueueItem {
   id: string
@@ -340,6 +340,7 @@ export class SQLiteMailStorage {
     imapPort?: number
     smtpHost?: string
     smtpPort?: number
+    incomingProtocol?: 'imap' | 'pop3'
     password?: string
   }): EmailAccount {
     const id = `acc_${Date.now()}`
@@ -350,6 +351,11 @@ export class SQLiteMailStorage {
       name: account.name || account.email.split('@')[0],
       provider: account.provider || 'custom_imap',
       isDefault: isFirst,
+      imapHost: account.imapHost,
+      imapPort: account.imapPort,
+      smtpHost: account.smtpHost,
+      smtpPort: account.smtpPort,
+      incomingProtocol: account.incomingProtocol,
     }
 
     this.data.accounts.push(newAcc)
@@ -465,6 +471,18 @@ export class SQLiteMailStorage {
       })
     }
     return this.data.folders.filter((f) => f.accountId === accountId)
+  }
+
+  /**
+   * Tra ID thư mục hệ thống thật của một tài khoản.
+   * ID thư mục sinh theo tài khoản (`f_<accountId>_sent`) nên không được hardcode.
+   */
+  resolveFolderId(accountId: string, kind: FolderKind): string {
+    const owned = this.data.folders.find((f) => f.accountId === accountId && f.kind === kind)
+    if (owned) return owned.id
+    // ponytail: tài khoản thiếu thư mục hệ thống (dữ liệu cũ) thì lùi về thư mục
+    // cùng loại đầu tiên, để thư vẫn hiện thay vì rơi vào ID không tồn tại.
+    return this.data.folders.find((f) => f.kind === kind)?.id ?? `f_${accountId}_${kind}`
   }
 
   getEmails(folderId: string, category?: 'focused' | 'other'): EmailMessage[] {
@@ -589,11 +607,12 @@ export class SQLiteMailStorage {
     const snippet = draft.bodyHtml.replace(/<[^>]*>?/gm, '').slice(0, 100)
 
     const targetAccount = this.data.accounts.find((a) => a.id === draft.accountId) || this.data.accounts[0]
+    const sentFolder = this.resolveFolderId(draft.accountId, 'sent')
 
     const newEmail: EmailMessage = {
       id,
       accountId: draft.accountId,
-      folderId: draft.accountId === 'acc_secondary' ? 'f2_sent' : 'f_sent',
+      folderId: sentFolder,
       senderName: targetAccount ? targetAccount.name : 'Châu Lê',
       senderEmail: targetAccount ? targetAccount.email : 'chau.le@360.org.vn',
       recipientEmails: draft.to,
@@ -615,7 +634,18 @@ export class SQLiteMailStorage {
       plainText: snippet,
     }
 
-    this.enqueueOp('send_draft', id, JSON.stringify(draft))
+    // Hàng đợi gửi chạy ở tiến trình nền và không đọc lại được bản ghi tài khoản,
+    // nên payload phải mang đủ thông tin máy chủ gửi của chính tài khoản này.
+    this.enqueueOp(
+      'send_draft',
+      id,
+      JSON.stringify({
+        ...draft,
+        from: newEmail.senderEmail,
+        smtpHost: targetAccount?.smtpHost,
+        smtpPort: targetAccount?.smtpPort,
+      })
+    )
     this.persist()
 
     return { success: true, emailId: id }

@@ -8,6 +8,13 @@ export interface StoredCredentials {
   tokenExpiryEpochMs?: number
   appPassword?: string
   authType: 'oauth2' | 'app_password' | 'password'
+  /**
+   * Nhà cung cấp OAuth thật dùng lúc đăng nhập. Tài khoản Outlook.com cá nhân
+   * được lưu với provider 'microsoft', nhưng phải refresh qua endpoint
+   * /consumers chứ không phải /common — thiếu trường này thì token hết hạn
+   * sau 1 tiếng là tài khoản cá nhân chết im lặng.
+   */
+  oauthProvider?: 'google' | 'microsoft' | 'microsoft_personal'
 }
 
 /**
