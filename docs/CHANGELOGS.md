@@ -20,6 +20,12 @@ Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaO
 - **[FIX] Ghép biểu mẫu góp ý làm hỏng ranh giới cắt footer**: `<section id="feedback">` bị chèn ngay sau chú thích `<!-- Footer & 360 Ecosystem -->` — đúng dấu mốc generator dùng để cắt footer sang `changelog.html`, nên lần chạy `site:sync` kế tiếp sẽ nhân bản cả biểu mẫu sang trang changelog. Đã tách dấu mốc về đúng thẻ `<footer>`.
 - **[FIX] Liên kết "Góp Ý" trên trang changelog trỏ vào khoảng không**: biểu mẫu chỉ có ở trang chủ, nhưng generator giữ nguyên `href="#feedback"` khi dựng thanh điều hướng. Nay viết lại thành `index.html#feedback` cùng nhóm với `#apps`, `#compare`, `#download`, `#faq`.
 
+### Một nhánh duy nhất
+
+- **[REFACTOR] `main` trên GitLab là nhánh duy nhất của toàn dự án**: mã nguồn, tài liệu, tài liệu thiết kế và bản ghi kiểm toán nằm chung một chỗ. Cấm đẩy nhánh nào khác lên remote — kể cả `sync/upstream-*`. GitHub không phải một nhánh mà là **bản chiếu phần công khai** của `main`, lọc qua `.githubignore` và bị `push -f` ghi đè mỗi lần đồng bộ. Luật ghi ở đầu `CLAUDE.md`, quy chế thương hiệu §2 CẤM 6 và §7 sửa theo.
+- **[MERGE] Gộp `erp-pro` về `main`**: `docs/pro/{IDEA,ARCH,PLAN}.md` (1.115 dòng thiết kế VuaHeThong Pro) từng sống riêng trên nhánh `erp-pro` suốt nhiều ngày. Nay nằm trên `main` và được `.githubignore` giữ lại không đẩy lên GitHub.
+- **[FIX] Đồng bộ upstream nay merge thẳng vào `main`**: quy trình cũ bắt tạo nhánh `sync/upstream-YYYYMMDD` rồi mở Pull Request — không áp dụng được cho kho một nhánh. Cổng chất lượng chuyển sang chạy **trước khi push**, vì không còn PR làm chốt chặn và push mới là điểm không lùi được.
+
 ## [1.0.40] - 2026-09-13
 
 ### Bảo mật giao thức thư (apps/mail)

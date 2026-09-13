@@ -81,9 +81,18 @@ Chuỗi ghi công Apache License 2.0 (`Original Work: Copyright ... Mainfunc, In
 
 Cấm xóa, bỏ qua, hay thêm `continue-on-error` cho `brand:gate` trong CI. Cấm dùng `--no-verify`. Cổng báo đỏ nghĩa là **có lỗi thật**, không phải cổng sai.
 
-### 🚫 CẤM 6 — Không merge upstream trực tiếp vào `main`
+### 🚫 CẤM 6 — Không tạo nhánh song song trên remote
 
-Mọi lần đồng bộ đi qua nhánh `sync/upstream-YYYYMMDD` và Pull Request. Xem §7.
+Kho này chỉ có **một nhánh duy nhất: `main` trên GitLab** — mã nguồn, tài liệu,
+tài liệu thiết kế, kiểm toán đều nằm chung ở đó. Cấm đẩy nhánh tính năng, nhánh
+`sync/upstream-*` hay nhánh tài liệu lên bất kỳ remote nào.
+
+Đồng bộ upstream merge **thẳng vào `main`**, cổng chất lượng chạy **trước khi
+push**. Cần chỗ nháp thì dùng nhánh cục bộ rồi xoá ngay. Xem §7.
+
+> Lý do: nhánh remote sống lâu đã hai lần gây sự cố thật — `docs/` bị lệch bản
+> giữa hai kho, và biểu mẫu góp ý của `vuaoffice.com` biến mất khỏi mọi nhánh
+> sau một lần `push -f`.
 
 ### 🚫 CẤM 7 — Không thêm quy tắc `protected` một chiều
 
@@ -232,23 +241,28 @@ Lệnh này thêm remote `upstream` và **đăng ký merge driver `ours`**.
 # 1. Đưa mã về trạng thái upstream sạch để Git merge 3 chiều tối ưu
 npm run whitelabel:restore
 
-# 2. Tạo nhánh đồng bộ riêng — CẤM merge thẳng vào main (§2 CẤM 6)
+# 2. Merge thẳng vào `main` — kho chỉ có MỘT nhánh duy nhất
 git fetch upstream
-git checkout -b sync/upstream-$(date +%Y%m%d)
-git merge upstream/main
+git merge --no-ff upstream/main
 
 # 3. Xử lý xung đột còn lại (sẽ rất ít nhờ merge=ours + brand-config)
 
 # 4. Áp lại thương hiệu
 npm run whitelabel:apply
 
-# 5. CỔNG BẮT BUỘC — phải đạt trước khi commit
-npm run brand:gate          # selftest + status + check-brand
+# 5. CỔNG BẮT BUỘC — phải đạt TRƯỚC KHI PUSH (push mới là điểm không lùi được)
+npm run brand:gate          # selftest + status + check-brand + audit + site
 npm run typecheck
 npm test
 
-# 6. Mở Pull Request để rà soát. KHÔNG tự merge.
+# 6. Chỉ khi cả ba cổng xanh mới `git push origin main`.
+#    Cổng đỏ → sửa tại chỗ hoặc `git merge --abort`, KHÔNG push rồi vá sau.
 ```
+
+> 🌿 **Một nhánh duy nhất**: kho này không có nhánh song song. Cần một chỗ nháp
+> để gỡ xung đột lớn thì tạo nhánh **cục bộ** rồi xoá ngay sau khi merge —
+> tuyệt đối không đẩy lên remote. Nhánh sống lâu trên remote chính là thứ đã
+> khiến `docs/` bị lệch bản và biểu mẫu góp ý biến mất.
 
 ### Sau khi merge PR đồng bộ
 
@@ -297,7 +311,7 @@ Agent phải tự xác nhận đủ các mục sau. Không được bỏ qua m�
 - [ ] `npm run whitelabel:status` — báo SẠCH
 - [ ] `npm run brand:check` — ĐẠT
 - [ ] Không vô hiệu hóa/bỏ qua cổng kiểm tra nào (§2 CẤM 5)
-- [ ] Nếu là đồng bộ upstream: đi qua nhánh `sync/upstream-*` và PR (§2 CẤM 6)
+- [ ] Không đẩy nhánh nào ngoài `main` lên remote (§2 CẤM 6)
 
 Lệnh gộp chạy nhanh cả ba cổng:
 

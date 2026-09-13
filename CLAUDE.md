@@ -2,6 +2,29 @@
 
 Guidance for AI agents and human contributors working in this repo.
 
+## Git: MỘT NHÁNH DUY NHẤT (mandatory)
+
+> **`main` trên GitLab là nhánh duy nhất của toàn bộ dự án.**
+> Mã nguồn, tài liệu, tài liệu thiết kế, bản ghi kiểm toán — tất cả nằm chung.
+
+1. **Cấm đẩy nhánh nào khác lên remote.** Không nhánh tính năng, không
+   `sync/upstream-*`, không nhánh riêng cho tài liệu. Cần chỗ nháp để gỡ xung
+   đột lớn thì tạo nhánh **cục bộ** rồi xoá ngay sau khi merge vào `main`.
+2. **Cấm tách kho theo loại nội dung.** Tài liệu **không** có kho riêng, **không**
+   có nhánh riêng. Mọi thứ commit thẳng vào `main` cùng mã nguồn.
+3. **GitHub không phải nhánh, mà là bản chiếu.** GitHub chỉ nhận **phần công
+   khai** của `main`, lọc qua `.githubignore` bằng
+   `/Volumes/DATA/DEV/aiac/360org/plugins/360-gitsync/scripts/git-sync-publish.sh`.
+   Không ai commit trực tiếp lên GitHub; nó bị `push -f` ghi đè mỗi lần đồng bộ.
+4. **Thêm tài liệu nội bộ mới ⇒ thêm ngay vào `.githubignore`.** Tệp
+   không được khai báo sẽ tự động lộ ra kho công khai ở lần đồng bộ kế tiếp.
+5. **Cổng chất lượng chạy trước khi `push`, không phải trước khi merge.** Không
+   có Pull Request để chặn — push mới là điểm không lùi được.
+
+> ⚠️ Bài học thật: nhánh remote sống lâu đã khiến `docs/` lệch bản giữa hai kho,
+> và một lần `push -f` xoá sạch biểu mẫu góp ý của `vuaoffice.com` khỏi mọi
+> nhánh — phải dùng `git fsck --lost-found` mới truy lại được.
+
 ## Theming rules (mandatory)
 
 The suite supports light / dark / system UI themes. The switching mechanism is a
@@ -95,9 +118,9 @@ Nguyên tắc nền tảng:
    `<!-- AUDIT-IMMUTABLE -->`. Cổng `audit:check` sẽ chặn nếu vi phạm.
 9. **Đồng bộ upstream**: chạy `npm run upstream:setup` một lần mỗi máy (Git
    KHÔNG tự kích hoạt merge driver `ours` khi clone — thiếu bước này thì
-   `.gitattributes` im lặng vô tác dụng). Luôn merge qua nhánh
-   `sync/upstream-YYYYMMDD` + Pull Request, **cấm merge thẳng vào `main`**.
-   Quy trình đầy đủ: quy chế §7.
+   `.gitattributes` im lặng vô tác dụng). Merge **thẳng vào `main`**, chạy
+   `brand:gate` + `typecheck` + `test` **trước khi push**. Quy trình đầy
+   đủ: quy chế §7.
 10. **Branding assets**: Nguồn logo là `360/Logo/` (**chữ `L` hoa**) — đây là
     thư mục `brand-config.json` sao chép vào `apps/shell/src/renderer/src/assets/` và
     là tệp app thực sự import: `vuaoffice-logo.svg` (lockup, dùng ở Home) và
