@@ -1,5 +1,28 @@
 [
   {
+    "version": "1.0.40",
+    "date": "Tháng 9/2026",
+    "highlight": "Siết bảo mật đường truyền thư điện tử và bổ sung nhận thư qua POP3.",
+    "features": [
+      {
+        "title": "Mã hoá bắt buộc khi gửi và nhận thư",
+        "desc": "Ứng dụng nay luôn kiểm tra chứng chỉ của máy chủ thư và bắt buộc nâng cấp kênh mã hoá trước khi gửi mật khẩu. Nếu máy chủ không đáp ứng, phiên làm việc bị huỷ thay vì âm thầm truyền thông tin đăng nhập qua kênh không an toàn."
+      },
+      {
+        "title": "Nhận thư qua giao thức POP3",
+        "desc": "Bổ sung tuỳ chọn chọn giao thức nhận thư IMAP hoặc POP3 trong phần cài đặt tài khoản, cổng kết nối tự điều chỉnh theo lựa chọn. Thư chỉ được tải về, không xoá trên máy chủ."
+      },
+      {
+        "title": "Giữ đăng nhập ổn định hơn",
+        "desc": "Khắc phục các lỗi khiến tài khoản Outlook.com cá nhân bị đăng xuất sau khoảng một giờ và trường hợp ứng dụng thử kết nối lại liên tục khi quyền truy cập đã bị thu hồi."
+      },
+      {
+        "title": "Sửa lỗi dùng tài khoản thư thật",
+        "desc": "Khắc phục việc cấu hình máy chủ không được lưu lại, thư gửi và thư nhận rơi vào thư mục sai, và hai thư khác nhau trùng tiêu đề bị nhận nhầm là một."
+      }
+    ]
+  },
+  {
     "version": "1.0.39",
     "date": "Tháng 9/2026",
     "highlight": "Hoàn tất bộ cài Windows 64-bit và đồng bộ bản vá từ dự án gốc.",

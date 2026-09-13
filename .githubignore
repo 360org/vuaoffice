@@ -48,8 +48,29 @@ vitest.config.ts
 package-lock.json
 
 # Cấu hình nội bộ dành cho AI agent — lộ đường dẫn máy trạm và quy trình nội bộ
-AGENTS.md
-CLAUDE.md
-.mcp.json
+# Dấu "/" đầu dòng neo vào thư mục gốc. Thiếu nó thì `find -name` trong
+# git-sync-publish.sh khớp mọi cấp và xoá nhầm tệp cùng tên ở thư mục con.
+/AGENTS.md
+/CLAUDE.md
+/.mcp.json
 .claude/
+
+# =============================================================================
+# TÀI LIỆU NỘI BỘ — CHỈ SỐNG TRÊN GITLAB (nguồn chân lý duy nhất là nhánh `main`)
+# GitHub chỉ giữ trang tĩnh phục vụ vuaoffice.com: index.html, changelog.html,
+# updates.json, assets/, CNAME, robots.txt, sitemap.xml.
+# Không trang HTML nào tham chiếu tệp .md — toàn bộ chúng là tài liệu nội bộ
+# (kiến trúc, đặc tả, kiểm toán, quy chế phát hành, quy trình cấp OAuth).
+# =============================================================================
+./docs/*.md
+/docs/audits
+/docs/CODEMAPS
+/docs/i18n
+/docs/mail
+/docs/docs
+/docs/sheets
+/docs/slides
+/docs/shell
+/docs/pdf
+/docs/markdown
 

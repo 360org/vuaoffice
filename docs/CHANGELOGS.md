@@ -3,7 +3,7 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Chưa phát hành]
+## [1.0.40] - 2026-09-13
 
 ### Bảo mật giao thức thư (apps/mail)
 
@@ -35,6 +35,15 @@ Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaO
 - **[SECURITY] Bỏ máy chủ SMTP mặc định `smtp.office365.com`**: hàng đợi gửi thư đoán máy chủ khi thiếu cấu hình, đồng nghĩa đẩy thư **của mọi khách hàng** kèm thông tin đăng nhập sang máy chủ Microsoft. Nay báo lỗi rõ ràng và giữ lại trong hàng đợi.
 
 > ⚠️ Bốn lỗi trên **không lộ ra** khi thử bằng hai tài khoản demo có sẵn, vì ID thư mục của chúng trùng đúng giá trị bị gán cứng. Kiểm thử thủ công bằng dữ liệu demo sẽ thấy "chạy tốt" dù mã đang hỏng.
+
+### Đồng bộ mã nguồn công khai
+
+- **[FIX] Mẫu lọc không neo gốc xoá nhầm tệp ở thư mục con**: `.githubignore` khai `AGENTS.md` với ý định chỉ loại tệp ở thư mục gốc, nhưng `git-sync-publish.sh` dọn bằng `find . -name "$pattern"` — khớp **mọi cấp thư mục**, nên bản công khai mất luôn `docs/AGENTS.md` (−188 dòng tại commit `9ebde1d`). Biểu hiện phía người dùng là tài liệu trên GitHub "tự quay về bản cũ" trong khi GitLab vẫn đầy đủ. Neo các mẫu chỉ-áp-dụng-tại-gốc bằng dấu `/` đầu dòng (`/AGENTS.md`, `/CLAUDE.md`, `/.mcp.json`) để script đi vào nhánh `rm -rf ".${pattern}"` thay vì quét đệ quy.
+- **[REFACTOR] GitHub chỉ còn là mặt tiền tĩnh của `vuaoffice.com`**: toàn bộ tài liệu `.md` trong `docs/` nay nằm trong `.githubignore`. **Nhánh `main` trên GitLab là bản duy nhất và là nguồn chân lý** cho tài liệu nội bộ (kiến trúc, đặc tả, kiểm toán, quy chế phát hành, quy trình cấp OAuth); bản công khai chỉ giữ đúng phần trang web cần: `index.html`, `changelog.html`, `updates.json`, `assets/`, `CNAME`, `robots.txt`, `sitemap.xml`. Rà soát cho thấy không trang HTML nào tham chiếu tệp `.md`, nên việc lọc không làm hỏng liên kết nào. Trước thay đổi này, tài liệu nội bộ bị công khai ngoài ý muốn và bản trên GitHub liên tục lệch pha với GitLab.
+
+### Hợp nhất upstream
+
+- **[MERGE] 9 commit từ `genspark-ai/genoffice`** (`de139a0..0b404e1`): `docx-engine` (giữ khoảng trắng ở biên khi vá field #320, giải mã tham chiếu ký tự dạng số trong chú thích #319, giữ ký tự dẫn đậm cho điểm dừng ptab #318, nhận diện biến thể off/none/case khi dò đậm trong mục lục #317), `docs` (nhận diện cặp thẻ đoạn song hướng #321), `sheets` (chép ô boolean rỗng thành ô rỗng #324, giữ trạng thái dấu nháy qua nhiều dòng khi dò ký tự phân tách #323, giữ số nguyên quá độ chính xác dưới dạng văn bản khi nhập CSV #322), `pdf` (nâng độ phân giải in lên 200 DPI trong hạn mức điểm ảnh #316). Không tệp thương hiệu nào bị đụng tới; `npm run brand:gate` đạt cả bốn cổng sau hợp nhất.
 
 ### Ghi chú xác minh
 
