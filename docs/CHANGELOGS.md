@@ -3,6 +3,16 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Chưa phát hành]
+
+### Khôi phục biểu mẫu góp ý trên `vuaoffice.com`
+
+- **[FIX] Biểu mẫu góp ý bị `push -f` đẩy ra khỏi mọi nhánh**: tính năng người dùng gửi báo lỗi / góp ý từ `vuaoffice.com` (mục `#feedback` trong `docs/index.html` + Cloudflare Worker tạo GitHub Issue) đã được xây trên kho GitHub, nhưng lần đồng bộ ngược bằng `push -f` khiến hai commit chứa nó trở thành commit mồ côi, không nhánh nào trỏ tới. Truy lại bằng `git fsck --lost-found` và ghép trở lại `main`: khối CSS, quy tắc responsive, liên kết điều hướng, `<section id="feedback">` và khối JavaScript xử lý gửi biểu mẫu.
+- **[FIX] Danh sách phiên bản trong biểu mẫu để trống khi `updates.json` hỏng**: trường chọn phiên bản là `<select required>` nên hỏng tệp dữ liệu đồng nghĩa **không ai gửi được báo lỗi nào**. Bổ sung `setVersionOptions()` chạy cả trên nhánh lỗi, lấy phiên bản dự phòng từ thanh trên cùng.
+- **[FIX] Điểm cuối trỏ vào tên miền không bao giờ tới được Worker**: bản khôi phục mới nhất gọi thẳng `workers.dev` thay vì `vuaoffice.com/api/feedback`, vì DNS của `vuaoffice.com` trỏ vào GitHub Pages ở chế độ **DNS-only** nên route Cloudflare không được kích hoạt. Ghi rõ lý do trong mã nguồn và `worker/README.md`.
+- **[REFACTOR] Worker lưu ảnh đính kèm qua GitHub contents API**: thay cho bucket R2, ảnh được commit vào chính kho mã và nhúng bằng liên kết `raw.githubusercontent.com`; đường đọc R2 cũ giữ lại để ảnh của các Issue trước không hỏng liên kết. `worker/README.md` được viết lại cho khớp mã nguồn.
+- **[CHORE] `worker/` chỉ sống trên GitLab**: mã Worker triển khai bằng `wrangler deploy`, không phần nào của trang tĩnh cần tới nó, nên được thêm vào `.githubignore`.
+
 ## [1.0.40] - 2026-09-13
 
 ### Bảo mật giao thức thư (apps/mail)

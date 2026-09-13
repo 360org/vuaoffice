@@ -46,6 +46,9 @@ eslint.config.mjs
 tsconfig.base.json
 vitest.config.ts
 package-lock.json
+# Mã nguồn Cloudflare Worker nhận form góp ý. Triển khai bằng `wrangler deploy`
+# từ GitLab, không phần nào của trang tĩnh cần tới nó.
+/worker
 
 # Cấu hình nội bộ dành cho AI agent — lộ đường dẫn máy trạm và quy trình nội bộ
 # Dấu "/" đầu dòng neo vào thư mục gốc. Thiếu nó thì `find -name` trong

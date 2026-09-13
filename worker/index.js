@@ -49,8 +49,12 @@ export default {
       return json({ message: 'Không tìm thấy đường dẫn.' }, 404, origin);
     }
 
-    if (!env.GITHUB_TOKEN || !env.GITHUB_OWNER || !env.GITHUB_REPO || !env.FEEDBACK_IMAGES) {
-      return json({ message: 'Biểu mẫu tạm thời chưa sẵn sàng.' }, 503, origin);
+    const githubToken = env.GITHUB_TOKEN;
+    const githubOwner = env.GITHUB_OWNER || '360org';
+    const githubRepo = env.GITHUB_REPO || 'vuaoffice';
+
+    if (!githubToken) {
+      return json({ message: 'Biểu mẫu tạm thời chưa sẵn sàng (thiếu GITHUB_TOKEN).' }, 503, origin);
     }
 
     const contentLength = Number(request.headers.get('Content-Length') || 0);
@@ -92,26 +96,49 @@ export default {
       }
     }
 
-    const uploadedKeys = [];
+    const uploadedPaths = [];
     try {
       const imageUrls = [];
+      const branch = env.GITHUB_BRANCH || 'main';
+
       for (const file of files) {
         const extension = ALLOWED_TYPES.get(file.type);
-        const key = `images/${crypto.randomUUID()}.${extension}`;
-        await env.FEEDBACK_IMAGES.put(key, file.stream(), {
-          httpMetadata: {
-            contentType: file.type,
-            cacheControl: 'public, max-age=31536000, immutable',
+        const filename = `${crypto.randomUUID()}.${extension}`;
+        const filePath = `feedback-uploads/${filename}`;
+
+        // Chuyển file sang Base64
+        const arrayBuffer = await file.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
+        const base64Content = toBase64(bytes);
+
+        // Upload trực tiếp lên GitHub thông qua Contents API
+        const ghUploadRes = await fetch(`https://api.github.com/repos/${encodeURIComponent(githubOwner)}/${encodeURIComponent(githubRepo)}/contents/${filePath}`, {
+          method: 'PUT',
+          headers: {
+            Accept: 'application/vnd.github+json',
+            Authorization: `Bearer ${githubToken}`,
+            'Content-Type': 'application/json',
+            'User-Agent': 'VuaOffice-feedback-form',
+            'X-GitHub-Api-Version': '2022-11-28',
           },
+          body: JSON.stringify({
+            message: `upload feedback image: ${filename}`,
+            content: base64Content,
+            branch: branch,
+          }),
         });
-        uploadedKeys.push(key);
-        imageUrls.push(`${url.origin}/api/feedback/images/${key}`);
+
+        if (!ghUploadRes.ok) {
+          throw new Error('github-upload-failed');
+        }
+
+        uploadedPaths.push(filePath);
+        imageUrls.push(`https://raw.githubusercontent.com/${encodeURIComponent(githubOwner)}/${encodeURIComponent(githubRepo)}/${encodeURIComponent(branch)}/${filePath}`);
       }
 
-      const issue = await createIssue(values, imageUrls, env);
+      const issue = await createIssue(values, imageUrls, { GITHUB_TOKEN: githubToken, GITHUB_OWNER: githubOwner, GITHUB_REPO: githubRepo });
       return json({ message: 'Đã ghi nhận phản hồi.', issueUrl: issue.html_url }, 201, origin);
     } catch {
-      await Promise.all(uploadedKeys.map((key) => env.FEEDBACK_IMAGES.delete(key)));
       return json({ message: 'Chưa thể ghi nhận phản hồi. Vui lòng thử lại sau.' }, 502, origin);
     }
   },
@@ -225,6 +252,15 @@ async function serveImage(request, env, pathname, origin) {
   });
   if (origin && ALLOWED_ORIGINS.has(origin)) headers.set('Access-Control-Allow-Origin', origin);
   return new Response(request.method === 'HEAD' ? null : object.body, { headers });
+}
+
+function toBase64(bytes) {
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
 }
 
 function textBlock(value) {

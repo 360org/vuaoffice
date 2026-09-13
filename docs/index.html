@@ -584,6 +584,119 @@
     .footer-links a:hover { color: #fff; }
     .legal-note { text-align: center; font-size: 12px; color: #64748b; line-height: 1.6; }
 
+    .feedback-layout {
+      display: grid;
+      grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.2fr);
+      gap: 28px;
+      max-width: 1040px;
+      margin: 0 auto;
+      align-items: start;
+    }
+    .feedback-intro,
+    .feedback-form {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+    }
+    .feedback-intro h3 { color: #fff; font-size: 22px; margin-bottom: 10px; }
+    .feedback-intro > p { color: var(--text-muted); font-size: 14px; margin-bottom: 22px; }
+    .feedback-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .feedback-form label {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      color: #e2e8f0;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .feedback-form label > span:first-of-type,
+    .feedback-form label > span[aria-hidden="true"] { color: var(--danger); }
+    .feedback-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .feedback-form input:not([type="checkbox"]),
+    .feedback-form select,
+    .feedback-form textarea {
+      width: 100%;
+      border: 1px solid #334155;
+      border-radius: 9px;
+      background: #0d1525;
+      color: var(--text);
+      font: inherit;
+      padding: 11px 12px;
+    }
+    .feedback-form textarea { min-height: 120px; resize: vertical; }
+    .feedback-form input:not([type="checkbox"]):focus,
+    .feedback-form select:focus,
+    .feedback-form textarea:focus {
+      outline: 2px solid var(--accent-light);
+      outline-offset: 1px;
+      border-color: var(--accent-light);
+    }
+    .feedback-points { list-style: none; color: #cbd5e1; font-size: 14px; }
+    .feedback-points li {
+      display: flex;
+      gap: 9px;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .feedback-points svg {
+      width: 17px;
+      height: 17px;
+      color: var(--success);
+      flex-shrink: 0;
+      margin-top: 3px;
+    }
+    .feedback-help { color: var(--text-muted); font-size: 12px; font-weight: 400; line-height: 1.5; }
+    .feedback-files { display: flex; flex-wrap: wrap; gap: 10px; }
+    .feedback-preview {
+      position: relative;
+      width: 92px;
+      height: 76px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #0d1525;
+    }
+    .feedback-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .feedback-preview button {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 24px;
+      height: 24px;
+      border: 0;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.75);
+      color: #fff;
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .feedback-consent {
+      flex-direction: row !important;
+      align-items: flex-start;
+      gap: 9px !important;
+      font-weight: 400 !important;
+    }
+    .feedback-consent input { margin-top: 4px; accent-color: var(--accent); }
+    .feedback-status { display: none; font-size: 14px; line-height: 1.5; }
+    .feedback-status.is-visible { display: block; }
+    .feedback-status.is-success { color: #6ee7b7; }
+    .feedback-status.is-error { color: #fca5a5; }
+    .feedback-honeypot { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+    .feedback-submit { align-self: flex-start; }
+    .feedback-submit:disabled { cursor: wait; opacity: 0.65; }
+    .feedback-submit:focus-visible,
+    .feedback-preview button:focus-visible { outline: 3px solid var(--accent-light); outline-offset: 2px; }
+
     @media (max-width: 992px) {
       .eco-grid { grid-template-columns: repeat(2, 1fr); }
     }
@@ -592,6 +705,9 @@
       nav ul { display: none; }
       .brand-logo { height: 30px; }
       .eco-grid { grid-template-columns: 1fr; }
+      .feedback-layout, .feedback-row { grid-template-columns: 1fr; }
+      .feedback-intro, .feedback-form { padding: 22px; }
+      .feedback-submit { width: 100%; justify-content: center; }
     }
   </style>
 </head>
@@ -615,6 +731,7 @@
           <li><a href="#changelog">Cập Nhật</a></li>
           <li><a href="#download">Tải Cài Đặt</a></li>
           <li><a href="#faq">Hỏi Đáp</a></li>
+          <li><a href="#feedback">Góp Ý</a></li>
         </ul>
       </nav>
     </div>
@@ -1322,6 +1439,102 @@
   </div>
 
   <!-- Footer & 360 Ecosystem -->
+  <section id="feedback">
+    <div class="container">
+      <div class="section-head">
+        <h2>Gửi lỗi hoặc góp ý</h2>
+        <p>Chia sẻ trải nghiệm của bạn để VuaOffice ngày càng hữu ích hơn. Bạn không cần dùng thuật ngữ kỹ thuật.</p>
+      </div>
+
+      <div class="feedback-layout">
+        <aside class="feedback-intro">
+          <h3>Chúng tôi muốn lắng nghe</h3>
+          <p>Mỗi phản hồi giúp đội ngũ hiểu rõ hơn những gì bạn đang cần trong công việc hằng ngày.</p>
+          <ul class="feedback-points">
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3v18M3 12h18"/></svg><span>Báo lỗi sử dụng hoặc đề xuất tính năng mới.</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 4h16v16H4z"/><path d="m4 15 4-4 3 3 3-5 6 6"/></svg><span>Đính kèm tối đa 3 ảnh chụp màn hình để mô tả rõ hơn.</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/><path d="M12 16v-4M12 8h.01"/></svg><span>Không gửi mật khẩu, mã truy cập, tài liệu mật hoặc dữ liệu cá nhân.</span></li>
+          </ul>
+          <p class="feedback-help">Vấn đề liên quan đến bảo mật nên được gửi riêng qua <a href="docs/SECURITY.md">hướng dẫn báo cáo bảo mật</a>, không gửi ở đây.</p>
+        </aside>
+
+        <form class="feedback-form" id="feedback-form" novalidate>
+          <div class="feedback-row">
+            <label for="feedback-kind">Bạn muốn gửi <span aria-hidden="true">*</span>
+              <select id="feedback-kind" name="kind" required>
+                <option value="" selected disabled>Chọn loại phản hồi</option>
+                <option value="bug">Báo lỗi</option>
+                <option value="feature">Góp ý tính năng</option>
+              </select>
+            </label>
+            <label for="feedback-app">Phần nào liên quan? <span aria-hidden="true">*</span>
+              <select id="feedback-app" name="app" required>
+                <option value="Docs">VuaOffice Docs</option>
+                <option value="Sheets">VuaOffice Sheets</option>
+                <option value="Slides">VuaOffice Slides</option>
+                <option value="PDF">VuaOffice PDF</option>
+                <option value="Markdown">VuaOffice Markdown</option>
+                <option value="Mail & Calendar">Mail & Calendar</option>
+                <option value="AI">Trợ lý AI</option>
+                <option value="other">Khác</option>
+              </select>
+            </label>
+          </div>
+
+          <label for="feedback-title">Tiêu đề <span aria-hidden="true">*</span>
+            <input id="feedback-title" name="title" type="text" maxlength="120" required placeholder="Ví dụ: Không mở được tệp bảng tính lớn">
+          </label>
+
+          <div class="feedback-row">
+            <label for="feedback-version">Phiên bản VuaOffice
+              <select id="feedback-version" name="version" aria-describedby="feedback-version-help">
+                <option value="">Đang tải phiên bản…</option>
+              </select>
+              <span class="feedback-help" id="feedback-version-help">Tự chọn phiên bản hiện tại; bạn có thể đổi lại nếu cần.</span>
+            </label>
+            <label for="feedback-os">Hệ điều hành
+              <select id="feedback-os" name="os">
+                <option value="">Đang nhận diện…</option>
+                <option value="Windows">Windows</option>
+                <option value="macOS">macOS</option>
+                <option value="Linux">Linux</option>
+                <option value="ChromeOS">ChromeOS</option>
+                <option value="Android">Android</option>
+                <option value="iOS">iPhone / iPad</option>
+                <option value="other">Khác / Không rõ</option>
+              </select>
+            </label>
+          </div>
+
+          <label for="feedback-description">Mô tả <span aria-hidden="true">*</span>
+            <textarea id="feedback-description" name="description" maxlength="5000" required placeholder="Bạn đã làm gì? Điều gì xảy ra? Hãy mô tả bằng lời của bạn."></textarea>
+          </label>
+
+          <label for="feedback-expected">Kết quả mong đợi / nhu cầu của bạn
+            <textarea id="feedback-expected" name="expected" maxlength="3000" placeholder="Bạn mong VuaOffice hoạt động như thế nào?"></textarea>
+          </label>
+
+          <label for="feedback-images">Ảnh chụp màn hình (không bắt buộc)
+            <input class="feedback-file" id="feedback-images" name="images" type="file" accept="image/png,image/jpeg,image/webp" multiple>
+            <span class="feedback-help">Tối đa 3 ảnh, mỗi ảnh không quá 4 MB. Chỉ chọn ảnh đã che dữ liệu nhạy cảm.</span>
+          </label>
+          <div class="feedback-files" id="feedback-previews" aria-live="polite"></div>
+
+          <label class="feedback-consent" for="feedback-consent">
+            <input id="feedback-consent" name="consent" type="checkbox" required>
+            <span>Tôi xác nhận nội dung gửi không chứa mật khẩu, mã truy cập, dữ liệu cá nhân hoặc thông tin mật. <span aria-hidden="true">*</span></span>
+          </label>
+
+          <label class="feedback-honeypot" aria-hidden="true" for="feedback-website">Website
+            <input id="feedback-website" name="website" type="text" tabindex="-1" autocomplete="off">
+          </label>
+          <div class="feedback-status" id="feedback-status" role="status" aria-live="polite"></div>
+          <button class="btn-main feedback-submit" type="submit">Gửi phản hồi</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
   <footer>
     <div class="container">
       <!-- 360 CORP Ecosystem Header -->
@@ -1447,17 +1660,172 @@
   <script>
     // Tự động đồng bộ cập nhật từ updates.json nếu có bản ghi mới
     (function () {
+      var versionSelect = document.getElementById('feedback-version');
+      var topVersion = document.getElementById('top-bar-version');
+
+      // Đổ danh sách phiên bản vào form góp ý. Gọi cả khi updates.json hỏng:
+      // để trống <select required> thì người dùng không gửi được báo lỗi nào.
+      function setVersionOptions(data) {
+        if (!versionSelect) return;
+        var versions = Array.isArray(data) ? data.filter(function (item) {
+          return item && typeof item.version === 'string' && item.version.trim();
+        }) : [];
+        var fallback = topVersion && topVersion.textContent.match(/[0-9]+(?:\.[0-9]+)+/);
+        if (!versions.length && fallback) versions = [{ version: fallback[0] }];
+
+        versionSelect.textContent = '';
+        if (!versions.length) {
+          versionSelect.appendChild(new Option('Không xác định', ''));
+          return;
+        }
+        versions.forEach(function (item, index) {
+          var value = item.version.trim();
+          versionSelect.appendChild(new Option('v' + value, value, index === 0, index === 0));
+        });
+      }
+
       fetch('updates.json?v=' + Date.now())
         .then(function (res) { return res.ok ? res.json() : null; })
         .then(function (data) {
+          setVersionOptions(data);
           if (!data || !data.length) return;
           var latest = data[0];
-          var verEl = document.getElementById('top-bar-version');
-          if (verEl && latest.version) {
-            verEl.textContent = 'v' + latest.version;
+          if (topVersion && latest.version) {
+            topVersion.textContent = 'v' + latest.version;
           }
         })
-        .catch(function () {});
+        .catch(function () { setVersionOptions(null); });
+    })();
+
+    (function () {
+      var form = document.getElementById('feedback-form');
+      if (!form) return;
+
+      // Gọi thẳng workers.dev: DNS vuaoffice.com trỏ vào GitHub Pages (DNS-only)
+      // nên route vuaoffice.com/api/* không bao giờ tới được Worker.
+      var endpoint = 'https://vuaoffice-feedback.shy-hat-1c4f.workers.dev/api/feedback';
+      var osSelect = document.getElementById('feedback-os');
+      var fileInput = document.getElementById('feedback-images');
+      var previews = document.getElementById('feedback-previews');
+      var status = document.getElementById('feedback-status');
+      var submit = form.querySelector('button[type="submit"]');
+      var files = [];
+      var maxFiles = 3;
+      var maxBytes = 4 * 1024 * 1024;
+      var allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+
+      function detectOperatingSystem() {
+        var platform = '';
+        if (navigator.userAgentData && navigator.userAgentData.platform) {
+          platform = navigator.userAgentData.platform;
+        } else {
+          platform = navigator.platform || navigator.userAgent || '';
+        }
+        if (/android/i.test(navigator.userAgent)) return 'Android';
+        if (/iphone|ipod/i.test(navigator.userAgent) || /ipad/i.test(navigator.userAgent) || (/mac/i.test(platform) && navigator.maxTouchPoints > 1)) return 'iOS';
+        if (/cros/i.test(navigator.userAgent) || /chromeos/i.test(platform)) return 'ChromeOS';
+        if (/win/i.test(platform)) return 'Windows';
+        if (/mac/i.test(platform)) return 'macOS';
+        if (/linux/i.test(platform)) return 'Linux';
+        return 'other';
+      }
+
+      function showStatus(message, kind) {
+        status.textContent = message;
+        status.className = 'feedback-status is-visible is-' + kind;
+      }
+
+      if (osSelect) osSelect.value = detectOperatingSystem();
+
+      function renderPreviews() {
+        previews.textContent = '';
+        files.forEach(function (file, index) {
+          var item = document.createElement('div');
+          item.className = 'feedback-preview';
+          var image = document.createElement('img');
+          var objectUrl = URL.createObjectURL(file);
+          image.src = objectUrl;
+          image.alt = file.name;
+          var remove = document.createElement('button');
+          remove.type = 'button';
+          remove.textContent = '×';
+          remove.setAttribute('aria-label', 'Xoá ảnh ' + (index + 1));
+          remove.addEventListener('click', function () {
+            URL.revokeObjectURL(objectUrl);
+            files.splice(index, 1);
+            renderPreviews();
+          });
+          item.appendChild(image);
+          item.appendChild(remove);
+          previews.appendChild(item);
+        });
+      }
+
+      fileInput.addEventListener('change', function () {
+        var selected = Array.prototype.slice.call(fileInput.files);
+        if (files.length + selected.length > maxFiles) {
+          showStatus('Bạn chỉ có thể đính kèm tối đa 3 ảnh.', 'error');
+          fileInput.value = '';
+          return;
+        }
+        for (var i = 0; i < selected.length; i += 1) {
+          if (!allowedTypes.includes(selected[i].type)) {
+            showStatus('Chỉ chấp nhận ảnh PNG, JPEG hoặc WebP.', 'error');
+            fileInput.value = '';
+            return;
+          }
+          if (selected[i].size > maxBytes) {
+            showStatus('Mỗi ảnh không được vượt quá 4 MB.', 'error');
+            fileInput.value = '';
+            return;
+          }
+        }
+        files = files.concat(selected);
+        fileInput.value = '';
+        renderPreviews();
+      });
+
+      form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        if (!form.checkValidity()) {
+          form.reportValidity();
+          return;
+        }
+        var data = new FormData(form);
+        data.delete('images');
+        files.forEach(function (file) { data.append('images', file, file.name); });
+        submit.disabled = true;
+        showStatus('Đang gửi phản hồi…', 'success');
+
+        fetch(endpoint, { method: 'POST', body: data })
+          .then(function (response) {
+            return response.text().then(function (raw) {
+              var body = {};
+              var contentType = response.headers.get('Content-Type') || '';
+              if (contentType.toLowerCase().includes('application/json')) {
+                try { body = JSON.parse(raw); } catch (error) {}
+              }
+              if (!response.ok) {
+                var requestError = new Error('request-failed');
+                requestError.publicMessage = body.message || (response.status === 404 || response.status === 405
+                  ? 'Biểu mẫu chưa được kết nối. Vui lòng thử lại sau.'
+                  : 'Chưa gửi được phản hồi. Vui lòng thử lại sau.');
+                throw requestError;
+              }
+              return body;
+            });
+          })
+          .then(function () {
+            form.reset();
+            files = [];
+            renderPreviews();
+            showStatus('Đã gửi phản hồi. Cảm ơn bạn đã giúp VuaOffice tốt hơn.', 'success');
+          })
+          .catch(function (error) {
+            showStatus(error.publicMessage || 'Chưa gửi được phản hồi. Vui lòng kiểm tra kết nối và thử lại.', 'error');
+          })
+          .then(function () { submit.disabled = false; });
+      });
     })();
   </script>
 </body>
