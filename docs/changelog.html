@@ -45,7 +45,7 @@
         "alternateName": ["360 Office Suite", "Vua Office", "VuaOffice AI"],
         "operatingSystem": "Windows 10, Windows 11, macOS 12+, Linux (Ubuntu, Debian, Fedora)",
         "applicationCategory": "BusinessApplication, OfficeApplication",
-        "softwareVersion": "1.0.38",
+        "softwareVersion": "1.0.40",
         "offers": {
           "@type": "Offer",
           "price": "0",
@@ -584,6 +584,119 @@
     .footer-links a:hover { color: #fff; }
     .legal-note { text-align: center; font-size: 12px; color: #64748b; line-height: 1.6; }
 
+    .feedback-layout {
+      display: grid;
+      grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.2fr);
+      gap: 28px;
+      max-width: 1040px;
+      margin: 0 auto;
+      align-items: start;
+    }
+    .feedback-intro,
+    .feedback-form {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+    }
+    .feedback-intro h3 { color: #fff; font-size: 22px; margin-bottom: 10px; }
+    .feedback-intro > p { color: var(--text-muted); font-size: 14px; margin-bottom: 22px; }
+    .feedback-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .feedback-form label {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      color: #e2e8f0;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .feedback-form label > span:first-of-type,
+    .feedback-form label > span[aria-hidden="true"] { color: var(--danger); }
+    .feedback-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .feedback-form input:not([type="checkbox"]),
+    .feedback-form select,
+    .feedback-form textarea {
+      width: 100%;
+      border: 1px solid #334155;
+      border-radius: 9px;
+      background: #0d1525;
+      color: var(--text);
+      font: inherit;
+      padding: 11px 12px;
+    }
+    .feedback-form textarea { min-height: 120px; resize: vertical; }
+    .feedback-form input:not([type="checkbox"]):focus,
+    .feedback-form select:focus,
+    .feedback-form textarea:focus {
+      outline: 2px solid var(--accent-light);
+      outline-offset: 1px;
+      border-color: var(--accent-light);
+    }
+    .feedback-points { list-style: none; color: #cbd5e1; font-size: 14px; }
+    .feedback-points li {
+      display: flex;
+      gap: 9px;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .feedback-points svg {
+      width: 17px;
+      height: 17px;
+      color: var(--success);
+      flex-shrink: 0;
+      margin-top: 3px;
+    }
+    .feedback-help { color: var(--text-muted); font-size: 12px; font-weight: 400; line-height: 1.5; }
+    .feedback-files { display: flex; flex-wrap: wrap; gap: 10px; }
+    .feedback-preview {
+      position: relative;
+      width: 92px;
+      height: 76px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #0d1525;
+    }
+    .feedback-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .feedback-preview button {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 24px;
+      height: 24px;
+      border: 0;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.75);
+      color: #fff;
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .feedback-consent {
+      flex-direction: row !important;
+      align-items: flex-start;
+      gap: 9px !important;
+      font-weight: 400 !important;
+    }
+    .feedback-consent input { margin-top: 4px; accent-color: var(--accent); }
+    .feedback-status { display: none; font-size: 14px; line-height: 1.5; }
+    .feedback-status.is-visible { display: block; }
+    .feedback-status.is-success { color: #6ee7b7; }
+    .feedback-status.is-error { color: #fca5a5; }
+    .feedback-honeypot { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+    .feedback-submit { align-self: flex-start; }
+    .feedback-submit:disabled { cursor: wait; opacity: 0.65; }
+    .feedback-submit:focus-visible,
+    .feedback-preview button:focus-visible { outline: 3px solid var(--accent-light); outline-offset: 2px; }
+
     @media (max-width: 992px) {
       .eco-grid { grid-template-columns: repeat(2, 1fr); }
     }
@@ -592,12 +705,15 @@
       nav ul { display: none; }
       .brand-logo { height: 30px; }
       .eco-grid { grid-template-columns: 1fr; }
+      .feedback-layout, .feedback-row { grid-template-columns: 1fr; }
+      .feedback-intro, .feedback-form { padding: 22px; }
+      .feedback-submit { width: 100%; justify-content: center; }
     }
   </style>
 </head>
 <body>
   <div class="top-bar">
-    ⚡ <strong>VuaOffice v1.0.38:</strong> Toàn bộ lịch sử nâng cấp và cải tiến sản phẩm. <a href="index.html">← Quay lại Trang Chủ</a>
+    ⚡ <strong>VuaOffice v1.0.40:</strong> Toàn bộ lịch sử nâng cấp và cải tiến sản phẩm. <a href="index.html">← Quay lại Trang Chủ</a>
   </div>
 
   <header>
@@ -612,6 +728,7 @@
           <li><a href="#changelog">Cập Nhật</a></li>
           <li><a href="index.html#download">Tải Cài Đặt</a></li>
           <li><a href="index.html#faq">Hỏi Đáp</a></li>
+          <li><a href="index.html#feedback">Góp Ý</a></li>
         </ul>
       </nav>
     </div>
@@ -635,12 +752,66 @@
       </div>
 
       <div class="timeline">
+        <!-- v1.0.40 -->
+        <div class="timeline-item">
+          <div class="timeline-header">
+            <span class="timeline-ver">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+              Phiên bản v1.0.40 (Mới nhất)
+            </span>
+            <span class="timeline-date">Tháng 9/2026</span>
+          </div>
+          <ul>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Mã hoá bắt buộc khi gửi và nhận thư:</strong> Ứng dụng nay luôn kiểm tra chứng chỉ của máy chủ thư và bắt buộc nâng cấp kênh mã hoá trước khi gửi mật khẩu. Nếu máy chủ không đáp ứng, phiên làm việc bị huỷ thay vì âm thầm truyền thông tin đăng nhập qua kênh không an toàn.</span>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Nhận thư qua giao thức POP3:</strong> Bổ sung tuỳ chọn chọn giao thức nhận thư IMAP hoặc POP3 trong phần cài đặt tài khoản, cổng kết nối tự điều chỉnh theo lựa chọn. Thư chỉ được tải về, không xoá trên máy chủ.</span>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Giữ đăng nhập ổn định hơn:</strong> Khắc phục các lỗi khiến tài khoản Outlook.com cá nhân bị đăng xuất sau khoảng một giờ và trường hợp ứng dụng thử kết nối lại liên tục khi quyền truy cập đã bị thu hồi.</span>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Sửa lỗi dùng tài khoản thư thật:</strong> Khắc phục việc cấu hình máy chủ không được lưu lại, thư gửi và thư nhận rơi vào thư mục sai, và hai thư khác nhau trùng tiêu đề bị nhận nhầm là một.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- v1.0.39 -->
+        <div class="timeline-item">
+          <div class="timeline-header">
+            <span class="timeline-ver">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+              Phiên bản v1.0.39
+            </span>
+            <span class="timeline-date">Tháng 9/2026</span>
+          </div>
+          <ul>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Bộ cài Windows 64-bit trở lại đầy đủ:</strong> Khắc phục lỗi khiến tiến trình đóng gói bản 64-bit thất bại do bị yêu cầu dựng nhầm cả bản 32-bit, đồng thời bổ sung kiểm tra tự động chặn lỗi tái phát.</span>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Dàn bài tài liệu Markdown:</strong> Bổ sung thanh bên hiển thị dàn bài theo tiêu đề, bấm để nhảy nhanh đến từng mục, kèm bản dịch tiếng Việt.</span>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Nhiều bản vá cho Docs, Sheets và PDF:</strong> Đếm đúng số từ với tiếng Hy Lạp, Nga, Do Thái và Ả Rập; giữ nguyên ngắt dòng khi dán bảng tính; xử lý chính xác màu sắc và cỡ chữ trong tệp PDF.</span>
+            </li>
+          </ul>
+        </div>
+
         <!-- v1.0.38 -->
         <div class="timeline-item">
           <div class="timeline-header">
             <span class="timeline-ver">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-              Phiên bản v1.0.38 (Mới nhất)
+              Phiên bản v1.0.38
             </span>
             <span class="timeline-date">Tháng 9/2026</span>
           </div>
@@ -1047,17 +1218,172 @@
   <script>
     // Tự động đồng bộ cập nhật từ updates.json nếu có bản ghi mới
     (function () {
+      var versionSelect = document.getElementById('feedback-version');
+      var topVersion = document.getElementById('top-bar-version');
+
+      // Đổ danh sách phiên bản vào form góp ý. Gọi cả khi updates.json hỏng:
+      // để trống <select required> thì người dùng không gửi được báo lỗi nào.
+      function setVersionOptions(data) {
+        if (!versionSelect) return;
+        var versions = Array.isArray(data) ? data.filter(function (item) {
+          return item && typeof item.version === 'string' && item.version.trim();
+        }) : [];
+        var fallback = topVersion && topVersion.textContent.match(/[0-9]+(?:\.[0-9]+)+/);
+        if (!versions.length && fallback) versions = [{ version: fallback[0] }];
+
+        versionSelect.textContent = '';
+        if (!versions.length) {
+          versionSelect.appendChild(new Option('Không xác định', ''));
+          return;
+        }
+        versions.forEach(function (item, index) {
+          var value = item.version.trim();
+          versionSelect.appendChild(new Option('v' + value, value, index === 0, index === 0));
+        });
+      }
+
       fetch('updates.json?v=' + Date.now())
         .then(function (res) { return res.ok ? res.json() : null; })
         .then(function (data) {
+          setVersionOptions(data);
           if (!data || !data.length) return;
           var latest = data[0];
-          var verEl = document.getElementById('top-bar-version');
-          if (verEl && latest.version) {
-            verEl.textContent = 'v' + latest.version;
+          if (topVersion && latest.version) {
+            topVersion.textContent = 'v' + latest.version;
           }
         })
-        .catch(function () {});
+        .catch(function () { setVersionOptions(null); });
+    })();
+
+    (function () {
+      var form = document.getElementById('feedback-form');
+      if (!form) return;
+
+      // Gọi thẳng workers.dev: DNS vuaoffice.com trỏ vào GitHub Pages (DNS-only)
+      // nên route vuaoffice.com/api/* không bao giờ tới được Worker.
+      var endpoint = 'https://vuaoffice-feedback.shy-hat-1c4f.workers.dev/api/feedback';
+      var osSelect = document.getElementById('feedback-os');
+      var fileInput = document.getElementById('feedback-images');
+      var previews = document.getElementById('feedback-previews');
+      var status = document.getElementById('feedback-status');
+      var submit = form.querySelector('button[type="submit"]');
+      var files = [];
+      var maxFiles = 3;
+      var maxBytes = 4 * 1024 * 1024;
+      var allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+
+      function detectOperatingSystem() {
+        var platform = '';
+        if (navigator.userAgentData && navigator.userAgentData.platform) {
+          platform = navigator.userAgentData.platform;
+        } else {
+          platform = navigator.platform || navigator.userAgent || '';
+        }
+        if (/android/i.test(navigator.userAgent)) return 'Android';
+        if (/iphone|ipod/i.test(navigator.userAgent) || /ipad/i.test(navigator.userAgent) || (/mac/i.test(platform) && navigator.maxTouchPoints > 1)) return 'iOS';
+        if (/cros/i.test(navigator.userAgent) || /chromeos/i.test(platform)) return 'ChromeOS';
+        if (/win/i.test(platform)) return 'Windows';
+        if (/mac/i.test(platform)) return 'macOS';
+        if (/linux/i.test(platform)) return 'Linux';
+        return 'other';
+      }
+
+      function showStatus(message, kind) {
+        status.textContent = message;
+        status.className = 'feedback-status is-visible is-' + kind;
+      }
+
+      if (osSelect) osSelect.value = detectOperatingSystem();
+
+      function renderPreviews() {
+        previews.textContent = '';
+        files.forEach(function (file, index) {
+          var item = document.createElement('div');
+          item.className = 'feedback-preview';
+          var image = document.createElement('img');
+          var objectUrl = URL.createObjectURL(file);
+          image.src = objectUrl;
+          image.alt = file.name;
+          var remove = document.createElement('button');
+          remove.type = 'button';
+          remove.textContent = '×';
+          remove.setAttribute('aria-label', 'Xoá ảnh ' + (index + 1));
+          remove.addEventListener('click', function () {
+            URL.revokeObjectURL(objectUrl);
+            files.splice(index, 1);
+            renderPreviews();
+          });
+          item.appendChild(image);
+          item.appendChild(remove);
+          previews.appendChild(item);
+        });
+      }
+
+      fileInput.addEventListener('change', function () {
+        var selected = Array.prototype.slice.call(fileInput.files);
+        if (files.length + selected.length > maxFiles) {
+          showStatus('Bạn chỉ có thể đính kèm tối đa 3 ảnh.', 'error');
+          fileInput.value = '';
+          return;
+        }
+        for (var i = 0; i < selected.length; i += 1) {
+          if (!allowedTypes.includes(selected[i].type)) {
+            showStatus('Chỉ chấp nhận ảnh PNG, JPEG hoặc WebP.', 'error');
+            fileInput.value = '';
+            return;
+          }
+          if (selected[i].size > maxBytes) {
+            showStatus('Mỗi ảnh không được vượt quá 4 MB.', 'error');
+            fileInput.value = '';
+            return;
+          }
+        }
+        files = files.concat(selected);
+        fileInput.value = '';
+        renderPreviews();
+      });
+
+      form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        if (!form.checkValidity()) {
+          form.reportValidity();
+          return;
+        }
+        var data = new FormData(form);
+        data.delete('images');
+        files.forEach(function (file) { data.append('images', file, file.name); });
+        submit.disabled = true;
+        showStatus('Đang gửi phản hồi…', 'success');
+
+        fetch(endpoint, { method: 'POST', body: data })
+          .then(function (response) {
+            return response.text().then(function (raw) {
+              var body = {};
+              var contentType = response.headers.get('Content-Type') || '';
+              if (contentType.toLowerCase().includes('application/json')) {
+                try { body = JSON.parse(raw); } catch (error) {}
+              }
+              if (!response.ok) {
+                var requestError = new Error('request-failed');
+                requestError.publicMessage = body.message || (response.status === 404 || response.status === 405
+                  ? 'Biểu mẫu chưa được kết nối. Vui lòng thử lại sau.'
+                  : 'Chưa gửi được phản hồi. Vui lòng thử lại sau.');
+                throw requestError;
+              }
+              return body;
+            });
+          })
+          .then(function () {
+            form.reset();
+            files = [];
+            renderPreviews();
+            showStatus('Đã gửi phản hồi. Cảm ơn bạn đã giúp VuaOffice tốt hơn.', 'success');
+          })
+          .catch(function (error) {
+            showStatus(error.publicMessage || 'Chưa gửi được phản hồi. Vui lòng kiểm tra kết nối và thử lại.', 'error');
+          })
+          .then(function () { submit.disabled = false; });
+      });
     })();
   </script>
 </body></html>

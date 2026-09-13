@@ -45,7 +45,7 @@
         "alternateName": ["360 Office Suite", "Vua Office", "VuaOffice AI"],
         "operatingSystem": "Windows 10, Windows 11, macOS 12+, Linux (Ubuntu, Debian, Fedora)",
         "applicationCategory": "BusinessApplication, OfficeApplication",
-        "softwareVersion": "1.0.38",
+        "softwareVersion": "1.0.40",
         "offers": {
           "@type": "Offer",
           "price": "0",
@@ -715,7 +715,7 @@
 
   <!-- Top Announcement Bar -->
   <div class="top-bar">
-    ⚡ <strong>VuaOffice <span id="top-bar-version">v1.0.38</span> đã ra mắt:</strong> Hoàn tất khôi phục bộ cài đa nền tảng. <a href="#changelog">Khám phá tính năng mới &rarr;</a>
+    ⚡ <strong>VuaOffice <span id="top-bar-version">v1.0.40</span> đã ra mắt:</strong> Siết bảo mật đường truyền thư điện tử và bổ sung nhận thư qua POP3. <a href="#changelog">Khám phá tính năng mới &rarr;</a>
   </div>
 
   <!-- Header -->
@@ -1166,12 +1166,66 @@
       </div>
 
       <div class="timeline">
+        <!-- v1.0.40 -->
+        <div class="timeline-item">
+          <div class="timeline-header">
+            <span class="timeline-ver">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+              Phiên bản v1.0.40 (Mới nhất)
+            </span>
+            <span class="timeline-date">Tháng 9/2026</span>
+          </div>
+          <ul>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Mã hoá bắt buộc khi gửi và nhận thư:</strong> Ứng dụng nay luôn kiểm tra chứng chỉ của máy chủ thư và bắt buộc nâng cấp kênh mã hoá trước khi gửi mật khẩu. Nếu máy chủ không đáp ứng, phiên làm việc bị huỷ thay vì âm thầm truyền thông tin đăng nhập qua kênh không an toàn.</span>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Nhận thư qua giao thức POP3:</strong> Bổ sung tuỳ chọn chọn giao thức nhận thư IMAP hoặc POP3 trong phần cài đặt tài khoản, cổng kết nối tự điều chỉnh theo lựa chọn. Thư chỉ được tải về, không xoá trên máy chủ.</span>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Giữ đăng nhập ổn định hơn:</strong> Khắc phục các lỗi khiến tài khoản Outlook.com cá nhân bị đăng xuất sau khoảng một giờ và trường hợp ứng dụng thử kết nối lại liên tục khi quyền truy cập đã bị thu hồi.</span>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Sửa lỗi dùng tài khoản thư thật:</strong> Khắc phục việc cấu hình máy chủ không được lưu lại, thư gửi và thư nhận rơi vào thư mục sai, và hai thư khác nhau trùng tiêu đề bị nhận nhầm là một.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- v1.0.39 -->
+        <div class="timeline-item">
+          <div class="timeline-header">
+            <span class="timeline-ver">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+              Phiên bản v1.0.39
+            </span>
+            <span class="timeline-date">Tháng 9/2026</span>
+          </div>
+          <ul>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Bộ cài Windows 64-bit trở lại đầy đủ:</strong> Khắc phục lỗi khiến tiến trình đóng gói bản 64-bit thất bại do bị yêu cầu dựng nhầm cả bản 32-bit, đồng thời bổ sung kiểm tra tự động chặn lỗi tái phát.</span>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Dàn bài tài liệu Markdown:</strong> Bổ sung thanh bên hiển thị dàn bài theo tiêu đề, bấm để nhảy nhanh đến từng mục, kèm bản dịch tiếng Việt.</span>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Nhiều bản vá cho Docs, Sheets và PDF:</strong> Đếm đúng số từ với tiếng Hy Lạp, Nga, Do Thái và Ả Rập; giữ nguyên ngắt dòng khi dán bảng tính; xử lý chính xác màu sắc và cỡ chữ trong tệp PDF.</span>
+            </li>
+          </ul>
+        </div>
+
         <!-- v1.0.38 -->
         <div class="timeline-item">
           <div class="timeline-header">
             <span class="timeline-ver">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-              Phiên bản v1.0.38 (Mới nhất)
+              Phiên bản v1.0.38
             </span>
             <span class="timeline-date">Tháng 9/2026</span>
           </div>
@@ -1250,51 +1304,9 @@
           </ul>
         </div>
 
-        <!-- v1.0.34 -->
-        <div class="timeline-item">
-          <div class="timeline-header">
-            <span class="timeline-ver">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-              Phiên bản v1.0.34
-            </span>
-            <span class="timeline-date">Tháng 9/2026</span>
-          </div>
-          <ul>
-            <li>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-              <span><strong>Build release ổn định hơn:</strong> Sửa cách truyền Deploy Token GitLab trong GitHub Actions và đồng bộ kiểm tra version giữa source private với public mirror.</span>
-            </li>
-            <li>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-              <span><strong>Giữ an toàn ranh giới source:</strong> GitHub tiếp tục chỉ lưu docs, workflow và metadata; installer được build từ source private trên GitLab.</span>
-            </li>
-          </ul>
-        </div>
-
-        <!-- v1.0.33 -->
-        <div class="timeline-item">
-          <div class="timeline-header">
-            <span class="timeline-ver">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-              Phiên bản v1.0.33
-            </span>
-            <span class="timeline-date">Tháng 9/2026</span>
-          </div>
-          <ul>
-            <li>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-              <span><strong>Mở file Excel ổn định trên Windows:</strong> Đóng gói đúng bộ máy xử lý bảng tính native cho Windows 64-bit và 32-bit, khắc phục lỗi mở file Excel thành màn hình trắng.</span>
-            </li>
-            <li>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-              <span><strong>Cải tiến Docs, Sheets, Slides, PDF và HTML:</strong> Đồng bộ các bản vá và tính năng nền tảng mới nhất, đồng thời tăng độ tin cậy của quy trình đóng gói ứng dụng.</span>
-            </li>
-          </ul>
-        </div>
-
         <div style="text-align: center; margin-top: 36px;">
           <a href="changelog.html" class="btn-main" style="display: inline-flex; padding: 12px 28px; font-size: 15px;">
-            Xem toàn bộ lịch sử cập nhật (13 phiên bản) →
+            Xem toàn bộ lịch sử cập nhật (15 phiên bản) →
           </a>
         </div>
       </div>
@@ -1438,7 +1450,7 @@
     </div>
   </div>
 
-  <!-- Footer & 360 Ecosystem -->
+  <!-- Feedback Form (chỉ có ở trang chủ) -->
   <section id="feedback">
     <div class="container">
       <div class="section-head">
@@ -1535,6 +1547,7 @@
     </div>
   </section>
 
+  <!-- Footer & 360 Ecosystem -->
   <footer>
     <div class="container">
       <!-- 360 CORP Ecosystem Header -->

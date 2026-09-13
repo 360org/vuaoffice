@@ -82,6 +82,11 @@ apps/shell/package.json   → "version": "0.7.1"
 npm run site:sync
 ```
 
+> ⚠️ `docs/index.html` và `docs/changelog.html` là **tệp sinh ra**, không phải tệp
+> viết tay. Sửa `docs/updates.json` mà quên `site:sync` thì trang chủ vẫn quảng
+> cáo bản cũ (v1.0.40 đã dính đúng lỗi này — trang ghi "v1.0.38 (Mới nhất)").
+> Cổng `npm run site:check` — đã nằm trong `brand:gate` — chặn trường hợp này.
+
 > ⚠️ Workflow `release.yml` **xác thực tag khớp chính xác `apps/shell/package.json`**. Lệch nhau → build thất bại ở job đầu tiên.
 
 Xác minh:

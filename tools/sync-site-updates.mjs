@@ -143,7 +143,9 @@ const adjustedHeaderHtml = headerHtml
   .replace(/href="#compare"/g, 'href="index.html#compare"')
   .replace(/href="#changelog"/g, 'href="#changelog"')
   .replace(/href="#download"/g, 'href="index.html#download"')
-  .replace(/href="#faq"/g, 'href="index.html#faq"');
+  .replace(/href="#faq"/g, 'href="index.html#faq"')
+  // Biểu mẫu góp ý chỉ có ở trang chủ; để "#feedback" thì nút trên changelog bấm không đi đâu.
+  .replace(/href="#feedback"/g, 'href="index.html#feedback"');
 
 const footerMatch = changelogHtml.match(/(<!-- Footer & 360 Ecosystem -->[\s\S]*?<\/body>)/);
 const footerHtml = footerMatch ? footerMatch[1] : '</body>';

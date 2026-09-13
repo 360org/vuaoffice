@@ -83,8 +83,13 @@ Nguyên tắc nền tảng:
    `protected` chặn một chiều PHẢI có cặp đối xứng. Sau mọi thay đổi config,
    bắt buộc chạy `npm run brand:selftest`.
 8. **Trước mọi commit**: `npm run brand:gate` phải ĐẠT (selftest + status +
-   check-brand + audit:check). Cấm vô hiệu hóa cổng, cấm `continue-on-error`,
-   cấm `--no-verify`.
+   check-brand + audit:check + site:check). Cấm vô hiệu hóa cổng, cấm
+   `continue-on-error`, cấm `--no-verify`.
+8a. **`docs/index.html` và `docs/changelog.html` là TỆP SINH RA.** Nguồn là
+   `package.json` (số phiên bản) + `docs/updates.json` (nội dung). Sửa tay hai
+   tệp HTML đó sẽ bị `site:sync` ghi đè ở lần chạy kế tiếp — sửa dữ liệu nguồn
+   rồi chạy `npm run site:sync`. Ngoại lệ duy nhất là các khối không do
+   generator quản lý (form góp ý, phần `#apps`, `#compare`, `#faq`…).
 8b. **Bản ghi kiểm toán BẤT BIẾN**: cấm sửa/ghi đè/xoá tệp trong `docs/audits/`.
    Kiểm toán mới → tạo tệp mới `AUDIT-<YYYY-MM-DD>-<version>.md` kèm banner
    `<!-- AUDIT-IMMUTABLE -->`. Cổng `audit:check` sẽ chặn nếu vi phạm.
@@ -110,7 +115,9 @@ Nguyên tắc nền tảng:
 | `npm run brand:selftest` (alias: `whitelabel:selftest`) | Kiểm chứng luật song ánh |
 | `npm run brand:check` | Cổng phát hiện rò rỉ (2 tầng) |
 | `npm run audit:check` | Chặn sửa/xoá/đổi tên bản ghi kiểm toán |
-| `npm run brand:gate` | Gộp cả bốn cổng — chạy trước mọi commit |
+| `npm run site:sync` | Sinh lại `docs/index.html` + `changelog.html` + `sitemap.xml` từ `package.json` và `docs/updates.json` |
+| `npm run site:check` | Chặn website lệch phiên bản (quên chạy `site:sync`) |
+| `npm run brand:gate` | Gộp cả năm cổng — chạy trước mọi commit |
 | `npm run upstream:setup` | Cấu hình remote upstream + merge driver |
 
 ## Release Rules (mandatory)

@@ -13,6 +13,13 @@ Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaO
 - **[REFACTOR] Worker lưu ảnh đính kèm qua GitHub contents API**: thay cho bucket R2, ảnh được commit vào chính kho mã và nhúng bằng liên kết `raw.githubusercontent.com`; đường đọc R2 cũ giữ lại để ảnh của các Issue trước không hỏng liên kết. `worker/README.md` được viết lại cho khớp mã nguồn.
 - **[CHORE] `worker/` chỉ sống trên GitLab**: mã Worker triển khai bằng `wrangler deploy`, không phần nào của trang tĩnh cần tới nó, nên được thêm vào `.githubignore`.
 
+### Đồng bộ phiên bản trên `vuaoffice.com`
+
+- **[FIX] Trang chủ quảng cáo bản cũ sau khi phát hành v1.0.40**: thanh thông báo và dòng thời gian vẫn ghi "Phiên bản v1.0.38 (Mới nhất)" dù `docs/updates.json` đã có 1.0.40. Nguyên nhân: `docs/index.html` và `docs/changelog.html` là **tệp sinh ra** từ `package.json` + `updates.json` qua `tools/sync-site-updates.mjs`, nhưng quy trình phát hành đã bỏ sót bước `npm run site:sync` (RELEASE_PROTOCOL.md §Bước 5). Đã chạy lại generator: thanh thông báo, 6 mục dòng thời gian trang chủ, 15 mục trang changelog, `softwareVersion` trong JSON-LD và `<lastmod>` của sitemap đều về 1.0.40.
+- **[NEW] Cổng `npm run site:check` chặn tái phát**: chạy generator rồi so sánh, lệch là chặn — đã gộp vào `brand:gate` nên mọi commit đều phải qua. Bỏ qua `<lastmod>` của sitemap vì trường này đổi theo ngày mà không phải lỗi đồng bộ.
+- **[FIX] Ghép biểu mẫu góp ý làm hỏng ranh giới cắt footer**: `<section id="feedback">` bị chèn ngay sau chú thích `<!-- Footer & 360 Ecosystem -->` — đúng dấu mốc generator dùng để cắt footer sang `changelog.html`, nên lần chạy `site:sync` kế tiếp sẽ nhân bản cả biểu mẫu sang trang changelog. Đã tách dấu mốc về đúng thẻ `<footer>`.
+- **[FIX] Liên kết "Góp Ý" trên trang changelog trỏ vào khoảng không**: biểu mẫu chỉ có ở trang chủ, nhưng generator giữ nguyên `href="#feedback"` khi dựng thanh điều hướng. Nay viết lại thành `index.html#feedback` cùng nhóm với `#apps`, `#compare`, `#download`, `#faq`.
+
 ## [1.0.40] - 2026-09-13
 
 ### Bảo mật giao thức thư (apps/mail)
