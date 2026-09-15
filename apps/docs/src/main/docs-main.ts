@@ -20,7 +20,7 @@ import {
   writeFile,
 } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { basename, join } from 'node:path'
+import { basename, dirname, extname, isAbsolute, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import {
   BrowserWindow,
@@ -3581,6 +3581,59 @@ export function registerDocsIpc(): void {
     'docs:create-document',
     (_event, request: CreateDocumentRequest): Promise<CreateDocumentResult> =>
       createAiDocument(request),
+  )
+
+  // MCP-driven output: write the live document to an explicit absolute path with
+  // no dialog. Mirrors docs:save-new's bookkeeping (write allowlist, disk state,
+  // recents, tab-title sync) but targets a caller-chosen path and refuses to
+  // clobber an existing file unless the caller asked for overwrite.
+  ipcMain.handle(
+    'docs:save-to',
+    async (event, filePath: string, data: ArrayBuffer, overwrite: boolean) => {
+      try {
+        if (tornDownWcIds.has(event.sender.id)) return { ok: false }
+        if (typeof filePath !== 'string' || !isAbsolute(filePath)) {
+          return { ok: false, error: 'path must be absolute' }
+        }
+        if (extname(filePath).toLowerCase() !== '.docx') {
+          return { ok: false, error: 'path must point to a .docx file' }
+        }
+        if (!overwrite && existsSync(filePath)) {
+          return {
+            ok: false,
+            error: `file already exists: ${filePath} (pass overwrite:true to replace it)`,
+          }
+        }
+        await mkdir(dirname(filePath), { recursive: true })
+        const passwordState = snapshotDocPassword(event.sender.id, null)
+        const bytes = passwordState.password
+          ? encryptDocx(Buffer.from(data), passwordState.password)
+          : Buffer.from(data)
+        await atomicWriteFile(filePath, bytes)
+        // teardown may have happened while the write was in flight — a file this
+        // handler just wrote is safe to roll back (mirrors docs:save-new)
+        if (tornDownWcIds.has(event.sender.id)) {
+          await unlink(filePath).catch(() => {})
+          return { ok: false }
+        }
+        allowDocWrite(event.sender.id, filePath)
+        await rememberDiskState(event.sender.id, filePath, bytes)
+        if (tornDownWcIds.has(event.sender.id)) {
+          await unlink(filePath).catch(() => {})
+          return { ok: false }
+        }
+        const passwordIntentPending = commitDocPasswordSave(
+          event.sender.id,
+          passwordState,
+          filePath,
+        )
+        pushRecent(filePath)
+        notifyFileSaved(event.sender, filePath)
+        return { ok: true, path: filePath, passwordIntentPending }
+      } catch (err) {
+        return { ok: false, error: String(err) }
+      }
+    },
   )
 
   ipcMain.handle('docs:recent', () =>
