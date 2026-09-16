@@ -700,6 +700,7 @@ export default function App() {
         disabled={status !== 'ready'}
         dirty={dirty}
         onSave={() => void doSave('save')}
+        onSaveAs={() => void doSave('saveAs')}
         onFind={() => openFind(false)}
         autoSave={autoSave}
         onToggleAutoSave={setAutoSave}

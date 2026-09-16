@@ -65,6 +65,7 @@ interface Props {
   disabled: boolean
   dirty: boolean
   onSave: () => void
+  onSaveAs: () => void
   onFind: () => void
   canUndo: boolean
   canRedo: boolean
@@ -212,6 +213,17 @@ export function Ribbon(p: Props) {
           onClick={p.onSave}
         >
           <IconSave size={16} />
+        </button>
+        <button
+          type="button"
+          className="qa-btn qa-save-as"
+          data-tip={t('saveAs')}
+          aria-label={t('saveAs')}
+          disabled={off}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={p.onSaveAs}
+        >
+          {t('saveAs')}
         </button>
         <button
           type="button"
