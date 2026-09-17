@@ -1772,7 +1772,8 @@ button.check-item:hover {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  border-right: 1px solid var(--color-border-default);
+  border-left: var(--ai-panel-border-left, 0px) solid var(--color-border-default);
+  border-right: var(--ai-panel-border-right, 1px) solid var(--color-border-default);
   background: var(--color-bg-page);
   box-shadow: var(--sheets-shadow-copilot);
   font-family: var(--gs-font-sans);

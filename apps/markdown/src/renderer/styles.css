@@ -903,7 +903,8 @@ html.genoffice-popover-open .ribbon-tabs {
   width: 34px;
   padding: 12px 2px;
   border: none;
-  border-right: 1px solid var(--border);
+  border-left: var(--ai-panel-border-left, 0px) solid var(--border);
+  border-right: var(--ai-panel-border-right, 1px) solid var(--border);
   background: var(--surface);
   color: var(--text);
   cursor: pointer;
@@ -923,7 +924,8 @@ html.genoffice-popover-open .ribbon-tabs {
   min-height: 0;
   overflow: hidden;
   /* same visible divider as the docs panel: strong border so it doesn't drown */
-  border-right: 1px solid var(--color-border-strong);
+  border-left: var(--ai-panel-border-left, 0px) solid var(--color-border-strong);
+  border-right: var(--ai-panel-border-right, 1px) solid var(--color-border-strong);
   background: var(--color-bg-page);
   font-family: var(--gs-font-sans);
   color: var(--color-text-primary);
