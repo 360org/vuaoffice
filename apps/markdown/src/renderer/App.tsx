@@ -1,3 +1,9 @@
+import {
+  captureMarkdownSource,
+  roundTripMarkdownEnabled,
+  serializeMarkdown,
+  type MarkdownSourceSnapshot,
+} from './markdown/roundtripSerializer'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ImageViewer, useAutoSavePref, FilesPane, FilesEdgeTab } from '@genoffice/ui'
 import {
@@ -13,7 +19,6 @@ import {
   buildFrontmatterRaw,
   frontmatterInner,
   parseDocText,
-  serializeDocText,
   stripLegacyFencedDivs,
   type DocEnvelope,
 } from './markdown/docText'
@@ -160,6 +165,8 @@ export default function App() {
   const statusRef = useRef<LoadStatus>('loading')
   const dirtyRef = useRef(false)
   const savingRef = useRef(false)
+  const [roundTripEnabled] = useState(roundTripMarkdownEnabled)
+  const originalSourceRef = useRef<MarkdownSourceSnapshot | undefined>(undefined)
   const envelopeRef = useRef<DocEnvelope>(EMPTY_ENVELOPE)
   const editorRef = useRef<Editor | null>(null)
   const filePathRef = useRef<string | null>(null)
@@ -255,6 +262,9 @@ export default function App() {
             .setMeta('addToHistory', false)
             .setContent(stripLegacyFencedDivs(envelope.body), { contentType: 'markdown' })
             .run()
+          originalSourceRef.current = roundTripEnabled
+            ? captureMarkdownSource(raw, envelope, editor.state.doc)
+            : undefined
           setFilePath(path)
           const inner = frontmatterInner(envelope.frontmatter)
           setFmText(inner)
@@ -275,7 +285,7 @@ export default function App() {
     return () => {
       cancelled = true
     }
-  }, [editor])
+  }, [editor, roundTripEnabled])
 
   const onFrontmatterChange = useCallback(
     (inner: string) => {
@@ -297,15 +307,35 @@ export default function App() {
       // must keep the document dirty — compare doc identity after the await
       const docAtSave = current.state.doc
       const fmAtSave = envelopeRef.current.frontmatter
-      const body = current.getMarkdown()
-      const text = serializeDocText(envelopeRef.current, body)
+      const sourceAtSave = originalSourceRef.current
+      const text = serializeMarkdown(
+        envelopeRef.current,
+        current.state.doc,
+        () => current.getMarkdown(),
+        sourceAtSave,
+      )
       const imageSources = imageSourcesFromEditor(current)
       const result = await window.markdownApi.save({ text, imageSources, mode, suggestedName })
       if (result.ok && 'path' in result) {
         const unchanged =
           editorRef.current?.state.doc === docAtSave && envelopeRef.current.frontmatter === fmAtSave
+        // Save As can rewrite sources absent from the visual projection (e.g. HTML).
+        // Never reuse a snapshot containing paths from the previous location.
+        if (result.imageRewrites?.length) originalSourceRef.current = undefined
         if (result.imageRewrites?.length && editorRef.current) {
           applyImageRewrites(editorRef.current, result.imageRewrites)
+        }
+        if (
+          unchanged &&
+          sourceAtSave?.source === text &&
+          result.writtenText !== undefined &&
+          editorRef.current
+        ) {
+          originalSourceRef.current = captureMarkdownSource(
+            result.writtenText,
+            envelopeRef.current,
+            editorRef.current.state.doc,
+          )
         }
         setImageBaseDir(dirOf(result.path))
         setFilePath(result.path)
@@ -482,7 +512,12 @@ export default function App() {
       const current = editorRef.current
       if (!current || statusRef.current !== 'ready') return
       try {
-        const text = serializeDocText(envelopeRef.current, current.getMarkdown())
+        const text = serializeMarkdown(
+          envelopeRef.current,
+          current.state.doc,
+          () => current.getMarkdown(),
+          originalSourceRef.current,
+        )
         window.markdownApi.sendReadTextResult({ text })
       } catch (err) {
         window.markdownApi.sendReadTextResult({

@@ -208,6 +208,9 @@ jobs:
       - name: Install Chromium for layout tests
         run: npx playwright install chromium
 
+      - name: Markdown opt-in round-trip browser tests
+        run: npx playwright test --config apps/markdown/playwright.config.ts
+
       # Electron needs a display server on Linux runners. DEBUG=pw:browser
       # forwards the Electron process stdout/stderr into the CI log so launch
       # failures are diagnosable.
