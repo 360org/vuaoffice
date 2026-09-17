@@ -387,6 +387,13 @@ import {
   setManualCalculation,
 } from './calc-options'
 import { solveGoalSeek } from './goal-seek'
+import {
+  awaitFormulaValues,
+  clearVerifiedFormulaValues,
+  formulaTargetsFromOps,
+  isErrorResult,
+  rememberFormulaValue,
+} from './formula-values'
 import { SlicerFieldPicker, SlicerPanels, type SlicerUiState } from './SlicerPanel'
 import { WatchWindowPanel, watchKey, type WatchCell, type WatchRowValue } from './WatchWindowPanel'
 import { TimelineFieldPicker, TimelinePanels, type TimelineUiState } from './TimelinePanel'
@@ -3677,6 +3684,8 @@ export function App(): React.JSX.Element {
     // in the engine and in the menu alike.
     resetCalculationMode(univerRef.current)
     setCalcManual(false)
+    // Values verified against the previous workbook mean nothing for this one.
+    clearVerifiedFormulaValues()
     const previous = lazyWorkbookRef.current
     if (previous) {
       clearLazyState(previous)
@@ -4051,7 +4060,28 @@ export function App(): React.JSX.Element {
           return { ok: false, reason: error instanceof Error ? error.message : String(error) }
         }
       }
-      return runUiOps(ops)
+      const outcome = await runUiOps(ops)
+      if (!outcome.ok) return outcome
+      // A formula's text lands synchronously but its result is computed
+      // asynchronously, so an immediate read of the cells this batch targeted
+      // would show null and an agent could read that as a failed edit. Report
+      // the computed values with the result (see formula-values.ts).
+      const targets = formulaTargetsFromOps(ops)
+      if (targets.length === 0) return outcome
+      const values = await awaitFormulaValues(targets, (addresses, sheetId) =>
+        readCellsImpl(readContext(), [...addresses], sheetId),
+      )
+      // Remember them so the next save can write a real cached <v>. Verified
+      // here (read back after the engine settled) rather than guessed from the
+      // overlay, which skips the very cells a batch just wrote.
+      for (const cell of values) {
+        rememberFormulaValue(cell.sheetId, cell.address, {
+          formula: cell.formula ?? '',
+          value: cell.value as string | number | boolean | null,
+          ...(isErrorResult(cell.value) ? { isError: true } : {}),
+        })
+      }
+      return { ...outcome, formulaValues: values }
     },
     saveTo: async (path, overwrite) => handleSave('save-as', true, { path, overwrite }),
   }
