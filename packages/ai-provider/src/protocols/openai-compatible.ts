@@ -11,6 +11,7 @@ import {
   sseErrorText,
   sseLines,
   throwIfCreditsNotice,
+  throwIfToolJsonOverBudget,
   type StreamCallbacks,
 } from './shared'
 
@@ -271,7 +272,10 @@ async function openAiCompatibleTurn(
           ? tc.function.name
           : pending.name + tc.function.name
       }
-      if (tc.function?.arguments) pending.json += tc.function.arguments
+      if (tc.function?.arguments) {
+        pending.json += tc.function.arguments
+        throwIfToolJsonOverBudget(pending.json.length, 'openai-compatible')
+      }
       pendingTools.set(tc.index, pending)
     }
     if (choice.finish_reason) {
