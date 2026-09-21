@@ -121,6 +121,17 @@ describe('parseGskWebSearch', () => {
   it('tolerates missing data', () => {
     expect(parseGskWebSearch({ status: 'ok' }, 5).results).toEqual([])
   })
+
+  it('clamps maxResults and truncates long fields', () => {
+    const big = 'x'.repeat(5000)
+    const raw = {
+      data: { organic_results: [{ title: big, link: 'https://a.com', snippet: big }] },
+    }
+    const r = parseGskWebSearch(raw, 1e9)
+    expect(r.results).toHaveLength(1)
+    expect(r.results[0]!.snippet.length).toBeLessThanOrEqual(2000)
+    expect(parseGskWebSearch(raw, NaN).results).toHaveLength(1)
+  })
 })
 
 describe('parseGskImageSearch', () => {
