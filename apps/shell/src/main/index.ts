@@ -3273,7 +3273,8 @@ function registerHomeIpc(): void {
   })
 
   ipcMain.handle(HOME_CHANNELS.openPath, (_event, path: unknown) => {
-    if (typeof path === 'string') openDocumentPath(path)
+    if (typeof path !== 'string' || !path || path.length > 4096) return
+    openDocumentPath(path)
   })
 
   ipcMain.handle(HOME_CHANNELS.browse, async (event) => {
