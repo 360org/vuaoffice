@@ -157,6 +157,7 @@ import {
   snapshotDocPassword,
 } from './docx-encryption'
 import { isExternallyModified, type DiskFileState } from './external-change'
+import { printScaleOption, validPrintDim, validPrintScale } from './print-args'
 import { initDocsAutoUpdater } from './updater'
 import { registerZoteroIpc, teardownZoteroIpc } from './zotero-ipc'
 
@@ -3954,9 +3955,12 @@ export function registerDocsIpc(): void {
   )
 
   // renderer print scale (inverse of the preview's print zoom, see print-zoom.ts)
-  const pdfScale = (scale?: number) => (scale && scale > 0 && scale !== 1 ? { scale } : {})
+  // Infinity passes a `> 0` check, so require finiteness before handing it to Chromium.
+  const pdfScale = (scale?: number) => printScaleOption(scale)
   const printScale = (scale?: number) =>
-    scale && scale > 0 && scale !== 1 ? { scaleFactor: Math.round(scale * 100) } : {}
+    typeof scale === 'number' && Number.isFinite(scale) && scale > 0 && scale !== 1
+      ? { scaleFactor: Math.round(scale * 100) }
+      : {}
 
   ipcMain.handle('docs:print', async (event, scale?: number) => {
     // print the calling tab's own content; zero margins — the docx page padding provides them.
@@ -4118,6 +4122,15 @@ export function registerDocsIpc(): void {
   ipcMain.handle(
     'docs:print-pdf-buffer',
     async (event, pageWidthTwips: number, pageHeightTwips: number, scale?: number) => {
+      // Renderer-supplied page geometry reaches Chromium printToPDF verbatim:
+      // reject non-finite/out-of-range sizes (0.5in..50in) and scales (0.1..5).
+      if (
+        !validPrintDim(pageWidthTwips) ||
+        !validPrintDim(pageHeightTwips) ||
+        !validPrintScale(scale)
+      ) {
+        return { ok: false, error: 'invalid page size or scale' }
+      }
       try {
         const data = await event.sender.printToPDF({
           printBackground: true,
