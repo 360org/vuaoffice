@@ -133,17 +133,28 @@ async function tavilyWebSearch(
 
 // ── Web search ──────────────────────────────────────────────────────
 
+/**
+ * Model-driven search args arrive unvalidated: clamp the result count to a
+ * finite 1..20 and truncate the query so a wild maxResults cannot inflate
+ * backend cost/loops and a megabyte query cannot flood request bodies.
+ */
+function normalizeSearchArgs(query: string, maxResults: number): { query: string; max: number } {
+  const max = Number.isFinite(maxResults) ? Math.min(Math.max(1, Math.floor(maxResults)), 20) : 6
+  return { query: typeof query === 'string' ? query.slice(0, 500) : '', max }
+}
+
 export async function webSearch(
   query: string,
   maxResults = 6,
   options: boolean | SearchOptions = true,
 ): Promise<WebSearchResponse> {
   const o = normalizeOptions(options)
+  const { query: q, max } = normalizeSearchArgs(query, maxResults)
   // useGsk=false: the user turned Genspark cloud tools off or picked their own
   // search key — skip straight to the keyed/free backends
   if (o.useGsk && hasGskAuth()) {
     try {
-      const r = await gskWebSearch(query, maxResults)
+      const r = await gskWebSearch(q, max)
       if (r.results.length) return { ...r, method: 'gsk' }
     } catch {
       /* fall back to Serper/Tavily/DuckDuckGo */
@@ -151,20 +162,14 @@ export async function webSearch(
   }
   const keyed =
     o.prefer === 'tavily'
-      ? [
-          () => tavilyWebSearch(o.tavilyKey, query, maxResults),
-          () => serperWebSearch(o.serperKey, query, maxResults),
-        ]
-      : [
-          () => serperWebSearch(o.serperKey, query, maxResults),
-          () => tavilyWebSearch(o.tavilyKey, query, maxResults),
-        ]
+      ? [() => tavilyWebSearch(o.tavilyKey, q, max), () => serperWebSearch(o.serperKey, q, max)]
+      : [() => serperWebSearch(o.serperKey, q, max), () => tavilyWebSearch(o.tavilyKey, q, max)]
   for (const attempt of keyed) {
     const r = await attempt()
     if (r) return r
   }
   try {
-    return { results: await duckWebSearch(query, maxResults), method: 'duckduckgo' }
+    return { results: await duckWebSearch(q, max), method: 'duckduckgo' }
   } catch (err) {
     // an unreachable backend must not read as an empty result set
     return { results: [], method: 'error', error: `duckduckgo: ${String(err)}` }
@@ -183,9 +188,10 @@ export async function imageSearch(
   error?: string
 }> {
   const o = normalizeOptions(options)
+  const { query: q, max } = normalizeSearchArgs(query, maxResults)
   if (o.useGsk && hasGskAuth()) {
     try {
-      const images = await gskImageSearch(query, maxResults)
+      const images = await gskImageSearch(q, max)
       if (images.length) return { images, method: 'gsk' }
     } catch {
       /* fall back to Serper/DuckDuckGo */
@@ -198,7 +204,7 @@ export async function imageSearch(
       const resp = await fetchWithTimeout('https://google.serper.dev/images', {
         method: 'POST',
         headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ q: query, num: Math.min(maxResults, 10), gl: 'us', hl: 'en' }),
+        body: JSON.stringify({ q, num: Math.min(max, 10), gl: 'us', hl: 'en' }),
       })
       if (resp.ok) {
         const data = asRecord(await resp.json())
@@ -218,7 +224,7 @@ export async function imageSearch(
           if (typeof img.imageWidth === 'number') entry.width = img.imageWidth
           if (typeof img.imageHeight === 'number') entry.height = img.imageHeight
           images.push(entry)
-          if (images.length >= maxResults) break
+          if (images.length >= max) break
         }
         if (images.length) return { images, method: 'serper' }
       }
@@ -227,7 +233,7 @@ export async function imageSearch(
     }
   }
   try {
-    return { images: await duckImageSearch(query, maxResults), method: 'duckduckgo' }
+    return { images: await duckImageSearch(q, max), method: 'duckduckgo' }
   } catch (err) {
     // an unreachable backend must not read as an empty gallery
     return { images: [], method: 'error', error: `duckduckgo: ${String(err)}` }
