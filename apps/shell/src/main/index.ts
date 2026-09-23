@@ -204,6 +204,7 @@ import {
   requestPdfSaveAs,
   sendPdfPrintRequest,
   setPdfRenamedHook,
+  setPdfRedactionSavedHook,
   setPdfSaveAsInFlight,
 } from '../../../pdf/src/main/pdf-main'
 import { PDF_CHANNELS } from '../../../pdf/src/shared/ipc'
@@ -2898,6 +2899,12 @@ function createShellWindow(): void {
     applyPendingDir(wc.id, path)
   })
   setHtmlProvisionalTitleHook((wc, title) => manager.setTabTitleFor(wc.id, title))
+  // A redacted copy becomes this tab's document; the source still exists.
+  setPdfRedactionSavedHook((wc, path) => {
+    manager.setTabFileFor(wc.id, path)
+    recordRecentFile(path)
+    applyPendingDir(wc.id, path)
+  })
   // pdf content-derived auto-rename: the file moved on disk, follow it everywhere
   setPdfRenamedHook((wc, oldPath, newPath) => {
     manager.setTabFileFor(wc.id, newPath)

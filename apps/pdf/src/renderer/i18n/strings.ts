@@ -39,9 +39,9 @@ const fillFormStrings = {
   redactClear: 'Clear marks',
   redactApply: 'Apply redactions',
   redactConfirm:
-    'Content inside the marked areas will be permanently removed. Continue, then choose a new copy in the system Save As dialog?',
+    'Content inside the marked areas will be permanently removed. The first application creates and opens a copy; subsequent applications update that copy. Continue?',
   redactSaveAsHint:
-    'Redactions were not applied. Click Apply redactions again to choose a new copy; Normal Save never applies these marks.',
+    'Redactions were not applied. Click Apply redactions to apply these marks to the working copy; Normal Save never applies these marks.',
   redactSaveFirst: 'Save other pending changes before applying redactions.',
   redactStructureBlocked: 'Apply or clear pending redactions before changing page structure.',
 }
@@ -378,8 +378,9 @@ export const strings = {
     redactClear: '取消标记',
     redactApply: '应用涂黑',
     redactConfirm:
-      '区域中的内容将被永久移除。继续后请在系统“另存为”对话框中选择一个新副本。是否继续？',
-    redactSaveAsHint: '涂黑尚未应用。请再次点击“应用涂黑”并选择新副本；普通保存不会应用这些标记。',
+      '区域中的内容将被永久移除。首次应用会另存并打开副本，后续应用会更新该副本。是否继续？',
+    redactSaveAsHint:
+      '涂黑尚未应用。请点击“应用涂黑”将标记应用到工作副本；普通保存不会应用这些标记。',
     redactSaveFirst: '请先保存其他待处理的修改，再应用涂黑。',
     redactStructureBlocked: '请先应用或取消待处理涂黑标记，再更改页面结构。',
     editText: '编辑文字',
@@ -710,9 +711,9 @@ export const strings = {
     redactClear: 'Clear marks',
     redactApply: 'Apply redactions',
     redactConfirm:
-      'Content inside the marked areas will be permanently removed. Continue, then choose a new copy in the system Save As dialog?',
+      'Content inside the marked areas will be permanently removed. The first application creates and opens a copy; subsequent applications update that copy. Continue?',
     redactSaveAsHint:
-      'Redactions were not applied. Click Apply redactions again to choose a new copy; Normal Save never applies these marks.',
+      'Redactions were not applied. Click Apply redactions to apply these marks to the working copy; Normal Save never applies these marks.',
     redactSaveFirst: 'Save other pending changes before applying redactions.',
     redactStructureBlocked: 'Apply or clear pending redactions before changing page structure.',
     editText: 'Edit text',

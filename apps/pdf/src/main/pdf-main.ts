@@ -604,6 +604,14 @@ const closeSaveWaiters = new Map<number, (ok: boolean) => void>()
 const saveAsWaiters = new Map<number, (ok: boolean) => void>()
 /** Save As destination granted per view (main-process dialog pick); the save handler refuses any other non-source target */
 const saveAsTargetByWc = new Map<number, string>()
+/** Only a copy produced by this view may receive subsequent in-place redactions. */
+const redactionPathByWc = new Map<number, string>()
+const redactionFlows = new Set<number>()
+let pdfRedactionSavedHook: ((wc: WebContents, path: string) => void) | null = null
+
+export function setPdfRedactionSavedHook(hook: (wc: WebContents, path: string) => void): void {
+  pdfRedactionSavedHook = hook
+}
 
 export function pdfIsDirty(webContentsId: number): boolean {
   return dirtyByWc.has(webContentsId)
@@ -634,6 +642,7 @@ export function markPdfUntitledPath(path: string): void {
 export function pdfFileRenamed(contents: WebContents, oldPath: string, newPath: string): void {
   const wcId = contents.id
   if (openPathByWc.get(wcId) === oldPath) openPathByWc.set(wcId, newPath)
+  if (redactionPathByWc.get(wcId) === oldPath) redactionPathByWc.set(wcId, newPath)
   const allowed = allowedByWc.get(wcId)
   if (allowed?.has(oldPath)) allowed.add(newPath)
   if (saveAsTargetByWc.get(wcId) === oldPath) saveAsTargetByWc.set(wcId, newPath)
@@ -932,7 +941,14 @@ function registerPdfIpc(): void {
       } catch (err) {
         return { ok: false, error: err instanceof Error ? err.message : String(err) }
       }
-      if (isSameRedactionCopyPath(path, target)) {
+      if (
+        isSameRedactionCopyPath(path, target) &&
+        !(
+          target === path &&
+          redactionPathByWc.get(e.sender.id) === path &&
+          saveAsTargetByWc.get(e.sender.id) === path
+        )
+      ) {
         return { ok: false, error: 'pdf: permanent redaction requires Save As copy' }
       }
       // A redaction is intentionally its own irreversible transaction. Persist normal
@@ -963,6 +979,18 @@ function registerPdfIpc(): void {
         target,
         request,
       )
+      if (request.redactions !== undefined) {
+        // Commit document identity only after the atomic write succeeds. Revoke the
+        // source grant so stale renderer requests cannot write back to the original.
+        allowedByWc.set(e.sender.id, new Set([target]))
+        openPathByWc.set(e.sender.id, target)
+        redactionPathByWc.set(e.sender.id, target)
+        try {
+          pdfRedactionSavedHook?.(e.sender, target)
+        } catch (err) {
+          console.warn('[pdf] redaction saved hook failed:', err)
+        }
+      }
       return {
         ok: true,
         ...(skippedTextEdits.length > 0 ? { skippedTextEdits } : {}),
@@ -976,9 +1004,14 @@ function registerPdfIpc(): void {
 
   ipcMain.handle(PDF_CHANNELS.requestRedactionCopy, async (e, path: unknown): Promise<boolean> => {
     if (typeof path !== 'string' || !allowedByWc.get(e.sender.id)?.has(path)) return false
+    if (redactionFlows.has(e.sender.id) || saveAsWaiters.has(e.sender.id)) return false
+    redactionFlows.add(e.sender.id)
     const base = basename(path).replace(/\.pdf$/i, '')
     setPdfSaveAsInFlight(e.sender, true)
     try {
+      if (redactionPathByWc.get(e.sender.id) === path) {
+        return await requestPdfSaveAs(e.sender, path)
+      }
       const parent = BrowserWindow.fromWebContents(e.sender)
       const options = {
         title: tm('dlgRedactCopy'),
@@ -992,6 +1025,7 @@ function registerPdfIpc(): void {
         return false
       return await requestPdfSaveAs(e.sender, picked.filePath)
     } finally {
+      redactionFlows.delete(e.sender.id)
       setPdfSaveAsInFlight(e.sender, false)
     }
   })
@@ -1542,6 +1576,8 @@ function grantAndTrack(wc: WebContents, openPath?: string | null): void {
   })
   wc.once('destroyed', () => {
     openPathByWc.delete(wcId)
+    redactionPathByWc.delete(wcId)
+    redactionFlows.delete(wcId)
     allowedByWc.delete(wcId)
     dirtyByWc.delete(wcId)
     saveAsTargetByWc.delete(wcId)
