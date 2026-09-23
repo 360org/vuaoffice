@@ -407,7 +407,7 @@ export const ReadingPane: React.FC<ReadingPaneProps> = ({
         <div className="ai-summary-card">
           <div className="ai-summary-title">
             <IconSparkles size={14} color="var(--mail-primary-blue, #0077cd)" />
-            <span>VuaOffice AI Summary</span>
+            <span>Genspark AI Summary</span>
           </div>
           <div className="ai-summary-text" style={{ whiteSpace: 'pre-line' }}>{aiSummary}</div>
         </div>
@@ -421,7 +421,7 @@ export const ReadingPane: React.FC<ReadingPaneProps> = ({
           onClick={onTriggerAiSummary}
         >
           <IconSparkles size={14} color="var(--mail-primary-blue, #0077cd)" />
-          <span>Tóm tắt email này với VuaOffice AI</span>
+          <span>Tóm tắt email này với Genspark AI</span>
         </button>
       )}
 

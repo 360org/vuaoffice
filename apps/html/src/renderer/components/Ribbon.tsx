@@ -192,7 +192,7 @@ export function Ribbon(p: Props) {
               <span className="rb-big-icon">
                 <GensparkMark size={26} />
               </span>
-              <span>VuaOffice AI</span>
+              <span>Genspark AI</span>
             </button>
             <button
               type="button"

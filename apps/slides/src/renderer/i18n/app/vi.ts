@@ -198,7 +198,7 @@ export const vi = {
     appSettingsLoggedInEmail: 'Đã đăng nhập: {email}',
     appSettingsLoggedOut: 'Chưa đăng nhập (các tính năng AI yêu cầu tài khoản Genspark)',
     appSettingsLoginPending: 'Đang chờ đăng nhập trên trình duyệt…',
-    appSettingsLogin: 'Đăng nhập VuaOffice',
+    appSettingsLogin: 'Đăng nhập Genspark',
     appSettingsModel: 'Mô hình',
     appSettingsCancel: 'Hủy',
     appSettingsSave: 'Lưu',

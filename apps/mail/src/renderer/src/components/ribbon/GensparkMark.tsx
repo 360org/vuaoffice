@@ -7,7 +7,7 @@ export function GensparkMark({ size = 18 }: { size?: number }): React.JSX.Elemen
       src={iconUrl}
       width={size}
       height={size}
-      alt="VuaOffice AI"
+      alt="Genspark AI"
       style={{
         width: size,
         height: size,

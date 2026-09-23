@@ -307,7 +307,7 @@ export const appStrings = defineStrings({
     appLoggedInEmail: 'Đã đăng nhập: {email}',
     appNotLoggedIn: 'Chưa đăng nhập (Tính năng AI cần đăng nhập tài khoản Genspark)',
     appWaitingBrowserLogin: 'Đang đợi đăng nhập qua trình duyệt…',
-    appLoginGenspark: 'Đăng nhập VuaOffice',
+    appLoginGenspark: 'Đăng nhập Genspark',
     appModel: 'Mô hình',
     // Menu ngữ cảnh
     appCut: 'Cắt',
@@ -363,7 +363,7 @@ export const appStrings = defineStrings({
     appStrikethrough: 'Gạch ngang chữ',
     appSuperscript: 'Chỉ số trên',
     appSubscript: 'Chỉ số dưới',
-    appFontPreviewSample: 'VuaOffice Tiếng Việt AaBbCc 123',
+    appFontPreviewSample: 'GenOffice Tiếng Việt AaBbCc 123',
     // Hộp thoại đoạn văn
     appAlignment: 'Căn chỉnh',
     appAlignLeft: 'Căn trái',

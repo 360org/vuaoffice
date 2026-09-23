@@ -225,7 +225,7 @@ export const ja = {
   appSettingsLoggedInEmail: 'サインイン済み：{email}',
   appSettingsLoggedOut: '未サインイン（AI 機能には Genspark アカウントへのサインインが必要）',
   appSettingsLoginPending: 'ブラウザーでのサインインを待機中…',
-  appSettingsLogin: 'VuaOffice にサインイン',
+  appSettingsLogin: 'Genspark にサインイン',
   appSettingsModel: 'モデル',
   appSettingsCancel: 'キャンセル',
   appSettingsSave: '保存',

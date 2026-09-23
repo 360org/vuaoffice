@@ -41,7 +41,7 @@ const SLIDES: readonly Slide[] = [
  * 60px canvas, 4px strokes — same visual mass as the 60px app icon */
 function SlideArt({ kind }: { kind: Slide['art'] }) {
   if (kind === 'logo') {
-    return <img className="onb-art onb-art-logo" src={logoIcon} alt="VuaOffice Icon" style={{ width: '60px', height: '60px', objectFit: 'contain' }} />
+    return <img className="onb-art onb-art-logo" src={logoIcon} alt="GenOffice Icon" style={{ width: '60px', height: '60px', objectFit: 'contain' }} />
   }
   return (
     <span className="onb-art onb-art-badge onb-art-check" aria-hidden="true">

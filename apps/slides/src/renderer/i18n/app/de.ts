@@ -240,7 +240,7 @@ export const de = {
   appSettingsLoggedInEmail: 'Angemeldet: {email}',
   appSettingsLoggedOut: 'Nicht angemeldet (KI-Funktionen erfordern ein Genspark-Konto)',
   appSettingsLoginPending: 'Warten auf Anmeldung im Browser…',
-  appSettingsLogin: 'Bei VuaOffice anmelden',
+  appSettingsLogin: 'Bei Genspark anmelden',
   appSettingsModel: 'Modell',
   appSettingsCancel: 'Abbrechen',
   appSettingsSave: 'Speichern',
