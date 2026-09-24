@@ -1,7 +1,7 @@
 {
   "name": "@genoffice/shell",
   "productName": "GenOffice",
-  "version": "1.0.42",
+  "version": "1.0.43",
   "license": "Apache-2.0",
   "homepage": "https://github.com/360org/vuaoffice",
   "private": true,

@@ -347,6 +347,8 @@ jobs:
     name: 6. Publish Official Release
     needs: [version_and_sync, build_mac_x64, build_mac_arm64, build_windows_x64, build_windows_x86, build_linux]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Fetch private scripts from GitLab
@@ -377,10 +379,9 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
+          fail_on_unmatched_files: false
           files: |
-            artifacts/merged-feed/latest-mac.yml
-            artifacts/windows-x64/latest.yml
-            artifacts/linux-x64/latest-linux.yml
+            artifacts/**/latest*.yml
             artifacts/**/*.dmg
             artifacts/**/*.zip
             artifacts/**/*.exe
