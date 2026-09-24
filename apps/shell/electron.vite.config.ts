@@ -16,6 +16,9 @@ export default defineConfig({
   // so externalizing them would break Node ESM resolution at runtime.
   main: {
     resolve: { alias: localAlias },
+    // node:sqlite is a Node 22+ builtin the bundler's builtin list may predate
+    build: { rollupOptions: { external: ['node:sqlite'] } },
+
   },
   preload: {
     resolve: { alias: localAlias },

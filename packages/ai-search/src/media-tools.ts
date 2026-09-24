@@ -20,12 +20,14 @@ import {
   type LegacyAiSettings,
   type MediaBlob,
 } from '@genoffice/ai-provider'
+// deep imports: the package root re-exports Electron-bound modules, and this file also runs in the genoffice CLI
+import { readGeneratedImage, storeGeneratedImage } from '@genoffice/electron-utils/generated-images'
 import {
+  ResponseTooLargeError,
   fetchRemoteImage,
-  fetchWithSsrfGuard,
-  readGeneratedImage,
-  storeGeneratedImage,
-} from '@genoffice/electron-utils'
+  readBodyCapped,
+} from '@genoffice/electron-utils/remote-image'
+import { fetchWithSsrfGuard } from '@genoffice/electron-utils/safe-remote-url'
 import { gskAnalyzeMedia, gskGenerateImage, hasGskAuth, type GskGenerateImageOptions } from './gsk'
 
 export const GSK_NOT_LOGGED_IN_ERROR =
@@ -95,18 +97,33 @@ export async function loadMediaReference(ref: string): Promise<MediaBlob> {
       ? fetchRemoteImage(ref)
       : fetchWithSsrfGuard(ref, { headers: { 'User-Agent': 'Mozilla/5.0' } }))
     if (!resp || !resp.ok) throw new Error(`Could not download ${ref}`)
-    const declared = Number(resp.headers.get('content-length') ?? 0)
-    if (declared > MAX_MEDIA_BYTES) throw new MediaTooLargeError(`${ref} is too large to analyze`)
-    const bytes = new Uint8Array(await resp.arrayBuffer())
-    if (bytes.byteLength > MAX_MEDIA_BYTES) {
-      throw new MediaTooLargeError(`${ref} is too large to analyze`)
+    let bytes: Uint8Array
+    try {
+      bytes = await readBodyCapped(resp, MAX_MEDIA_BYTES)
+    } catch (err) {
+      if (err instanceof ResponseTooLargeError) {
+        throw new MediaTooLargeError(`${ref} is too large to analyze`)
+      }
+      throw err
     }
-    const ct = resp.headers.get('content-type')?.split(';')[0]?.trim()
+    const rawCt = resp.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase()
+    const ct = rawCt && rawCt !== 'application/octet-stream' ? rawCt : undefined
     const name = basename(new URL(ref).pathname) || undefined
     const mime =
       ct && ct !== 'application/octet-stream' ? ct : MIME_BY_EXT[extname(name ?? '').toLowerCase()]
     if (!mime) throw new Error(`Could not tell the media type of ${ref}`)
     return { bytes, mime, ...(name ? { name } : {}) }
+  }
+  // data URLs (pictures embedded in a document) carry their own bytes and type
+  if (ref.startsWith('data:')) {
+    const m = /^data:([^;,]+);base64,([\s\S]*)$/.exec(ref)
+    if (!m) throw new Error('Unsupported data URL: only base64-encoded media can be analyzed')
+    const [, mime = '', b64 = ''] = m
+    const bytes = new Uint8Array(Buffer.from(b64.replace(/\s+/g, ''), 'base64'))
+    if (bytes.byteLength > MAX_MEDIA_BYTES) {
+      throw new MediaTooLargeError('data URL is too large to analyze')
+    }
+    return { bytes, mime: mime.toLowerCase() }
   }
   if (ref.startsWith('file:')) {
     const local = readGeneratedImage(ref)
@@ -127,9 +144,19 @@ export interface MediaToolOptions {
   notLoggedInError?: string
 }
 
+/** Genspark background-removal model — chained after generation for transparentBackground */
+export const GSK_RMBG_MODEL = 'fal-bria-rmbg'
+
+export type GenerateImageToolOp = GskGenerateImageOptions & {
+  /** The result must have real PNG alpha (icons/logos/cutouts). Generation models cannot
+   * produce transparency from the prompt alone — they paint a fake gray checkerboard into
+   * the pixels — so the tool strips the background in a second pass instead. */
+  transparentBackground?: boolean
+}
+
 export async function generateImageTool(
   settingsPath: string,
-  op: GskGenerateImageOptions,
+  op: GenerateImageToolOp,
   options: MediaToolOptions = {},
 ): Promise<{ url?: string; error?: string }> {
   const prompt = String(op.prompt ?? '').trim()
@@ -140,7 +167,18 @@ export async function generateImageTool(
     if (!byok) {
       const gate = gskGate(settings, options.notLoggedInError ?? GSK_NOT_LOGGED_IN_ERROR)
       if (gate) return gate
-      return { url: (await gskGenerateImage({ ...op, prompt })).url }
+      const gen = await gskGenerateImage({ ...op, prompt })
+      if (!op.transparentBackground || op.model === GSK_RMBG_MODEL) return { url: gen.url }
+      try {
+        const cut = await gskGenerateImage({
+          prompt: 'remove the background completely, keep only the subject',
+          model: GSK_RMBG_MODEL,
+          referenceImageUrls: [gen.url],
+        })
+        return { url: cut.url }
+      } catch {
+        return { url: gen.url } // strip failed: the opaque image is still usable
+      }
     }
     // `model` names Genspark-only special models (fal-*); BYOK uses the configured image model
     const references = await Promise.all((op.referenceImageUrls ?? []).map(loadMediaReference))
@@ -148,6 +186,7 @@ export async function generateImageTool(
       prompt,
       aspectRatio: op.aspectRatio,
       references,
+      transparent: op.transparentBackground === true,
     })
     return { url: storeGeneratedImage(image.bytes, image.mime) }
   } catch (err) {

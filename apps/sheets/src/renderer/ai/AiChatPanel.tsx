@@ -1,7 +1,8 @@
+import { aiPanelWidthAtPointer, AiPanelSideButton } from '@genoffice/ui'
 import React, { useEffect, useRef, useState } from 'react'
 import { AiComposer, AiScopeQuote, AiTypingIndicator, type AiScopeQuoteData } from '@genoffice/ui'
 import { GensparkMark } from '../ribbon-icons'
-import type { ChangePlan } from '../../domain/workbook.types'
+import type { ChangePlan } from '@genoffice/xlsx-gateway/domain/workbook.types'
 import { ATTACHMENT_IMAGE_EXTS, type AttachmentMeta } from '../../shared/desktop-api'
 import { useI18n, type TFunc } from '../i18n/locale'
 import { Markdown } from '@genoffice/ui'
@@ -389,7 +390,7 @@ export function AiChatPanel({
   const resizeCleanupRef = useRef<(() => void) | null>(null)
   useEffect(() => () => resizeCleanupRef.current?.(), [])
 
-  /** Drag the right edge to resize: the panel is flush with the window's left edge, so width = clientX; the grid transition is disabled while dragging */
+  /** Drag the inner panel edge to resize from the selected window side. */
   const startResize = (e: React.PointerEvent<HTMLDivElement>): void => {
     e.preventDefault()
     const area = asideRef.current?.closest('.sheet-body') as HTMLElement | null
@@ -401,7 +402,7 @@ export function AiChatPanel({
     document.body.style.userSelect = 'none'
     let width = 0
     const onMove = (ev: PointerEvent): void => {
-      width = clampPanelWidth(ev.clientX)
+      width = clampPanelWidth(aiPanelWidthAtPointer(ev.clientX))
       preferredWidthRef.current = width
       area.style.setProperty('--copilot-width', `${width}px`)
     }
@@ -509,7 +510,8 @@ export function AiChatPanel({
         onPointerDown={startResize}
         role="separator"
         aria-orientation="vertical"
-        aria-label="Genspark AI"
+        aria-label={t('aiGensparkAccount')}
+
       />
       <header className="ai-panel-header">
         <span className="ai-panel-title">
@@ -517,6 +519,10 @@ export function AiChatPanel({
           Genspark
         </span>
         <div className="ai-panel-header-actions">
+          <AiPanelSideButton
+            lang={lang}
+            onMove={(side) => window.desktopApi.setAiPanelPrefs({ side })}
+          />
           {(chat.length > 0 || historicChat.length > 0) && (
             <button
               className="ai-header-btn"
@@ -528,7 +534,7 @@ export function AiChatPanel({
             </button>
           )}
           <button
-            className="ai-header-btn"
+            className="ai-header-btn ai-panel-collapse"
             onClick={onCollapse}
             data-tip={t('aiCollapsePanel')}
             aria-label={t('aiCollapsePanel')}

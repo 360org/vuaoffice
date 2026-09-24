@@ -45,6 +45,16 @@ describe('buildStandaloneHtml', () => {
     expect(out).toMatch(/^<!DOCTYPE html>/)
   })
 
+  it('exports tab leaders as a border, not the on-screen glyph run', () => {
+    const root = mount(
+      '<p class="doc-p has-tab-stops">Intro<span class="doc-tab doc-tab-leader-dot" ' +
+        'style="tab-size:400px">\t</span>5</p>',
+    )
+    const out = buildStandaloneHtml(root, { title: 'T' })
+    expect(out).toMatch(/<span style="[^"]*border-bottom:1px dotted currentColor[^"]*">\t<\/span>5/)
+    expect(out).not.toMatch(/\.{3}/)
+  })
+
   it('escapes text and restores lifted screen-only classes', () => {
     const wrap = document.createElement('div')
     wrap.className = 'workspace page-dark'
@@ -73,5 +83,13 @@ describe('resolveContent', () => {
       list.appendChild(li)
     }
     expect(resolveContent('counter(doc-ol) "."', list.children[2])).toBe('3.')
+  })
+
+  it('emits the replacement character instead of throwing on out-of-range escapes', () => {
+    const el = document.createElement('p')
+    expect(resolveContent('"\\FFFFFF "', el)).toBe('�')
+    expect(resolveContent('"\\110000 "', el)).toBe('�')
+    expect(resolveContent('"\\D800 "', el)).toBe('�')
+    expect(resolveContent('"\\41 "', el)).toBe('A')
   })
 })

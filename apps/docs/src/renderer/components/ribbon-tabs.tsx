@@ -92,7 +92,7 @@ export function setParaAttrs(
   attrs: Record<string, unknown>,
   /// Explicit target range: blur-committed inputs capture the selection at
   /// focus time — by blur, a click may already have moved the live selection
-  /// to another paragraph (alpha ledger r131 / bugbot).
+  /// to another paragraph.
   range?: { from: number; to: number },
 ): void {
   const size = editor.state.doc.content.size
@@ -294,18 +294,21 @@ export async function insertImageFromDataUrl(
       .run()
     // Pasting into an empty document leaves the image as the ONLY node with a
     // node-selection on it: there is no text position to type at, and the
-    // next keystroke REPLACES the picture (alpha ledger r152). Ensure a
+    // next keystroke REPLACES the picture. Ensure a
     // paragraph follows the image and put a text caret there — also what
     // Word does after inserting a picture.
+    // A mid-paragraph insert already leaves the caret in the split-off rest
+    // of the paragraph; only a doc-level landing needs the paragraph check.
     {
       const { doc, selection, schema } = editor.state
-      const after = Math.min(selection.to, doc.content.size)
-      const nextIsTextblock = doc.resolve(after).nodeAfter?.isTextblock === true
-      const chain = editor.chain()
-      if (!nextIsTextblock && schema.nodes.docParagraph) {
-        chain.insertContentAt(after, { type: 'docParagraph' })
+      const $after = doc.resolve(Math.min(selection.to, doc.content.size))
+      if (!$after.parent.isTextblock) {
+        const chain = editor.chain()
+        if ($after.nodeAfter?.isTextblock !== true && schema.nodes.docParagraph) {
+          chain.insertContentAt($after.pos, { type: 'docParagraph' })
+        }
+        chain.setTextSelection($after.pos + 1).run()
       }
-      chain.setTextSelection(after + 1).run()
     }
     return true
   } catch {

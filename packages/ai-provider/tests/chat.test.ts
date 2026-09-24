@@ -76,6 +76,16 @@ describe('chatForProvider', () => {
     )
   })
 
+  it('deepseek: sends the listed V4.1 Flash name under the vendor wire id', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ choices: [{ message: { content: 'ok' } }] }))
+    vi.stubGlobal('fetch', fetchMock)
+    await chatForProvider('deepseek', { apiKey: 'k', model: 'deep-seek-v4.1-flash' }, 'sys', 'hi')
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string)
+    expect(body.model).toBe('deepseek-flash')
+  })
+
   it('custom: uses the configured base URL', async () => {
     const fetchMock = vi
       .fn()
@@ -159,6 +169,23 @@ describe('chatForProvider', () => {
     expect(
       (fetchMock.mock.calls[0]![1].headers as Record<string, string>)['X-Agent-Type'],
     ).toBeUndefined()
+  })
+
+  it('opencode: a one-shot call gets its own x-opencode-session', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockImplementation(async () => jsonResponse({ choices: [{ message: { content: 'ok' } }] }))
+    vi.stubGlobal('fetch', fetchMock)
+    await chatForProvider('opencode-go', { apiKey: 'k', model: 'kimi-k2.7-code' }, 'sys', 'hi')
+    await chatForProvider('opencode-go', { apiKey: 'k', model: 'kimi-k2.7-code' }, 'sys', 'hi')
+    const first = (fetchMock.mock.calls[0]![1].headers as Record<string, string>)[
+      'x-opencode-session'
+    ]
+    const second = (fetchMock.mock.calls[1]![1].headers as Record<string, string>)[
+      'x-opencode-session'
+    ]
+    expect(first).toMatch(/^[0-9a-f-]{36}$/)
+    expect(second).not.toBe(first)
   })
 
   it('treats an empty response body as an error', async () => {

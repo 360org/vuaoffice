@@ -294,6 +294,37 @@ describe('buildRenderSlide (end-to-end on real fixture)', () => {
     expect(glyphText(withoutNo)).toBe('Pg3')
   })
 
+  it('a bevelled shape under a rig without band calibration still takes the rig face tint', async () => {
+    const { deck } = await openPptx(enginePptx('01_standard_business.pptx'))
+    const slide = deck.slides[0]!
+    const el: any = {
+      id: 'sp_bev',
+      type: 'text',
+      anchor: { spIndex: -1, originalXml: '', range: [0, 0] },
+      transform: {
+        offset: { x: 0, y: 0, cx: 1800000, cy: 650000 },
+        rot: 0,
+        flipH: false,
+        flipV: false,
+      },
+      fill: { type: 'solid', color: '#A5A5A5' },
+      scene3d: {
+        cameraPreset: 'orthographicFront',
+        lightRig: 'contrasting',
+        lightDir: 't',
+        material: 'translucentPowder',
+        bevelTop: { wEmu: 127000, hEmu: 25400, preset: 'circle' },
+      },
+      text: { paragraphs: [], insets: { l: 0, t: 0, r: 0, b: 0 } },
+    }
+    const node = buildRenderSlide({ ...slide, elements: [el], decorations: [] }, deck.size, {
+      fitWidthPx: 1280,
+    }).nodes[0] as any
+    expect(node.extrusion).toBeUndefined()
+    // 0.69 x 165 + 54 (contrasting powder additive) = 168
+    expect(node.fill.color.toLowerCase()).toBe('#a8a8a8')
+  })
+
   it('renders tables as table nodes with positioned cells (no more chip)', async () => {
     const { deck } = await openPptx(enginePptx('01_standard_business.pptx'))
     let sawTable = false
@@ -351,6 +382,50 @@ describe('buildRenderSlide (end-to-end on real fixture)', () => {
     expect(node.cells[1].w).toBeCloseTo(node.box.w / 2, 1)
   })
 
+  it('table cell tiled picture fills anchor to the whole table box, not the cell', async () => {
+    const { deck } = await openPptx(enginePptx('01_standard_business.pptx'))
+    const slide = deck.slides[0]!
+    const tileFill = {
+      type: 'image',
+      mediaRef: 'ppt/media/photo.png',
+      mode: 'tile',
+      tile: { tx: 0, ty: 0, sx: 1, sy: 1, algn: 'tl' },
+    }
+    const el: any = {
+      id: 'tbl_1',
+      type: 'table',
+      anchor: { spIndex: -1, originalXml: '', range: [0, 0] },
+      transform: {
+        offset: { x: 0, y: 0, cx: 1905000, cy: 952500 },
+        rot: 0,
+        flipH: false,
+        flipV: false,
+      },
+      colWidths: [952500, 952500],
+      rowHeights: [476250, 476250],
+      rows: [
+        [{ fill: tileFill }, { fill: tileFill }],
+        [{ fill: tileFill }, { fill: tileFill }],
+      ],
+    }
+    const rs = buildRenderSlide({ ...slide, elements: [el], decorations: [] }, deck.size, {
+      fitWidthPx: 1280,
+    })
+    const node = rs.nodes[0] as any
+    expect(node.type).toBe('table')
+    const tableW = node.gridX[node.gridX.length - 1]
+    const tableH = node.gridY[node.gridY.length - 1]
+    for (const cell of node.cells) {
+      expect(cell.fill.kind).toBe('image')
+      // The frame is the table box expressed in cell-local px: origin shifts back by the
+      // cell offset, so the bottom-right cell shows the bottom-right quarter of the picture
+      expect(cell.fill.tile.frame).toEqual({ x: -cell.x, y: -cell.y, w: tableW, h: tableH })
+    }
+    const last = node.cells[3]
+    expect(last.fill.tile.frame.x).toBeCloseTo(-tableW / 2, 1)
+    expect(last.fill.tile.frame.y).toBeCloseTo(-tableH / 2, 1)
+  })
+
   it('table renders at its grid width when the frame ext is a stale placeholder', async () => {
     const { deck } = await openPptx(enginePptx('01_standard_business.pptx'))
     const slide = deck.slides[0]!
@@ -358,7 +433,7 @@ describe('buildRenderSlide (end-to-end on real fixture)', () => {
       id: 'tbl_1',
       type: 'table',
       anchor: { spIndex: -1, originalXml: '', range: [0, 0] },
-      // ext cx=3000000 is stale: the grid below sums to 6593050 EMU (real prod deck shape)
+      // ext cx=3000000 is stale: the grid below sums to 6593050 EMU (shape from a real deck)
       transform: {
         offset: { x: 0, y: 0, cx: 3000000, cy: 3000000 },
         rot: 0,
@@ -1018,5 +1093,76 @@ describe('durable ids on chart nodes', () => {
     const chart = rs.nodes.find((n) => n.type === 'chart' || n.type === 'placeholder-chip')
     expect(chart).toBeTruthy()
     expect(chart!.durableId).toMatch(/^e_[0-9a-f]{8}$/)
+  })
+})
+
+describe('shapes without geometry', () => {
+  it('draw no fill or outline when the parsed spPr had none (PowerPoint leaves them invisible)', async () => {
+    const { deck } = await openPptx(enginePptx('01_standard_business.pptx'))
+    const slide = deck.slides[0]!
+    const mk = (extra: Record<string, unknown>): any => ({
+      id: 'sp_geomless',
+      type: 'text',
+      anchor: { spIndex: -1, originalXml: '', range: [0, 0] },
+      transform: {
+        offset: { x: 0, y: 0, cx: 914400, cy: 914400 },
+        rot: 0,
+        flipH: false,
+        flipV: false,
+      },
+      fill: { type: 'solid', color: '#1F497D' },
+      stroke: { fill: { type: 'solid', color: '#FFFFFF' }, width: 12700 },
+      ...extra,
+    })
+    const first = (el: any) =>
+      buildRenderSlide({ ...slide, elements: [el], decorations: [] }, deck.size, {
+        fitWidthPx: 1280,
+      }).nodes[0] as any
+    const bare = first(mk({ noGeometry: true }))
+    expect(bare.fill).toEqual({ kind: 'none' })
+    expect(bare.stroke).toBeUndefined()
+    // editor-built text boxes carry no presetGeometry either and must keep their fill
+    expect(first(mk({})).fill).toEqual({ kind: 'solid', color: '#1F497D' })
+    expect(first(mk({ presetGeometry: 'rect' })).fill).toEqual({ kind: 'solid', color: '#1F497D' })
+  })
+})
+
+describe('table cell3D bevel', () => {
+  it('shades the face and emits bevel bands for solid cells only', async () => {
+    const { deck } = await openPptx(enginePptx('01_standard_business.pptx'))
+    const slide = deck.slides[0]!
+    const mk = (fill: any): any => ({
+      id: 'tbl1',
+      type: 'table',
+      anchor: { spIndex: -1, originalXml: '', range: [0, 0] },
+      transform: {
+        offset: { x: 0, y: 0, cx: 1828800, cy: 914400 },
+        rot: 0,
+        flipH: false,
+        flipV: false,
+      },
+      colWidths: [1828800],
+      rowHeights: [914400],
+      rows: [[{ fill, bevel: { widthEmu: 76200, lightDir: 't' } }]],
+    })
+    const first = (el: any) =>
+      buildRenderSlide({ ...slide, elements: [el], decorations: [] }, deck.size, {
+        fitWidthPx: 1280,
+      }).nodes[0] as any
+    const solid = first(mk({ type: 'solid', color: '#F9F5F4' }))
+    expect(solid.cells[0].fill).toEqual({ kind: 'solid', color: '#D4D0CF' })
+    expect(solid.cells[0].bevel.widthPx).toBeCloseTo(8, 1)
+    expect(solid.cells[0].bevel.edges.l[0].color).toBe('#FFFFFF')
+    const grad = first(
+      mk({
+        type: 'gradient',
+        stops: [
+          { pos: 0, color: '#000000' },
+          { pos: 1, color: '#FFFFFF' },
+        ],
+        angle: 0,
+      }),
+    )
+    expect(grad.cells[0].bevel).toBeUndefined()
   })
 })

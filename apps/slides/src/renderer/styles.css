@@ -9,48 +9,56 @@
   src: url('@genoffice/ui/fonts/Carlito-Regular.ttf');
   font-weight: normal;
   font-style: normal;
+  font-display: block;
 }
 @font-face {
   font-family: 'Carlito';
   src: url('@genoffice/ui/fonts/Carlito-Bold.ttf');
   font-weight: bold;
   font-style: normal;
+  font-display: block;
 }
 @font-face {
   font-family: 'Carlito';
   src: url('@genoffice/ui/fonts/Carlito-Italic.ttf');
   font-weight: normal;
   font-style: italic;
+  font-display: block;
 }
 @font-face {
   font-family: 'Carlito';
   src: url('@genoffice/ui/fonts/Carlito-BoldItalic.ttf');
   font-weight: bold;
   font-style: italic;
+  font-display: block;
 }
 @font-face {
   font-family: 'Carlito GO';
   src: url('@genoffice/ui/fonts/Carlito-Regular.ttf');
   font-weight: normal;
   font-style: normal;
+  font-display: block;
 }
 @font-face {
   font-family: 'Carlito GO';
   src: url('@genoffice/ui/fonts/Carlito-Bold.ttf');
   font-weight: bold;
   font-style: normal;
+  font-display: block;
 }
 @font-face {
   font-family: 'Carlito GO';
   src: url('@genoffice/ui/fonts/Carlito-Italic.ttf');
   font-weight: normal;
   font-style: italic;
+  font-display: block;
 }
 @font-face {
   font-family: 'Carlito GO';
   src: url('@genoffice/ui/fonts/Carlito-BoldItalic.ttf');
   font-weight: bold;
   font-style: italic;
+  font-display: block;
 }
 
 /* Per-app accent (powerpoint-orange family) + slides-only tokens.
@@ -104,6 +112,7 @@
   --slides-anim-emph: #c28e00;
   --slides-anim-exit: #c43e1c;
   --slides-anim-path: #2b7cd3;
+  --slides-anim-media: #7a5cc4;
   --slides-choice-check: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path d='M2.5 6.5l2.5 2.5 4.5-5' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/></svg>");
 
   /* content-side constants: thumbnails/sorter/master previews and layout
@@ -137,6 +146,7 @@
   /* black playback chrome (slideshow / presenter / reading view) holds in
    * both themes; numeric suffix = white alpha % */
   --slides-show-black: #000;
+  --slides-show-white: #fff;
   --slides-show-ink: #fff;
   --slides-show-ink-88: rgb(255 255 255 / 88%);
   --slides-show-ink-85: rgb(255 255 255 / 85%);
@@ -235,6 +245,7 @@
   --slides-anim-emph: #d9a834;
   --slides-anim-exit: #e8663f;
   --slides-anim-path: #5aa0e8;
+  --slides-anim-media: #a58cf0;
   --slides-choice-check: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path d='M2.5 6.5l2.5 2.5 4.5-5' fill='none' stroke='%231e1e1e' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/></svg>");
 }
 
@@ -283,6 +294,7 @@
     --slides-anim-emph: #d9a834;
     --slides-anim-exit: #e8663f;
     --slides-anim-path: #5aa0e8;
+    --slides-anim-media: #a58cf0;
     --slides-choice-check: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path d='M2.5 6.5l2.5 2.5 4.5-5' fill='none' stroke='%231e1e1e' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/></svg>");
   }
 }
@@ -1125,6 +1137,11 @@ body.vib .slide-list {
   box-shadow: 0 7px 0 -2.5px var(--accent);
 }
 
+.thumb.selected {
+  border-color: var(--accent);
+  border-style: dashed;
+}
+
 .thumb.active {
   border-color: var(--accent);
 }
@@ -1520,7 +1537,8 @@ body.vib .slide-list {
   display: flex;
   flex-direction: column;
   background: var(--surface);
-  border-right: 1px solid var(--border);
+  border-left: var(--ai-panel-border-left, 0px) solid var(--border);
+  border-right: var(--ai-panel-border-right, 1px) solid var(--border);
   box-shadow: var(--slides-shadow-copilot);
   font-family: var(--gs-font-sans);
   color: var(--color-text-primary);
@@ -1611,7 +1629,8 @@ body.vib .slide-list {
   width: 34px;
   padding: 12px 2px;
   border: none;
-  border-right: 1px solid var(--border);
+  border-left: var(--ai-panel-border-left, 0px) solid var(--border);
+  border-right: var(--ai-panel-border-right, 1px) solid var(--border);
   background: var(--surface);
   color: var(--text);
   cursor: pointer;
@@ -3392,15 +3411,19 @@ body.vib .slide-list {
 }
 
 /* Second-level tabs (填充与线条 / 效果 / 大小与属性 …): Genspark segmented pill track —
-   pills sit in one rounded gray track; active = accent-filled pill */
+   pills sit in one rounded gray track; active = accent-filled pill. Long locales
+   (fr/de/es labels exceed the 260px pane) wrap onto a second row instead of
+   clipping at the pane edge; 16px ≈ the stadium radius at single-row height. */
 .fp-subtabs {
   display: flex;
   flex-shrink: 0;
+  flex-wrap: wrap;
   gap: 2px;
   width: fit-content;
+  max-width: calc(100% - 12px);
   margin: 10px 6px 0;
   padding: 3px;
-  border-radius: 999px;
+  border-radius: 16px;
   background: var(--hover);
 }
 
@@ -4326,8 +4349,12 @@ body.vib .slide-list {
   top: calc(anchor(bottom) + 6px);
   left: anchor(left);
   /* near the right window edge, right-align to the trigger instead of
-     spilling past the (now clipped) viewport */
-  position-try-fallbacks: flip-inline;
+     spilling past the (now clipped) viewport; near the bottom edge (e.g. a
+     collapsed-group flyout on a short window), open above the trigger */
+  position-try-fallbacks:
+    flip-inline,
+    flip-block,
+    flip-block flip-inline;
   /* trigger scrolled out of the ribbon → hide the panel with it */
   position-visibility: anchors-visible;
   z-index: 60;
@@ -4650,56 +4677,38 @@ body.vib .slide-list {
   font-size: 12px;
   color: var(--text-dim);
   margin-bottom: 6px;
+  text-align: center;
   white-space: nowrap;
 }
 
 .rb-table-grid {
   display: grid;
-  grid-template-columns: repeat(10, 16px);
+  grid-template-columns: repeat(10, 18px);
   gap: 3px;
 }
 
+/* "Insert Table…" entry under the hover grid (opens the rows/cols dialog) */
 .rb-table-custom {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  display: block;
+  width: 100%;
   margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border-strong);
-}
-
-.rb-table-custom input {
-  width: 46px;
-  padding: 2px 4px;
+  padding: 5px 6px;
+  border: none;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 4px 4px;
+  background: none;
+  color: var(--text);
   font-size: 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: 3px;
-  background: var(--surface);
-  color: inherit;
-}
-
-.rb-table-custom span {
-  font-size: 12px;
-  color: var(--text-dim);
-}
-
-.rb-table-custom-ok {
-  margin-left: auto;
-  padding: 2px 10px;
-  font-size: 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: 3px;
-  background: var(--surface);
+  text-align: left;
   cursor: pointer;
 }
 
-.rb-table-custom-ok:hover {
-  background: var(--active-bg);
-  border-color: var(--accent);
+.rb-table-custom:hover {
+  background: var(--hover);
 }
 
 .rb-table-cell {
-  width: 16px;
+  width: 18px;
   height: 16px;
   border: 1px solid var(--border-strong);
   border-radius: 2px;
@@ -4815,6 +4824,59 @@ body.vib .slide-list {
   background: var(--surface);
 }
 
+/* Extra symbols + custom character + picture bullet */
+.rb-bullet-custom {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+  max-width: 236px;
+}
+
+.rb-bullet-sym {
+  width: 26px;
+  height: 24px;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1;
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.rb-bullet-sym:hover:not(:disabled),
+.rb-bullet-sym.on,
+.rb-bullet-hang.on {
+  background: var(--active-bg);
+  border-color: var(--accent);
+}
+
+.rb-bullet-sym:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.rb-bullet-sym-input,
+.rb-bullet-start-input {
+  width: 72px;
+  cursor: text;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+}
+
+.rb-bullet-sym-input {
+  width: 108px;
+}
+
+/* Numbering tiles: "1." / "II." / "iii." samples are wider than a bullet glyph */
+.rb-bullet-tile-num {
+  width: auto;
+  min-width: 10px;
+  font-size: 8px;
+  white-space: nowrap;
+}
+
 /* Bullet color row: swatches + "More colors" on its own line */
 .rb-bullet-colors {
   flex-wrap: wrap;
@@ -4859,6 +4921,10 @@ body.vib .slide-list {
 
 .rb-anim-path {
   color: var(--slides-anim-path);
+}
+
+.rb-anim-media {
+  color: var(--slides-anim-media);
 }
 
 .rb-anim-menu {
@@ -4944,6 +5010,10 @@ body.vib .slide-list {
 
 .anim-row.anim-path {
   border-left-color: var(--slides-anim-path);
+}
+
+.anim-row.anim-media {
+  border-left-color: var(--slides-anim-media);
 }
 
 .anim-row-no {
@@ -5079,6 +5149,32 @@ body.vib .slide-list {
   height: 1px;
   background: var(--border);
   margin: 4px 6px;
+}
+
+.ctx-item.ctx-checked > span:first-child::before {
+  content: '✓\00a0';
+}
+
+.ctx-sub-host {
+  position: relative;
+}
+
+.ctx-item.ctx-sub-open {
+  background: var(--hover);
+}
+
+.ctx-menu.ctx-submenu {
+  position: absolute;
+  left: 100%;
+  top: -5px;
+  margin-left: 2px;
+}
+
+.ctx-menu.ctx-submenu.ctx-submenu-left {
+  left: auto;
+  right: 100%;
+  margin-left: 0;
+  margin-right: 2px;
 }
 
 .ctx-swatches {
@@ -6032,6 +6128,11 @@ body.vib .slide-list {
   border-color: var(--text-dim);
 }
 
+.sorter-item.selected {
+  border-color: var(--accent);
+  border-style: dashed;
+}
+
 .sorter-item.active {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px var(--accent-soft);
@@ -6421,11 +6522,61 @@ body.show-curtain::after {
   line-height: 0;
 }
 
-.slideshow .ss-black {
+.slideshow .ss-black,
+.slideshow .ss-white {
   position: fixed;
   inset: 0;
   background: var(--slides-show-black);
   z-index: 10;
+}
+
+.slideshow .ss-white {
+  background: var(--slides-show-white);
+}
+
+/* "See All Slides" overlay: numbered thumbnails of the play order, click to jump */
+.slideshow .ss-grid {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  overflow-y: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 18px;
+  padding: 28px;
+  background: var(--slides-show-black);
+}
+
+.slideshow .ss-grid-item {
+  position: relative;
+  flex: none;
+  line-height: 0;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  overflow: hidden;
+  background: none;
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+.slideshow .ss-grid-item:hover,
+.slideshow .ss-grid-item.ss-grid-cur {
+  opacity: 1;
+  border-color: var(--slides-show-ink-75);
+}
+
+.slideshow .ss-grid-num {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--slides-show-ink);
+  background: var(--slides-show-pill-bg);
+  border-radius: 4px;
+  padding: 3px 7px;
 }
 
 /* Show ink overlay (presenter pen/laser pointer, mirrored for the audience) */
@@ -6789,10 +6940,15 @@ body.show-curtain::after {
   cursor: none;
 }
 
-.presenter .pv-black {
+.presenter .pv-black,
+.presenter .pv-white {
   position: absolute;
   inset: 0;
   background: var(--slides-show-black);
+}
+
+.presenter .pv-white {
+  background: var(--slides-show-white);
 }
 
 .presenter .pv-end {
@@ -7149,10 +7305,88 @@ body.show-curtain::after {
   max-width: 90vw;
 }
 
+.modal.zoom-dlg {
+  width: 720px;
+  max-width: 90vw;
+}
+
+.zoom-dlg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 164px);
+  justify-content: center;
+  gap: 12px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.zoom-dlg-item {
+  padding: 0;
+  border: 2px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--slides-paper);
+  overflow: hidden;
+  line-height: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.zoom-dlg-item:hover:not(:disabled) {
+  border-color: var(--text-dim);
+}
+
+.zoom-dlg-item.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.zoom-dlg-item:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.zoom-dlg-caption {
+  display: block;
+  padding: 4px 6px;
+  font-size: 11.5px;
+  line-height: 1.3;
+  color: var(--text-dim);
+  background: var(--surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.zoom-dlg-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+}
+
+.zoom-dlg-footer .modal-actions {
+  margin-top: 0;
+}
+
+.zoom-dlg-count {
+  font-size: 12.5px;
+  color: var(--text-dim);
+}
+
 .dlg-radio-row {
   display: flex;
   gap: 18px;
   margin-bottom: 12px;
+}
+
+.dlg-two-col {
+  display: flex;
+  gap: 12px;
+}
+
+.dlg-two-col > label {
+  flex: 1;
+  min-width: 0;
 }
 
 /* Override .modal label / .modal input full-row styles: checkbox/radio rows lay out inline */
@@ -8883,8 +9117,43 @@ body.show-curtain::after {
 }
 
 .app-content {
+  position: relative;
   display: flex;
   flex-direction: column;
   flex: 1;
   min-width: 0;
+}
+
+/* Editing overlay bullets: the canvas hides the edited node's text, so each paragraph div
+ * draws its bullet as a ::before filling the hanging indent (set by TextEditOverlay) */
+.slide-text-editor > div[data-bullet-text]::before {
+  content: attr(data-bullet-text);
+  display: inline-block;
+  /* hangs into the left margin like the canvas bullet; the width past the hang pushes the text */
+  margin-left: calc(-1 * var(--bullet-hang));
+  width: var(--bullet-w);
+  /* zero line box: a glyph larger than the text keeps the baseline without growing the line */
+  line-height: 0;
+  font-family: var(--bullet-font, inherit);
+  font-size: var(--bullet-size, inherit);
+  font-weight: var(--bullet-weight, normal);
+  color: var(--bullet-color, inherit);
+  white-space: pre;
+  user-select: none;
+  pointer-events: none;
+}
+.slide-text-editor > div[data-bullet-img] {
+  position: relative;
+}
+/* Picture bullet: the ::before (an invisible glyph) reserves the hanging indent, the ::after paints the image */
+.slide-text-editor > div[data-bullet-img]::after {
+  content: '';
+  position: absolute;
+  left: var(--bullet-x);
+  top: var(--bullet-y);
+  width: var(--bullet-img-w);
+  height: var(--bullet-h);
+  background: var(--bullet-img) center / contain no-repeat;
+  user-select: none;
+  pointer-events: none;
 }

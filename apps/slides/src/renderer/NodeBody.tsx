@@ -10,6 +10,8 @@ import React, { useLayoutEffect, useRef, useState, useSyncExternalStore } from '
 import type Konva from 'konva'
 import { Group, Rect, Ellipse, Text, Line, Arrow, Image as KImage, Path } from 'react-konva'
 import type {
+  BevelEdge,
+  CellBevelRender,
   RenderNode,
   ShapeRenderNode,
   PictureRenderNode,
@@ -20,16 +22,22 @@ import type {
   ArrowEndRender,
   RenderReflection,
 } from '@genoffice/pptx-render'
+import { extrusionFrontFace } from '@genoffice/pptx-render'
 import {
   featheredImage,
   featheredShapeCanvas,
+  clippedImageCanvas,
   fillToKonva,
+  hasBlipEffects,
+  imageHasAlpha,
+  imageShadowCanvas,
   processedImage,
   processedImageKey,
   flatColorImage,
   isDegenerateImage,
   strokeToKonva,
   shadowToKonva,
+  tracePictureClip,
   isOverlayShadow,
   shapeShadowOverlay,
   type ShadowGeom,
@@ -40,6 +48,8 @@ import {
   normalizeColor,
   boxPivotProps,
   centerFillProps,
+  connectorHeadColor,
+  connectorStrokeProps,
   subscribeFontsEpoch,
   getFontsEpoch,
 } from './konva-adapter'
@@ -130,17 +140,11 @@ export const NodeBody = React.memo(function NodeBody({
   if (node.type === 'picture') {
     const pic = node as PictureRenderNode
     const rawImg = pic.dataUrl ? images.get(pic.dataUrl) : undefined
-    // clrChange/duotone recolor the pixels; the derived key keeps processed variants out of raw cache slots
-    const srcKey = processedImageKey(pic.dataUrl ?? '', pic.clrChange, pic.duotone, pic.lum)
+    // recolor effects change the pixels; the derived key keeps processed variants out of raw cache slots
+    const srcKey = processedImageKey(pic.dataUrl ?? '', pic)
     const procImg =
-      rawImg && (pic.clrChange || pic.duotone || pic.lum)
-        ? (processedImage(
-            rawImg,
-            pic.dataUrl ?? '',
-            pic.clrChange,
-            pic.duotone,
-            pic.lum,
-          ) as HTMLImageElement)
+      rawImg && hasBlipEffects(pic)
+        ? (processedImage(rawImg, pic.dataUrl ?? '', pic) as HTMLImageElement)
         : rawImg
     // ≤2×2 pictures stretch to one flat color in PowerPoint (crop is meaningless there)
     const tiny = !!procImg && isDegenerateImage(procImg)
@@ -199,6 +203,15 @@ export const NodeBody = React.memo(function NodeBody({
       // shadow/glow is cast by an opaque backing shape (the image exactly covers it, so no color shows through)
       const shadowProps = shadowToKonva(pic.shadow, pic.glow)
       const strokeProps = strokeToKonva(pic.stroke)
+      // A transparent picture casts its shadow from its own silhouette; an opaque
+      // backing there would paint the whole frame white
+      const alphaShadow =
+        'shadowColor' in shadowProps && imageHasAlpha(img, srcKey)
+          ? imageShadowCanvas(
+              clippedImageCanvas(img, srcKey, box.w, box.h, clip, cropProps),
+              shadowProps,
+            )
+          : undefined
       const outline = (extra: Record<string, unknown>) =>
         clip.pathData ? (
           <Path data={clip.pathData} {...extra} />
@@ -224,24 +237,24 @@ export const NodeBody = React.memo(function NodeBody({
       return (
         <>
           {picShadowOv?.under ? picShadowImg : null}
-          {'shadowColor' in shadowProps && backing({ fill: '#ffffff', ...shadowProps })}
+          {'shadowColor' in shadowProps &&
+            (alphaShadow ? (
+              <KImage
+                image={alphaShadow.canvas}
+                x={-alphaShadow.pad}
+                y={-alphaShadow.pad}
+                width={box.w + 2 * alphaShadow.pad}
+                height={box.h + 2 * alphaShadow.pad}
+                {...(pic.opacity != null ? { opacity: pic.opacity } : {})}
+                listening={false}
+              />
+            ) : (
+              backing({ fill: '#ffffff', ...shadowProps })
+            ))}
           <Group
             clipFunc={(ctx) => {
-              if (clip.pathData) return [new Path2D(clip.pathData)] as [Path2D]
-              if (clip.polygonPoints) {
-                const pts = clip.polygonPoints
-                ctx.moveTo(pts[0]!, pts[1]!)
-                for (let i = 2; i + 1 < pts.length; i += 2) ctx.lineTo(pts[i]!, pts[i + 1]!)
-                ctx.closePath()
-                return
-              }
-              const r = Math.min(clip.cornerRadiusPx ?? 0, box.w / 2, box.h / 2)
-              ctx.moveTo(r, 0)
-              ctx.arcTo(box.w, 0, box.w, box.h, r)
-              ctx.arcTo(box.w, box.h, 0, box.h, r)
-              ctx.arcTo(0, box.h, 0, 0, r)
-              ctx.arcTo(0, 0, box.w, 0, r)
-              ctx.closePath()
+              const p = tracePictureClip(ctx, clip, box.w, box.h)
+              return p ? ([p] as [Path2D]) : undefined
             }}
           >
             {/* spPr fill: PowerPoint always paints it behind the image, even a translucent one */}
@@ -301,16 +314,19 @@ export const NodeBody = React.memo(function NodeBody({
               : layoutGlyphs(cell.text)
           return (
             <React.Fragment key={i}>
+              {/* Bevel bands tile the outer ring, so the face keeps to the inner rect and a
+                  translucent fill never composites twice */}
               <Rect
-                x={cell.x}
-                y={cell.y}
-                width={cell.w}
-                height={cell.h}
+                x={cell.x + (cell.bevel?.widthPx ?? 0)}
+                y={cell.y + (cell.bevel?.widthPx ?? 0)}
+                width={cell.w - 2 * (cell.bevel?.widthPx ?? 0)}
+                height={cell.h - 2 * (cell.bevel?.widthPx ?? 0)}
                 {...fillToKonva(cell.fill, cell.w, cell.h, images, {
                   x: box.x + cell.x,
                   y: box.y + cell.y,
                 })}
               />
+              {cell.bevel && <CellBevelBands cell={cell} bevel={cell.bevel} />}
               {cell.borders?.t && (
                 <Line
                   points={[cell.x, cell.y, cell.x + cell.w, cell.y]}
@@ -435,8 +451,9 @@ export const NodeBody = React.memo(function NodeBody({
 
   // Connector/straight line: polyline (flip already baked into points), with optional arrow endpoints
   if (shape.line) {
-    const color = strokeProps.stroke ?? normalizeColor('#000000')
-    const sw = strokeProps.strokeWidth ?? 1
+    const lineStroke = connectorStrokeProps(strokeProps)
+    const color = connectorHeadColor(strokeProps)
+    const sw = lineStroke.strokeWidth ?? 1
     const { headEnd, tailEnd, bezier } = shape.line
 
     // Curved connector: draw the bezier with an SVG Path
@@ -454,8 +471,7 @@ export const NodeBody = React.memo(function NodeBody({
         <>
           <Path
             data={d}
-            stroke={color}
-            strokeWidth={sw}
+            {...lineStroke}
             hitStrokeWidth={Math.max(sw, 12)}
             fill="transparent"
             lineCap="round"
@@ -482,8 +498,7 @@ export const NodeBody = React.memo(function NodeBody({
         {useKonvaArrow ? (
           <Arrow
             points={shape.line.points}
-            stroke={color}
-            strokeWidth={sw}
+            {...lineStroke}
             hitStrokeWidth={Math.max(sw, 12)}
             {...(strokeProps.dash ? { dash: strokeProps.dash } : {})}
             fill={color}
@@ -510,8 +525,7 @@ export const NodeBody = React.memo(function NodeBody({
         ) : (
           <Line
             points={shape.line.points}
-            stroke={color}
-            strokeWidth={sw}
+            {...lineStroke}
             hitStrokeWidth={Math.max(sw, 12)}
             {...(strokeProps.dash ? { dash: strokeProps.dash } : {})}
             lineCap="round"
@@ -531,9 +545,18 @@ export const NodeBody = React.memo(function NodeBody({
 
   let geom: React.ReactNode
   if (shape.extrusion) {
-    // scene3d/sp3d extrusion: pre-projected shaded faces in painter order replace the flat geometry
+    // scene3d/sp3d extrusion: pre-projected shaded faces in painter order replace the flat
+    // geometry; the shadow/glow is cast by the silhouette underneath them
+    const front = extrusionFrontFace(shape.extrusion.faces)
     geom = (
       <>
+        {shape.extrusion.shadowPath && front && 'shadowColor' in shadowProps && (
+          <Path
+            data={shape.extrusion.shadowPath}
+            {...(front.front ? fillProps : { fill: normalizeColor(front.color) })}
+            {...shadowProps}
+          />
+        )}
         {shape.extrusion.faces.map((f, i) => (
           <Path
             key={i}
@@ -680,7 +703,7 @@ export const NodeBody = React.memo(function NodeBody({
   // Inner/perspective shadows draw as an offscreen overlay (canvas shadow props can't express them)
   let shapeShadowUnder: React.ReactNode = null
   let shapeShadowOver: React.ReactNode = null
-  if (isOverlayShadow(shape.shadow) && !shape.extrusion && !shape.line) {
+  if (isOverlayShadow(shape.shadow) && (!shape.extrusion || shape.extrusion.flat) && !shape.line) {
     const sg: ShadowGeom =
       shape.fillPathData || shape.pathData
         ? { kind: 'path', data: (shape.fillPathData ?? shape.pathData)! }
@@ -765,49 +788,66 @@ export const NodeBody = React.memo(function NodeBody({
               />
             )),
           )}
-        {glyphs.map((g, i) => (
-          <Text
-            key={i}
-            x={(shape.text?.insets.l ?? 0) + g.x}
-            y={(shape.text?.insets.t ?? 0) + g.y}
-            text={g.text}
-            fontSize={g.fontSize}
-            fontFamily={g.fontFamily}
-            fontStyle={g.fontStyle}
-            textDecoration={g.textDecoration}
-            rotation={g.rotation ?? 0}
-            scaleX={g.scaleX ?? 1}
-            scaleY={g.scaleY ?? 1}
-            offsetX={g.offsetX ?? 0}
-            offsetY={g.offsetY ?? 0}
-            letterSpacing={g.letterSpacing ?? 0}
-            fill={
-              shape.text?.extrusion
-                ? normalizeColor(shadeHex(shape.text.extrusion.color, 0.35))
-                : g.fill
-            }
-            direction={g.direction ?? 'inherit'}
-            {...(g.fillPriority && !shape.text?.extrusion
-              ? {
-                  fillPriority: g.fillPriority,
-                  fillLinearGradientStartPoint: g.fillLinearGradientStartPoint,
-                  fillLinearGradientEndPoint: g.fillLinearGradientEndPoint,
-                  fillLinearGradientColorStops: g.fillLinearGradientColorStops,
-                }
-              : {})}
-            {...(g.stroke
-              ? { stroke: g.stroke, strokeWidth: g.strokeWidth, fillAfterStrokeEnabled: true }
-              : {})}
-            {...(g.shadowEnabled
-              ? {
-                  shadowColor: g.shadowColor,
-                  shadowBlur: g.shadowBlur,
-                  shadowOffsetX: g.shadowOffsetX,
-                  shadowOffsetY: g.shadowOffsetY,
-                }
-              : {})}
-          />
-        ))}
+        {glyphs.map((g, i) => {
+          if (g.image) {
+            const img = images.get(g.image)
+            if (!img) return null
+            return (
+              <KImage
+                key={i}
+                image={img}
+                x={(shape.text?.insets.l ?? 0) + g.x}
+                y={(shape.text?.insets.t ?? 0) + g.y}
+                width={g.imageW ?? g.fontSize}
+                height={g.imageH ?? g.fontSize}
+                listening={false}
+              />
+            )
+          }
+          return (
+            <Text
+              key={i}
+              x={(shape.text?.insets.l ?? 0) + g.x}
+              y={(shape.text?.insets.t ?? 0) + g.y}
+              text={g.text}
+              fontSize={g.fontSize}
+              fontFamily={g.fontFamily}
+              fontStyle={g.fontStyle}
+              textDecoration={g.textDecoration}
+              rotation={g.rotation ?? 0}
+              scaleX={g.scaleX ?? 1}
+              scaleY={g.scaleY ?? 1}
+              offsetX={g.offsetX ?? 0}
+              offsetY={g.offsetY ?? 0}
+              letterSpacing={g.letterSpacing ?? 0}
+              fill={
+                shape.text?.extrusion
+                  ? normalizeColor(shadeHex(shape.text.extrusion.color, 0.35))
+                  : g.fill
+              }
+              direction={g.direction ?? 'inherit'}
+              {...(g.fillPriority && !shape.text?.extrusion
+                ? {
+                    fillPriority: g.fillPriority,
+                    fillLinearGradientStartPoint: g.fillLinearGradientStartPoint,
+                    fillLinearGradientEndPoint: g.fillLinearGradientEndPoint,
+                    fillLinearGradientColorStops: g.fillLinearGradientColorStops,
+                  }
+                : {})}
+              {...(g.stroke
+                ? { stroke: g.stroke, strokeWidth: g.strokeWidth, fillAfterStrokeEnabled: true }
+                : {})}
+              {...(g.shadowEnabled
+                ? {
+                    shadowColor: g.shadowColor,
+                    shadowBlur: g.shadowBlur,
+                    shadowOffsetX: g.shadowOffsetX,
+                    shadowOffsetY: g.shadowOffsetY,
+                  }
+                : {})}
+            />
+          )
+        })}
         {/* Reflections: faded mirror below each run (PowerPoint fades it out; approximated flat) */}
         {glyphs.map(
           (g, i) =>
@@ -1125,3 +1165,62 @@ export const StaticNode = React.memo(function StaticNode({
     </Group>
   )
 })
+
+/** Four mitred bevel bands of a cell3D table cell, each a linear gradient from the outer edge
+    inward. They stay listening: the face rect is inset under them, so the ring is the cell's
+    pointer target there. */
+function CellBevelBands({
+  cell,
+  bevel,
+}: {
+  cell: { x: number; y: number; w: number; h: number }
+  bevel: CellBevelRender
+}) {
+  const { x, y, w, h } = cell
+  const b = bevel.widthPx
+  const bands: Array<{
+    key: BevelEdge
+    points: number[]
+    from: { x: number; y: number }
+    to: { x: number; y: number }
+  }> = [
+    {
+      key: 't',
+      points: [x, y, x + w, y, x + w - b, y + b, x + b, y + b],
+      from: { x, y },
+      to: { x, y: y + b },
+    },
+    {
+      key: 'r',
+      points: [x + w, y, x + w, y + h, x + w - b, y + h - b, x + w - b, y + b],
+      from: { x: x + w, y },
+      to: { x: x + w - b, y },
+    },
+    {
+      key: 'b',
+      points: [x, y + h, x + w, y + h, x + w - b, y + h - b, x + b, y + h - b],
+      from: { x, y: y + h },
+      to: { x, y: y + h - b },
+    },
+    {
+      key: 'l',
+      points: [x, y, x, y + h, x + b, y + h - b, x + b, y + b],
+      from: { x, y },
+      to: { x: x + b, y },
+    },
+  ]
+  return (
+    <>
+      {bands.map((band) => (
+        <Line
+          key={band.key}
+          points={band.points}
+          closed
+          fillLinearGradientStartPoint={band.from}
+          fillLinearGradientEndPoint={band.to}
+          fillLinearGradientColorStops={bevel.edges[band.key].flatMap((s) => [s.pos, s.color])}
+        />
+      ))}
+    </>
+  )
+}

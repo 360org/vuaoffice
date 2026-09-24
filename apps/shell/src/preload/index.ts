@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { IpcRendererEvent } from 'electron'
 import {
   AI_MEDIA_PROVIDERS,
@@ -13,16 +13,25 @@ import type {
   AccountLoginEvent,
   AccountStatus,
   CloudProjectsSnapshot,
+  FolderListing,
+  FolderRoot,
+  MoveResult,
   HomeApi,
   RecentEntry,
   RecentPage,
   RenameResult,
-  ProjectHomeApi,
-  ProjectSummaryEntry,
-  TimelineEntryItem,
   UiLanguage,
+  FileSearchPage,
+  FileSearchRerank,
+  FileSearchSettings,
 } from '../shared/home-api'
-import { HOME_CHANNELS, PROJECT_CHANNELS } from '../shared/home-api'
+import { HOME_CHANNELS } from '../shared/home-api'
+import { INTEGRATIONS_CHANNELS } from '../shared/integrations-api'
+import type {
+  IntegrationsApi,
+  IntegrationsStatus,
+  SkillInstallState,
+} from '../shared/integrations-api'
 import type { TabsApi, TabSummary } from '../shared/tabs-api'
 import { TABS_CHANNELS } from '../shared/tabs-api'
 
@@ -63,9 +72,49 @@ function asRecentPage(result: unknown): RecentPage {
   return EMPTY_PAGE
 }
 
+const EMPTY_SEARCH: FileSearchPage = {
+  hits: [],
+  total: 0,
+  index: { indexed: 0, pending: 0, scanning: false },
+}
+
+function asSearchPage(result: unknown): FileSearchPage {
+  if (result && typeof result === 'object' && Array.isArray((result as FileSearchPage).hits)) {
+    return result as FileSearchPage
+  }
+  return EMPTY_SEARCH
+}
+
 const homeApi: HomeApi = {
   async recents(query) {
     return asRecentPage(await ipcRenderer.invoke(HOME_CHANNELS.recents, query))
+  },
+  async searchFiles(query) {
+    return asSearchPage(await ipcRenderer.invoke(HOME_CHANNELS.searchFiles, query))
+  },
+  async rerankSearch(query) {
+    const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.rerankSearch, query)
+    return result && typeof result === 'object' && Array.isArray((result as FileSearchRerank).order)
+      ? (result as FileSearchRerank)
+      : null
+  },
+  async getFileSearchSettings() {
+    return (await ipcRenderer.invoke(HOME_CHANNELS.getFileSearchSettings)) as FileSearchSettings
+  },
+  async setFileSearchSettings(patch) {
+    return (await ipcRenderer.invoke(
+      HOME_CHANNELS.setFileSearchSettings,
+      patch,
+    )) as FileSearchSettings
+  },
+  async testFileSearchRerank(input) {
+    const raw = ((await ipcRenderer.invoke(HOME_CHANNELS.testFileSearchRerank, input)) ?? {}) as {
+      ok?: unknown
+      error?: unknown
+    }
+    return raw.ok === true
+      ? { ok: true }
+      : { ok: false, error: typeof raw.error === 'string' ? raw.error : 'Connection failed' }
   },
   async starred(query) {
     return asRecentPage(await ipcRenderer.invoke(HOME_CHANNELS.starred, query))
@@ -124,6 +173,48 @@ const homeApi: HomeApi = {
   },
   async deleteFiles(paths) {
     await ipcRenderer.invoke(HOME_CHANNELS.deleteFiles, paths)
+  },
+  async folderRoots() {
+    return (await ipcRenderer.invoke(HOME_CHANNELS.folderRoots)) as FolderRoot[]
+  },
+  async addFolderRoot() {
+    return (await ipcRenderer.invoke(HOME_CHANNELS.addFolderRoot)) as FolderRoot | null
+  },
+  async dropFolderRoots(paths) {
+    return (await ipcRenderer.invoke(HOME_CHANNELS.dropFolderRoots, paths)) as FolderRoot[]
+  },
+  async removeFolderRoot(path) {
+    await ipcRenderer.invoke(HOME_CHANNELS.removeFolderRoot, path)
+  },
+  pathForFile(file) {
+    return webUtils.getPathForFile(file)
+  },
+  async listFolder(dir) {
+    return (await ipcRenderer.invoke(HOME_CHANNELS.listFolder, dir)) as FolderListing
+  },
+  async createFolder(parent, name) {
+    return (await ipcRenderer.invoke(HOME_CHANNELS.createFolder, parent, name)) as RenameResult
+  },
+  async renameFolder(dir, newName) {
+    return (await ipcRenderer.invoke(HOME_CHANNELS.renameFolder, dir, newName)) as RenameResult
+  },
+  async movePaths(paths, targetDir, onConflict) {
+    return (await ipcRenderer.invoke(
+      HOME_CHANNELS.movePaths,
+      paths,
+      targetDir,
+      onConflict,
+    )) as MoveResult
+  },
+  async deleteFolder(dir) {
+    await ipcRenderer.invoke(HOME_CHANNELS.deleteFolder, dir)
+  },
+  onFolderChanged(handler) {
+    const listener = (_event: IpcRendererEvent, dirs: unknown) => {
+      if (Array.isArray(dirs)) handler(dirs.filter((d): d is string => typeof d === 'string'))
+    }
+    ipcRenderer.on(HOME_CHANNELS.folderChanged, listener)
+    return () => ipcRenderer.removeListener(HOME_CHANNELS.folderChanged, listener)
   },
   async openTrash() {
     await ipcRenderer.invoke(HOME_CHANNELS.openTrash)
@@ -199,6 +290,71 @@ const homeApi: HomeApi = {
   async setAutoSaveDefault(on) {
     if (typeof on !== 'boolean') throw new Error('Invalid AutoSave default.')
     await ipcRenderer.invoke(HOME_CHANNELS.setAutoSaveDefault, on)
+  },
+  async getMcpStatus() {
+    const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.getMcpStatus)
+    const r = result as {
+      running?: unknown
+      enabled?: unknown
+      port?: unknown
+      background?: unknown
+      logging?: unknown
+      url?: unknown
+      capabilities?: unknown
+      error?: unknown
+    } | null
+    return {
+      running: r?.running === true,
+      enabled: r?.enabled === true,
+      port: typeof r?.port === 'number' ? r.port : 3093,
+      background: r?.background === true,
+      logging: r?.logging === true,
+      url: typeof r?.url === 'string' ? r.url : null,
+      capabilities: Array.isArray(r?.capabilities)
+        ? r.capabilities.filter((c): c is string => typeof c === 'string')
+        : ['docs'],
+      ...(typeof r?.error === 'string' ? { error: r.error } : {}),
+    }
+  },
+  async setMcpSettings(patch: {
+    enabled?: boolean
+    port?: number
+    background?: boolean
+    logging?: boolean
+  }) {
+    const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.setMcpSettings, patch)
+    const r = result as {
+      running?: unknown
+      enabled?: unknown
+      port?: unknown
+      background?: unknown
+      logging?: unknown
+      url?: unknown
+      capabilities?: unknown
+      error?: unknown
+    } | null
+    return {
+      running: r?.running === true,
+      enabled: r?.enabled === true,
+      port: typeof r?.port === 'number' ? r.port : 3093,
+      background: r?.background === true,
+      logging: r?.logging === true,
+      url: typeof r?.url === 'string' ? r.url : null,
+      capabilities: Array.isArray(r?.capabilities)
+        ? r.capabilities.filter((c): c is string => typeof c === 'string')
+        : ['docs'],
+      ...(typeof r?.error === 'string' ? { error: r.error } : {}),
+    }
+  },
+  async getMcpLogs() {
+    const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.getMcpLogs)
+    return Array.isArray(result) ? result.filter((l): l is string => typeof l === 'string') : []
+  },
+  async clearMcpLogs() {
+    await ipcRenderer.invoke(HOME_CHANNELS.clearMcpLogs)
+  },
+  async openMcpLogFile() {
+    await ipcRenderer.invoke(HOME_CHANNELS.openMcpLogFile)
   },
   async getAnalyticsEnabled() {
     const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.getAnalyticsEnabled)
@@ -328,6 +484,9 @@ const homeApi: HomeApi = {
   async getCodexModels(cliPath) {
     return (await ipcRenderer.invoke('ai:codex-models', cliPath)) as CodexModelCatalog
   },
+  async getCustomModels(baseUrl, apiKey) {
+    return (await ipcRenderer.invoke('ai:custom-models', { baseUrl, apiKey })) as CodexModelCatalog
+  },
   async testAiSettings(settings) {
     const result: unknown = await ipcRenderer.invoke('ai:chat', {
       settings,
@@ -378,40 +537,35 @@ function asCloudProjectsSnapshot(result: unknown): CloudProjectsSnapshot | null 
 
 contextBridge.exposeInMainWorld('aiOffice', homeApi)
 
-const projectApi: ProjectHomeApi = {
-  async listProjects() {
-    const result: unknown = await ipcRenderer.invoke(PROJECT_CHANNELS.list)
-    return Array.isArray(result) ? (result as ProjectSummaryEntry[]) : []
+const integrationsApi: IntegrationsApi = {
+  async status() {
+    return (await ipcRenderer.invoke(INTEGRATIONS_CHANNELS.status)) as IntegrationsStatus
   },
-  async listFiles(projectId) {
-    const result: unknown = await ipcRenderer.invoke(PROJECT_CHANNELS.files, { projectId })
-    return Array.isArray(result)
-      ? result.filter((path): path is string => typeof path === 'string')
-      : []
+  async installSkill(target) {
+    return (await ipcRenderer.invoke(
+      INTEGRATIONS_CHANNELS.installSkill,
+      target,
+    )) as SkillInstallState
   },
-  async createProject(name) {
-    const result: unknown = await ipcRenderer.invoke(PROJECT_CHANNELS.create, { name })
-    return result as ProjectSummaryEntry
+  async uninstallSkill(agentId) {
+    return (await ipcRenderer.invoke(
+      INTEGRATIONS_CHANNELS.uninstallSkill,
+      agentId,
+    )) as SkillInstallState
   },
-  async renameProject(id, name) {
-    await ipcRenderer.invoke(PROJECT_CHANNELS.rename, { id, name })
+  async pickSkillDir(title) {
+    const r: unknown = await ipcRenderer.invoke(INTEGRATIONS_CHANNELS.pickSkillDir, title)
+    return typeof r === 'string' ? r : null
   },
-  async deleteProject(id) {
-    await ipcRenderer.invoke(PROJECT_CHANNELS.delete, { id })
+  async saveSkillZip(title) {
+    const r: unknown = await ipcRenderer.invoke(INTEGRATIONS_CHANNELS.saveSkillZip, title)
+    return typeof r === 'string' ? r : null
   },
-  async moveFile(filePath, projectId) {
-    await ipcRenderer.invoke(PROJECT_CHANNELS.moveFile, { filePath, projectId })
-  },
-  async getTimeline(projectId, limit) {
-    const result: unknown = await ipcRenderer.invoke(PROJECT_CHANNELS.timeline, {
-      projectId,
-      limit,
-    })
-    return Array.isArray(result) ? (result as TimelineEntryItem[]) : []
+  async copyText(text) {
+    await ipcRenderer.invoke(INTEGRATIONS_CHANNELS.copyText, text)
   },
 }
-
-contextBridge.exposeInMainWorld('aiOfficeProject', projectApi)
+contextBridge.exposeInMainWorld('aiOfficeIntegrations', integrationsApi)
 
 const tabsApi: TabsApi = {
   async list() {
@@ -429,6 +583,15 @@ const tabsApi: TabsApi = {
   },
   async showNewMenu(x, y) {
     await ipcRenderer.invoke(TABS_CHANNELS.showNewMenu, x, y)
+  },
+  async showTabMenu(id, x, y) {
+    await ipcRenderer.invoke(TABS_CHANNELS.showTabMenu, id, x, y)
+  },
+  async detach(id) {
+    await ipcRenderer.invoke(TABS_CHANNELS.detach, id)
+  },
+  async showAppMenu(x, y) {
+    await ipcRenderer.invoke(TABS_CHANNELS.showAppMenu, x, y)
   },
   async reorder(id, toIndex) {
     await ipcRenderer.invoke(TABS_CHANNELS.reorder, id, toIndex)

@@ -5,7 +5,7 @@ import type { PageGeom } from './annotations'
 import { colorSegments, decodeStyle, encodeStyle, runsToColors } from './color-runs'
 import type { CharStyle } from './color-runs'
 import type { DocFontStyle } from './doc-font'
-import { EDIT_FONTS } from '../shared/ipc'
+import { EDIT_FONTS, SYNTHETIC_BOLD_STROKE_EM } from '../shared/ipc'
 import type { TextEditInput, TextEditValidation, TextInsertInput } from '../shared/ipc'
 import type { TextBlock } from './text-block'
 import { joinBlockLines } from './text-wrap'
@@ -43,6 +43,8 @@ export const hexTo255 = (hex: string): [number, number, number] => [
   parseInt(hex.slice(3, 5), 16),
   parseInt(hex.slice(5, 7), 16),
 ]
+const luminance = ([r, g, b]: readonly [number, number, number]): number =>
+  (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
 export const rgb255ToHex = (c: readonly [number, number, number]): string =>
   `#${c
     .map((v) =>
@@ -68,13 +70,32 @@ export const styleRunsToKeyRuns = (
     }),
   }))
 
+/** Preview of a bold toggle, mirroring the engine: an explicit edit font draws its real
+    bold face; the document's own face is stroked in place (same advances), unless its
+    name already says it is bold — then the engine leaves it alone. */
+export const boldCss = (
+  bold: boolean | undefined,
+  explicitFont: boolean,
+  baseWeight?: number,
+): CSSProperties => {
+  if (bold === undefined) return {}
+  if (!bold) return { fontWeight: 400, WebkitTextStroke: '0' }
+  if (explicitFont) return { fontWeight: 700 }
+  if (baseWeight && baseWeight >= 600) return { fontWeight: baseWeight }
+  return { WebkitTextStroke: `${SYNTHETIC_BOLD_STROKE_EM}em currentColor` }
+}
+
+/** Weight token for canvas font shorthands: synthetic bold keeps regular advances */
+export const boldToken = (bold: boolean | undefined, explicitFont: boolean, baseWeight?: number) =>
+  bold && explicitFont ? 'bold' : baseWeight ? String(baseWeight) : ''
+
 /** CSS of one styled segment in the editor mirror / pending preview. Explicit on/off
     overrides the inherited draft-level weight/slant; size scales like the host text. */
-export const styleSegCss = (s: CharStyle, scale: number): CSSProperties => ({
+export const styleSegCss = (s: CharStyle, scale: number, draftFont?: string): CSSProperties => ({
   ...(s.color ? { color: s.color } : {}),
   ...(s.font ? { fontFamily: EDIT_FONT_BY_ID.get(s.font)?.css } : {}),
   ...(s.size !== undefined ? { fontSize: s.size * scale * 0.92 } : {}),
-  ...(s.bold !== undefined ? { fontWeight: s.bold ? 700 : 400 } : {}),
+  ...boldCss(s.bold, !!(s.font ?? draftFont)),
   ...(s.italic !== undefined ? { fontStyle: s.italic ? 'italic' : 'normal' } : {}),
 })
 
@@ -107,6 +128,9 @@ export interface LocalTextEdit {
   /** Local look-alike of the run's own font (display-only, from the PostScript
       name): the pending preview reads like the document. Never sent to the engine. */
   baseFont?: DocFontStyle
+  /** Page color sampled around the run when the draft opened (CSS). Backs the preview
+      until the live render has erased the original ink; display-only. */
+  paper?: string
   /** Accumulated block-move delta (PDF user space). Renderer metadata only: the preview
       and hover box draw at rect + moveBy while input.rect stays at the original position
       (it is the save-time match key). The engine-side position rides in input.translate
@@ -116,6 +140,23 @@ export interface LocalTextEdit {
 
 /** Stable per-render key for a clustered block's rect (same idea as imageRectKey) */
 export const blockRectKey = (r: readonly number[]): string => r.map((v) => v.toFixed(2)).join(',')
+
+/** Probe the live page render erases a run with (same shape the open validation sends) */
+export const textEraseProbe = (
+  pageIndex: number,
+  rect: [number, number, number, number],
+  oldText: string,
+  fontSize: number,
+): TextEditInput => ({ pageIndex, rect, oldText, newText: '', fontSize })
+
+/** Identity of an erase probe across draft → pending edit (both address the same run) */
+export const textEraseKey = (p: TextEditInput): string =>
+  `${p.pageIndex}|${blockRectKey(p.rect)}|${p.oldText}`
+
+/** Background for a run's editor/preview box: transparent once the live render has
+    erased the original ink, the sampled page color until then, paper as the last resort */
+export const paperCss = (erased: boolean, paper: string | undefined): CSSProperties =>
+  erased ? { background: 'transparent' } : paper ? { background: paper } : {}
 
 export const shiftRect = (
   r: readonly [number, number, number, number],
@@ -310,7 +351,7 @@ export const textInsertPreviewStyle = (
     textAlign: align,
   }
   if (insert.input.font) style.fontFamily = EDIT_FONT_BY_ID.get(insert.input.font)?.css
-  if (insert.input.bold) style.fontWeight = 700
+  if (insert.input.bold) Object.assign(style, boldCss(true, !!insert.input.font))
   if (insert.input.italic) style.fontStyle = 'italic'
   return style
 }
@@ -320,6 +361,7 @@ export const textEditPreviewParts = (
   te: LocalTextEdit,
   geom: PageGeom,
   scale: number,
+  erased = false,
 ): { style: CSSProperties; coverStyle: CSSProperties | null } => {
   const fs = (te.input.newFontSize ?? te.input.fontSize) * scale * 0.92
   const lineCount = te.input.newText.split('\n').length
@@ -330,6 +372,7 @@ export const textEditPreviewParts = (
     ...pdfRectToCss(geom, te.moveBy ? shiftRect(te.input.rect, te.moveBy) : te.input.rect, scale),
     fontSize: fs,
     ...(te.input.lineLeading ? { lineHeight: `${leadPx}px` } : {}),
+    ...paperCss(erased, te.paper),
   }
   if (te.input.newColor) {
     style.color = `rgb(${te.input.newColor.join(', ')})`
@@ -343,7 +386,7 @@ export const textEditPreviewParts = (
     // Look-alike of the document's own face
     style.fontFamily = baseF.css
   }
-  if (te.input.newBold) style.fontWeight = 700
+  if (te.input.newBold) Object.assign(style, boldCss(true, !!te.input.newFont, baseF?.weight))
   else if (baseF?.weight) style.fontWeight = baseF.weight
   if (te.input.newItalic) style.fontStyle = 'italic'
   else if (baseF?.italic) style.fontStyle = 'italic'
@@ -365,13 +408,16 @@ export const textEditPreviewParts = (
   // The rebuilt run grows right past the original rect when the replacement is
   // longer; the preview must too, or the extra characters look cut off until
   // the save (overflow: hidden)
-  const previewFont = `${te.input.newItalic || baseF?.italic ? 'italic ' : ''}${
-    te.input.newBold ? 'bold ' : baseF?.weight ? `${baseF.weight} ` : ''
-  }${fs}px ${
+  const previewFont = [
+    te.input.newItalic || baseF?.italic ? 'italic' : '',
+    boldToken(te.input.newBold, !!te.input.newFont, baseF?.weight),
+    `${fs}px`,
     (te.input.newFont && EDIT_FONT_BY_ID.get(te.input.newFont)?.css) ||
-    baseF?.css ||
-    getComputedStyle(document.body).fontFamily
-  }`
+      baseF?.css ||
+      getComputedStyle(document.body).fontFamily,
+  ]
+    .filter(Boolean)
+    .join(' ')
   const widest = Math.max(
     ...te.input.newText.split('\n').map((l) => measureTextWidth(l, previewFont)),
   )
@@ -386,9 +432,13 @@ export const textEditPreviewParts = (
     if (te.input.align === 'center') style.justifyContent = 'center'
     if (te.input.align === 'right') style.justifyContent = 'flex-end'
   }
-  const coverStyle = te.cover
-    ? inflateCss(pdfRectToCss(geom, unionCover(te.input.rect, te.cover), scale), 1.5)
-    : null
+  const coverStyle =
+    te.cover && !erased
+      ? {
+          ...inflateCss(pdfRectToCss(geom, unionCover(te.input.rect, te.cover), scale), 1.5),
+          ...paperCss(false, te.paper),
+        }
+      : null
   return { style, coverStyle }
 }
 
@@ -409,7 +459,7 @@ export const textEditPreviewContent = (te: LocalTextEdit, scale: number): ReactN
         if (!seg.color) return <Fragment key={i}>{seg.text}</Fragment>
         const s = decodeStyle(seg.color)
         return (
-          <span key={i} style={styleSegCss(s, scale)}>
+          <span key={i} style={styleSegCss(s, scale, te.input.newFont)}>
             {seg.text}
           </span>
         )
@@ -444,6 +494,8 @@ export interface TextDraft {
   /** Local look-alike of the run's own font (async, from the dominant run's
       PostScript name). Display + reflow measurement only; never committed. */
   seedFont?: DocFontStyle
+  /** Page color sampled around the run at open (CSS); see LocalTextEdit.paper */
+  paper?: string
   /** EDIT_FONTS id; undefined = automatic rebuild font */
   font?: string
   /** Style toggles; true = on, undefined = off (resolved via font variants at save) */
@@ -486,10 +538,10 @@ export interface TextDraft {
     rebuild still preserves the colors on save). */
 export const seedDraftColors = (d: TextDraft, v: TextEditValidation): TextDraft => {
   let next = d
-  // Near-white ink would vanish on the editor's white background; keep default ink
+  // Ink indistinguishable from the box behind it would vanish; keep default ink then
   if (v.baseColor && !next.color && !next.seedInk) {
-    const [r, g, b] = v.baseColor
-    if ((0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 <= 0.85)
+    const paper = next.paper ? hexTo255(next.paper) : ([255, 255, 255] as const)
+    if (Math.abs(luminance(v.baseColor) - luminance(paper)) > 0.15)
       next = { ...next, seedInk: rgb255ToHex(v.baseColor) }
   }
   if (!v.colorRuns || v.colorRuns.length === 0) return next

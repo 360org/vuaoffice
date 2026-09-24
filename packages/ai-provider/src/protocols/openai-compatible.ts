@@ -1,7 +1,7 @@
 import type { AgentMessage, AgentToolCall, AgentToolDef } from '@genoffice/agent-core'
 import { aiFetch } from '../fetch'
 import { httpBodyDetail } from '../http-error'
-import { gensparkAttributionHeaders } from '../providers'
+import { gensparkAttributionHeaders, opencodeSessionHeaders } from '../providers'
 import { modelEchoesReasoning } from '../registry'
 import type { AiChatResponse, AiProviderConfig } from '../types'
 import { createStreamWatchdog, type StreamWatchdog } from '../watchdog'
@@ -11,6 +11,8 @@ import {
   sseErrorText,
   sseLines,
   throwIfCreditsNotice,
+  throwIfToolCountOverBudget,
+  throwIfToolJsonOverBudget,
   type StreamCallbacks,
 } from './shared'
 
@@ -156,6 +158,7 @@ async function openAiCompatibleTurn(
       'Content-Type': 'application/json',
       ...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
       ...gensparkAttributionHeaders(baseUrl),
+      ...opencodeSessionHeaders(baseUrl, cb.sessionId),
     },
     body: JSON.stringify({
       model: config.model,
@@ -254,6 +257,9 @@ async function openAiCompatibleTurn(
       cb.onDelta(choice.delta.content)
     }
     for (const tc of choice.delta?.tool_calls ?? []) {
+      if (!pendingTools.has(tc.index)) {
+        throwIfToolCountOverBudget(pendingTools.size + 1, 'openai-compatible')
+      }
       const pending = pendingTools.get(tc.index) ?? {
         id: tc.id ?? crypto.randomUUID(),
         name: '',
@@ -270,7 +276,10 @@ async function openAiCompatibleTurn(
           ? tc.function.name
           : pending.name + tc.function.name
       }
-      if (tc.function?.arguments) pending.json += tc.function.arguments
+      if (tc.function?.arguments) {
+        pending.json += tc.function.arguments
+        throwIfToolJsonOverBudget(pending.json.length, 'openai-compatible')
+      }
       pendingTools.set(tc.index, pending)
     }
     if (choice.finish_reason) {
@@ -288,7 +297,8 @@ async function openAiCompatibleTurn(
     if (broken.length > 0) {
       const received = broken.reduce((n, p) => n + p.json.length, 0)
       throw new Error(
-        `The model stream closed while sending tool arguments (${received} chars received); the connection was dropped`,
+        `The model stream closed while sending tool arguments (${received} chars received); the connection was dropped. ` +
+          'If this recurs on a large request (e.g. generating a whole document), ask for the output in several smaller parts.',
       )
     }
   }
@@ -320,6 +330,7 @@ export async function chatOpenAiCompatible(
       'Content-Type': 'application/json',
       ...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
       ...gensparkAttributionHeaders(baseUrl),
+      ...opencodeSessionHeaders(baseUrl),
     },
     body: JSON.stringify({
       model: config.model,

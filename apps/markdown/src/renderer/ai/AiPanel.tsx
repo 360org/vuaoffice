@@ -1,3 +1,4 @@
+import { aiPanelWidthAtPointer, AiPanelSideButton } from '@genoffice/ui'
 import { useEffect, useRef, useState } from 'react'
 import type {
   DragEvent as ReactDragEvent,
@@ -7,6 +8,8 @@ import type {
 } from 'react'
 import { AgentLoop, composeSkills } from '@genoffice/agent-core'
 import type { AgentImage } from '@genoffice/agent-core'
+import { streamText } from '@genoffice/agent-core'
+
 import { imageGenerationAvailable, type AiSettings } from '@genoffice/ai-provider/browser'
 import {
   AiComposer,
@@ -22,7 +25,15 @@ import sendEnterOff from '../assets/send-enter-off.png'
 import sendStop from '../assets/send-stop.png'
 import { clearAiHighlights } from '../editor/aiHighlight'
 import { setInactiveSelectionShown } from '../editor/inactiveSelection'
-import { createMarkdownSkill } from './markdown-skill'
+import { createMarkdownSkill, MARKDOWN_RULES } from './markdown-skill'
+import {
+  buildDocWriterRequest,
+  countMarkdownBlocks,
+  DOC_MAX_CHARS,
+  extractMarkdown,
+  type DocWriteResult,
+  type DocWriteSpec,
+} from './doc-writer'
 import { createSearchSkill } from './search-skill'
 import { createFilesSkill } from './files-skill'
 import { createElectronTransport } from './transport'
@@ -59,6 +70,8 @@ const PANEL_WIDTH_DEFAULT = 360
 const PANEL_WIDTH_MIN = 280
 const MAX_SNAPSHOTS = 20
 const TOOL_OUTPUT_MAX_CHARS = 2000
+/** progress chip refresh while a write streams */
+const CHIP_UPDATE_MS = 400
 
 function clampPanelWidth(w: number): number {
   // The viewport can be transiently tiny (a WebContentsView is 0×0 until the
@@ -166,6 +179,11 @@ export function AiPanel({
 }): ReactElement {
   const { lang, t } = useI18n()
   const [chat, setChat] = useState<ChatEntry[]>([])
+  /** a streamed write stopped early: the draft stays in the document until the user keeps or discards it */
+  const [activePartial, setActivePartial] = useState<{ blocks: number } | null>(null)
+  const partialResolverRef = useRef<((keep: boolean) => void) | null>(null)
+  /** bumped by New chat / unmount: a writer resuming after its abort must not open the keep card */
+  const writerEpochRef = useRef(0)
   const [prompt, setPrompt] = useState('')
   const [busy, setBusy] = useState(false)
   const [attachments, setAttachments] = useState<AttachmentMeta[]>([])
@@ -289,12 +307,100 @@ export function AiPanel({
       })
   }
 
+  const transportRef = useRef<ReturnType<typeof createElectronTransport> | null>(null)
+  if (!transportRef.current)
+    transportRef.current = createElectronTransport(() => settingsRef.current!)
+
+  /**
+   * Long-form writing: one tool-less request whose reply is the markdown, streamed
+   * into the document as a draft by the tool. A stream that stops early leaves the
+   * user a keep-or-discard choice; a stream that produced nothing is retried once.
+   */
+  const runDocWriter = async (
+    spec: DocWriteSpec,
+    onProgress: (markdown: string) => void,
+    signal?: AbortSignal,
+  ): Promise<DocWriteResult> => {
+    const { system, user } = buildDocWriterRequest(
+      spec,
+      MARKDOWN_RULES,
+      aiLangDirective(langRef.current),
+    )
+    const epoch = writerEpochRef.current
+    let closed = false
+    let chipTimer: ReturnType<typeof setTimeout> | null = null
+    let latest = ''
+    const updateChip = () => {
+      chipTimer = null
+      if (closed) return
+      const blocks = countMarkdownBlocks(latest)
+      patchLast((last) => ({
+        tools: last.tools?.map((tl) =>
+          tl.running ? { ...tl, summary: tGlobal('aiWritingDocument', { blocks }) } : tl,
+        ),
+      }))
+    }
+    const attempt = () =>
+      streamText({
+        transport: transportRef.current!,
+        system,
+        user,
+        signal,
+        maxChars: DOC_MAX_CHARS,
+        extract: (raw) => ({ text: extractMarkdown(raw) }),
+        onProgress: (markdown) => {
+          if (closed) return
+          latest = markdown
+          onProgress(markdown)
+          if (chipTimer === null) chipTimer = setTimeout(updateChip, CHIP_UPDATE_MS)
+        },
+      })
+    let outcome = await attempt()
+    if (outcome.status === 'empty' && !signal?.aborted) outcome = await attempt()
+    closed = true
+    if (chipTimer !== null) clearTimeout(chipTimer)
+    if (outcome.status === 'complete') return { ok: true, markdown: outcome.text }
+    if (outcome.status === 'empty') return { ok: false, error: outcome.error }
+    if (epoch !== writerEpochRef.current) return { ok: false, error: 'the chat was reset' }
+    // the draft stays in the document while the user decides
+    const keep = await new Promise<boolean>((resolve) => {
+      partialResolverRef.current = resolve
+      setActivePartial({ blocks: countMarkdownBlocks(outcome.text) })
+    })
+    return keep
+      ? { ok: true, markdown: outcome.text, truncated: true }
+      : {
+          ok: false,
+          error: `${outcome.reason}${outcome.error ? `: ${outcome.error}` : ''}; the user discarded the partial content`,
+        }
+  }
+  const runDocWriterRef = useRef(runDocWriter)
+  runDocWriterRef.current = runDocWriter
+
+  const decidePartial = (keep: boolean): void => {
+    partialResolverRef.current?.(keep)
+    partialResolverRef.current = null
+    setActivePartial(null)
+  }
+  /** New chat / unmount: discard an open keep card and keep a still-settling writer from opening one */
+  const abandonWriter = (): void => {
+    writerEpochRef.current++
+    decidePartial(false)
+  }
+  useEffect(
+    () => () => {
+      writerEpochRef.current++
+    },
+    [],
+  )
+
   // The loop is built once; every mutable value goes through a ref getter
   const loopRef = useRef<AgentLoop<DocSnapshot> | null>(null)
   if (!loopRef.current) {
     loopRef.current = new AgentLoop<DocSnapshot>({
-      transport: createElectronTransport(() => settingsRef.current!),
+      transport: transportRef.current,
       skill: composeSkills('markdown+search+files', '', [
+
         createMarkdownSkill(
           () => depsRef.current.getEditor(),
           {
@@ -302,6 +408,9 @@ export function AiPanel({
             write: (inner) => depsRef.current.setFrontmatter(inner),
           },
           () => imageGenerationAvailable(settingsRef.current, gskLoggedInRef.current),
+          () => ({
+            write: (spec, onProgress, signal) => runDocWriterRef.current(spec, onProgress, signal),
+          }),
         ),
         createSearchSkill(),
         createFilesSkill(availableAttachments),
@@ -403,6 +512,7 @@ export function AiPanel({
     mountedRef.current = true
     return () => {
       mountedRef.current = false
+      partialResolverRef.current?.(false)
       loopRef.current?.cancel()
       const editor = depsRef.current.getEditor()
       if (editor) clearAiHighlights(editor)
@@ -711,7 +821,7 @@ export function AiPanel({
   const resizeCleanupRef = useRef<(() => void) | null>(null)
   useEffect(() => () => resizeCleanupRef.current?.(), [])
 
-  /** Drag the right edge to resize: the panel is flush with the window's left edge, so width = clientX */
+  /** Drag the inner panel edge to resize from the selected window side. */
   const startResize = (e: ReactPointerEvent<HTMLDivElement>): void => {
     e.preventDefault()
     const resizer = e.currentTarget
@@ -719,7 +829,7 @@ export function AiPanel({
     document.body.style.cursor = 'col-resize'
     document.body.style.userSelect = 'none'
     const onMove = (ev: PointerEvent): void => {
-      const w = clampPanelWidth(ev.clientX)
+      const w = clampPanelWidth(aiPanelWidthAtPointer(ev.clientX))
       preferredWidthRef.current = w
       setPanelWidth(w)
     }
@@ -768,7 +878,8 @@ export function AiPanel({
         onPointerDown={startResize}
         role="separator"
         aria-orientation="vertical"
-        aria-label="Genspark AI"
+        aria-label={t('aiOpenAssistant')}
+
       />
       <header className="ai-panel-header">
         <span className="ai-panel-title">
@@ -776,11 +887,16 @@ export function AiPanel({
           Genspark
         </span>
         <div className="ai-panel-header-actions">
+          <AiPanelSideButton
+            lang={lang}
+            onMove={(side) => window.markdownApi.setAiPanelPrefs({ side })}
+          />
           {chat.length > 0 && (
             <button
               className="ai-header-btn"
               onClick={() => {
                 stop()
+                abandonWriter()
                 loopRef.current?.reset()
                 setBusy(false)
                 setChat([])
@@ -792,7 +908,7 @@ export function AiPanel({
             </button>
           )}
           <button
-            className="ai-header-btn"
+            className="ai-header-btn ai-panel-collapse"
             onClick={onCollapse}
             data-tip={t('aiCollapsePanel')}
             aria-label={t('aiCollapsePanel')}
@@ -981,6 +1097,27 @@ export function AiPanel({
                 </button>
               </span>
             ))}
+        {activePartial && (
+          <div className="ai-queue ai-partial-card" role="group" aria-label={t('aiPartialTitle')}>
+            <div className="ai-queue-head">
+              <span className="ai-queue-title">{t('aiPartialTitle')}</span>
+            </div>
+            <div className="ai-queue-hint">
+              {t('aiPartialBody', { blocks: activePartial.blocks })}
+            </div>
+            <div className="ai-queue-foot">
+              <button
+                type="button"
+                className="ai-queue-discard"
+                onClick={() => decidePartial(false)}
+              >
+                {t('aiPartialDiscard')}
+              </button>
+              <button type="button" className="ai-queue-send" onClick={() => decidePartial(true)}>
+                {t('aiPartialAdopt')}
+              </button>
+            </div>
+
           </div>
         )}
         {editor && editQueue.length > 0 && (

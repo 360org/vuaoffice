@@ -132,7 +132,6 @@ export const it = {
   appMoreItems: '+{count} altri…',
   appTruncationNote: 'Primi {shown} di {total}',
   appGoToButtonTitle: 'Vai a (⌘G)',
-  appNameBoxTitle: 'Casella Nome — digita un indirizzo o un nome, poi premi Invio',
   appPivotChartHintIn: 'Crea un grafico pivot dalla tabella pivot corrente',
   appPivotChartHintOut:
     "Seleziona prima una cella nell'output della tabella pivot, poi scegli un tipo di grafico",
@@ -343,8 +342,6 @@ export const it = {
     "Il riempimento automatico in un'area ancora in streaming non è ancora consentito.",
   appDvNeedsIndexed:
     "La modifica della convalida dati richiede prima l'indicizzazione completa di questo foglio — riprova tra poco.",
-  appDuplicateNeedsFullLoad:
-    'La duplicazione di un foglio richiede la modalità a caricamento completo — questa cartella di lavoro è troppo grande e viene caricata parzialmente in streaming.',
   appPivotSheetNoDuplicate:
     'Questo foglio contiene una tabella pivot — la sua duplicazione non è ancora supportata.',
   appDuplicateScopedNames:
@@ -558,6 +555,12 @@ export const it = {
   appPdfCanceled: 'Esportazione PDF annullata.',
   appPdfExported: '{path} esportato.',
   appPdfExportFailed: 'Impossibile esportare il PDF.',
+  appPrintPreparing: 'Preparazione della stampa…',
+  appPrintSent: 'Inviato alla stampante.',
+  appPrintCanceled: 'Stampa annullata.',
+  appPrintFailed: 'Impossibile stampare.',
+  appPrintNeedsFullLoad:
+    'La stampa richiede il caricamento completo della cartella di lavoro: attendere il termine del caricamento.',
   appCsvExportNeedsFullLoad:
     "L'esportazione in CSV richiede la cartella di lavoro completamente caricata — attendi la fine del caricamento.",
   appCsvExportTooLarge: 'Il foglio è troppo grande per essere esportato come CSV.',
@@ -653,6 +656,9 @@ export const it = {
     'Cartella di lavoro completamente caricata — le formule si ricalcolano in tempo reale, righe/colonne modificabili.',
   appRangeMustBeVector: '{range} deve essere una singola riga o una singola colonna di celle.',
   appRangeTooManyCells: '{range} copre più di {max} celle.',
+  appCopyLoadingRange: 'Caricamento di {range} per la copia…',
+  appCopyValuesOnly:
+    '{range} copiato solo come valori ({cells} celle): gli stili sono mantenuti solo fino a {max} celle.',
   appSheetStillIndexing: 'Il foglio è ancora in fase di indicizzazione — riprova tra poco.',
   appPrintNothing: 'Il foglio non ha nulla da stampare.',
   appPrintTooLarge:
@@ -1351,6 +1357,8 @@ export const it = {
   appFormatMenu: 'Formato',
   appRowHeight: 'Altezza riga',
   appColWidth: 'Larghezza colonna',
+  appAutoFitRowHeight: 'Adatta altezza righe',
+  appAutoFitColWidth: 'Adatta larghezza colonne',
   appRowHeightLabel: 'Altezza riga (punti)',
   appColWidthLabel: 'Larghezza colonna (caratteri)',
   appDeleteRow: 'Elimina riga',

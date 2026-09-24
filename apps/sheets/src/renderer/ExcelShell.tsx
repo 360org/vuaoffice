@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import type { IFunctionInfo } from '@univerjs/engine-formula'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { platformShortcuts } from '@genoffice/i18n'
 import {
   Dropdown,
@@ -39,8 +40,8 @@ import { type SelectionFormat } from './selection-format'
 import { fontFamilyGroups, useSystemFontFamilies } from './system-fonts'
 import { isGridKeyTarget, shouldInterceptClearSelection } from './clear-selection-keyboard'
 
-import type { ChartSeriesVisualState } from '../domain/chart-visual'
-import type { ChangePlan } from '../domain/workbook.types'
+import type { ChartSeriesVisualState } from '@genoffice/xlsx-gateway/domain/chart-visual'
+import type { ChangePlan } from '@genoffice/xlsx-gateway/domain/workbook.types'
 import type { AttachmentMeta } from '../shared/desktop-api'
 import { AiChatPanel, type AiChatMessage } from './ai/AiChatPanel'
 import { AiSelectionAsk } from './ai/AiSelectionAsk'
@@ -254,8 +255,8 @@ interface ExcelShellProps {
     activeSheetId: string | null
   }
   readonly onDefinedNameAction: (action: DefinedNameAction) => string | null
-  /// Field choices for the Pivot dialog, read from the selection's header row.
-  readonly onGetPivotFields: () => PivotField[]
+  /// Subtotals use the selection; pivots pass their resolved source range.
+  readonly onGetPivotFields: (sourceRange?: string) => PivotField[]
   readonly onGetSourceRange: () => string
   readonly onCreatePivot: (config: OoXmlPivotConfig) => string | null
   /// A3 editing of an existing pivot: when it returns null, App has already shown
@@ -274,6 +275,8 @@ interface ExcelShellProps {
   readonly onGoToReference: (ref: string) => string | null
   readonly onListDefinedNames: () => readonly { name: string; ref: string }[]
   readonly onApplyFormula: (formula: string) => string | null
+  /// Function descriptions from the running formula engine (Insert Function).
+  readonly onListFunctions: () => readonly IFunctionInfo[]
   readonly onCreateSubtotal: (config: SubtotalConfig) => string | null
   readonly onCreateConsolidate: (config: ConsolidateConfig) => string | null
   /// Prefill for the Consolidate reference input (current multi-cell selection).
@@ -344,6 +347,7 @@ export function ExcelShell({
   onGoToReference,
   onListDefinedNames,
   onApplyFormula,
+  onListFunctions,
   onCreateSubtotal,
   onCreateConsolidate,
   onGetConsolidateDefault,
@@ -398,6 +402,10 @@ export function ExcelShell({
   const [pivotEditSeed, setPivotEditSeed] = useState<PivotEditSeed | null>(null)
   /** null = closed; string = open on that catalog category ('All' for the plain button) */
   const [insertFunctionCat, setInsertFunctionCat] = useState<string | null>(null)
+  const liveFunctions = useMemo(
+    () => (insertFunctionCat === null ? [] : onListFunctions()),
+    [insertFunctionCat],
+  )
   const [showSubtotalDialog, setShowSubtotalDialog] = useState(false)
   const [showGoalSeek, setShowGoalSeek] = useState(false)
   const [showConsolidateDialog, setShowConsolidateDialog] = useState(false)
@@ -502,6 +510,46 @@ export function ExcelShell({
   useEffect(() => {
     if (!selectedChart && activeTab === 'Chart Design') setActiveTab('Home')
   }, [selectedChart, activeTab])
+  // Univer's formula-bar Name Box (the defined-name selector) is the only
+  // cell-reference box; the Go To ▾ arrow rides inside the bar next to it.
+  // The bar is Univer-owned DOM that can remount with the workbench, so the
+  // button is (re)inserted on mutation rather than rendered by React.
+  const gotoTip = t('appGoToButtonTitle')
+  const gotoTipRef = useRef(gotoTip)
+  gotoTipRef.current = gotoTip
+  useEffect(() => {
+    const button = document.querySelector<HTMLButtonElement>('.goto-in-bar')
+    if (button) button.dataset['tip'] = gotoTip
+  }, [gotoTip])
+  useEffect(() => {
+    const ensure = (): void => {
+      // The Name Box sits in a fixed-width block wrapper; the flex row is the
+      // bar itself, so the button must ride as the wrapper's sibling.
+      const wrapper = document.querySelector('[data-u-comp="defined-name"]')?.parentElement
+      const bar = wrapper?.parentElement
+      if (!wrapper || !bar) return
+      let button = bar.querySelector<HTMLButtonElement>('.goto-in-bar')
+      if (!button) {
+        button = document.createElement('button')
+        button.type = 'button'
+        button.className = 'goto-in-bar'
+        button.textContent = '▾'
+        button.setAttribute('aria-label', 'Go To')
+        button.addEventListener('click', () => setShowGoTo(true))
+        wrapper.after(button)
+      }
+      if (button.dataset['tip'] !== gotoTipRef.current) button.dataset['tip'] = gotoTipRef.current
+    }
+    ensure()
+    const container = document.getElementById('univer-container')
+    if (!container) return undefined
+    const observer = new MutationObserver(ensure)
+    observer.observe(container, { childList: true, subtree: true })
+    return () => {
+      observer.disconnect()
+      document.querySelector('.goto-in-bar')?.remove()
+    }
+  }, [])
   const visibleTabs: readonly RibbonTab[] = selectedChart
     ? [...ribbonTabs, 'Chart Design']
     : ribbonTabs
@@ -512,7 +560,7 @@ export function ExcelShell({
       <header className={`excel-header ${collapse.rootClass}`} ref={collapse.rootRef}>
         <nav
           className={`ribbon-tabs ${IN_TAB ? '' : IS_MAC ? 'ribbon-tabs-mac' : 'ribbon-tabs-win'}`}
-          aria-label="Workbook commands"
+          aria-label={t('appScopeWorkbook')}
           onDoubleClick={collapse.onTabsDoubleClick}
         >
           <button
@@ -678,18 +726,6 @@ export function ExcelShell({
           onCollapse={() => setIsCopilotOpen(false)}
         />
         <div className="sheet-main">
-          {/* Excel's formula-bar row, Name Box only for now (fx bar TBD). */}
-          <div className="name-box-bar">
-            <NameBox activeCellA1={activeCellA1} onGoTo={onGoToReference} />
-            <button
-              className="name-box-goto"
-              data-tip={t('appGoToButtonTitle')}
-              aria-label="Go To"
-              onClick={() => setShowGoTo(true)}
-            >
-              ▾
-            </button>
-          </div>
           <section className="workbook-area">
             <div id="univer-container" className="spreadsheet" />
           </section>
@@ -798,14 +834,18 @@ export function ExcelShell({
             />
           )
         })()}
-      {showPivotDialog && (
-        <PivotDialog
-          fields={onGetPivotFields()}
-          sourceRange={onGetSourceRange()}
-          onCreate={onCreatePivot}
-          onClose={() => setShowPivotDialog(false)}
-        />
-      )}
+      {showPivotDialog &&
+        (() => {
+          const sourceRange = onGetSourceRange()
+          return (
+            <PivotDialog
+              fields={onGetPivotFields(sourceRange)}
+              sourceRange={sourceRange}
+              onCreate={onCreatePivot}
+              onClose={() => setShowPivotDialog(false)}
+            />
+          )
+        })()}
       {pivotEditSeed && (
         <PivotDialog
           mode="edit"
@@ -826,6 +866,7 @@ export function ExcelShell({
       {insertFunctionCat !== null && (
         <InsertFunctionDialog
           targetLabel={onGetActiveCell()}
+          functions={liveFunctions}
           onApply={onApplyFormula}
           initialCategory={insertFunctionCat}
           onClose={() => setInsertFunctionCat(null)}
@@ -877,58 +918,6 @@ export function ExcelShell({
   )
 }
 
-/// Excel's Name Box: echoes the active cell while idle; focusing it starts a
-/// draft, Enter jumps to the typed address or defined name (an invalid one
-/// keeps the draft and flags the input), Esc or blur cancels back to the
-/// echo. The echo prop updates via the SelectionChanged refresh in App.
-function NameBox({
-  activeCellA1,
-  onGoTo,
-}: {
-  readonly activeCellA1: string
-  readonly onGoTo: (ref: string) => string | null
-}): React.JSX.Element {
-  const { t } = useI18n()
-  const [draft, setDraft] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  return (
-    <input
-      className={`name-box${error === null ? '' : ' invalid'}`}
-      aria-label="Name Box"
-      data-tip={error ?? t('appNameBoxTitle')}
-      placeholder="A1"
-      spellCheck={false}
-      value={draft ?? activeCellA1}
-      onFocus={(event) => {
-        setDraft(activeCellA1)
-        event.target.select()
-      }}
-      onChange={(event) => {
-        setDraft(event.target.value)
-        setError(null)
-      }}
-      onBlur={() => {
-        setDraft(null)
-        setError(null)
-      }}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') {
-          const failure = onGoTo(draft ?? activeCellA1)
-          setError(failure)
-          if (failure === null) {
-            setDraft(null)
-            event.currentTarget.blur()
-          }
-        } else if (event.key === 'Escape') {
-          setDraft(null)
-          setError(null)
-          event.currentTarget.blur()
-        }
-      }}
-    />
-  )
-}
-
 const NO_SORT_LEVEL = -1
 
 function SortDialog({
@@ -968,7 +957,7 @@ function SortDialog({
       <div
         className="format-cells-dialog sort-dialog"
         role="dialog"
-        aria-label="Custom sort"
+        aria-label={t('appCustomSort')}
         onClick={(event) => event.stopPropagation()}
       >
         <header>{t('appSort')}</header>
@@ -1036,7 +1025,7 @@ function RemoveDuplicatesDialog({
       <div
         className="format-cells-dialog sort-dialog"
         role="dialog"
-        aria-label="Remove duplicates"
+        aria-label={t('appRemoveDuplicates')}
         onClick={(event) => event.stopPropagation()}
       >
         <header>{t('appRemoveDuplicates')}</header>
@@ -1201,7 +1190,7 @@ function LinkDialog({
       <div
         className="format-cells-dialog link-dialog"
         role="dialog"
-        aria-label="Insert link"
+        aria-label={t(currentTarget ? 'appEditLinkTitle' : 'appInsertLinkTitle')}
         onClick={(event) => event.stopPropagation()}
       >
         <header>{t(currentTarget ? 'appEditLinkTitle' : 'appInsertLinkTitle')}</header>
@@ -2007,13 +1996,7 @@ function Ribbon({
             <MenuSelect
               cover
               label="AutoSum"
-              options={[
-                { value: 'SUM', label: t('appFnSum') },
-                { value: 'AVERAGE', label: t('appFnAverage') },
-                { value: 'COUNT', label: t('appFnCountNumbers') },
-                { value: 'MAX', label: t('appFnMax') },
-                { value: 'MIN', label: t('appFnMin') },
-              ]}
+              options={autoSumOptions(t)}
               onPick={(value) => onCommand(`autofn:${value}`)}
             />
           </div>
@@ -3042,7 +3025,9 @@ function Ribbon({
               }
               options={[
                 { value: 'row-height-open', label: `${t('appRowHeight')}…` },
+                { value: 'autofit-row-height', label: t('appAutoFitRowHeight') },
                 { value: 'col-width-open', label: `${t('appColWidth')}…` },
+                { value: 'autofit-col-width', label: t('appAutoFitColWidth') },
               ]}
               onPick={(value) => onCommand(value)}
             />
@@ -3052,6 +3037,37 @@ function Ribbon({
       <RibbonGroup label={t('appGroupEditing')}>
         <div className="ribbon-rows">
           <div className="inline-tools">
+            <MenuSelect
+              className="select-like compact"
+              label="AutoSum"
+              data-tip={t('appAutoSumTitle')}
+              display={
+                <>
+                  <ToolSymbol symbol="Σ" /> {t('appAutoSum')}
+                </>
+              }
+              options={autoSumOptions(t)}
+              onPick={(value) => onCommand(`autofn:${value}`)}
+            />
+            <MenuSelect
+              className="select-like compact"
+              label="Sort & Filter"
+              data-tip={t('appGroupSortFilter')}
+              display={
+                <>
+                  <ToolSymbol symbol="⇅" /> {t('appGroupSortFilter')}
+                </>
+              }
+              options={[
+                { value: 'sort:asc', label: t('appSortAToZ') },
+                { value: 'sort:desc', label: t('appSortZToA') },
+                { value: 'sort-custom-open', label: t('appCustomSort') },
+                { value: 'filter-toggle', label: t('appFilter') },
+                { value: 'filter-clear', label: t('appClearFilterTitle') },
+                { value: 'filter-reapply', label: t('appReapplyTitle') },
+              ]}
+              onPick={(value) => onCommand(value)}
+            />
             <MenuSelect
               className="select-like compact"
               label="Fill"
@@ -3111,6 +3127,16 @@ function Ribbon({
       </RibbonGroup>
     </div>
   )
+}
+
+function autoSumOptions(t: (key: StringKey) => string): { value: string; label: string }[] {
+  return [
+    { value: 'SUM', label: t('appFnSum') },
+    { value: 'AVERAGE', label: t('appFnAverage') },
+    { value: 'COUNT', label: t('appFnCountNumbers') },
+    { value: 'MAX', label: t('appFnMax') },
+    { value: 'MIN', label: t('appFnMin') },
+  ]
 }
 
 /// Escape-to-close for the ribbon dropdowns; outside-press / blur / shell

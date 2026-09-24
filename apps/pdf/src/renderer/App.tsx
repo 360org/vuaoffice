@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { handlePdfControl, type ControlRequest } from './control'
 import type { CSSProperties, MouseEvent as ReactMouseEvent } from 'react'
 // legacy build: the modern build relies on new APIs like Math.sumPrecise that the current
 // Electron V8 lacks, making embedded font parsing fail and whole pages render as garbled raw char codes
@@ -47,6 +48,8 @@ import {
   type FormWidget,
 } from './form-catalog'
 import { ImageEditLayer, imageRectKey } from './ImageEditLayer'
+import { RedactionLayer } from './RedactionLayer'
+import type { LocalRedaction } from './RedactionLayer'
 import type { LocalImageEdit } from './ImageEditLayer'
 import { CropDialog, CutoutDialog, cropImagePng } from './ImageDialogs'
 import { cropRect, flipPixels, multiplyAlpha } from './image-bake'
@@ -54,11 +57,18 @@ import type { CropFractions, ImageBakeOp } from './image-bake'
 import { removeBackground, type PixelImage } from './cutout'
 import { navAction } from './keyNav'
 import { rowOfVisIdx, spreadRows, stepPage } from './spread'
-import { captureViewState, loadViewState, saveViewState } from './view-state'
-import type { PdfViewState } from './view-state'
+import {
+  captureViewState,
+  captureZoomAnchor,
+  loadViewState,
+  saveViewState,
+  zoomAnchorY,
+} from './view-state'
+import type { PdfViewState, ZoomAnchor } from './view-state'
 import { LinkLayer } from './LinkLayer'
 import { OutlinePanel } from './OutlinePanel'
 import type { OutlineNode } from './OutlinePanel'
+import { buildHeadingOutline, remapOutlinePages } from './heading-outline'
 import { printPdf } from './print'
 import { PasswordDialog } from './PasswordDialog'
 import { PropertiesDialog } from './PropertiesDialog'
@@ -158,6 +168,8 @@ import {
   rgb255ToHex,
   styleRunsToKeyRuns,
   styleSegCss,
+  boldCss,
+  boldToken,
   keyRunsToStyleRuns,
   blockRectKey,
   blockMoveInput,
@@ -173,7 +185,11 @@ import {
   textEditPreviewParts,
   textEditPreviewContent,
   seedDraftColors,
+  paperCss,
+  textEraseKey,
+  textEraseProbe,
 } from './text-edit-preview'
+import { samplePaperColor } from './paper-sample'
 import type { LocalTextEdit, LocalTextInsert, TextDraft } from './text-edit-preview'
 import { planEditOps, reduceBucket } from './edit-ops'
 import type { Bucket, Op, OpContext, PlanResult } from './edit-ops'
@@ -283,6 +299,8 @@ export default function App() {
     'loading',
   )
   const [sizes, setSizes] = useState<PageSize[]>([])
+  const [pageOrigins, setPageOrigins] = useState<[number, number][]>([])
+  const [pageUserUnits, setPageUserUnits] = useState<number[]>([])
   const [baseRots, setBaseRots] = useState<number[]>([])
   const [scale, setScale] = useState(1)
   const [currentPage, setCurrentPage] = useState(1)
@@ -342,6 +360,8 @@ export default function App() {
   const [spread, setSpread] = useState<1 | 2>(1)
   const [nightMode, setNightMode] = useState(false)
   const [outline, setOutline] = useState<OutlineNode[] | null>(null)
+  const [outlineGenerated, setOutlineGenerated] = useState(false)
+  const outlineDocRef = useRef<PDFDocumentProxy | null>(null)
   const [markups, setMarkups] = useState<LocalMarkup[]>([])
   const markupsRef = useRef(markups)
   markupsRef.current = markups
@@ -375,6 +395,10 @@ export default function App() {
   const drawingsRef = useRef(drawings)
   drawingsRef.current = drawings
   const [drawTool, setDrawTool] = useState<DrawTool | null>(null)
+  const [redactions, setRedactions] = useState<LocalRedaction[]>([])
+  const redactionApplyConfirmedRef = useRef(false)
+  const redactionRequestInFlightRef = useRef(false)
+  const [redactionCopyInFlight, setRedactionCopyInFlight] = useState(false)
   const [textEdits, setTextEdits] = useState<LocalTextEdit[]>([])
   const [textInserts, setTextInserts] = useState<LocalTextInsert[]>([])
   // AI tool calls within one turn read and write inserts through this mirror (see orderRef)
@@ -863,9 +887,17 @@ export default function App() {
   const pageGeom = useCallback(
     (origIdx: number): PageGeom => {
       const s = sizes[origIdx]!
-      return { pw: s.width, ph: s.height, rot: (baseRots[origIdx] ?? 0) + rotDelta(origIdx) }
+      const [x0, y0] = pageOrigins[origIdx] ?? [0, 0]
+      return {
+        pw: s.width,
+        ph: s.height,
+        rot: (baseRots[origIdx] ?? 0) + rotDelta(origIdx),
+        x0,
+        y0,
+        userUnit: pageUserUnits[origIdx] ?? 1,
+      }
     },
-    [sizes, baseRots, rotDelta],
+    [sizes, baseRots, pageOrigins, pageUserUnits, rotDelta],
   )
   /** Latest geometry for async pipelines that must not rebind on rotation (OCR) */
   const pageGeomRef = useRef(pageGeom)
@@ -884,12 +916,13 @@ export default function App() {
     scrollRef,
     rows.length,
     '800px 0px',
+    status === 'ready',
   )
   const { visible: visibleThumbs, setItemRef: setThumbRef } = useVisibleSet(
     thumbsRef,
     pageCount,
     '400px 0px',
-    sidebar === 'thumbs',
+    status === 'ready' && sidebar === 'thumbs',
   )
 
   // Keep the current page's thumbnail in view as the main viewport drives currentPage
@@ -973,12 +1006,16 @@ export default function App() {
       setDocumentEncrypted(formFeatures.encrypted)
       const all: PageSize[] = []
       const rots: number[] = []
+      const origins: [number, number][] = []
+      const userUnits: number[] = []
       for (let i = 1; i <= loaded.numPages; i++) {
         const page = await loaded.getPage(i)
         // Unrotated size; display size is derived by geom from the total rotation
         const vp = page.getViewport({ scale: 1, rotation: 0 })
         all.push({ width: vp.width, height: vp.height })
         rots.push(page.rotate ?? 0)
+        origins.push([page.view[0]!, page.view[1]!])
+        userUnits.push(page.userUnit ?? 1)
       }
       try {
         setFormCatalog(await buildFormCatalog(loaded))
@@ -991,6 +1028,8 @@ export default function App() {
         setSavedStaticFormFills([])
       }
       setSizes(all)
+      setPageOrigins(origins)
+      setPageUserUnits(userUnits)
       setBaseRots(rots)
       let renderedPages: Promise<void> | null = null
       if (saved && waitForPageNos.length > 0) {
@@ -1018,6 +1057,8 @@ export default function App() {
         setAiSelection(null)
         setAskPop(null)
         setMarkups([])
+        setRedactions([])
+        redactionApplyConfirmedRef.current = false
         setAnnotDeletes([])
         setNoteEdits([])
         setDrawings([])
@@ -1039,6 +1080,18 @@ export default function App() {
         // write was in flight stay pending, with page indices remapped through the
         // saved deletions/reorder (a page missing from pageMap is gone from the file).
         const remap = saved.pageMap
+        setOutline((prev) => (prev ? remapOutlinePages(prev, remap) : prev))
+        // Redaction marks are deliberately omitted from ordinary saves. Keep them
+        // through the reload, remapping their original page indices if this save
+        // changed page order or removed pages while it was running.
+        setRedactions((prev) =>
+          prev.flatMap((mark) => {
+            const ni = remap.get(mark.pageIndex)
+            return ni === undefined
+              ? []
+              : [ni === mark.pageIndex ? mark : { ...mark, pageIndex: ni }]
+          }),
+        )
         setMarkups((prev) =>
           prev.flatMap((mk) => {
             if (saved.markupIds.has(mk.id)) return []
@@ -1166,10 +1219,28 @@ export default function App() {
       setDeleteToast(false)
       setUndoStack([])
       setRedoStack([])
-      void loaded.getOutline().then(
-        (o) => setOutline(o && o.length > 0 ? (o as OutlineNode[]) : null),
-        () => setOutline(null),
-      )
+      outlineDocRef.current = loaded
+      // A save-reload keeps the current tree (page indices already remapped
+      // above) visible while headings rescan
+      if (!saved) {
+        setOutline(null)
+        setOutlineGenerated(false)
+      }
+      void loaded
+        .getOutline()
+        .then(
+          (o) => (o && o.length > 0 ? (o as OutlineNode[]) : null),
+          () => null,
+        )
+        .then(async (embedded) => {
+          const stale = () => outlineDocRef.current !== loaded
+          const generated = embedded
+            ? null
+            : await buildHeadingOutline(loaded, stale).catch(() => null)
+          if (stale()) return
+          setOutline(embedded ?? generated)
+          setOutlineGenerated(!embedded && generated !== null)
+        })
       // pdfjs-dist 6.x removed PDFDocumentProxy.destroy(); go through the loading task
       if (previous) void previous.loadingTask.destroy()
       return loaded.numPages
@@ -1262,39 +1333,57 @@ export default function App() {
     [rows, rowSize, scale],
   )
 
-  /** Scroll offset that keeps the content point at the viewport top in place across a scale
-   *  change. Row-exact: the fixed page gaps don't scale, so a plain scrollTop*ratio drifts
-   *  by a full page once enough rows are above the viewport. Applied via layout effect so
-   *  the write lands after React commits the resized pages (a rAF write raced the render
-   *  and could get clamped against the old scrollHeight). */
-  const pendingZoomScrollRef = useRef<number | null>(null)
-  const anchorZoomScroll = useCallback(
-    (nextScale: number) => {
-      const el = scrollRef.current
-      if (!el || scale <= 0 || rows.length === 0 || nextScale === scale) return
-      const y = el.scrollTop
-      let rowIdx = 0
-      for (let i = 0; i < rows.length; i++) {
-        if (rowTop(i) <= y) rowIdx = i
-        else break
-      }
-      let top = PAGE_GAP
-      for (let i = 0; i < rowIdx; i++) top += rowSize(rows[i]!).height * nextScale + PAGE_GAP
-      // Only the page-content part of the within-row offset scales; anything outside the
-      // page band (the leading margin above row 0, the inter-row gap) is fixed-size and
-      // carries over unscaled — else zooming at the document top writes a non-zero scrollTop
-      const within = y - rowTop(rowIdx)
-      const content = Math.min(Math.max(within, 0), rowSize(rows[rowIdx]!).height * scale)
-      pendingZoomScrollRef.current = top + (content / scale) * nextScale + (within - content)
-    },
-    [rows, rowSize, rowTop, scale],
-  )
+  /** Scale-free zoom anchor (see `captureZoomAnchor`) plus page-relative x and viewport point.
+   *  Written back by a layout effect so it lands after React commits the resized pages; being
+   *  scale-free, a burst of queued wheel ticks resolves against one anchor without oscillating. */
+  const zoomAnchorRef = useRef<
+    (ZoomAnchor & { col: number; pageX: number | null; vx: number; vy: number }) | null
+  >(null)
+  const rowPages = (el: HTMLElement, rowIdx: number) =>
+    el.querySelectorAll(`.pdf-row[data-idx="${rowIdx}"] > .pdf-page`)
+  const rowHeights = useMemo(() => rows.map((row) => rowSize(row).height), [rows, rowSize])
+  /** Committed layout: the native wheel listener can fire before the passive effect
+   *  re-subscribes it, when its closure still holds the previous render's scale. */
+  const layoutRef = useRef({ scale, rowHeights })
   useLayoutEffect(() => {
-    if (pendingZoomScrollRef.current === null) return
+    layoutRef.current = { scale, rowHeights }
+  })
+  /** A pending anchor is kept: the DOM has not moved since it was captured. */
+  const anchorZoomScroll = useCallback((nextScale: number, vx = 0, vy = 0) => {
     const el = scrollRef.current
-    if (el) el.scrollTop = pendingZoomScrollRef.current
-    pendingZoomScrollRef.current = null
-  }, [scale])
+    const { scale, rowHeights } = layoutRef.current
+    if (!el || nextScale === scale || zoomAnchorRef.current) return
+    const anchor = captureZoomAnchor({ y: el.scrollTop + vy, rowHeights, gap: PAGE_GAP, scale })
+    if (!anchor) return
+    // measure x against the spread page under the cursor: the unscaled gap between the two
+    // pages must not be folded into pageX
+    const pages = rowPages(el, anchor.rowIdx)
+    const elLeft = el.getBoundingClientRect().left
+    let col = 0
+    let pageX: number | null = null
+    pages.forEach((page, i) => {
+      const left = page.getBoundingClientRect().left - elLeft
+      if (i === 0 || left <= vx) {
+        col = i
+        pageX = (vx - left) / scale
+      }
+    })
+    zoomAnchorRef.current = { ...anchor, col, pageX, vx, vy }
+  }, [])
+  useLayoutEffect(() => {
+    const anchor = zoomAnchorRef.current
+    if (!anchor) return
+    zoomAnchorRef.current = null
+    const el = scrollRef.current
+    if (!el || anchor.rowIdx >= rowHeights.length) return
+    el.scrollTop = zoomAnchorY(anchor, rowHeights, PAGE_GAP, scale) - anchor.vy
+    if (anchor.pageX === null) return
+    const page = rowPages(el, anchor.rowIdx)[anchor.col]
+    if (!page) return
+    const pageLeft =
+      page.getBoundingClientRect().left - el.getBoundingClientRect().left + el.scrollLeft
+    el.scrollLeft = pageLeft + anchor.pageX * scale - anchor.vx
+  }, [scale, rowHeights])
 
   /** Reserve the WPS-style comments margin while the doc has notes or one is being added */
   const noteMarginOn = useMemo(
@@ -1433,6 +1522,18 @@ export default function App() {
     el.scrollTop = rowTop(rowOfVis(target - 1)) - PAGE_GAP / 2
   }
 
+  // genoffice CLI (`open --page`, `selection`): the shell evaluates this hook
+  useEffect(() => {
+    ;(window as unknown as Record<string, unknown>).__genofficeControl = (req: ControlRequest) =>
+      handlePdfControl(req, {
+        loaded: doc !== null,
+        pageCount,
+        currentPage,
+        scrollToPage,
+        selectedText: () => window.getSelection()?.toString() ?? '',
+      })
+  })
+
   // A reorder committed by an AI tool has not been laid out yet when the tool wants to
   // scroll, so the target waits for the render that carries the new order
   const scrollAfterReorderRef = useRef<number | null>(null)
@@ -1544,7 +1645,7 @@ export default function App() {
     return [...records.values()]
   }, [imageEdits, savedStaticFormFills])
 
-  const dirty =
+  const ordinaryDirty =
     markups.length > 0 ||
     annotDeletes.length > 0 ||
     noteEdits.length > 0 ||
@@ -1558,6 +1659,7 @@ export default function App() {
     deleted.size > 0 ||
     order !== null ||
     metadata !== null
+  const dirty = redactions.length > 0 || ordinaryDirty
 
   // Mirror dirty state to the main process (close-tab/close-window guard)
   useEffect(() => {
@@ -1637,6 +1739,19 @@ export default function App() {
    * display metadata (validated bounds, ghost PNGs) are the only direct writes left.
    */
   const applyEditOps = (ops: Op[], opts?: { coalesceKey?: string }): PlanResult => {
+    const structuralIndex = ops.findIndex(
+      (op) => op.op === 'rotatePages' || op.op === 'deletePage' || op.op === 'setPageOrder',
+    )
+    if (redactions.length > 0 && structuralIndex >= 0) {
+      return {
+        ops: [],
+        records: [],
+        touched: new Set(),
+        failures: [
+          { index: structuralIndex, op: ops[structuralIndex]!, error: t('redactStructureBlocked') },
+        ],
+      }
+    }
     const plan = planEditOps(ops, editOpContext(), newId)
     if (plan.failures.length > 0 || plan.ops.length === 0) return plan
     pushUndo(opts?.coalesceKey)
@@ -1711,6 +1826,7 @@ export default function App() {
           moveBy: e.moveBy,
           baseInk: e.baseInk,
           baseFont: e.baseFont,
+          paper: e.paper,
         })),
     ]
   }
@@ -2359,6 +2475,13 @@ export default function App() {
   /** Seed the draft with the document's own face: the font id covering the most
       characters inside the draft rect names it. Async like the ink probe; rect
       identity pins the draft. */
+  /** Page color behind a run, read off its rendered canvas (see LocalTextEdit.paper) */
+  const samplePaper = (origIdx: number, rect: readonly [number, number, number, number]) =>
+    samplePaperColor(
+      document.querySelector(`.pdf-page[data-page="${origIdx}"]`),
+      pdfRectToCss(pageGeom(origIdx), rect, scale),
+    ) ?? undefined
+
   const seedDraftFont = (origIdx: number, rect: [number, number, number, number]) => {
     const index = getSearchIndex()
     if (!index) return
@@ -2439,6 +2562,7 @@ export default function App() {
       cover: te.cover,
       seedInk: te.baseInk,
       seedFont: te.baseFont,
+      paper: te.paper,
       block: blk,
       moveBy: te.moveBy,
     }
@@ -2482,6 +2606,7 @@ export default function App() {
       oldText,
       fontSize: block.fontSize,
       value: fold?.value ?? oldText,
+      paper: samplePaper(origIdx, rect),
       charStyles: fold?.charStyles,
       editId: fold?.editId,
       foldedIds: fold && fold.foldedIds.length > 0 ? fold.foldedIds : undefined,
@@ -2696,7 +2821,14 @@ export default function App() {
     setSelected(null)
     draftSelectedRef.current = false
     draftPreselectRef.current = preselect ?? null
-    setTextDraft({ origIdx, rect, oldText, fontSize, value: oldText })
+    setTextDraft({
+      origIdx,
+      rect,
+      oldText,
+      fontSize,
+      value: oldText,
+      paper: samplePaper(origIdx, rect),
+    })
     seedDraftFont(origIdx, rect)
     // The span rect is a font-metric layout box; the run's glyph ink can poke out of it.
     // Fetch the engine's real ink bounds so the editor/preview cover hides the old run fully.
@@ -2831,9 +2963,11 @@ export default function App() {
         (d.font ? EDIT_FONT_BY_ID.get(d.font)?.css : undefined) ??
         seedF?.css ??
         getComputedStyle(document.body).fontFamily
-      const cssStyle = `${d.italic || seedF?.italic ? 'italic ' : ''}${
-        d.bold ? 'bold' : seedF?.weight ? String(seedF.weight) : ''
-      }`.trim()
+      const cssStyle = `${d.italic || seedF?.italic ? 'italic ' : ''}${boldToken(
+        d.bold,
+        !!d.font,
+        seedF?.weight,
+      )}`.trim()
       lineLeading = d.block.lineHeight * (size / d.fontSize)
       const wrapped = d.value
         .split('\n')
@@ -2970,10 +3104,21 @@ export default function App() {
                 cover: d.cover ?? e.cover,
                 baseInk: d.seedInk ?? e.baseInk,
                 baseFont: d.seedFont ?? e.baseFont,
+                paper: d.paper ?? e.paper,
               }
             : e,
         )
-      : [...edits, { id: newId(), input, cover: d.cover, baseInk: d.seedInk, baseFont: d.seedFont }]
+      : [
+          ...edits,
+          {
+            id: newId(),
+            input,
+            cover: d.cover,
+            baseInk: d.seedInk,
+            baseFont: d.seedFont,
+            paper: d.paper,
+          },
+        ]
   }
 
   /** Background dry-run of a just-committed edit against the file. A span that doesn't
@@ -3272,6 +3417,7 @@ export default function App() {
   const queuedSavesRef = useRef<{ autosave: boolean; resolve: (ok: boolean) => void }[]>([])
 
   const save = (autosave = false): Promise<boolean> => {
+    if (redactionRequestInFlightRef.current) return Promise.resolve(false)
     // A save is already writing: queue behind it instead of reporting failure — the
     // close prompt's "Save" and ⌘S regularly collide with the blur-triggered autosave
     // (the prompt itself blurs the window). The ref is set synchronously, so this also
@@ -3287,7 +3433,7 @@ export default function App() {
     // Same for an open comment-edit box in the notes margin
     const noteFlush = commitNoteEdit()
     const anythingToSave =
-      dirty ||
+      ordinaryDirty ||
       edits !== textEdits ||
       noteFlush.drawings !== drawings ||
       noteFlush.noteEdits !== noteEdits
@@ -3439,7 +3585,8 @@ export default function App() {
             ]
           })
       : []
-    const edits = flushed
+    const applyingRedactions = redactionApplyConfirmedRef.current && redactions.length > 0
+    const edits = applyingRedactions
       ? {
           markups: [],
           drawings: [],
@@ -3448,9 +3595,21 @@ export default function App() {
           textEdits: [],
           textInserts: [],
           imageEdits: [],
-          ...(lateNoteEdits.length > 0 ? { noteEdits: lateNoteEdits } : {}),
+          staticFormFills,
+          redactions: redactions.map(({ pageIndex, rect }) => ({ pageIndex, rect })),
         }
-      : editsPayload(draftEdits, noteFlush)
+      : flushed
+        ? {
+            markups: [],
+            drawings: [],
+            formValues: [],
+            stamps: [],
+            textEdits: [],
+            textInserts: [],
+            imageEdits: [],
+            ...(lateNoteEdits.length > 0 ? { noteEdits: lateNoteEdits } : {}),
+          }
+        : editsPayload(draftEdits, noteFlush)
     setSaveState('saving')
     const result = await window.pdfApi.save({ path: filePath, targetPath, ...edits })
     if (!result.ok) {
@@ -3466,10 +3625,68 @@ export default function App() {
     if (result.skippedImageEdits && result.skippedImageEdits.length > 0) {
       noticeSkippedImages(result.skippedImageEdits)
     }
+    if (applyingRedactions) {
+      // The main process has committed this path and its read grant. Reload the
+      // sanitized bytes, clearing undo/search state that could expose old content.
+      const scrollTop = scrollRef.current?.scrollTop ?? 0
+      setFilePath(targetPath)
+      setStatus('loading')
+      try {
+        await loadDoc(targetPath, doc)
+        setStatus('ready')
+        requestAnimationFrame(() => {
+          if (scrollRef.current) scrollRef.current.scrollTop = scrollTop
+        })
+      } catch (err) {
+        // The write succeeded. Never resume editing a stale, unredacted canvas.
+        setStatus('error')
+        opFailed(err instanceof Error ? err.message : String(err))
+      }
+      redactionApplyConfirmedRef.current = false
+      setSaveState('idle')
+      return true
+    }
     // Back to idle, not 'saved': only the copy was written — this tab's edits are
     // still pending, so a saved-confirmation next to the unsaved badge would lie
     setSaveState('idle')
     return true
+  }
+
+  const requestRedactionSaveAs = () => {
+    if (redactions.length === 0 || redactionRequestInFlightRef.current) return
+    const otherPending =
+      saveInFlightRef.current !== null ||
+      textDraft !== null ||
+      noteDraft !== null ||
+      markups.length > 0 ||
+      annotDeletes.length > 0 ||
+      noteEdits.length > 0 ||
+      drawings.length > 0 ||
+      textEdits.length > 0 ||
+      textInserts.length > 0 ||
+      imageEdits.length > 0 ||
+      stampCfg !== null ||
+      formEdits.size > 0 ||
+      rotations.size > 0 ||
+      deleted.size > 0 ||
+      order !== null ||
+      metadata !== null
+    if (otherPending) {
+      showNotice(t('redactSaveFirst'))
+      return
+    }
+    if (!window.confirm(t('redactConfirm'))) return
+    redactionApplyConfirmedRef.current = true
+    redactionRequestInFlightRef.current = true
+    setRedactionCopyInFlight(true)
+    void window.pdfApi
+      .requestRedactionCopy(filePath)
+      .catch((err: unknown) => opFailed(err instanceof Error ? err.message : String(err)))
+      .finally(() => {
+        redactionRequestInFlightRef.current = false
+        redactionApplyConfirmedRef.current = false
+        setRedactionCopyInFlight(false)
+      })
   }
 
   // Autosave pauses while the shell's Save As flow is open: the save dialog blurs the
@@ -3485,17 +3702,19 @@ export default function App() {
   useAutosave(
     () =>
       savedOnceRef.current &&
-      dirty &&
+      ordinaryDirty &&
       saveInFlightRef.current === null &&
       filePath !== '' &&
       !readOnly &&
-      !saveAsFlowRef.current,
+      !saveAsFlowRef.current &&
+      !redactionRequestInFlightRef.current,
     () => void save(true),
   )
 
   // ── Page operations ──
 
   const rotatePages = (origIdxs: number[], dir: RotateDelta): string | null => {
+    if (redactions.length > 0) return t('redactStructureBlocked')
     if (readOnly || origIdxs.length === 0) return null
     return applyEditOps([{ op: 'rotatePages', pages: origIdxs, dir }]).failures[0]?.error ?? null
   }
@@ -3506,11 +3725,19 @@ export default function App() {
 
   /** Reverse the visible page order; deleted pages stay at the tail like movePage */
   const reversePages = () => {
+    if (redactions.length > 0) {
+      showNotice(t('redactStructureBlocked'))
+      return
+    }
     if (pageCount <= 1 || readOnly) return
     commitOrder([...visList].reverse())
   }
 
   const deletePage = (origIdx: number) => {
+    if (redactions.length > 0) {
+      showNotice(t('redactStructureBlocked'))
+      return
+    }
     if (pageCount <= 1 || readOnly) return
     applyEditOps([{ op: 'deletePage', pageIndex: origIdx }])
   }
@@ -4359,19 +4586,54 @@ export default function App() {
   )
 
   // ── Live page preview: pdfium re-renders the touched region without the moved/
-  // resized/deleted images and without deleted saved annotations, so the original
-  // vanishes immediately instead of at save ──
+  // resized/deleted images, without deleted saved annotations and without the text
+  // runs being edited, so the original vanishes immediately instead of at save ──
 
-  /** Pages with pending erase ops → image rects to remove + saved annotations to remove */
+  /** The open draft's erase probe; keyed on the run, so typing doesn't re-request */
+  const draftProbe = useMemo(
+    () =>
+      textDraft
+        ? {
+            probe: textEraseProbe(
+              textDraft.origIdx,
+              textDraft.rect,
+              textDraft.oldText,
+              textDraft.fontSize,
+            ),
+            rect: textDraft.cover ? unionCover(textDraft.rect, textDraft.cover) : textDraft.rect,
+          }
+        : null,
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the run, not the draft (typing must not re-request)
+    [
+      textDraft?.origIdx,
+      textDraft?.rect,
+      textDraft?.oldText,
+      textDraft?.fontSize,
+      textDraft?.cover,
+    ],
+  )
+  /** Pending edits the open draft stands in for (reopened / folded): the draft's probe
+      erases their run, so they take the draft's erased state */
+  const draftOwnedIds = useMemo(
+    () => new Set(textDraft ? [textDraft.editId, ...(textDraft.foldedIds ?? [])] : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- same: identity fields only
+    [textDraft?.editId, textDraft?.foldedIds],
+  )
+
+  /** Pages with pending erase ops → image rects, saved annotations and text runs to remove */
   const livePreviewRects = useMemo(() => {
     const map = new Map<
       number,
-      { rects: [number, number, number, number][]; annots: (SavedMarkupAnnot | SavedNoteAnnot)[] }
+      {
+        rects: [number, number, number, number][]
+        annots: (SavedMarkupAnnot | SavedNoteAnnot)[]
+        text: { probe: TextEditInput; rect: [number, number, number, number] }[]
+      }
     >()
     const jobFor = (pageIndex: number) => {
       let job = map.get(pageIndex)
       if (!job) {
-        job = { rects: [], annots: [] }
+        job = { rects: [], annots: [], text: [] }
         map.set(pageIndex, job)
       }
       return job
@@ -4380,12 +4642,40 @@ export default function App() {
       if (e.input.kind !== 'insertImage') jobFor(e.input.pageIndex).rects.push(e.input.oldRect)
     }
     for (const d of annotDeletes) jobFor(d.annot.pageIndex).annots.push(d.annot)
+    // The draft goes first: a reopened edit's run must be claimed by the draft's probe
+    if (draftProbe) jobFor(draftProbe.probe.pageIndex).text.push(draftProbe)
+    for (const te of textEdits) {
+      if (draftOwnedIds.has(te.id)) continue
+      const { pageIndex, rect, oldText, fontSize } = te.input
+      jobFor(pageIndex).text.push({
+        probe: textEraseProbe(pageIndex, rect, oldText, fontSize),
+        rect: te.cover ? unionCover(rect, te.cover) : rect,
+      })
+    }
     return map
-  }, [imageEdits, annotDeletes])
+  }, [imageEdits, annotDeletes, textEdits, draftProbe, draftOwnedIds])
 
   const [livePreview, setLivePreview] = useState<
-    Map<number, { png: string; clip: { x: number; y: number; width: number; height: number } }>
+    Map<
+      number,
+      {
+        png: string
+        clip: { x: number; y: number; width: number; height: number }
+        /** textEraseKey of every run the render erased */
+        erased: Set<string>
+      }
+    >
   >(new Map())
+  /** Whether a pending edit's original run is gone from the page render */
+  const runErased = (te: LocalTextEdit): boolean => {
+    const lp = livePreview.get(te.input.pageIndex)
+    if (!lp) return false
+    const probe = draftOwnedIds.has(te.id) && draftProbe ? draftProbe.probe : te.input
+    return lp.erased.has(textEraseKey(probe))
+  }
+  const draftErased =
+    !!draftProbe &&
+    !!livePreview.get(draftProbe.probe.pageIndex)?.erased.has(textEraseKey(draftProbe.probe))
   /** Last requested render key per page; skips redundant IPC round-trips */
   const livePreviewKeys = useRef(new Map<number, string>())
 
@@ -4408,7 +4698,11 @@ export default function App() {
       let y1 = Infinity
       let x2 = -Infinity
       let y2 = -Infinity
-      for (const r of [...job.rects, ...job.annots.map((a) => a.rect)]) {
+      for (const r of [
+        ...job.rects,
+        ...job.annots.map((a) => a.rect),
+        ...job.text.map((t) => t.rect),
+      ]) {
         const b = pdfRectToCss(geom, r, 1)
         x1 = Math.min(x1, b.left)
         y1 = Math.min(y1, b.top)
@@ -4435,7 +4729,11 @@ export default function App() {
       const annotKey = excludedAnnots
         .map((a) => `${a.objNum}:${a.subtype}:${imageRectKey(a.rect)}`)
         .join(',')
-      const key = `${job.rects.map(imageRectKey).join(';')}|${annotKey}|${pxWidth}|${rotIdx}`
+      const textKey = job.text.map((t) => textEraseKey(t.probe)).join(';')
+      // The clip is part of the key: a run's ink bounds arrive after its draft opens and
+      // widen the region, and the same probes must then render again
+      const clipKey = [clip.x, clip.y, clip.width, clip.height].map(Math.round).join(',')
+      const key = `${job.rects.map(imageRectKey).join(';')}|${annotKey}|${textKey}|${clipKey}|${pxWidth}|${rotIdx}`
       if (livePreviewKeys.current.get(pageIndex) === key) continue
       livePreviewKeys.current.set(pageIndex, key)
       void window.pdfApi
@@ -4444,15 +4742,21 @@ export default function App() {
           pageIndex,
           excludeRects: job.rects,
           ...(excludedAnnots.length > 0 ? { excludeAnnots: excludedAnnots } : {}),
+          ...(job.text.length > 0 ? { excludeText: job.text.map((t) => t.probe) } : {}),
           clip,
           pxWidth,
           rotate: rotIdx,
         })
-        .then((png) => {
+        .then((res) => {
           // Stale guard: a newer request for this page may have superseded this one
           // while the render ran — its result must not be overwritten by ours
           if (livePreviewKeys.current.get(pageIndex) !== key) return
-          if (png) setLivePreview((prev) => new Map(prev).set(pageIndex, { png, clip }))
+          if (!res) return
+          const erased = new Set<string>()
+          job.text.forEach((t, i) => {
+            if (res.textErased[i]) erased.add(textEraseKey(t.probe))
+          })
+          setLivePreview((prev) => new Map(prev).set(pageIndex, { png: res.png, clip, erased }))
         })
         .catch(() => {
           // Only clear the key if it is still ours; deleting a newer in-flight key
@@ -4661,6 +4965,10 @@ export default function App() {
 
   /** Extract/insert work on the file on disk — flush unsaved changes first; undefined = the save failed */
   const flushThen = async <T,>(fn: () => Promise<T>): Promise<T | undefined> => {
+    if (redactions.length > 0) {
+      opFailed(t('redactStructureBlocked'))
+      return undefined
+    }
     if (dirty && !(await save())) return undefined
     return fn()
   }
@@ -5007,9 +5315,13 @@ export default function App() {
     }
   }
 
+
+  // currentPage only tracks scroll, so it can outlive a page deletion
+  const printCurrentPage = Math.max(1, Math.min(currentPage, pageCount))
+
   const openPrintDlg = () => {
     setPrintMode('all')
-    setPrintInput(String(currentPage))
+    setPrintInput(String(printCurrentPage))
     setPrintInvalid(false)
     setPrintDlg(true)
   }
@@ -5054,7 +5366,7 @@ export default function App() {
     }
     if (printMode === 'current') {
       setPrintDlg(false)
-      void printDoc([currentPage])
+      void printDoc([printCurrentPage])
       return
     }
     const pages = parsePageRanges(printInput, pageCount)
@@ -5485,6 +5797,11 @@ export default function App() {
   // Main process picked "Save" in the close prompt → save and report the result
   useEffect(() => {
     return window.pdfApi.onCloseSaveRequest(() => {
+      if (redactions.length > 0) {
+        showNotice(t('redactSaveAsHint'))
+        window.pdfApi.sendCloseSaveResult(false)
+        return
+      }
       void save().then((ok) => window.pdfApi.sendCloseSaveResult(ok))
     })
   })
@@ -5492,7 +5809,12 @@ export default function App() {
   // Shell menu Save As → write pending edits to the picked path only; the original file is never mutated
   useEffect(() => {
     return window.pdfApi.onSaveAsRequest((targetPath) => {
-      void saveAsTo(targetPath).then((ok) => window.pdfApi.sendSaveAsResult(ok))
+      void saveAsTo(targetPath)
+        .catch((err: unknown) => {
+          opFailed(err instanceof Error ? err.message : String(err))
+          return false
+        })
+        .then((ok) => window.pdfApi.sendSaveAsResult(ok))
     })
   })
 
@@ -5504,6 +5826,7 @@ export default function App() {
   // Shortcuts: ⌘S/⌘F/⌘P/⌘±/⌘0 + page navigation (only ⌘ combos kept while an input control is focused)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (redactionRequestInFlightRef.current) return
       const target = e.target as HTMLElement | null
       const inEditable =
         !!target &&
@@ -5525,7 +5848,7 @@ export default function App() {
           openSearch()
         } else if (k === 'p' && !e.shiftKey) {
           e.preventDefault()
-          void printDoc()
+          openPrintDlg()
         } else if (e.key === '=' || e.key === '+') {
           e.preventDefault()
           zoomIn()
@@ -5599,6 +5922,13 @@ export default function App() {
   })
 
   // Ctrl/⌘ + wheel zoom (native listener: React's wheel is passive and can't preventDefault)
+  const queuedScaleRef = useRef<number | null>(null)
+  useLayoutEffect(() => {
+    queuedScaleRef.current = null
+  }, [scale])
+
+  // renamed / moved from the shell: keep saving to the file's new location
+  useEffect(() => window.pdfApi.onFileRenamed((next) => setFilePath(next)), [])
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
@@ -5606,10 +5936,24 @@ export default function App() {
       if (!e.ctrlKey && !e.metaKey) return
       e.preventDefault()
       if (e.deltaY === 0) return
+      // Accumulate against the queued scale so a fast pinch loses no ticks between renders
+      const committed = layoutRef.current.scale
+      const current = queuedScaleRef.current ?? committed
+      const next = clampScale(current - e.deltaY * 0.006)
+      if (next === current) return
+      if (next === committed) {
+        // nets out to no change: the queue must still be overridden, else an intermediate
+        // tick commits with no anchor; React then bails and the DOM never moves
+        queuedScaleRef.current = null
+        zoomAnchorRef.current = null
+        setScale(committed)
+        return
+      }
       fitModeRef.current = null
-      // Match Docs: accumulate against the latest queued scale and avoid the
-      // per-event scroll anchoring that makes a continuous pinch oscillate.
-      setScale((current) => clampScale(current - e.deltaY * 0.006))
+      queuedScaleRef.current = next
+      const box = el.getBoundingClientRect()
+      anchorZoomScroll(next, e.clientX - box.left, e.clientY - box.top)
+      setScale(next)
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
@@ -5949,7 +6293,7 @@ export default function App() {
   )
 
   return (
-    <div className="app">
+    <div className="app" inert={redactionCopyInFlight} aria-busy={redactionCopyInFlight}>
       <div className={`ribbon ${collapse.rootClass}`} ref={collapse.rootRef}>
         <div className="ribbon-tabs" onDoubleClick={collapse.onTabsDoubleClick}>
           <button
@@ -6234,6 +6578,40 @@ export default function App() {
                       {t(key)}
                     </button>
                   ))}
+                  <button
+                    className={`rb-big${drawTool === 'redact' ? ' active' : ''}`}
+                    disabled={readOnly}
+                    data-tip={t('redactHint')}
+                    onClick={() => {
+                      setEditTextMode(false)
+                      setTextDraft(null)
+                      setEditImageMode(false)
+                      setDrawTool((tool) => (tool === 'redact' ? null : 'redact'))
+                    }}
+                  >
+                    <span className="rb-big-icon">
+                      <IconRect />
+                    </span>
+                    {t('redact')}
+                  </button>
+                  {redactions.length > 0 && (
+                    <>
+                      <button
+                        className="rb-big"
+                        data-tip={t('redactClear')}
+                        onClick={() => setRedactions([])}
+                      >
+                        {t('redactClear')}
+                      </button>
+                      <button
+                        className="rb-big"
+                        data-tip={t('redactApply')}
+                        onClick={requestRedactionSaveAs}
+                      >
+                        {t('redactApply')}
+                      </button>
+                    </>
+                  )}
                   <button
                     className={`rb-big${pendingSign ? ' active' : ''}`}
                     disabled={readOnly}
@@ -6707,7 +7085,37 @@ export default function App() {
           <div className="pdf-body">
             {sidebar === 'outline' && outline && (
               <div className="pdf-thumbs pdf-outline-pane" style={{ width: sidebarW }}>
-                <OutlinePanel outline={outline} onGoToDest={(dest) => void goToDest(dest)} />
+                <div className="pdf-outline-header">
+                  <span>{t('outline')}</span>
+                  <button
+                    type="button"
+                    className="rb-icon"
+                    aria-label={t('aiCollapsePanel')}
+                    data-tip={t('aiCollapsePanel')}
+                    onClick={() => setSidebar(null)}
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="m14 6-6 6 6 6" />
+                    </svg>
+                  </button>
+                </div>
+                <OutlinePanel
+                  outline={outline}
+                  note={outlineGenerated ? t('outlineGenerated') : undefined}
+                  label={t('outline')}
+                  emptyLabel={t('searchNoResults')}
+                  onGoToDest={(dest) => void goToDest(dest)}
+                />
               </div>
             )}
             {sidebar === 'thumbs' && (
@@ -6813,6 +7221,7 @@ export default function App() {
                                 markups={mk}
                                 drawings={dw}
                                 textEdits={tes}
+                                erasedText={livePreview.get(origIdx)?.erased}
                                 textInserts={tis}
                                 imageEdits={ies}
                                 stamps={sts}
@@ -6916,6 +7325,7 @@ export default function App() {
                       return (
                         <div
                           key={origIdx}
+                          data-page={origIdx}
                           className={`pdf-page${editTextMode && !readOnly ? ' pdf-editing-text' : ''}${
                             pendingTextInsert ? ' pdf-inserting-text' : ''
                           }`}
@@ -7272,6 +7682,7 @@ export default function App() {
                                     te,
                                     geom,
                                     scale,
+                                    runErased(te),
                                   )
                                   // A border-drag of the block this edit addresses moves the
                                   // styled preview live with the pointer (the drag ghost of
@@ -7427,13 +7838,7 @@ export default function App() {
                                   const sizePt = textDraft.size ?? textDraft.fontSize
                                   const draftStyle = `${
                                     textDraft.italic || seedF?.italic ? 'italic ' : ''
-                                  }${
-                                    textDraft.bold
-                                      ? 'bold'
-                                      : seedF?.weight
-                                        ? String(seedF.weight)
-                                        : ''
-                                  }`.trim()
+                                  }${boldToken(textDraft.bold, !!textDraft.font, seedF?.weight)}`.trim()
                                   // Block editor: width locks to the block so the textarea's
                                   // soft wrap previews the reflow; height tracks the committed
                                   // wrap count (in the block's own leading, plus headroom for
@@ -7483,17 +7888,20 @@ export default function App() {
                                       )
                                   return (
                                     <>
-                                      {textDraft.cover && (
+                                      {textDraft.cover && !draftErased && (
                                         <div
                                           className="pdf-textedit-cover"
-                                          style={inflateCss(
-                                            pdfRectToCss(
-                                              geom,
-                                              unionCover(textDraft.rect, textDraft.cover),
-                                              scale,
+                                          style={{
+                                            ...inflateCss(
+                                              pdfRectToCss(
+                                                geom,
+                                                unionCover(textDraft.rect, textDraft.cover),
+                                                scale,
+                                              ),
+                                              1.5,
                                             ),
-                                            1.5,
-                                          )}
+                                            ...paperCss(false, textDraft.paper),
+                                          }}
                                         />
                                       )}
                                       <div
@@ -7610,6 +8018,7 @@ export default function App() {
                                             height: wrapCount * leadPx + (blk ? leadPx : 0) + 6,
                                             fontSize: fs,
                                             lineHeight: `${leadPx}px`,
+                                            ...paperCss(draftErased, textDraft.paper),
                                             ...(blk && blk.align !== 'left'
                                               ? { textAlign: blk.align }
                                               : {}),
@@ -7629,7 +8038,7 @@ export default function App() {
                                               : {}),
                                             ...(draftCss ? { fontFamily: draftCss } : {}),
                                             ...(textDraft.bold
-                                              ? { fontWeight: 700 }
+                                              ? boldCss(true, !!textDraft.font, seedF?.weight)
                                               : seedF?.weight
                                                 ? { fontWeight: seedF.weight }
                                                 : {}),
@@ -7710,7 +8119,7 @@ export default function App() {
                                                 'var(--pdf-textedit-ink)',
                                               ...(draftCss ? { fontFamily: draftCss } : {}),
                                               ...(textDraft.bold
-                                                ? { fontWeight: 700 }
+                                                ? boldCss(true, !!textDraft.font, seedF?.weight)
                                                 : seedF?.weight
                                                   ? { fontWeight: seedF.weight }
                                                   : {}),
@@ -7725,7 +8134,10 @@ export default function App() {
                                                   return <Fragment key={i}>{seg.text}</Fragment>
                                                 const s = decodeStyle(seg.color)
                                                 return (
-                                                  <span key={i} style={styleSegCss(s, scale)}>
+                                                  <span
+                                                    key={i}
+                                                    style={styleSegCss(s, scale, textDraft.font)}
+                                                  >
                                                     {seg.text}
                                                   </span>
                                                 )
@@ -7901,6 +8313,24 @@ export default function App() {
                                 }
                                 onMove={readOnly ? undefined : moveDrawing}
                                 onResize={readOnly ? undefined : resizeDrawing}
+                              />
+                              <RedactionLayer
+                                active={
+                                  !readOnly && !redactionCopyInFlight && drawTool === 'redact'
+                                }
+                                geom={geom}
+                                scale={scale}
+                                pageWidth={size.width}
+                                pageHeight={size.height}
+                                marks={redactions.filter((mark) => mark.pageIndex === origIdx)}
+                                markLabel={t('redact')}
+                                onCommit={(rect) =>
+                                  setRedactions((prev) => [
+                                    ...prev,
+                                    { id: newId(), pageIndex: origIdx, rect },
+                                  ])
+                                }
+                                onTooSmall={() => showNotice(t('redactHint'))}
                               />
                               {/* Ghost pin for the note being typed into the margin draft card */}
                               {noteDraft?.origIdx === origIdx &&
@@ -8309,7 +8739,7 @@ export default function App() {
               </div>
             )}
             {deleteToast && (
-              <div className="pdf-toast">
+              <div className="pdf-toast" role="status">
                 <span>{t(deletedInsertedText ? 'insertedTextDeleted' : 'annotationDeleted')}</span>
                 <button
                   type="button"
@@ -8323,7 +8753,7 @@ export default function App() {
               </div>
             )}
             {notice && (
-              <div className="pdf-toast pdf-toast-notice">
+              <div className="pdf-toast pdf-toast-notice" role="status">
                 <span>{notice}</span>
                 <button type="button" onClick={() => setNotice(null)}>
                   {t('ok')}
@@ -8640,7 +9070,7 @@ export default function App() {
                       onChange={() => setPrintMode('current')}
                     />
                     <span>
-                      {t('printRangeCurrent')} ({currentPage})
+                      {t('printRangeCurrent')} ({printCurrentPage})
                     </span>
                   </label>
                   <label className="pdf-modal-row">

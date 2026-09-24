@@ -99,6 +99,14 @@ const CHROME_PSEUDO_CONTENT = /attr\(\s*data-(?:ppr-change-label|sdt-alias)\s*\)
 
 const INTERNAL_FONTS = /,\s*"(?:[A-Za-z ]+ GO|GenOffice [A-Za-z ]+)"/g
 
+/** tab leaders are an absolutely positioned glyph run clipped to the tab
+ *  advance on screen; inline styles cannot clip a pseudo, so export a border */
+const LEADER_BORDER: Record<string, string> = {
+  'doc-tab-leader-dot': 'dotted',
+  'doc-tab-leader-middleDot': 'dotted',
+  'doc-tab-leader-hyphen': 'dashed',
+}
+
 const SIDES = ['top', 'right', 'bottom', 'left'] as const
 
 const TAG_DISPLAY: Record<string, string> = {
@@ -158,6 +166,13 @@ function hasClass(el: Element, set: Set<string> | string[]): boolean {
   return false
 }
 
+/** fromCodePoint throws on values > 0x10FFFF and lone surrogates: fall back to U+FFFD. */
+function codePointOrReplacement(code: number): string {
+  if (!Number.isInteger(code) || code < 0 || code > 0x10ffff) return '�'
+  if (code >= 0xd800 && code <= 0xdfff) return '�'
+  return String.fromCodePoint(code)
+}
+
 export function resolveContent(content: string, el: Element): string {
   if (!content || content === 'none' || content === 'normal') return ''
   let out = ''
@@ -167,7 +182,10 @@ export function resolveContent(content: string, el: Element): string {
   while ((m = re.exec(content))) {
     if (m[1] !== undefined || m[2] !== undefined) {
       out += (m[1] ?? m[2]).replace(/\\([0-9a-fA-F]{1,6})\s?/g, (_, hex: string) =>
-        String.fromCodePoint(parseInt(hex, 16)),
+        // CSS escapes allow 6 hex digits but Unicode stops at 0x10FFFF:
+        // out-of-range values (and lone surrogates) would throw RangeError
+        // and abort the whole export, so emit the replacement character.
+        codePointOrReplacement(parseInt(hex, 16)),
       )
     } else if (m[3]) {
       out += el.getAttribute(m[3]) ?? ''
@@ -397,7 +415,9 @@ function serializeNode(
       host && el.offsetLeft + el.offsetWidth / 2 > host.clientWidth / 2 ? 'right' : 'left'
     decls.push(`float:${side}`, 'margin:4px 8px')
   }
-  const before = pseudo(el, cs, '::before', win)
+  const leader = Object.keys(LEADER_BORDER).find((c) => el.classList.contains(c))
+  if (leader) decls.push(`border-bottom:1px ${LEADER_BORDER[leader]} currentColor`)
+  const before = leader ? '' : pseudo(el, cs, '::before', win)
   const after = pseudo(el, cs, '::after', win)
   const attrs: string[] = []
   for (const a of KEEP_ATTRS) {

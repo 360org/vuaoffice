@@ -16,6 +16,7 @@ export type AiProviderId =
   | 'mistral'
   | 'openrouter'
   | 'requesty'
+  | 'opper'
   | 'opencode-zen'
   | 'opencode-go'
   | 'custom'
@@ -106,8 +107,8 @@ export interface AiMediaSettings {
   provider?: AiMediaProviderId | undefined
 }
 
-/** web/image search backends: Genspark (gsk) or a user key for Serper / Tavily */
-export type AiSearchProviderId = 'genspark' | 'serper' | 'tavily'
+/** web/image search backends; Parallel supports both a user key and free keyless search */
+export type AiSearchProviderId = 'genspark' | 'serper' | 'tavily' | 'parallel'
 
 export interface AiSearchProviderMeta {
   id: AiSearchProviderId

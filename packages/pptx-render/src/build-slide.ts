@@ -49,6 +49,7 @@ import {
 } from './fill'
 import { layoutText } from './text-layout'
 import { HeuristicMetrics, type FontMetricsProvider } from './metrics'
+import { bevelFaceColor, buildCellBevel } from './cell-bevel'
 import {
   isConnectorPreset,
   isPillPreset,
@@ -58,6 +59,8 @@ import {
   presetPath,
 } from './preset-geometry'
 import {
+  bevelMaterialFaceColor,
+  buildBevelFaces,
   buildExtrusion,
   inPlaneRotationDeg,
   flatCameraMirror,
@@ -191,6 +194,7 @@ export function buildRenderSlide(
     ...(slide.masterSpHidden ? { bgGraphicsHidden: true } : {}),
     nodes,
     ...(hidden ? { hidden: true } : {}),
+    partPath: slide.path,
   }
 }
 
@@ -237,7 +241,7 @@ function buildNodeInner(
       const appCreated = chartEl.descr === 'aislides-chart'
       // Unsupported chart types fall back to a placeholder chip
       const node =
-        buildChartNode(`r_${el.id}`, el.id, chartEl.chart, box, vp, metrics) ??
+        buildChartNode(`r_${el.id}`, el.id, chartEl.chart, box, vp, metrics, media) ??
         chipNode(el.id, box, 'chart', CHIP_LABEL['chart']!)
       if (appCreated && node.type === 'chart') {
         ;(node as import('./render-tree').ChartRenderNode).appCreated = true
@@ -427,7 +431,12 @@ function buildShape(
       }
     }
   }
-  const stroke = resolveStroke(el.stroke, vp)
+  // Parsed spPr with neither <a:prstGeom> nor <a:custGeom> (and no placeholder geometry to
+  // inherit): PowerPoint has nothing to fill or outline and draws the text alone (prod
+  // deck: a generator dropped the geometry of a title bar that PowerPoint leaves
+  // invisible). Editor-built elements without presetGeometry still render as rects.
+  if (el.noGeometry) node.fill = { kind: 'none' }
+  const stroke = el.noGeometry ? undefined : resolveStroke(el.stroke, vp)
   if (stroke) node.stroke = stroke
   const shadow = resolveShadow(el.shadow, vp)
   if (shadow) node.shadow = shadow
@@ -443,6 +452,7 @@ function buildShape(
       boxHeightPx: box.h,
       metrics,
       vp,
+      media,
     })
   }
   return node
@@ -457,10 +467,6 @@ function applyScene3D(el: TextElement, node: ShapeRenderNode, vp: Viewport): voi
   if (node.line) return // connectors keep their polyline rendering
   const scene = el.scene3d!
   const spin = inPlaneRotationDeg(scene)
-  if (spin != null) {
-    if (spin !== 0) node.box = { ...node.box, rotationDeg: node.box.rotationDeg + spin }
-    return
-  }
   const depthPx = emuToPx(scene.extrusionEmu ?? 0, vp.scale)
   const box = node.box
   let rings: number[][] | undefined
@@ -479,6 +485,35 @@ function applyScene3D(el: TextElement, node: ShapeRenderNode, vp: Viewport): voi
       ? fill.stops[Math.floor(fill.stops.length / 2)]!.color
       : undefined
   const frontColor = frontSolid ?? gradientMid ?? '#FFFFFF'
+  if (spin != null) {
+    if (spin !== 0) node.box = { ...node.box, rotationDeg: node.box.rotationDeg + spin }
+    // Straight-on shape with a top bevel and no depth (SmartArt "Polished"/3D styles):
+    // rig-shaded bands around the outline plus the (material-tinted) flat face. The rig
+    // tints the face even when no bands are drawn (no bevel, or a rig without a band
+    // calibration).
+    if (depthPx <= 0 && fill.kind !== 'none') {
+      const bev = scene.bevelTop
+        ? buildBevelFaces({
+            rings,
+            w: box.w,
+            h: box.h,
+            scene,
+            frontColor,
+            bevelPx: emuToPx(scene.bevelTop.wEmu, vp.scale),
+            ...(node.stroke
+              ? { strokeColor: node.stroke.color, strokeWidthPx: node.stroke.widthPx }
+              : {}),
+            ...(fill.kind !== 'solid' ? { frontUsesFill: true } : {}),
+          })
+        : null
+      if (bev) node.extrusion = bev
+      else if (fill.kind === 'solid') {
+        const tinted = bevelMaterialFaceColor(fill.color, scene)
+        if (tinted !== fill.color) node.fill = { ...fill, color: tinted }
+      }
+    }
+    return
+  }
   // PowerPoint colors the extruded walls with the outline color when one exists, else the fill.
   const sideColor = scene.extrusionColor ?? node.stroke?.color ?? frontColor
   const ext = buildExtrusion({
@@ -573,6 +608,7 @@ function buildPicture(
     ...(el.duotone ? { duotone: el.duotone } : {}),
     ...(el.lum ? { lum: el.lum } : {}),
     ...(el.clrChange ? { clrChange: el.clrChange } : {}),
+    ...(el.biLevel != null ? { biLevel: el.biLevel } : {}),
   }
   const stroke = resolveStroke(el.stroke, vp)
   if (stroke) node.stroke = stroke
@@ -682,6 +718,7 @@ function buildTable(
         boxHeightPx: rowPx[r] ?? 0,
         metrics,
         vp,
+        media,
         trimEdgeSpacing: true,
       })
       // PowerPoint sizes auto rows by the glyph extent (last baseline + descent), not
@@ -720,7 +757,18 @@ function buildTable(
         col: tcIdx,
         ...(gridSpan > 1 ? { gridSpan } : {}),
         ...(rowSpan > 1 ? { rowSpan } : {}),
-        fill: resolveFill(cell.fill, vp, media),
+        // PowerPoint anchors a cell's tiled picture to the table box, not the cell: each
+        // cell shows the part of the picture under it (photo-mosaic layout)
+        fill: resolveFill(cell.fill, vp, media, { x: -x, y: -y, w: totalW, h: totalH }),
+      }
+      // cell3D: PowerPoint darkens the face and shades four bevel bands; only a solid
+      // fill has a base color to shade (picture/gradient cells keep their plain fill)
+      if (cell.bevel && out.fill.kind === 'solid') {
+        const bw = Math.min(emuToPx(cell.bevel.widthEmu, vp.scale), w / 2, h / 2)
+        if (bw >= 0.5) {
+          out.bevel = buildCellBevel(out.fill.color, bw, cell.bevel.preset, cell.bevel.lightDir)
+          out.fill = { kind: 'solid', color: bevelFaceColor(out.fill.color) }
+        }
       }
       const borders: NonNullable<TableCellRender['borders']> = {}
       for (const k of ['l', 'r', 't', 'b'] as const) {
@@ -736,6 +784,7 @@ function buildTable(
           boxHeightPx: h,
           metrics,
           vp,
+          media,
           trimEdgeSpacing: true,
         })
       }

@@ -129,7 +129,6 @@ export const ko = {
   appTruncationNote: '처음 {shown}/{total}개 항목',
   // ExcelShell (name box / ribbon)
   appGoToButtonTitle: '이동(Go To, ⌘G)',
-  appNameBoxTitle: '이름 상자 — 주소나 이름을 입력한 후 Enter 키로 이동',
   appPivotChartHintIn: '현재 피벗 테이블을 기준으로 피벗 차트 만들기',
   appPivotChartHintOut: '먼저 피벗 테이블 출력 영역의 셀을 선택한 후 차트 종류를 선택하십시오',
   appChartColumn: '세로 막대형 차트',
@@ -320,8 +319,6 @@ export const ko = {
   appAutofillStreaming: '아직 스트리밍 로드 중인 영역으로는 자동 채우기를 할 수 없습니다.',
   appDvNeedsIndexed:
     '데이터 유효성 검사를 편집하려면 먼저 이 시트의 인덱싱이 완료되어야 합니다 — 잠시 후 다시 시도하십시오.',
-  appDuplicateNeedsFullLoad:
-    '시트 복제에는 전체 로드 모드가 필요합니다. 이 통합 문서는 너무 커서 스트리밍 방식으로만 로드되었습니다.',
   appPivotSheetNoDuplicate: '이 시트에는 피벗 테이블이 있어 아직 시트 복제를 지원하지 않습니다.',
   appDuplicateScopedNames:
     '이 시트에는 시트 범위로 정의된 이름이 있어 아직 시트 복제를 지원하지 않습니다.',
@@ -533,6 +530,12 @@ export const ko = {
   appPdfCanceled: 'PDF 내보내기를 취소했습니다.',
   appPdfExported: '{path}을(를) 내보냈습니다.',
   appPdfExportFailed: 'PDF를 내보낼 수 없습니다.',
+  appPrintPreparing: '인쇄를 준비하는 중…',
+  appPrintSent: '프린터로 전송했습니다.',
+  appPrintCanceled: '인쇄가 취소되었습니다.',
+  appPrintFailed: '인쇄할 수 없습니다.',
+  appPrintNeedsFullLoad:
+    '인쇄하려면 워크북이 완전히 로드되어야 합니다. 로드가 끝날 때까지 기다려 주세요.',
   appCsvExportNeedsFullLoad:
     'CSV 내보내기에는 통합 문서 전체 로드가 필요합니다 — 로드가 완료될 때까지 기다리십시오.',
   appCsvExportTooLarge: '시트가 너무 커서 CSV로 내보낼 수 없습니다.',
@@ -627,6 +630,9 @@ export const ko = {
     '통합 문서를 모두 로드했습니다 — 수식이 실시간으로 다시 계산되고 행/열을 편집할 수 있습니다.',
   appRangeMustBeVector: '{range}은(는) 단일 행 또는 단일 열의 셀이어야 합니다.',
   appRangeTooManyCells: '{range}이(가) 셀 {max}개를 초과합니다.',
+  appCopyLoadingRange: '복사를 위해 {range}을(를) 불러오는 중…',
+  appCopyValuesOnly:
+    '{range}을(를) 값만 복사했습니다({cells}개 셀): {max}개 셀을 넘으면 서식은 유지되지 않습니다.',
   appSheetStillIndexing: '시트의 인덱스를 만드는 중입니다 — 잠시 후 다시 시도하십시오.',
   // Print (export PDF)
   appPrintNothing: '이 시트에는 인쇄할 내용이 없습니다.',
@@ -1334,6 +1340,8 @@ export const ko = {
   appFormatMenu: '서식',
   appRowHeight: '행 높이',
   appColWidth: '열 너비',
+  appAutoFitRowHeight: '행 높이 자동 맞춤',
+  appAutoFitColWidth: '열 너비 자동 맞춤',
   appRowHeightLabel: '행 높이(포인트)',
   appColWidthLabel: '열 너비(문자)',
   appDeleteRow: '행 삭제',

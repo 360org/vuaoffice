@@ -5,7 +5,7 @@
  */
 import JSZip from 'jszip'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { applyCellEditsToXlsx } from '../src/gateway/xlsx-gateway'
+import { applyCellEditsToXlsx } from '@genoffice/xlsx-gateway/gateway/xlsx-gateway'
 import { handleSave, type SaveContext } from '../src/renderer/save-actions'
 import { createEditJournal, recordSetRangeValues } from '../src/renderer/edit-journal'
 import { buildEditFixture } from './fixture-builder'
@@ -91,10 +91,12 @@ describe('handleSave recovery mode', () => {
     expect(messages).toEqual([])
   })
 
-  it('a failed copy is swallowed (best-effort, never surfaces)', async () => {
+  it('a failed copy is swallowed (best-effort, never surfaces; resolves not-ok)', async () => {
     writeWorkbookRecovery.mockRejectedValue(new Error('disk full'))
     const { ctx, messages } = ctxWith({ dirty: true })
-    await expect(handleSave(ctx, 'recovery')).resolves.toBeUndefined()
+    // handleSave now reports an outcome (the MCP bridge reads it); recovery
+    // mode still stays silent on failure
+    await expect(handleSave(ctx, 'recovery')).resolves.toEqual({ ok: false })
     expect(messages).toEqual([])
   })
 })

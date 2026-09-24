@@ -17,7 +17,7 @@ test.describe('markdown editor', () => {
       await expect(editorTab).toHaveCount(1)
       await expect(editorTab).toHaveClass(/active/)
 
-      const editorPage = await waitForPageWithUrl(app, 'markdown/out')
+      const editorPage = await waitForPageWithUrl(app, '://markdown/')
       await expect(editorPage.locator('.doc-editor')).toBeVisible()
       await editorPage.screenshot({ path: screenshotPath('new-markdown-editor') })
     } finally {
@@ -37,7 +37,7 @@ test.describe('markdown editor', () => {
     })
     const { app } = launched
     try {
-      const editorPage = await waitForPageWithUrl(app, 'markdown/out')
+      const editorPage = await waitForPageWithUrl(app, '://markdown/')
       const editor = editorPage.locator('.doc-editor')
       await expect(editor.locator('h1')).toHaveText('Doc')
       // the legacy callout fences are stripped on open; the body text survives
@@ -84,7 +84,7 @@ test.describe('markdown editor', () => {
       await expect(editorTab).toHaveCount(1)
       await expect(editorTab).toContainText('note.md')
 
-      const editorPage = await waitForPageWithUrl(app, 'markdown/out')
+      const editorPage = await waitForPageWithUrl(app, '://markdown/')
       const editor = editorPage.locator('.doc-editor')
       await expect(editor.locator('h1')).toHaveText('Hello')
       await expect(editor.locator('strong')).toHaveText('bold')
@@ -121,7 +121,7 @@ test.describe('markdown editor', () => {
     })
     const { app } = launched
     try {
-      const editorPage = await waitForPageWithUrl(app, 'markdown/out')
+      const editorPage = await waitForPageWithUrl(app, '://markdown/')
       await expect(editorPage.locator('.doc-editor h1')).toHaveText('Topic')
 
       const summarizeBtn = editorPage.locator('.rb-big.ai-entry', {
@@ -151,7 +151,7 @@ test.describe('markdown editor', () => {
     })
     const { app } = launched
     try {
-      const editorPage = await waitForPageWithUrl(app, 'markdown/out')
+      const editorPage = await waitForPageWithUrl(app, '://markdown/')
       const editor = editorPage.locator('.doc-editor')
       await expect(editor).toContainText('Hello style')
 
@@ -161,17 +161,19 @@ test.describe('markdown editor', () => {
       await expect(editor.locator('strong')).toHaveText('Hello style')
 
       // quick-access row: save button writes the file, undo reverts the mark
-      const qaButtons = editorPage.locator('.ribbon-tabs .qa-btn')
-      await qaButtons.nth(0).click()
+      const qaRow = editorPage.locator('.ribbon-tabs')
+      const saveButton = qaRow.locator('.qa-btn').first()
+      const undoButton = qaRow.getByLabel(/^Undo/)
+      await saveButton.click()
       await expect(editorPage.locator('.status-save')).toHaveText(/Saved/)
       const saved = await readFile(mdPath, 'utf8')
       expect(saved).toContain('**Hello style**')
 
-      await qaButtons.nth(1).click()
+      await undoButton.click()
       await expect(editor.locator('strong')).toHaveCount(0)
 
       // save again so the window closes without a dirty-document prompt
-      await qaButtons.nth(0).click()
+      await saveButton.click()
       await expect.poll(() => readFile(mdPath, 'utf8')).not.toContain('**')
     } finally {
       await closeAndSaveVideo(launched, 'markdown-bold-qat')
@@ -194,7 +196,7 @@ test.describe('markdown editor', () => {
     })
     const { app } = launched
     try {
-      const editorPage = await waitForPageWithUrl(app, 'markdown/out')
+      const editorPage = await waitForPageWithUrl(app, '://markdown/')
       const img = editorPage.locator('.doc-editor img[alt="a pic"]')
       await expect(img).toBeVisible()
       await expect(img).toHaveAttribute('src', /^md-asset:\/\//)
@@ -220,7 +222,7 @@ test.describe('markdown editor', () => {
     })
     const { app } = launched
     try {
-      const editorPage = await waitForPageWithUrl(app, 'markdown/out')
+      const editorPage = await waitForPageWithUrl(app, '://markdown/')
       const editor = editorPage.locator('.doc-editor')
       await expect(editor.locator('h1')).toHaveText('Alpha')
 

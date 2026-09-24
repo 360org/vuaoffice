@@ -129,7 +129,6 @@ export const id = {
   appMoreItems: '+{count} lagi…',
   appTruncationNote: '{shown} pertama dari {total}',
   appGoToButtonTitle: 'Buka (Go To, ⌘G)',
-  appNameBoxTitle: 'Kotak Nama — ketik alamat atau nama, lalu tekan Enter',
   appPivotChartHintIn: 'Buat PivotChart dari PivotTable saat ini',
   appPivotChartHintOut:
     'Pilih dahulu sel di dalam area keluaran PivotTable, lalu pilih jenis bagan',
@@ -317,8 +316,6 @@ export const id = {
   appAutofillStreaming: 'IsiOtomatis ke area yang masih dimuat secara streaming belum diizinkan.',
   appDvNeedsIndexed:
     'Mengedit validasi data memerlukan lembar ini terindeks penuh dahulu — coba lagi sebentar lagi.',
-  appDuplicateNeedsFullLoad:
-    'Menduplikasi lembar memerlukan mode muat penuh — buku kerja ini terlalu besar dan dimuat sebagian secara streaming.',
   appPivotSheetNoDuplicate: 'Lembar ini berisi PivotTable — menduplikasinya belum didukung.',
   appDuplicateScopedNames:
     'Lembar ini memiliki nama terdefinisi berlingkup lembar — menduplikasinya belum didukung.',
@@ -525,6 +522,12 @@ export const id = {
   appPdfCanceled: 'Ekspor PDF dibatalkan.',
   appPdfExported: '{path} diekspor.',
   appPdfExportFailed: 'Tidak dapat mengekspor PDF.',
+  appPrintPreparing: 'Menyiapkan pencetakan…',
+  appPrintSent: 'Dikirim ke printer.',
+  appPrintCanceled: 'Pencetakan dibatalkan.',
+  appPrintFailed: 'Tidak dapat mencetak.',
+  appPrintNeedsFullLoad:
+    'Pencetakan memerlukan buku kerja termuat sepenuhnya — tunggu hingga pemuatan selesai.',
   appCsvExportNeedsFullLoad:
     'Ekspor CSV memerlukan buku kerja termuat penuh — tunggu pemuatan selesai.',
   appCsvExportTooLarge: 'Lembar terlalu besar untuk diekspor sebagai CSV.',
@@ -617,6 +620,9 @@ export const id = {
     'Buku kerja termuat penuh — rumus dihitung ulang secara langsung, baris/kolom dapat diedit.',
   appRangeMustBeVector: '{range} harus berupa satu baris atau satu kolom sel.',
   appRangeTooManyCells: '{range} mencakup lebih dari {max} sel.',
+  appCopyLoadingRange: 'Memuat {range} untuk disalin…',
+  appCopyValuesOnly:
+    '{range} disalin sebagai nilai saja ({cells} sel): gaya hanya dipertahankan hingga {max} sel.',
   appSheetStillIndexing: 'Lembar masih diindeks — coba lagi sebentar lagi.',
   appPrintNothing: 'Lembar ini tidak memiliki apa pun untuk dicetak.',
   appPrintTooLarge:
@@ -1312,6 +1318,8 @@ export const id = {
   appFormatMenu: 'Format',
   appRowHeight: 'Tinggi baris',
   appColWidth: 'Lebar kolom',
+  appAutoFitRowHeight: 'Sesuaikan Tinggi Baris Otomatis',
+  appAutoFitColWidth: 'Sesuaikan Lebar Kolom Otomatis',
   appRowHeightLabel: 'Tinggi baris (poin)',
   appColWidthLabel: 'Lebar kolom (karakter)',
   appDeleteRow: 'Hapus baris',

@@ -46,6 +46,11 @@ export const ko = {
   appUntitledDocx: '제목 없는 문서.docx',
   appOpenedFile: '{name}을(를) 열었습니다',
   appOpenFailed: '열기 실패: {error}',
+  appDocTooLargeBlocks: '{name}: 문서가 너무 커서 열 수 없습니다 ({blocks}개 단락, {chars}자)',
+  appDocLargeReadOnly:
+    '큰 문서({blocks}개 단락)이므로 읽기 모드로 열었습니다. Esc를 누르면 편집할 수 있습니다',
+  appDocLargeSpellOff:
+    '큰 문서({blocks}개 단락): 입력 시 맞춤법 검사가 꺼져 있습니다. 검토 › 맞춤법에서 켤 수 있습니다',
   appFontsMissing: '문서 글꼴이 설치되어 있지 않습니다: {names} (대체 글꼴로 표시)',
   appVerticalTextNotice:
     '세로쓰기 텍스트가 포함된 문서입니다(현재 가로쓰기로 표시되며 저장에는 영향이 없습니다)',
@@ -107,6 +112,10 @@ export const ko = {
     'PDF를 내보냈습니다: {path}(용지 크기 혼합, {n}개 그룹을 페이지 순서로 병합)',
   appExportPdfCanceled: 'PDF 내보내기를 취소했습니다',
   appExportHtmlCanceled: 'HTML 내보내기를 취소했습니다',
+  appExportingImages: '이미지 내보내는 중…',
+  appExportImagesProgress: '이미지 {count}장 내보내는 중…',
+  appExportImagesDone: '이미지 {count}장을 {dir}에 내보냈습니다',
+  appExportImagesFailed: '이미지 내보내기 실패: {error}',
   appMixedExportOpening:
     '용지 크기가 혼합된 문서: 페이지 미리 보기를 열어 페이지별로 병합하여 내보내는 중…',
   // Comments
@@ -244,6 +253,7 @@ export const ko = {
   // Navigation pane
   appNavTitle: '탐색',
   appNavNoHeadings: '문서에 제목이 없습니다',
+  appNavOutline: '목차',
   // Ruler
   appTabTypeTip: '탭 종류: {type}(클릭하여 전환)',
   appTabStopTitle: '{type} 탭 @ {pos}cm',
@@ -269,6 +279,11 @@ export const ko = {
   appCopy: '복사',
   appPaste: '붙여넣기',
   appPastePlain: '텍스트만 붙여넣기',
+  appPasteOptions: '붙여넣기 옵션',
+  appPasteKeepSource: '원본 서식 유지',
+  appPasteMergeFormat: '서식 병합',
+  appPasteTextOnly: '텍스트만 유지',
+  appPasteRememberDefault: '항상 이 선택 사용',
   appFontMenu: '글꼴…',
   appParagraphMenu: '단락…',
   appUpdateField: '필드 업데이트',
@@ -290,6 +305,10 @@ export const ko = {
   appLangGerman: '독일어',
   appLangSpanish: '스페인어',
   appWrapTextMenu: '텍스트 줄 바꿈',
+  appViewImage: '이미지 보기',
+  appSaveImageAs: '이미지를 다른 이름으로 저장…',
+  appImgActualSize: '실제 크기',
+  appImgFitWindow: '창에 맞추기',
   appHyperlinkMenu: '하이퍼링크…',
   appNewComment: '새 메모',
   appWrapInline: '텍스트 줄 안',

@@ -67,6 +67,8 @@ function menuProps(editor: Editor, overrides: Record<string, unknown> = {}) {
     onParagraphDialog: noop,
     onLink: noop,
     onNewComment: noop,
+    onViewImage: noop,
+    onSaveImageAs: noop,
     onAiPreset: noop,
     ...overrides,
   }
@@ -176,12 +178,19 @@ describe('FontDialog', () => {
     select(editor, 1, 10)
     const { container, unmount } = render(createElement(FontDialog, { editor, onClose: noop }))
     const dds = container.querySelectorAll<HTMLButtonElement>('.gs-dd-btn')
-    // Font style → bold
-    pickDropdown(container, dds[1]!, 'bold')
+    // Latin font, East Asian font, font style → bold
+    pickDropdown(container, dds[0]!, 'Arial')
+    pickDropdown(container, dds[1]!, '\u5b8b\u4f53')
+    pickDropdown(container, dds[2]!, 'bold')
     const ok = [...container.querySelectorAll('button')].find((b) => b.textContent === 'OK')!
     act(() => ok.click())
     expect(editor.isActive('bold')).toBe(true)
-    expect(editor.getAttributes('docTextStyle').sizeHalfPoints).toBe(22)
+    const attrs = editor.getAttributes('docTextStyle')
+    expect(attrs.sizeHalfPoints).toBe(22)
+    // each picker writes only its own rFonts slot
+    expect(attrs.fontAscii).toBe('Arial')
+    expect(attrs.font).toBe('\u5b8b\u4f53')
+    expect(attrs.eastAsiaFont).toBe('\u5b8b\u4f53')
     unmount()
     editor.destroy()
   })
@@ -243,5 +252,38 @@ describe('ParagraphDialog', () => {
     expect(editor.getAttributes('docParagraph').align).toBeNull()
     unmount()
     editor.destroy()
+  })
+})
+
+describe('EditorContextMenu picture items', () => {
+  const labels = (container: HTMLElement) =>
+    [...container.querySelectorAll('.ctx-label')].map((el) => el.textContent)
+
+  it('shows View / Save Image As only when the click landed on a picture', () => {
+    const editor = createEditor()
+    const plain = render(createElement(EditorContextMenu, menuProps(editor)))
+    expect(labels(plain.container)).not.toContain('View Image')
+    plain.unmount()
+
+    const onViewImage = vi.fn()
+    const onSaveImageAs = vi.fn()
+    const src = 'data:image/png;base64,AAAA'
+    const { container, unmount } = render(
+      createElement(
+        EditorContextMenu,
+        menuProps(editor, { menu: { x: 10, y: 10, imageSrc: src }, onViewImage, onSaveImageAs }),
+      ),
+    )
+    const names = labels(container)
+    expect(names.slice(0, 2)).toEqual(['View Image', 'Save Image As…'])
+    const byLabel = (label: string) =>
+      [...container.querySelectorAll<HTMLButtonElement>('.ctx-item')].find(
+        (b) => b.querySelector('.ctx-label')?.textContent === label,
+      )!
+    byLabel('View Image').click()
+    byLabel('Save Image As…').click()
+    expect(onViewImage).toHaveBeenCalledWith(src)
+    expect(onSaveImageAs).toHaveBeenCalledWith(src)
+    unmount()
   })
 })

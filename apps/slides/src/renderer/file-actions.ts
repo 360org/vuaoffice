@@ -4,7 +4,10 @@
  * (Printing lives in components/PrintDialog.tsx — preview + options dialog.)
  */
 import type { RenderSlide } from '@genoffice/pptx-render'
+import type { ExportPdfLink } from '../shared/ipc'
 import type { ActionCtx } from './action-context'
+import { collectExportPdfLinks } from './export-links'
+import { renderSlidesToPdfPages } from './export-pages'
 import { renderSlidesToPngBase64 } from './export-render'
 import { t } from './i18n/locale'
 import { showToast } from './components/toast-bus'
@@ -28,14 +31,22 @@ export async function flushActiveEdit(ctx: ActionCtx): Promise<void> {
  * the render tree, mapping selection/edit state to new ids by per-page node ordinal.
  */
 export function adoptSavedSlides(ctx: ActionCtx, next: RenderSlide[]): void {
+  const page = ctx.slides[ctx.current]
   const remap = (id: string) => {
-    const i = ctx.slides[ctx.current]?.nodes.findIndex((n) => n.sourceId === id) ?? -1
-    return next[ctx.current]?.nodes[i]?.sourceId ?? null
+    const i = page?.nodes.findIndex((n) => n.sourceId === id) ?? -1
+    return i >= 0 ? (next[ctx.current]?.nodes[i]?.sourceId ?? null) : null
   }
   ctx.setSelectedIds((ids) => ids.map(remap).filter((x): x is string => x !== null))
   ctx.setEnteredGroupId(null) // Group children ids can't be mapped by top-level ordinal; exit in-group editing after save
-  ctx.setEditing((e) => (e && remap(e.sourceId) ? { sourceId: remap(e.sourceId)! } : e))
-  ctx.setEditingCell((c) => (c && remap(c.sourceId) ? { ...c, sourceId: remap(c.sourceId)! } : c))
+  // A stale edit target (page gone, deck shrunk) cannot be mapped: drop it rather than keep an id no node owns
+  ctx.setEditing((e) => {
+    const id = e && remap(e.sourceId)
+    return id ? { sourceId: id } : null
+  })
+  ctx.setEditingCell((c) => {
+    const id = c && remap(c.sourceId)
+    return id && c ? { ...c, sourceId: id } : null
+  })
   ctx.setSlides(next)
 }
 
@@ -158,30 +169,62 @@ export async function exportImages(ctx: ActionCtx): Promise<void> {
   }
 }
 
-/** Export as PDF: each page (skipping hidden ones) rendered offscreen to 2x PNG; main process printToPDF in a hidden window */
-export async function exportPdf(ctx: ActionCtx): Promise<void> {
+/**
+ * Element and text-run hyperlinks of every exported page as clickable overlay
+ * rects (the pages are rasterized, so links must ride along separately). Link
+ * fetch failures degrade to a link-less PDF rather than failing the export.
+ */
+async function collectPdfLinks(ctx: ActionCtx): Promise<ExportPdfLink[][]> {
+  const modelIndexes = ctx.slides.flatMap((s, i) => (s.hidden ? [] : [i]))
+  const pageOfModelIndex = new Map(modelIndexes.map((mi, page) => [mi, page] as const))
+  try {
+    const [linkLists, runLinkLists] = await Promise.all([
+      Promise.all(modelIndexes.map((mi) => window.slidesApi.getSlideLinks(mi))),
+      Promise.all(modelIndexes.map((mi) => window.slidesApi.getRunLinks(mi))),
+    ])
+    const visible = modelIndexes.map((mi) => ctx.slides[mi]!)
+    return collectExportPdfLinks(visible, linkLists, runLinkLists, pageOfModelIndex)
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Export as PDF: each page (skipping hidden ones) rendered to vector SVG (text
+ * stays text; a page the SVG backend cannot build falls back to its 2x PNG);
+ * main process printToPDF in a hidden window.
+ *
+ * `outPath` skips the save dialog — the headless CLI entry already knows where
+ * the file goes. Resolves true only when a PDF was written.
+ */
+export async function exportPdf(ctx: ActionCtx, outPath?: string): Promise<boolean> {
   const visible = ctx.slides.filter((s) => !s.hidden)
   if (visible.length === 0) {
     ctx.setStatus(t('appExportNoSlides'))
-    return
+    return false
   }
-  const target = await window.slidesApi.pickExportPdfPath(`${exportBaseName(ctx)}.pdf`)
-  if (!target) return
+  const target = outPath ?? (await window.slidesApi.pickExportPdfPath(`${exportBaseName(ctx)}.pdf`))
+  if (!target) return false
   ctx.setStatus(t('appExportPdfProgress'))
   try {
-    const pngs = await renderSlidesToPngBase64(visible, ctx.images)
+    const { pages, fontCss } = await renderSlidesToPdfPages(visible, ctx.images)
+    const links = await collectPdfLinks(ctx)
     const r = await window.slidesApi.exportPdf({
       filePath: target,
-      pngsBase64: pngs,
+      pages,
       widthPx: visible[0].widthPx,
       heightPx: visible[0].heightPx,
+      links,
+      fontCss,
     })
     ctx.setStatus(
       r.ok
         ? t('appExportPdfDone', { path: r.path ?? '' })
         : t('appExportPdfFailed', { error: r.error ?? t('appUnknownError') }),
     )
+    return r.ok
   } catch (err) {
     ctx.setStatus(t('appExportPdfFailed', { error: String(err) }))
+    return false
   }
 }

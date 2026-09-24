@@ -92,10 +92,22 @@ describe('media settings', () => {
     expect(media.providers.openai.imageModel).toBe('gpt-image-2')
   })
 
+  it('tolerates non-string values in a hand-edited settings file', () => {
+    const media = resolveAiMediaSettings({
+      providers: {
+        openai: { apiKey: 123, baseUrl: null, imageModel: 42, analysisModel: {} },
+      },
+    } as never)
+    expect(media.providers.openai.apiKey).toBe('')
+    expect(media.providers.openai.baseUrl).toBe('')
+    expect(media.providers.openai.imageModel).toBe('gpt-image-2')
+  })
+
   it('activates a BYOK media provider per capability, only when usable and capable', () => {
     expect(activeMediaProvider(openaiSettings(), 'image')).toBe('openai')
     expect(activeMediaProvider(openaiSettings(), 'analysis')).toBe('openai')
     expect(activeMediaProvider(openaiSettings(''), 'image')).toBe('genspark')
+    expect(activeMediaProvider(openaiSettings('   '), 'image')).toBe('genspark')
     const custom = defaultAiMediaSettings()
     custom.imageProvider = 'custom'
     expect(activeMediaProvider(withMedia(custom), 'image')).toBe('genspark')
@@ -204,6 +216,48 @@ describe('generateImageWithProvider', () => {
     expect(form.get('model')).toBe('flux')
     expect(form.get('image')).toBeInstanceOf(Blob)
     expect((init.headers as Record<string, string>).Authorization).toBeUndefined()
+  })
+
+  it('passes background=transparent only to gpt-image models', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ data: [{ b64_json: PNG_B64 }] }))
+    vi.stubGlobal('fetch', fetchMock)
+    await generateImageWithProvider(
+      'openai',
+      { apiKey: 'sk-1', imageModel: 'gpt-image-1', analysisModel: '' },
+      { prompt: 'a red icon', transparent: true },
+    )
+    let body = JSON.parse(
+      (fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body as string,
+    )
+    expect(body.background).toBe('transparent')
+    // dall-e-3 and lookalike vendors reject the field — it must stay off their requests
+    fetchMock.mockClear()
+    await generateImageWithProvider(
+      'openai',
+      { apiKey: 'sk-1', imageModel: 'dall-e-3', analysisModel: '' },
+      { prompt: 'a red icon', transparent: true },
+    )
+    body = JSON.parse(
+      (fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body as string,
+    )
+    expect(body.background).toBeUndefined()
+  })
+
+  it('passes background=transparent on gpt-image multipart edits', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ data: [{ b64_json: PNG_B64 }] }))
+    vi.stubGlobal('fetch', fetchMock)
+    await generateImageWithProvider(
+      'openai',
+      { apiKey: 'sk-1', imageModel: 'gpt-image-1', analysisModel: '' },
+      {
+        prompt: 'isolate the icon',
+        references: [{ bytes: PNG, mime: 'image/png' }],
+        transparent: true,
+      },
+    )
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    expect(url).toBe('https://api.openai.com/v1/images/edits')
+    expect((init.body as FormData).get('background')).toBe('transparent')
   })
 
   it('calls Gemini generateContent with IMAGE modality and reads inlineData back', async () => {

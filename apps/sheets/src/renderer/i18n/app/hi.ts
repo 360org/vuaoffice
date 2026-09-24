@@ -127,7 +127,6 @@ export const hi = {
   appMoreItems: '+{count} और…',
   appTruncationNote: '{total} में से पहले {shown}',
   appGoToButtonTitle: 'इस पर जाएँ (⌘G)',
-  appNameBoxTitle: 'नाम बॉक्स — पता या नाम टाइप करें, फिर Enter दबाएँ',
   appPivotChartHintIn: 'वर्तमान पिवट टेबल से पिवट चार्ट बनाएँ',
   appPivotChartHintOut: 'पहले पिवट टेबल आउटपुट के भीतर एक सेल चुनें, फिर चार्ट प्रकार चुनें',
   appChartColumn: 'स्तंभ',
@@ -320,8 +319,6 @@ export const hi = {
     'जो क्षेत्र अभी स्ट्रीम होकर लोड हो रहा है, उसमें स्वतः भरण की अनुमति अभी नहीं है।',
   appDvNeedsIndexed:
     'डेटा सत्यापन संपादित करने के लिए पहले इस शीट का अनुक्रमण पूरा होना चाहिए — थोड़ी देर बाद फिर प्रयास करें।',
-  appDuplicateNeedsFullLoad:
-    'शीट की प्रतिलिपि बनाने के लिए पूर्ण-लोड मोड चाहिए — यह कार्यपुस्तिका बहुत बड़ी है और आंशिक रूप से स्ट्रीम होती है।',
   appPivotSheetNoDuplicate: 'इस शीट में पिवट टेबल है — इसकी प्रतिलिपि बनाना अभी समर्थित नहीं है।',
   appDuplicateScopedNames:
     'इस शीट में शीट-स्तरीय परिभाषित नाम हैं — इसकी प्रतिलिपि बनाना अभी समर्थित नहीं है।',
@@ -524,6 +521,12 @@ export const hi = {
   appPdfCanceled: 'PDF निर्यात रद्द किया गया।',
   appPdfExported: '{path} निर्यात किया गया।',
   appPdfExportFailed: 'PDF निर्यात नहीं किया जा सका।',
+  appPrintPreparing: 'प्रिंट की तैयारी हो रही है…',
+  appPrintSent: 'प्रिंटर को भेज दिया गया।',
+  appPrintCanceled: 'प्रिंट रद्द किया गया।',
+  appPrintFailed: 'प्रिंट नहीं किया जा सका।',
+  appPrintNeedsFullLoad:
+    'प्रिंट करने के लिए कार्यपुस्तिका पूरी लोड होनी चाहिए — लोडिंग पूरी होने तक प्रतीक्षा करें।',
   appCsvExportNeedsFullLoad:
     'CSV निर्यात के लिए पूरी तरह लोड की गई कार्यपुस्तिका चाहिए — लोडिंग पूरी होने तक प्रतीक्षा करें।',
   appCsvExportTooLarge: 'शीट बहुत बड़ी है, CSV के रूप में निर्यात नहीं की जा सकती।',
@@ -617,6 +620,9 @@ export const hi = {
     'कार्यपुस्तिका पूरी तरह लोड हुई — सूत्र लाइव पुनर्गणित होते हैं, पंक्तियाँ/स्तंभ संपादन-योग्य।',
   appRangeMustBeVector: '{range} सेलों की एक ही पंक्ति या एक ही स्तंभ होना चाहिए।',
   appRangeTooManyCells: '{range} {max} से अधिक सेल कवर करता है।',
+  appCopyLoadingRange: 'कॉपी के लिए {range} लोड हो रहा है…',
+  appCopyValuesOnly:
+    '{range} केवल मानों के रूप में कॉपी किया गया ({cells} सेल): शैलियाँ केवल {max} सेल तक ही रखी जाती हैं।',
   appSheetStillIndexing: 'शीट अभी अनुक्रमित हो रही है — थोड़ी देर बाद फिर प्रयास करें।',
   appPrintNothing: 'शीट में मुद्रित करने के लिए कुछ नहीं है।',
   appPrintTooLarge: 'मुद्रण श्रेणी बहुत बड़ी है — पृष्ठ लेआउट टैब पर छोटा मुद्रण क्षेत्र सेट करें।',
@@ -1309,6 +1315,8 @@ export const hi = {
   appFormatMenu: 'प्रारूप',
   appRowHeight: 'पंक्ति ऊंचाई',
   appColWidth: 'स्तंभ चौड़ाई',
+  appAutoFitRowHeight: 'पंक्ति ऊँचाई स्वतः फ़िट करें',
+  appAutoFitColWidth: 'स्तंभ चौड़ाई स्वतः फ़िट करें',
   appRowHeightLabel: 'पंक्ति ऊंचाई (पॉइंट)',
   appColWidthLabel: 'स्तंभ चौड़ाई (वर्ण)',
   appDeleteRow: 'पंक्ति हटाएँ',

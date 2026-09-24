@@ -22,6 +22,7 @@ export {
   IconRedo,
   IconCopy,
   IconSearch,
+  IconSpellcheck,
 } from '../../../../docs/src/renderer/components/icons'
 
 interface IconProps {

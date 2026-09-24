@@ -11,6 +11,7 @@ import type {
   EditTableStyleOp,
   GradientFillSpec,
 } from '../shared/ipc'
+import type { FontSizeStep } from '@genoffice/pptx-ops/font-size'
 import type { ActionCtx } from './action-context'
 import { FIT_WIDTH } from './app-constants'
 import {
@@ -60,6 +61,24 @@ export function onFontSize(ctx: ActionCtx, pt: number): void {
       slideIndex: ctx.current,
       sourceIds: ctx.selectedIds,
       fontSizePt: pt,
+      ...(groupId ? { groupId } : {}),
+    })
+    .then((r) => r && ctx.applySlide(ctx.current, r))
+}
+
+// Grow/shrink relative to each run's own size, so a mixed-size shape keeps its contrast
+export function onFontSizeStep(ctx: ActionCtx, step: FontSizeStep): void {
+  if (ctx.editing || ctx.editingCell) {
+    resizeSelectionFont(step.dir, step.mode)
+    return
+  }
+  if (!ctx.selectedIds.length) return
+  const groupId = ctx.groupIdOf(ctx.selectedIds[0]!)
+  void window.slidesApi
+    .setElementFont({
+      slideIndex: ctx.current,
+      sourceIds: ctx.selectedIds,
+      fontSizeStep: step,
       ...(groupId ? { groupId } : {}),
     })
     .then((r) => r && ctx.applySlide(ctx.current, r))
@@ -134,8 +153,12 @@ export function onElementTextColor(ctx: ActionCtx, hex: string): void {
 }
 
 export interface ParagraphFormatPatch {
-  bullet?: 'char' | 'number' | 'none'
+  bullet?: 'char' | 'number' | 'blip' | 'none'
   bulletChar?: string
+  bulletFont?: string
+  numType?: string
+  startAt?: number
+  bulletImage?: { base64: string; ext: string }
   bulletHangEmu?: number
   bulletSizePct?: number
   bulletColor?: string
@@ -150,6 +173,10 @@ export interface ParagraphFormatPatch {
 const SELECTION_PATCH_KEYS = new Set([
   'bullet',
   'bulletChar',
+  'bulletFont',
+  'numType',
+  'startAt',
+  'bulletImage',
   'lineSpacingPct',
   'spaceBeforePt',
   'spaceAfterPt',
@@ -172,11 +199,13 @@ export function onParagraphFormat(ctx: ActionCtx, patch: ParagraphFormatPatch): 
     if (applySelectionParagraphFormat(patch)) return
   }
   if (!ctx.selectedIds.length) return
-  // Picking an explicit char always applies (no toggle-off)
+  // Picking an explicit glyph / scheme / picture always applies (no toggle-off)
   if (
     patch.bullet &&
     patch.bullet !== 'none' &&
     !patch.bulletChar &&
+    !patch.numType &&
+    !patch.bulletImage &&
     ctx.selectedIds.length === 1
   ) {
     const node = ctx.findNodeCtx(ctx.selectedIds[0]!)?.node
@@ -185,7 +214,13 @@ export function onParagraphFormat(ctx: ActionCtx, patch: ParagraphFormatPatch): 
         ? (node as ShapeRenderNode).text
         : undefined
     const bulletRun = text?.lines.flatMap((l) => l.runs).find((r) => r.isBullet)
-    const cur = bulletRun ? (/^\d/.test(bulletRun.text) ? 'number' : 'char') : null
+    const cur = bulletRun
+      ? bulletRun.numType
+        ? 'number'
+        : bulletRun.image
+          ? 'blip'
+          : 'char'
+      : null
     if (cur === patch.bullet) patch = { ...patch, bullet: 'none' }
   }
   const groupId = ctx.groupIdOf(ctx.selectedIds[0]!)

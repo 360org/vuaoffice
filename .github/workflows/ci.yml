@@ -44,6 +44,17 @@ jobs:
         with:
           workspaces: apps/sheets/native/xlsx-engine
 
+      # electron's postinstall downloads its binary from GitHub Releases on every
+      # fresh install; a cache hit skips the download (and its 5xx flakes)
+      - name: Cache electron binaries
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/electron
+          # own prefix: the build workflows' electron-* entries also hold
+          # ~/.cache/electron-builder, and a saved key is never updated
+          key: electron-bin-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: electron-bin-${{ runner.os }}-
+
       - name: Install dependencies
         run: npm ci
 
@@ -83,6 +94,17 @@ jobs:
       # apply đầy đủ) + check-brand (không rò rỉ). Xem docs/360_BRAND_STRATEGY.md
       - name: Check brand integrity
         run: npm run brand:gate
+      # skills/*/SKILL.md ship to users' agent directories; a body change
+      # without a metadata.version bump would never be offered as an update.
+      - name: Check skill versions
+        env:
+          FORMAT_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            FORMAT_BASE_REF=$(git rev-parse HEAD^1)
+          fi
+          npm run check:skill-version
+
 
       # Added lines only: Han text outside locale tables, review-tool tags,
       # feedback-ledger ids, sample-corpus ids, internal PR numbers, personal
@@ -126,6 +148,13 @@ jobs:
       - name: Check committed fixtures match the generator
         run: git diff --exit-code -- fixtures/generated
 
+      # pptx-engine's OOXML schema gate validates saved decks with xmllint
+      # (tools/ooxml-validate); the runner image is not guaranteed to have it.
+      - name: Install xmllint
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libxml2-utils
+
       - name: Test
         run: npm test
 
@@ -162,6 +191,17 @@ jobs:
         with:
           workspaces: apps/sheets/native/xlsx-engine
 
+      # electron's postinstall downloads its binary from GitHub Releases on every
+      # fresh install; a cache hit skips the download (and its 5xx flakes)
+      - name: Cache electron binaries
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/electron
+          # own prefix: the build workflows' electron-* entries also hold
+          # ~/.cache/electron-builder, and a saved key is never updated
+          key: electron-bin-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: electron-bin-${{ runner.os }}-
+
       - name: Install dependencies
         run: npm ci
 
@@ -192,6 +232,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             fonts-crosextra-carlito fonts-crosextra-caladea fonts-noto-cjk
+
+      # CSS layout tests use standalone Chromium in addition to Electron.
+      # Keep the pinned document font stack unchanged: --with-deps adds fonts
+      # that alter the existing pixel baselines. Electron already supplies the
+      # required system libraries on this runner.
+      - name: Install Chromium for layout tests
+        run: npx playwright install chromium
+
+      - name: Markdown browser tests
+        run: npx playwright test --config apps/markdown/playwright.config.ts
 
       # Electron needs a display server on Linux runners. DEBUG=pw:browser
       # forwards the Electron process stdout/stderr into the CI log so launch

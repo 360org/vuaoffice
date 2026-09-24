@@ -134,7 +134,12 @@ export function FindReplaceDialog({
     <div className="find-panel" onKeyDown={(e) => e.key === 'Escape' && onClose()}>
       <div className="find-panel-head">
         <span>{t('paneFrTitle')}</span>
-        <button className="find-panel-close" onClick={onClose} data-tip="Esc" aria-label="Esc">
+        <button
+          className="find-panel-close"
+          onClick={onClose}
+          data-tip="Esc"
+          aria-label={t('paneCsdClose')}
+        >
           ×
         </button>
       </div>
@@ -142,6 +147,7 @@ export function FindReplaceDialog({
         <input
           ref={findRef}
           placeholder={t('paneFrFind')}
+          aria-label={t('paneFrFind')}
           value={query}
           onChange={(e) => {
             setQuery(e.target.value)
@@ -154,6 +160,7 @@ export function FindReplaceDialog({
       <div className="find-panel-row">
         <input
           placeholder={t('paneFrReplaceWith')}
+          aria-label={t('paneFrReplaceWith')}
           value={replaceText}
           onChange={(e) => setReplaceText(e.target.value)}
         />

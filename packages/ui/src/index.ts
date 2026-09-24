@@ -1,3 +1,4 @@
+export { AiPanelSideButton } from './AiPanelSideButton'
 export { AiComposer } from './AiComposer'
 export { AiScopeQuote, type AiScopeQuoteData } from './AiScopeQuote'
 export {
@@ -12,8 +13,9 @@ export {
   normalizeAiPanelPrefs,
   type AiFontSize,
   type AiPanelPrefs,
+  type AiPanelSide,
 } from './ai-panel-prefs'
-export { applyAiPanelPrefs, useAiPanelPrefs } from './ai-panel-prefs-store'
+export { applyAiPanelPrefs, useAiPanelPrefs, aiPanelWidthAtPointer } from './ai-panel-prefs-store'
 export {
   ColorPicker,
   THEME_COLORS,
@@ -76,6 +78,7 @@ export {
   type CropFractions,
   type ImageDialogLabels,
 } from './image-dialogs'
+export { ImageViewer, type ImageViewerLabels } from './image-viewer'
 export {
   removeBackground,
   sampleBackgroundColors,
@@ -92,3 +95,11 @@ export {
   type AutoSaveDefault,
   type AutoSaveDefaultApi,
 } from './auto-save-pref'
+export {
+  NOTCH,
+  clampZoom,
+  createWheelPager,
+  createZoomWheelClassifier,
+  notchStep,
+  type ZoomWheelIntent,
+} from './wheel-zoom'

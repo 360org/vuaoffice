@@ -79,11 +79,15 @@ function readLastCustomMargins(): PageMargins | null {
 }
 
 const PAPER_SIZES = [
-  { key: 'a4', name: 'A4', desc: '21 × 29.7 cm', w: 11906, h: 16838 },
-  { key: 'letter', name: 'Letter', desc: '21.59 × 27.94 cm', w: 12240, h: 15840 },
-  { key: 'legal', name: 'Legal', desc: '21.59 × 35.56 cm', w: 12240, h: 20160 },
-  { key: 'b5', name: 'B5 (JIS)', desc: '18.2 × 25.7 cm', w: 10319, h: 14572 },
+  { key: 'a4', name: 'A4', w: 11906, h: 16838 },
+  { key: 'letter', name: 'Letter', w: 12240, h: 15840 },
+  { key: 'legal', name: 'Legal', w: 12240, h: 20160 },
+  { key: 'b5', name: 'B5 (JIS)', w: 10319, h: 14572 },
 ]
+
+export function paperSizeCaption(wTwips: number, hTwips: number, unit: string): string {
+  return `${cmFromTwips(wTwips)} × ${cmFromTwips(hTwips)} ${unit}`
+}
 
 interface LayoutTabProps extends TabProps {
   section: SectionSettings | null
@@ -112,12 +116,15 @@ export function LayoutTab({
 
   const applyMargins = (m: PageMargins) => {
     if (!section || !marginsFitPage(m, section.pageWidth, section.pageHeight)) return
+    // a user-set value is an ordinary margin, not the file's header-proof fixed one
     onSection({
       ...section,
       marginTop: m.top,
       marginRight: m.right,
       marginBottom: m.bottom,
       marginLeft: m.left,
+      marginTopFixed: undefined,
+      marginBottomFixed: undefined,
     })
   }
 
@@ -197,7 +204,7 @@ export function LayoutTab({
     const shown = Math.round(twips * PT_PER_TWIP)
     // selection identity in the key: a commit that leaves the LIVE
     // selection's value unchanged must still remount the field, or it keeps
-    // showing the number just applied to a different paragraph (bugbot)
+    // showing the number just applied to a different paragraph
     const selFrom = editor.state.selection.from
     return (
       <label className="layout-num" data-tip={title}>
@@ -214,7 +221,7 @@ export function LayoutTab({
             if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
           }}
           // the paragraphs the entry is FOR: by blur, a click may already have
-          // moved the live selection elsewhere (bugbot)
+          // moved the live selection elsewhere
           onFocus={() => {
             const { from, to } = editor.state.selection
             ptInputTargetRef.current = { from, to }
@@ -237,7 +244,7 @@ export function LayoutTab({
             }
             // regardless of whether anything changed: Enter-blur (no
             // relatedTarget) hands focus back to the editor; a blur INTO
-            // another control must not steal it back (bugbot ×2)
+            // another control must not steal it back
             if (!e.relatedTarget) editor.commands.focus()
           }}
         />
@@ -287,7 +294,7 @@ export function LayoutTab({
                             {t('ribbonMarginTop')} {cmFromTwips(lastCustom.top)} ·{' '}
                             {t('ribbonMarginBottom')} {cmFromTwips(lastCustom.bottom)} ·{' '}
                             {t('ribbonMarginLeft')} {cmFromTwips(lastCustom.left)} ·{' '}
-                            {t('ribbonMarginRight')} {cmFromTwips(lastCustom.right)} cm
+                            {t('ribbonMarginRight')} {cmFromTwips(lastCustom.right)} {t('ribbonCm')}
                           </span>
                         </button>
                       )}
@@ -373,7 +380,7 @@ export function LayoutTab({
                       onClick={() => setPaper(p.w, p.h)}
                     >
                       <b>{p.name}</b>
-                      <span>{p.desc}</span>
+                      <span>{paperSizeCaption(p.w, p.h, t('ribbonCm'))}</span>
                     </button>
                   )
                 })}

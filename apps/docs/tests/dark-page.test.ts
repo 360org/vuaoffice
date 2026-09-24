@@ -139,10 +139,17 @@ describe('docStyleCss dark twins', () => {
 
   it('pairs every color rule with a .page-dark rule inside one @media screen block', () => {
     const styles = new Map<string, StyleInfo>()
+    styles.set('Normal', {
+      styleId: 'Normal',
+      name: 'Normal',
+      type: 'paragraph',
+      isDefault: true,
+    } as StyleInfo)
     styles.set('Heading1', {
       styleId: 'Heading1',
       name: 'heading 1',
       type: 'paragraph',
+      basedOn: 'Normal',
       display: { color: '2f5496', shadingFill: 'f2f2f2' } as StyleDisplay,
     } as StyleInfo)
     styles.set('Grid', {
@@ -176,7 +183,7 @@ describe('docStyleCss dark twins', () => {
       `tr:nth-child(even) td${island} { background:${darkPageColor('d9d9d9')} }`,
     )
     expect(dark).toContain(
-      `tr:first-child th${island} { background:${darkPageColor('4472c4')};color:${DARK_PAPER_HEX} }`,
+      `tr[data-repeat-header="1"]:not(tr:not([data-repeat-header="1"]) ~ tr) th${island} { background:${darkPageColor('4472c4')};color:${DARK_PAPER_HEX} }`,
     )
     // a filled box would inherit the remapped document default from .doc-page:
     // the island re-sets the authored one

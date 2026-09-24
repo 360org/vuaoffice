@@ -128,7 +128,6 @@ export const ru = {
   appMoreItems: 'ещё +{count}…',
   appTruncationNote: 'Первые {shown} из {total}',
   appGoToButtonTitle: 'Переход (⌘G)',
-  appNameBoxTitle: 'Поле имени — введите адрес или имя и нажмите Ввод',
   appPivotChartHintIn: 'Создать сводную диаграмму из текущей сводной таблицы',
   appPivotChartHintOut:
     'Сначала выделите ячейку в области вывода сводной таблицы, затем выберите тип диаграммы',
@@ -327,8 +326,6 @@ export const ru = {
     'Автозаполнение в область, которая ещё загружается потоково, пока не разрешено.',
   appDvNeedsIndexed:
     'Для изменения проверки данных лист должен быть сначала полностью проиндексирован — повторите попытку чуть позже.',
-  appDuplicateNeedsFullLoad:
-    'Дублирование листа требует режима полной загрузки — эта книга слишком велика и загружается потоково частично.',
   appPivotSheetNoDuplicate:
     'Этот лист содержит сводную таблицу — его дублирование пока не поддерживается.',
   appDuplicateScopedNames:
@@ -539,6 +536,12 @@ export const ru = {
   appPdfCanceled: 'Экспорт в PDF отменён.',
   appPdfExported: 'Экспортировано: {path}.',
   appPdfExportFailed: 'Не удаётся экспортировать PDF.',
+  appPrintPreparing: 'Подготовка к печати…',
+  appPrintSent: 'Отправлено на принтер.',
+  appPrintCanceled: 'Печать отменена.',
+  appPrintFailed: 'Не удалось напечатать.',
+  appPrintNeedsFullLoad:
+    'Для печати книга должна быть полностью загружена — дождитесь окончания загрузки.',
   appCsvExportNeedsFullLoad:
     'Экспорт в CSV требует полностью загруженной книги — дождитесь завершения загрузки.',
   appCsvExportTooLarge: 'Лист слишком большой для экспорта в CSV.',
@@ -635,6 +638,9 @@ export const ru = {
     'Книга полностью загружена — формулы пересчитываются вживую, строки и столбцы доступны для редактирования.',
   appRangeMustBeVector: '{range} должен быть одной строкой или одним столбцом ячеек.',
   appRangeTooManyCells: '{range} охватывает более {max} ячеек.',
+  appCopyLoadingRange: 'Загрузка {range} для копирования…',
+  appCopyValuesOnly:
+    '{range} скопирован только как значения ({cells} ячеек): стили сохраняются только до {max} ячеек.',
   appSheetStillIndexing: 'Лист ещё индексируется — повторите попытку чуть позже.',
   appPrintNothing: 'На листе нечего печатать.',
   appPrintTooLarge:
@@ -1330,6 +1336,8 @@ export const ru = {
   appFormatMenu: 'Формат',
   appRowHeight: 'Высота строки',
   appColWidth: 'Ширина столбца',
+  appAutoFitRowHeight: 'Автоподбор высоты строки',
+  appAutoFitColWidth: 'Автоподбор ширины столбца',
   appRowHeightLabel: 'Высота строки (пункты)',
   appColWidthLabel: 'Ширина столбца (символы)',
   appDeleteRow: 'Удалить строку',

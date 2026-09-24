@@ -2,7 +2,8 @@
  * The Insert tab's three dialogs: hyperlink / header & footer / equation.
  * Reuses SettingsModal's .modal-backdrop/.modal styles.
  */
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
+import { useEscOverlay } from '../esc-overlay'
 import { Dropdown } from '@genoffice/ui'
 import type { LinkTargetOp } from '../../shared/ipc'
 import { EQUATION_GALLERY } from '../insert-presets'
@@ -27,6 +28,7 @@ export function LinkDialog({
   onApply,
   onClose,
 }: LinkDialogProps) {
+  useEscOverlay(true, onClose)
   const { t } = useI18n()
   const [mode, setMode] = useState<'url' | 'slide'>(initial?.kind === 'slide' ? 'slide' : 'url')
   const [url, setUrl] = useState(initial?.kind === 'url' ? initial.url : 'https://')
@@ -119,6 +121,7 @@ interface HeaderFooterDialogProps {
 }
 
 export function HeaderFooterDialog({ initial, onApply, onClose }: HeaderFooterDialogProps) {
+  useEscOverlay(true, onClose)
   const { t } = useI18n()
   const [dateOn, setDateOn] = useState(!!initial.date)
   const [dateAuto, setDateAuto] = useState(true)
@@ -205,15 +208,9 @@ interface EquationDialogProps {
 }
 
 export function EquationDialog({ onInsert, onClose }: EquationDialogProps) {
+  useEscOverlay(true, onClose)
   const { t } = useI18n()
   const [text, setText] = useState('')
-
-  // Esc closes
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -246,6 +243,61 @@ export function EquationDialog({ onInsert, onClose }: EquationDialogProps) {
           <button onClick={onClose}>{t('ribbonCancel')}</button>
           <button className="primary" disabled={!text.trim()} onClick={() => onInsert(text.trim())}>
             {t('ribbonInsert')}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Insert table (explicit size beyond the 8×10 hover grid) ──────────────
+
+const MAX_TABLE_SIDE = 50
+
+export function TableInsertDialog({
+  onInsert,
+  onClose,
+}: {
+  onInsert: (rows: number, cols: number) => void
+  onClose: () => void
+}) {
+  useEscOverlay(true, onClose)
+  const { t } = useI18n()
+  const [cols, setCols] = useState(5)
+  const [rows, setRows] = useState(2)
+
+  const insert = () => onInsert(rows, cols)
+
+  const countInput = (label: string, value: number, set: (v: number) => void, focus = false) => (
+    <label>
+      {label}
+      <input
+        type="number"
+        min={1}
+        max={MAX_TABLE_SIDE}
+        value={value}
+        autoFocus={focus}
+        onChange={(e) => {
+          const v = Math.round(Number(e.target.value))
+          set(Number.isFinite(v) ? Math.min(MAX_TABLE_SIDE, Math.max(1, v)) : 1)
+        }}
+        onKeyDown={(e) => e.key === 'Enter' && insert()}
+      />
+    </label>
+  )
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <h2>{t('ribbonTableInsertDialog')}</h2>
+        <div className="dlg-two-col">
+          {countInput(t('ribbonTableColsLabel'), cols, setCols, true)}
+          {countInput(t('ribbonTableRowsLabel'), rows, setRows)}
+        </div>
+        <div className="modal-actions">
+          <button onClick={onClose}>{t('ribbonCancel')}</button>
+          <button className="primary" onClick={insert}>
+            {t('ribbonOk')}
           </button>
         </div>
       </div>

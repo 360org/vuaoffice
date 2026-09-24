@@ -18,8 +18,10 @@
     "./ai-panel-prefs.css": "./src/ai-panel-prefs.css",
     "./ai-scope-quote.css": "./src/ai-scope-quote.css",
     "./image-dialogs.css": "./src/image-dialogs.css",
+    "./image-viewer.css": "./src/image-viewer.css",
     "./fonts/*": "./src/fonts/*",
     "./*": "./src/*"
+
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

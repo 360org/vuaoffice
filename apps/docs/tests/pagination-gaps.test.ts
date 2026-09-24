@@ -4,10 +4,16 @@ import {
   alignGapHfStrips,
   alignTableGapFills,
   makeGapEl,
+  pageFramesFromGaps,
   syncCutOverlays,
+  syncPageSheets,
   syncPhantomRowspans,
   clampCellBoxTops,
+  clampCellImageTops,
+  pageBorderArtStripStyle,
   pageBorderStyleOf,
+  rowFillAttrs,
+  syncPageBorders,
 } from '../src/renderer/editor/pagination-gaps'
 import { createLineRectsCache, singleCutCell } from '../src/renderer/pagination'
 
@@ -242,6 +248,53 @@ describe('clampCellBoxTops', () => {
   })
 })
 
+describe('clampCellImageTops', () => {
+  const cellImage = (pm: HTMLElement, imgTop: number, cellTop: number): HTMLElement => {
+    const table = document.createElement('table')
+    const cell = document.createElement('td')
+    cell.style.border = '0'
+    cell.style.padding = '0'
+    cell.getBoundingClientRect = () => ({ top: cellTop, height: 80, width: 200 }) as DOMRect
+    const img = document.createElement('img')
+    img.dataset.cellLift = '1'
+    img.style.marginTop = 'calc(-243.0px + var(--cell-lift,0px))'
+    let lifted = 0
+    // the live rect follows the applied lift, like the real layout
+    img.getBoundingClientRect = () =>
+      ({ top: imgTop + lifted, bottom: imgTop + lifted + 71, height: 71, width: 201 }) as DOMRect
+    Object.defineProperty(img, 'lift', { set: (v: number) => (lifted = v) })
+    cell.appendChild(img)
+    table.appendChild(cell)
+    pm.appendChild(table)
+    return img
+  }
+
+  // mounted: jsdom computes the cell insets only for elements in the document
+  const mounted = () => document.body.appendChild(document.createElement('div'))
+
+  it('pushes a picture lifted above its cell top back to the edge; in-cell pictures stay', () => {
+    const pm = mounted()
+    const above = cellImage(pm, 440, 660)
+    const inside = cellImage(pm, 700, 660)
+    clampCellImageTops(pm, 1)
+    expect(above.style.getPropertyValue('--cell-lift')).toBe('220.0px')
+    expect(above.dataset.cellLiftDy).toBe('220')
+    expect(inside.style.getPropertyValue('--cell-lift')).toBe('')
+    pm.remove()
+  })
+
+  it('is idempotent against the already-lifted rect and scales by the zoom factor', () => {
+    const pm = mounted()
+    const img = cellImage(pm, 440, 660)
+    clampCellImageTops(pm, 2)
+    expect(img.style.getPropertyValue('--cell-lift')).toBe('110.0px')
+    ;(img as unknown as { lift: number }).lift = 220
+    clampCellImageTops(pm, 2)
+    expect(img.style.getPropertyValue('--cell-lift')).toBe('110.0px')
+    pm.remove()
+  })
+})
+
 describe('alignTableGapFills', () => {
   /** paper at x=0, 816 wide; the gap cell follows its table's box */
   const pmWithFill = (cellLeft: number, cellWidth: number) => {
@@ -286,6 +339,87 @@ describe('alignTableGapFills', () => {
     expect(fill.style.left).toBe('-32px')
     expect(fill.style.width).toBe('816px')
   })
+
+  it('differing-width documents: the fill covers the table’s own centered page, not the paper', () => {
+    // portrait page (816) centered on a landscape paper (1056): gap carries the page box
+    const pm = document.createElement('div')
+    pm.getBoundingClientRect = () => ({ left: 0, width: 1056 }) as DOMRect
+    const gap = makeGapEl({ ...m, pageLeft: 120, pageWidth: 816 }, 'table', 2)
+    const cell = gap.firstElementChild as HTMLElement
+    cell.getBoundingClientRect = () => ({ left: 120 + 96, width: 624 }) as DOMRect
+    pm.appendChild(gap)
+    const fill = cell.firstElementChild as HTMLElement
+    alignTableGapFills(pm, 1)
+    expect(fill.style.left).toBe('-96px')
+    expect(fill.style.width).toBe('816px')
+  })
+})
+
+describe('page frames and sheets (differing-width documents, genoffice#246)', () => {
+  const rect = (top: number, height: number, left = 0, width = 1056) =>
+    ({ top, height, left, width, bottom: top + height, right: left + width }) as DOMRect
+  /** wrap holding a paper and two gaps: page 0 (portrait) → page 1 (landscape) → page 2 (portrait) */
+  const wrapEl = () => {
+    const wrap = document.createElement('div')
+    wrap.getBoundingClientRect = () => rect(0, 3000)
+    const paper = document.createElement('div')
+    paper.className = 'doc-page'
+    paper.getBoundingClientRect = () => rect(0, 3000, 0, 1056)
+    wrap.appendChild(paper)
+    const g1 = makeGapEl({ ...m, pageLeft: 0, pageWidth: 1056 }, 'block')
+    g1.getBoundingClientRect = () => rect(1000, 96 + GAP_BAND + 96)
+    const g2 = makeGapEl({ ...m, pageLeft: 120, pageWidth: 816 }, 'block')
+    g2.getBoundingClientRect = () => rect(2000, 96 + GAP_BAND + 96)
+    paper.append(g1, g2)
+    return wrap
+  }
+
+  it('derives each page’s box from the first page and the gaps’ next-page geometry', () => {
+    const frames = pageFramesFromGaps(wrapEl(), 1, { left: 120, width: 816 })
+    expect(frames).toHaveLength(3)
+    expect(frames[0]).toEqual({ top: 0, bottom: 1096, left: 120, width: 816 })
+    expect(frames[1]).toEqual({
+      top: 1000 + 96 + GAP_BAND + 96 - 96,
+      bottom: 2096,
+      left: 0,
+      width: 1056,
+    })
+    expect(frames[2]).toEqual({ top: 2000 + 96 + GAP_BAND, bottom: 3000, left: 120, width: 816 })
+  })
+
+  it('a boundary without page geometry (cut marker) keeps the page above it', () => {
+    const wrap = wrapEl()
+    const cut = makeGapEl(m, 'cut')
+    cut.getBoundingClientRect = () => rect(1500, 0)
+    wrap.firstElementChild!.appendChild(cut)
+    const frames = pageFramesFromGaps(wrap, 1, { left: 120, width: 816 })
+    expect(frames.map((f) => f.left)).toEqual([120, 0, 0, 120])
+  })
+
+  it('without a first frame the whole paper is the page', () => {
+    const wrap = document.createElement('div')
+    wrap.getBoundingClientRect = () => rect(0, 1056)
+    const paper = document.createElement('div')
+    paper.className = 'doc-page'
+    paper.getBoundingClientRect = () => rect(0, 1056, 0, 816)
+    wrap.appendChild(paper)
+    expect(pageFramesFromGaps(wrap, 1)).toEqual([{ top: 0, bottom: 1056, left: 0, width: 816 }])
+  })
+
+  it('paints one sheet per page and clears the layer when the paper is uniform again', () => {
+    const wrap = wrapEl()
+    syncPageSheets(wrap, 1, { left: 120, width: 816 })
+    const sheets = Array.from(wrap.querySelectorAll<HTMLElement>('.page-sheets > .page-sheet'))
+    expect(sheets.map((s) => [s.style.left, s.style.width])).toEqual([
+      ['120px', '816px'],
+      ['0px', '1056px'],
+      ['120px', '816px'],
+    ])
+    expect(sheets[0].style.top).toBe('0px')
+    expect(sheets[0].style.height).toBe('1096px')
+    syncPageSheets(wrap, 1, null)
+    expect(wrap.querySelector('.page-sheets')).toBeNull()
+  })
 })
 
 describe('alignGapHfStrips', () => {
@@ -325,6 +459,27 @@ describe('alignGapHfStrips', () => {
     alignGapHfStrips(pm, 96, 1)
     expect(strip.style.left).toBe(left)
     expect(strip.getBoundingClientRect().left).toBeCloseTo(96, 1)
+  })
+
+  it('re-anchors footnote areas and floating images from their gap’s origin (data-paper-x)', () => {
+    // block gap starting 20px right of the paper edge (next section's narrower margin)
+    const pm = pmEl()
+    const gap = makeGapEl(
+      { marginTop: 96, marginBottom: 96, marginLeft: 76, marginRight: 96 },
+      'block',
+    )
+    gap.getBoundingClientRect = () => ({ left: 20, width: 796 }) as DOMRect
+    pm.appendChild(gap)
+    const notes = document.createElement('div')
+    notes.className = 'page-gap-notes'
+    notes.dataset.paperX = '216.0'
+    notes.style.left = '216px'
+    Object.defineProperty(notes, 'offsetParent', { get: () => gap })
+    gap.appendChild(notes)
+    alignGapHfStrips(pm, 96, 1)
+    expect(notes.style.left).toBe('196px')
+    alignGapHfStrips(pm, 96, 1)
+    expect(notes.style.left).toBe('196px')
   })
 
   // A full-bleed cover section (w:pgMar left="0") ahead of body sections with real
@@ -487,7 +642,7 @@ describe('pageBorderStyleOf', () => {
     expect(style!.sides.bottom).toBeUndefined()
   })
 
-  it('maps compound thin/thick lines to CSS double and art lines to solid', () => {
+  it('maps compound thin/thick lines to CSS double; an unflagged art val stays a solid line', () => {
     const style = pageBorderStyleOf({
       ...margins,
       pageBorder: true,
@@ -503,6 +658,129 @@ describe('pageBorderStyleOf', () => {
     })
     expect(style!.sides.top!.css).toBe('8px double #000000')
     expect(style!.sides.bottom!.css).toBe('3px solid #000000')
+  })
+
+  describe('art borders', () => {
+    const artSide = (val: string, color?: string) => ({
+      val,
+      widthPt: 16,
+      spacePt: 24,
+      art: true as const,
+      ...(color ? { color } : {}),
+    })
+    const styleOf = (
+      sides: NonNullable<Parameters<typeof pageBorderStyleOf>[0]['pageBorderProps']>['sides'],
+    ) =>
+      pageBorderStyleOf({
+        ...margins,
+        pageBorder: true,
+        pageBorderProps: { offsetFrom: 'page', spacePt: 24, widthPt: 16, sides },
+      })!
+
+    it('stitch family: a 16pt-tall zigzag strip in the bitmap grey, tiled along the side', () => {
+      const side = styleOf({ bottom: artSide('zigZagStitch') }).sides.bottom!
+      expect(side.css).toBeUndefined()
+      expect(side.insetPx).toBe(32)
+      expect(side.art!.sizePx).toBe(21)
+      expect(side.art!.backgroundRepeat).toBe('repeat-x')
+      expect(side.art!.backgroundSize).toBe('21px 21px')
+      const svg = decodeURIComponent(side.art!.backgroundImage)
+      expect(svg).toContain('<polyline')
+      expect(svg).toContain('stroke="#E2E2E2"')
+      const strip = pageBorderArtStripStyle('bottom', side.art!)
+      expect(strip).toMatchObject({ bottom: '0', left: '0', right: '0', height: '21px' })
+      expect(strip.top).toBeUndefined()
+    })
+
+    it('pictogram families: dot rows in the main colour with the outline ink, vertical sides repeat-y', () => {
+      const gems = styleOf({ left: artSide('gems') }).sides.left!
+      expect(gems.art!.backgroundRepeat).toBe('repeat-y')
+      const svg = decodeURIComponent(gems.art!.backgroundImage)
+      expect(svg).toContain('<circle')
+      expect(svg).toContain('fill="#BFBFBF"')
+      expect(svg).toContain('stroke="#000000"')
+      expect(pageBorderArtStripStyle('left', gems.art!)).toMatchObject({
+        left: '0',
+        top: '0',
+        bottom: '0',
+        width: '21px',
+      })
+      const cake = styleOf({ right: artSide('cakeSlice') }).sides.right!
+      expect(decodeURIComponent(cake.art!.backgroundImage)).toContain('fill="#FEEDC9"')
+      // an unknown pictogram name defaults to black dots
+      const apples = styleOf({ top: artSide('apples') }).sides.top!
+      expect(decodeURIComponent(apples.art!.backgroundImage)).toContain('fill="#000000"')
+    })
+
+    it('line-work families reuse CSS borders sized from the pattern height', () => {
+      const sides = styleOf({
+        top: artSide('handmade2'),
+        right: artSide('whiteFlowers'),
+        bottom: artSide('basicBlackDashes'),
+        left: artSide('weavingAngles'),
+      }).sides
+      expect(sides.top).toEqual({ css: '11px double #000000', insetPx: 32 })
+      expect(sides.right).toEqual({ css: '3px solid #000000', insetPx: 32 })
+      expect(sides.bottom).toEqual({ css: '21px dashed #000000', insetPx: 32 })
+      expect(sides.left).toEqual({ css: '11px double #000000', insetPx: 32 })
+    })
+
+    it('an explicit w:color recolours the pattern and drops the bitmap ink', () => {
+      const side = styleOf({ top: artSide('gems', 'FF0000') }).sides.top!
+      const svg = decodeURIComponent(side.art!.backgroundImage)
+      expect(svg).toContain('fill="#FF0000"')
+      expect(svg).not.toContain('stroke=')
+      expect(styleOf({ top: artSide('handmade1', '1F497D') }).sides.top!.css).toBe(
+        '11px double #1F497D',
+      )
+    })
+
+    it('syncPageBorders draws the strip inside the box and keeps back borders out of the editor root', () => {
+      const wrap = document.createElement('div')
+      wrap.className = 'page-wrap'
+      const paper = document.createElement('div')
+      paper.className = 'doc-page'
+      wrap.appendChild(paper)
+      const rect = { top: 0, left: 0, width: 816, height: 1056, right: 816, bottom: 1056 }
+      wrap.getBoundingClientRect = () => ({ ...rect, x: 0, y: 0, toJSON: () => rect })
+      paper.getBoundingClientRect = wrap.getBoundingClientRect
+      const style = styleOf({
+        top: artSide('gems'),
+        left: { val: 'single', widthPt: 1, spacePt: 24 },
+      })
+      syncPageBorders(wrap, style, 1)
+      const box = wrap.querySelector('.page-border-overlays > .page-border-overlay') as HTMLElement
+      expect(box.style.borderLeft).toBe('1px solid rgb(0, 0, 0)')
+      expect(box.style.borderTop).toBe('')
+      const strip = box.querySelector('.page-border-art') as HTMLElement
+      expect(strip.style.height).toBe('21px')
+      expect(strip.style.backgroundRepeat).toBe('repeat-x')
+      syncPageBorders(wrap, { ...style, zOrder: 'back' }, 1)
+      const layer = wrap.querySelector('.page-border-overlays') as HTMLElement
+      expect(layer.parentElement).toBe(wrap)
+      expect(paper.querySelector('.page-border-overlays')).toBeNull()
+      expect(layer.classList.contains('page-border-overlays-back')).toBe(true)
+      syncPageBorders(wrap, style, 1)
+      expect(layer.classList.contains('page-border-overlays-back')).toBe(false)
+      expect(wrap.querySelectorAll('.page-border-overlays').length).toBe(1)
+      syncPageBorders(wrap, null, 1)
+      expect(wrap.querySelector('.page-border-overlays')).toBeNull()
+    })
+
+    it('zOrder=back carries through to the style', () => {
+      const style = pageBorderStyleOf({
+        ...margins,
+        pageBorder: true,
+        pageBorderProps: {
+          zOrder: 'back',
+          spacePt: 24,
+          widthPt: 16,
+          sides: { top: artSide('stars') },
+        },
+      })
+      expect(style!.zOrder).toBe('back')
+      expect(styleOf({ top: artSide('stars') }).zOrder).toBeUndefined()
+    })
   })
 
   it('offsetFrom=text measures the inset back from the margin edge', () => {
@@ -558,5 +836,13 @@ describe('pageBorderStyleOf', () => {
     })
     expect(style!.sides.top!.css).toBe('1px solid #FF0000')
     expect(style!.sides.bottom!.css).toBe('1px solid #000000')
+  })
+})
+
+describe('rowFillAttrs', () => {
+  it('measures the stored split extra against the rounded CSS height', () => {
+    expect(rowFillAttrs(310.4, 10.4)).toEqual({ style: 'height:310px', 'data-split-extra': '10.0' })
+    expect(rowFillAttrs(309.6, 9.6)).toEqual({ style: 'height:310px', 'data-split-extra': '10.0' })
+    expect(rowFillAttrs(310.4)).toEqual({ style: 'height:310px' })
   })
 })

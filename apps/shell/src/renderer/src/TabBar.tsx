@@ -45,6 +45,8 @@ function PdfIcon() {
   )
 }
 
+const IS_MAC = navigator.platform.toLowerCase().includes('mac')
+
 function HomeIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -296,6 +298,26 @@ export function TabBar() {
   return (
     <div className="tab-bar">
       <div className="tab-bar-drag-spacer" />
+      {!IS_MAC && (
+        <button
+          className="tab-app-menu-btn"
+          title={t('appMenu')}
+          aria-label={t('appMenu')}
+          onClick={(event) => {
+            const rect = event.currentTarget.getBoundingClientRect()
+            void window.aiOfficeTabs.showAppMenu(Math.round(rect.left), Math.round(rect.bottom))
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M4 7h16M4 12h16M4 17h16"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
+          </svg>
+        </button>
+      )}
       <div className={dragVisual ? 'tab-strip dragging' : 'tab-strip'} ref={stripRef}>
         {tabs.map((tab, index) => {
           // live transforms: the grabbed tab tracks the pointer; tabs between
@@ -318,6 +340,15 @@ export function TabBar() {
               // full title (the close button's own tooltip still wins there)
               title={tab.title}
               style={dragStyle}
+              onContextMenu={(event) => {
+                event.preventDefault()
+                if (tab.id === 'home') return
+                void window.aiOfficeTabs.showTabMenu(
+                  tab.id,
+                  Math.round(event.clientX),
+                  Math.round(event.clientY),
+                )
+              }}
               onPointerDown={(event) => {
                 if (event.button !== 0) return
                 if ((event.target as HTMLElement).closest('.tab-close')) return
@@ -507,6 +538,7 @@ export function TabBar() {
           />
         </svg>
       </button>
+      <div className="tab-bar-caption-spacer" />
     </div>
   )
 }

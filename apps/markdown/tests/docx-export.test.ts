@@ -129,6 +129,18 @@ describe('docx export', () => {
     expect(mapping.blocks[0]).toEqual({ kind: 'image', image: png })
   })
 
+  it('wavedrom blocks export through the renderer tagged with their language', async () => {
+    const editor = createEditor('```wavedrom\n{ signal: [{ name: "clk", wave: "p.." }] }\n```')
+    const png = { base64: 'iVBORw0KGgo=', mime: 'image/png' as const, widthPx: 200, heightPx: 100 }
+    const seen: string[] = []
+    const mapping = await mapDocToSaveBlocks(editor.getJSON(), noImages, async (_src, language) => {
+      seen.push(language)
+      return png
+    })
+    expect(seen).toEqual(['wavedrom'])
+    expect(mapping.blocks[0]).toEqual({ kind: 'image', image: png })
+  })
+
   it('mermaid blocks fall back to their source when rendering fails or is absent', async () => {
     const md = '```mermaid\nflowchart LR\n    A --> B\n```'
     const failing = await mapDocToSaveBlocks(createEditor(md).getJSON(), noImages, () =>
@@ -157,6 +169,37 @@ describe('docx export', () => {
     const parsed = await exportAndParse('![architecture diagram](assets/missing.png)')
     const texts = parsed.blocks.map((b) => (b.runs ?? []).map((r) => r.text).join(''))
     expect(texts.some((t) => t.includes('architecture diagram'))).toBe(true)
+  })
+
+  it('an image between text splits the block: text, picture, text', async () => {
+    const png = { base64: 'iVBORw0KGgo=', mime: 'image/png' as const, widthPx: 20, heightPx: 10 }
+    const editor = createEditor('# Title ![badge](b.svg) tail\n\nBefore ![pic](p.png) after.')
+    const mapping = await mapDocToSaveBlocks(editor.getJSON(), () => Promise.resolve(png))
+    const shape = mapping.blocks.map((b) =>
+      b.kind === 'generated'
+        ? `${b.block.type}:${b.block.runs.map((r) => r.text).join('')}`
+        : b.kind,
+    )
+    expect(shape).toEqual([
+      'heading:Title ',
+      'image',
+      'heading: tail',
+      'paragraph:Before ',
+      'image',
+      'paragraph: after.',
+    ])
+  })
+
+  it('empty paragraphs still export as blank paragraphs', async () => {
+    const editor = createEditor('a\n\n\n\nb')
+    const mapping = await mapDocToSaveBlocks(editor.getJSON(), noImages)
+    expect(mapping.blocks.length).toBe(editor.state.doc.childCount)
+  })
+
+  it('images inside list items keep their alt text', async () => {
+    const parsed = await exportAndParse('- item ![icon](i.png) tail')
+    const texts = parsed.blocks.map((b) => (b.runs ?? []).map((r) => r.text).join(''))
+    expect(texts).toContain('item [icon] tail')
   })
 
   it('separate ordered lists restart numbering', async () => {

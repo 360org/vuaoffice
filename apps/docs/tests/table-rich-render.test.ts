@@ -101,7 +101,7 @@ describe('renderTableSpec rich cell content', () => {
         ],
       ],
     }
-    const spans = renderTable(model).querySelectorAll('td span')
+    const spans = renderTable(model).querySelectorAll('td span:not(.doc-ltr-runs)')
     const arabic = spans[0].getAttribute('style')!
     expect(arabic).toMatch(/font-family:\s*['"]Traditional Arabic['"]/)
     expect(arabic).toContain('Calibri')
@@ -181,19 +181,28 @@ describe('renderTableSpec rich cell content', () => {
     expect(para.querySelector('img.doc-inline-img')).not.toBeNull()
   })
 
-  it('cell-level color/bold stay as td-level fallback', () => {
-    const model: TableModel = {
+  it('paints table-style color/bold on the td, never the run aggregates', () => {
+    const aggregated: TableModel = {
+      rows: [[{ ...cell(['t'], [{ runs: [{ text: 't' }] }]), color: '112233', bold: true }]],
+    }
+    const plain = renderTable(aggregated).querySelector('td')!.getAttribute('style') ?? ''
+    expect(plain).not.toMatch(/color:/)
+    expect(plain).not.toMatch(/font-weight/)
+
+    const styled: TableModel = {
       rows: [
         [
           {
             ...cell(['t'], [{ runs: [{ text: 't' }] }]),
             color: '112233',
             bold: true,
+            styleColor: '112233',
+            styleBold: true,
           },
         ],
       ],
     }
-    const td = renderTable(model).querySelector('td')!
+    const td = renderTable(styled).querySelector('td')!
     const tdStyle = td.getAttribute('style')!
     expect(tdStyle).toMatch(/color:\s*(#112233|rgb\(17,\s*34,\s*51\))/i)
     expect(tdStyle).toMatch(/font-weight:\s*600/)
@@ -241,6 +250,40 @@ describe('renderTableSpec paragraph line box', () => {
     expect(style).toContain('--doc-line-factor:var(--doc-line-factor-latin,1.2)')
     // explicit w:line=240 (single): re-evaluated at the paragraph's own strut size
     expect(style).toContain(SINGLE_LH)
+  })
+
+  it('space-only runs never size the strut; a space-only cell paragraph takes the mark', () => {
+    const [mixed, spaceOnly, marked] = paraStyles({
+      rows: [
+        [
+          cell(
+            ['a  '],
+            [
+              {
+                runs: [
+                  { text: 'a', sizeHalfPoints: 14 },
+                  { text: '  ', sizeHalfPoints: 40 },
+                ],
+              },
+              { runs: [{ text: ' ', sizeHalfPoints: 8 }] },
+              { runs: [{ text: ' ', sizeHalfPoints: 8 }], emptyRunSizeHalfPoints: 8 },
+            ],
+          ),
+        ],
+      ],
+    })
+    expect(mixed).toContain('--doc-strut:7pt')
+    expect(spaceOnly).not.toContain('--doc-strut')
+    expect(spaceOnly).not.toContain('font-size')
+    expect(marked).not.toContain('--doc-strut')
+    expect(marked).toContain('font-size:4pt')
+  })
+
+  it('a tab-only paragraph is content, not a space-only spacer', () => {
+    const [tabOnly] = paraStyles({
+      rows: [[cell(['\t'], [{ runs: [{ text: '\t', sizeHalfPoints: 8 }] }])]],
+    })
+    expect(tabOnly).toContain('--doc-strut:4pt')
   })
 
   it('keeps the inherited strut when any run omits its size', () => {

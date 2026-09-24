@@ -1,7 +1,6 @@
 import { existsSync } from 'node:fs'
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { basename, dirname, extname, join, relative, resolve, sep } from 'node:path'
+import { readFile, writeFile } from 'node:fs/promises'
+import { basename, dirname, extname, join, relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import {
   BrowserWindow,
@@ -16,20 +15,28 @@ import {
 import type { WebContents } from 'electron'
 import {
   configuredDefaultSaveDir,
+  saveImageFromUrl,
   contextMenuLabels,
   installContextMenu,
   installNavigationGuard,
+  isHeadlessMode,
   safeExternalUrl,
   showOpenDialogWithMemory,
   showSaveDialogWithMemory,
+  installRendererProtocol,
+  registerRendererScheme,
+  rendererUrl,
 } from '@genoffice/electron-utils'
 import { createI18n, getUiLang } from '@genoffice/i18n'
 import { generateImageTool } from '@genoffice/ai-search'
+import { ImageExportSessions } from './image-export'
+import { printMarkdownPdf } from './print-pdf'
 import { atomicWriteFile } from './atomic-write'
 import {
   copyImageIntoOwnedAssets,
   discardPendingOwnedAssets,
   extractMarkdownImageSources,
+  isInDocDir,
   pendingOwnedAssetsForDocument,
   prepareAssetsForSaveAs,
   reconcileOwnedAssets,
@@ -45,6 +52,7 @@ import type {
   ExportDocxRequest,
   ExportFormat,
   ExportPdfRequest,
+  ImageExportPreparation,
   ExportResult,
   ImageData,
   SaveMarkdownRequest,
@@ -57,6 +65,7 @@ const tDlg = createI18n({
     dlgSaveTitle: '保存 Markdown 文档',
     filterMarkdown: 'Markdown 文档',
     dlgPickImage: '选择图片',
+    dlgSaveImage: '保存图片',
     filterImages: '图片',
     untitledFile: '未命名文档',
     closeUnsavedMsg: '此文档有未保存的更改。',
@@ -69,6 +78,7 @@ const tDlg = createI18n({
     dlgSaveTitle: 'Save Markdown Document',
     filterMarkdown: 'Markdown Documents',
     dlgPickImage: 'Choose an Image',
+    dlgSaveImage: 'Save Image',
     filterImages: 'Images',
     untitledFile: 'Untitled',
     closeUnsavedMsg: 'This document has unsaved changes.',
@@ -81,6 +91,7 @@ const tDlg = createI18n({
     dlgSaveTitle: 'Markdown ドキュメントを保存',
     filterMarkdown: 'Markdown ドキュメント',
     dlgPickImage: '画像を選択',
+    dlgSaveImage: '画像を保存',
     filterImages: '画像',
     untitledFile: '無題',
     closeUnsavedMsg: 'このドキュメントに未保存の変更があります。',
@@ -93,6 +104,7 @@ const tDlg = createI18n({
     dlgSaveTitle: 'Markdown 문서 저장',
     filterMarkdown: 'Markdown 문서',
     dlgPickImage: '이미지 선택',
+    dlgSaveImage: '이미지 저장',
     filterImages: '이미지',
     untitledFile: '제목 없음',
     closeUnsavedMsg: '이 문서에 저장하지 않은 변경 사항이 있습니다.',
@@ -105,6 +117,7 @@ const tDlg = createI18n({
     dlgSaveTitle: 'Enregistrer le document Markdown',
     filterMarkdown: 'Documents Markdown',
     dlgPickImage: 'Choisir une image',
+    dlgSaveImage: "Enregistrer l'image",
     filterImages: 'Images',
     untitledFile: 'Sans titre',
     closeUnsavedMsg: 'Ce document contient des modifications non enregistrées.',
@@ -117,6 +130,7 @@ const tDlg = createI18n({
     dlgSaveTitle: 'Markdown-Dokument speichern',
     filterMarkdown: 'Markdown-Dokumente',
     dlgPickImage: 'Bild auswählen',
+    dlgSaveImage: 'Bild speichern',
     filterImages: 'Bilder',
     untitledFile: 'Unbenannt',
     closeUnsavedMsg: 'Dieses Dokument enthält ungespeicherte Änderungen.',
@@ -129,6 +143,7 @@ const tDlg = createI18n({
     dlgSaveTitle: 'Guardar documento Markdown',
     filterMarkdown: 'Documentos Markdown',
     dlgPickImage: 'Elegir imagen',
+    dlgSaveImage: 'Guardar imagen',
     filterImages: 'Imágenes',
     untitledFile: 'Sin título',
     closeUnsavedMsg: 'Este documento tiene cambios sin guardar.',
@@ -141,6 +156,7 @@ const tDlg = createI18n({
     dlgSaveTitle: 'บันทึกเอกสาร Markdown',
     filterMarkdown: 'เอกสาร Markdown',
     dlgPickImage: 'เลือกรูปภาพ',
+    dlgSaveImage: 'บันทึกรูปภาพ',
     filterImages: 'รูปภาพ',
     untitledFile: 'ไม่มีชื่อ',
     closeUnsavedMsg: 'เอกสารนี้มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก',
@@ -153,6 +169,7 @@ const tDlg = createI18n({
     dlgSaveTitle: 'Simpan dokumen Markdown',
     filterMarkdown: 'Dokumen Markdown',
     dlgPickImage: 'Pilih gambar',
+    dlgSaveImage: 'Simpan Gambar',
     filterImages: 'Gambar',
     untitledFile: 'Tanpa judul',
     closeUnsavedMsg: 'Dokumen ini memiliki perubahan yang belum disimpan.',
@@ -165,6 +182,7 @@ const tDlg = createI18n({
     dlgSaveTitle: 'Сохранить документ Markdown',
     filterMarkdown: 'Документы Markdown',
     dlgPickImage: 'Выберите изображение',
+    dlgSaveImage: 'Сохранить изображение',
     filterImages: 'Изображения',
     untitledFile: 'Без названия',
     closeUnsavedMsg: 'В этом документе есть несохранённые изменения.',
@@ -177,6 +195,7 @@ const tDlg = createI18n({
     dlgSaveTitle: 'حفظ مستند Markdown',
     filterMarkdown: 'مستندات Markdown',
     dlgPickImage: 'اختر صورة',
+    dlgSaveImage: 'حفظ الصورة',
     filterImages: 'صور',
     untitledFile: 'بدون عنوان',
     closeUnsavedMsg: 'يحتوي هذا المستند على تغييرات غير محفوظة.',
@@ -189,6 +208,7 @@ const tDlg = createI18n({
     dlgSaveTitle: 'Salvar documento Markdown',
     filterMarkdown: 'Documentos Markdown',
     dlgPickImage: 'Escolher imagem',
+    dlgSaveImage: 'Salvar imagem',
     filterImages: 'Imagens',
     untitledFile: 'Sem título',
     closeUnsavedMsg: 'Este documento tem alterações não salvas.',
@@ -201,6 +221,7 @@ const tDlg = createI18n({
     dlgSaveTitle: 'Salva documento Markdown',
     filterMarkdown: 'Documenti Markdown',
     dlgPickImage: 'Scegli immagine',
+    dlgSaveImage: 'Salva immagine',
     filterImages: 'Immagini',
     untitledFile: 'Senza titolo',
     closeUnsavedMsg: 'Questo documento contiene modifiche non salvate.',
@@ -213,6 +234,7 @@ const tDlg = createI18n({
     dlgSaveTitle: 'Zapisz dokument Markdown',
     filterMarkdown: 'Dokumenty Markdown',
     dlgPickImage: 'Wybierz obraz',
+    dlgSaveImage: 'Zapisz obraz',
     filterImages: 'Obrazy',
     untitledFile: 'Bez tytułu',
     closeUnsavedMsg: 'Ten dokument ma niezapisane zmiany.',
@@ -225,6 +247,7 @@ const tDlg = createI18n({
     dlgSaveTitle: 'Uložit dokument Markdown',
     filterMarkdown: 'Dokumenty Markdown',
     dlgPickImage: 'Vyberte obrázek',
+    dlgSaveImage: 'Uložit obrázek',
     filterImages: 'Obrázky',
     untitledFile: 'Bez názvu',
     closeUnsavedMsg: 'Tento dokument má neuložené změny.',
@@ -237,6 +260,7 @@ const tDlg = createI18n({
     dlgSaveTitle: 'Markdown-document opslaan',
     filterMarkdown: 'Markdown-documenten',
     dlgPickImage: 'Kies een afbeelding',
+    dlgSaveImage: 'Afbeelding opslaan',
     filterImages: 'Afbeeldingen',
     untitledFile: 'Naamloos',
     closeUnsavedMsg: 'Dit document bevat niet-opgeslagen wijzigingen.',
@@ -249,6 +273,7 @@ const tDlg = createI18n({
     dlgSaveTitle: 'Simpan dokumen Markdown',
     filterMarkdown: 'Dokumen Markdown',
     dlgPickImage: 'Pilih imej',
+    dlgSaveImage: 'Simpan Imej',
     filterImages: 'Imej',
     untitledFile: 'Tanpa tajuk',
     closeUnsavedMsg: 'Dokumen ini mempunyai perubahan yang belum disimpan.',
@@ -261,6 +286,7 @@ const tDlg = createI18n({
     dlgSaveTitle: 'שמירת מסמך Markdown',
     filterMarkdown: 'מסמכי Markdown',
     dlgPickImage: 'בחרו תמונה',
+    dlgSaveImage: 'שמור תמונה',
     filterImages: 'תמונות',
     untitledFile: 'ללא שם',
     closeUnsavedMsg: 'במסמך הזה יש שינויים שלא נשמרו.',
@@ -273,6 +299,7 @@ const tDlg = createI18n({
     dlgSaveTitle: 'Markdown दस्तावेज़ सहेजें',
     filterMarkdown: 'Markdown दस्तावेज़',
     dlgPickImage: 'छवि चुनें',
+    dlgSaveImage: 'छवि सहेजें',
     filterImages: 'छवियाँ',
     untitledFile: 'शीर्षकहीन',
     closeUnsavedMsg: 'इस दस्तावेज़ में सहेजे नहीं गए परिवर्तन हैं।',
@@ -285,6 +312,7 @@ const tDlg = createI18n({
     dlgSaveTitle: '儲存 Markdown 文件',
     filterMarkdown: 'Markdown 文件',
     dlgPickImage: '選擇圖片',
+    dlgSaveImage: '儲存圖片',
     filterImages: '圖片',
     untitledFile: '未命名文件',
     closeUnsavedMsg: '此文件有未儲存的變更。',
@@ -310,6 +338,7 @@ type DlgKey =
   | 'dlgSaveTitle'
   | 'filterMarkdown'
   | 'dlgPickImage'
+  | 'dlgSaveImage'
   | 'filterImages'
   | 'untitledFile'
   | 'closeUnsavedMsg'
@@ -337,6 +366,8 @@ export function configureMarkdownRuntime(paths: RuntimePaths): void {
  * or reveal it in the folder (standalone). Tab-opening failure must not
  * report the export itself as failed — the file is already persisted. */
 function openExportedPdf(path: string): void {
+  // Headless export must stay silent: no tab, no Finder window.
+  if (isHeadlessMode()) return
   try {
     if (runtime.openGeneratedPath?.(path)) return
   } catch (err) {
@@ -357,6 +388,10 @@ const dirtyByWc = new Set<number>()
 const closeSaveWaiters = new Map<number, (ok: boolean) => void>()
 /** Resolvers for menu-triggered saves, resolved when the renderer's save invoke completes */
 const saveWaiters = new Map<number, (ok: boolean) => void>()
+/** Resolvers for MCP reads of the live document text, resolved by the renderer's reply */
+const readTextWaiters = new Map<number, (result: { text: string } | { error: string }) => void>()
+/** one read per tab at a time: concurrent callers share this promise */
+const readTextInFlight = new Map<number, Promise<string>>()
 
 /** Fired after a save lands on a NEW path (untitled first save / Save As) — the shell syncs tab title, recents, projects */
 let fileSavedHook: ((wc: WebContents, path: string) => void) | null = null
@@ -459,6 +494,20 @@ export async function requestMarkdownClose(
   })
 }
 
+/**
+ * Drop assets staged next to the document but never written into it — the MCP
+ * "discard unsaved changes" path, same cleanup the interactive close prompt
+ * runs when the user picks "Don't Save".
+ */
+export async function markdownDiscardPendingAssets(contents: WebContents): Promise<void> {
+  const documentPath = savePathByWc.get(contents.id)
+  if (!documentPath) return
+  const discarded = await discardPendingOwnedAssets(documentPath)
+  if (discarded.errors.length > 0) {
+    console.warn('[markdown] pending asset discard incomplete:', discarded.errors)
+  }
+}
+
 /** Menu Save / Save As: ask the renderer to serialize and save; clean views resolve true immediately on plain save */
 export function requestMarkdownSave(contents: WebContents, mode: SaveMode): Promise<boolean> {
   if (contents.isDestroyed()) return Promise.resolve(false)
@@ -475,6 +524,99 @@ export function requestMarkdownSave(contents: WebContents, mode: SaveMode): Prom
       resolve(ok)
     })
     contents.send(MARKDOWN_CHANNELS.saveRequest, mode)
+  })
+}
+
+/**
+ * Read the live document text for an MCP `open_documents` read. Unlike reading
+ * the file from disk this includes unsaved edits, which is the whole point of
+ * reading an *open* document.
+ *
+ * Concurrent reads of the same tab share one request: the waiter slot below
+ * holds a single resolver, so a second in-flight read would overwrite the first
+ * and strand it until its 30s timeout (the same trap the docs close-state query
+ * guards against).
+ */
+export function markdownReadText(contents: WebContents): Promise<string> {
+  if (contents.isDestroyed()) return Promise.reject(new Error('the document is no longer open'))
+  const wcId = contents.id
+  const inFlight = readTextInFlight.get(wcId)
+  if (inFlight) return inFlight
+  const request = new Promise<string>((resolve, reject) => {
+    // The renderer registers its listener while mounting, which can land after
+    // the tab appears; a request sent before that is dropped silently. Re-send
+    // on an interval until the renderer answers, the way the shell's own
+    // control channel polls for a not-yet-ready editor.
+    let settled = false
+    const settle = (finish: () => void): void => {
+      if (settled) return
+      settled = true
+      clearInterval(retry)
+      clearTimeout(timer)
+      readTextWaiters.delete(wcId)
+      readTextInFlight.delete(wcId)
+      finish()
+    }
+    const retry = setInterval(() => {
+      if (contents.isDestroyed()) {
+        settle(() => reject(new Error('the document is no longer open')))
+        return
+      }
+      contents.send(MARKDOWN_CHANNELS.readTextRequest)
+    }, 250)
+    const timer = setTimeout(
+      () => settle(() => reject(new Error('timed out reading the document'))),
+      30_000,
+    )
+    readTextWaiters.set(wcId, (result) => {
+      settle(() => {
+        if ('text' in result) resolve(result.text)
+        else reject(new Error(result.error))
+      })
+    })
+    contents.send(MARKDOWN_CHANNELS.readTextRequest)
+  })
+  readTextInFlight.set(wcId, request)
+  return request
+}
+
+/**
+ * Save the live document to `filePath` with no dialog — the MCP close path
+ * ("save before closing") and any agent that needs a silent write. Pointing the
+ * view's save target at `filePath` first keeps `resolveSaveTarget` from ever
+ * opening the save dialog, so the renderer's normal save (assets, manifest and
+ * rewrite handling included) runs unattended.
+ */
+export function markdownSaveToPath(contents: WebContents, filePath: string): Promise<void> {
+  if (contents.isDestroyed()) return Promise.reject(new Error('the document is no longer open'))
+  const wcId = contents.id
+  const previousPath = savePathByWc.get(wcId)
+  const previousOpenPath = openPathByWc.get(wcId)
+  savePathByWc.set(wcId, filePath)
+  const allowed = allowedByWc.get(wcId) ?? new Set<string>()
+  allowed.add(filePath)
+  allowedByWc.set(wcId, allowed)
+  return new Promise<void>((resolve, reject) => {
+    const restore = (): void => {
+      if (previousPath === undefined) savePathByWc.delete(wcId)
+      else savePathByWc.set(wcId, previousPath)
+      if (previousOpenPath === undefined) openPathByWc.delete(wcId)
+      else openPathByWc.set(wcId, previousOpenPath)
+    }
+    const timer = setTimeout(() => {
+      saveWaiters.delete(wcId)
+      restore()
+      reject(new Error('timed out saving the document'))
+    }, 120_000)
+    saveWaiters.set(wcId, (ok) => {
+      clearTimeout(timer)
+      if (ok) resolve()
+      else {
+        restore()
+        reject(new Error('could not save the document'))
+      }
+    })
+    contents.send(MARKDOWN_CHANNELS.saveRequest, 'save')
   })
 }
 
@@ -549,7 +691,9 @@ function registerImageProtocol(): void {
     let inDocDir = false
     for (const doc of new Set([...openPathByWc.values(), ...savePathByWc.values()])) {
       const dir = resolve(dirname(doc))
-      if (target === dir || !target.startsWith(dir + sep)) continue
+      // isInDocDir handles filesystem-root docs ("/", "C:\") whose dir
+      // already ends in a separator — dir + sep would 403 every sibling.
+      if (!isInDocDir(target, dir)) continue
       if (await resolveSafeRelativeImagePath(doc, relative(dir, target))) {
         inDocDir = true
         break
@@ -560,6 +704,8 @@ function registerImageProtocol(): void {
   })
 }
 
+const imageExports = new ImageExportSessions()
+
 let ipcRegistered = false
 
 function registerMarkdownIpc(): void {
@@ -569,6 +715,25 @@ function registerMarkdownIpc(): void {
   registerImageProtocol()
 
   ipcMain.handle(MARKDOWN_CHANNELS.consumePending, (e) => openPathByWc.get(e.sender.id) ?? null)
+
+  // ---- headless export mode (--headless-export) ----
+
+  ipcMain.handle(MARKDOWN_CHANNELS.consumeHeadlessExport, (e): string | null => {
+    const target = headlessExportTargets.get(e.sender.id) ?? null
+    headlessExportTargets.delete(e.sender.id)
+    return target
+  })
+
+  ipcMain.on(MARKDOWN_CHANNELS.headlessExportDone, (e, result: unknown) => {
+    const settle = headlessExportWaiters.get(e.sender.id)
+    if (!settle) return
+    headlessExportWaiters.delete(e.sender.id)
+    const state = result as { ok?: unknown; error?: unknown } | null
+    settle({
+      ok: state?.ok === true,
+      ...(typeof state?.error === 'string' ? { error: state.error } : {}),
+    })
+  })
 
   ipcMain.handle(MARKDOWN_CHANNELS.readFile, async (e, path: unknown) => {
     if (typeof path !== 'string' || !allowedByWc.get(e.sender.id)?.has(path)) {
@@ -661,7 +826,9 @@ function registerMarkdownIpc(): void {
         return done({
           ok: true,
           path: target,
-          ...(prepared?.rewrites.length ? { imageRewrites: prepared.rewrites } : {}),
+          ...(prepared?.rewrites.length
+            ? { imageRewrites: prepared.rewrites, writtenText: textToWrite }
+            : {}),
         })
       } catch (err) {
         return done({ ok: false, error: err instanceof Error ? err.message : String(err) })
@@ -714,6 +881,15 @@ function registerMarkdownIpc(): void {
     '.jpeg': 'image/jpeg',
     '.gif': 'image/gif',
   }
+
+  ipcMain.handle(MARKDOWN_CHANNELS.saveImageAs, async (e, src: unknown) => {
+    if (typeof src !== 'string') return { ok: false }
+    const win = BrowserWindow.fromWebContents(e.sender)
+    return saveImageFromUrl(win, src, {
+      title: tm('dlgSaveImage'),
+      fallbackDir: configuredDefaultSaveDir(app),
+    })
+  })
 
   ipcMain.handle(
     MARKDOWN_CHANNELS.readImage,
@@ -790,39 +966,83 @@ function registerMarkdownIpc(): void {
           .trim() || tm('untitledFile')
       const win =
         BrowserWindow.fromWebContents(e.sender) ?? BrowserWindow.getFocusedWindow() ?? undefined
-      const picked = await showSaveDialogWithMemory(
-        dialog,
-        win,
-        {
-          defaultPath: `${safeName}.pdf`,
-          filters: [{ name: 'PDF', extensions: ['pdf'] }],
-        },
-        configuredDefaultSaveDir(app),
-      )
+      // Headless export has no dialog to authorize a path; the CLI already chose one.
+      const picked =
+        isHeadlessMode() && typeof request.outPath === 'string' && request.outPath
+          ? { canceled: false, filePath: request.outPath }
+          : await showSaveDialogWithMemory(
+              dialog,
+              win,
+              {
+                defaultPath: `${safeName}.pdf`,
+                filters: [{ name: 'PDF', extensions: ['pdf'] }],
+              },
+              configuredDefaultSaveDir(app),
+            )
       if (picked.canceled || !picked.filePath) return { ok: true, canceled: true }
-      // sheets-style: render the print HTML in a hidden scripting-disabled window
-      const workDir = await mkdtemp(join(tmpdir(), 'genoffice-md-pdf-'))
-      const printWin = new BrowserWindow({
-        show: false,
-        webPreferences: { sandbox: true, javascript: false },
-      })
       try {
-        const htmlPath = join(workDir, 'print.html')
-        await writeFile(htmlPath, request.html, 'utf8')
-        await printWin.loadFile(htmlPath)
-        const pdf = await printWin.webContents.printToPDF({
-          pageSize: 'A4',
-          printBackground: true,
-          margins: { top: 0.6, bottom: 0.6, left: 0.6, right: 0.6 },
-        })
+        const pdf = await printMarkdownPdf(request.html)
         await writeFile(picked.filePath, pdf)
         openExportedPdf(picked.filePath)
         return { ok: true, path: picked.filePath }
       } catch (err) {
         return { ok: false, error: err instanceof Error ? err.message : String(err) }
-      } finally {
-        printWin.destroy()
-        await rm(workDir, { recursive: true, force: true })
+      }
+    },
+  )
+
+  ipcMain.handle(
+    MARKDOWN_CHANNELS.prepareImageExport,
+    async (e, request: ExportPdfRequest): Promise<ImageExportPreparation> => {
+      if (typeof request?.html !== 'string' || !request.html)
+        return { ok: false, error: 'Empty document' }
+      let id: string | undefined
+      try {
+        const win = BrowserWindow.fromWebContents(e.sender) ?? undefined
+        const picked = await showOpenDialogWithMemory(
+          dialog,
+          win,
+          {
+            properties: ['openDirectory', 'createDirectory'],
+          },
+          configuredDefaultSaveDir(app),
+        )
+        if (picked.canceled || !picked.filePaths[0]) return { ok: true, canceled: true }
+        id = await imageExports.start(
+          e.sender.id,
+          picked.filePaths[0],
+          String(request.suggestedName || tm('untitledFile')),
+        )
+        const pdf = await printMarkdownPdf(request.html)
+        if (e.sender.isDestroyed()) throw new Error('Document closed during export')
+        return { ok: true, id, pdfBase64: pdf.toString('base64') }
+      } catch (err) {
+        if (id) await imageExports.finish(e.sender.id, id, false).catch(() => {})
+        return { ok: false, error: err instanceof Error ? err.message : String(err) }
+      }
+    },
+  )
+  ipcMain.handle(
+    MARKDOWN_CHANNELS.writeExportImage,
+    async (e, id: string, page: number, base64: string) => {
+      try {
+        await imageExports.write(e.sender.id, id, page, base64)
+        return { ok: true }
+      } catch (err) {
+        return { ok: false, error: err instanceof Error ? err.message : String(err) }
+      }
+    },
+  )
+  ipcMain.handle(
+    MARKDOWN_CHANNELS.finishImageExport,
+    async (e, id: string, success: boolean): Promise<ExportResult> => {
+      try {
+        const dir = await imageExports.finish(e.sender.id, id, success === true)
+        if (!dir) return { ok: true, canceled: true }
+        shell.showItemInFolder(join(dir, 'page-01.png'))
+        return { ok: true, path: dir }
+      } catch (err) {
+        return { ok: false, error: err instanceof Error ? err.message : String(err) }
       }
     },
   )
@@ -836,6 +1056,17 @@ function registerMarkdownIpc(): void {
     const waiter = closeSaveWaiters.get(e.sender.id)
     closeSaveWaiters.delete(e.sender.id)
     waiter?.(ok === true)
+  })
+
+  ipcMain.on(MARKDOWN_CHANNELS.readTextResult, (e, result: unknown) => {
+    const waiter = readTextWaiters.get(e.sender.id)
+    readTextWaiters.delete(e.sender.id)
+    if (!waiter) return
+    if (result && typeof result === 'object' && 'text' in result) {
+      waiter({ text: String((result as { text: unknown }).text) })
+    } else {
+      waiter({ error: 'the document could not be read' })
+    }
   })
 
   // safety net for menu saves the renderer declined without invoking save()
@@ -864,6 +1095,9 @@ function grantAndTrack(wc: WebContents, openPath?: string | null): void {
     return { action: 'deny' }
   })
   wc.once('destroyed', () => {
+    void imageExports
+      .dispose(wcId)
+      .catch((err) => console.warn('[markdown] image export cleanup:', err))
     openPathByWc.delete(wcId)
     allowedByWc.delete(wcId)
     savePathByWc.delete(wcId)
@@ -873,6 +1107,64 @@ function grantAndTrack(wc: WebContents, openPath?: string | null): void {
     saveWaiters.get(wcId)?.(false)
     saveWaiters.delete(wcId)
   })
+}
+
+/** hidden export windows: webContents id -> the PDF path the renderer must write */
+const headlessExportTargets = new Map<number, string>()
+/** settled by the renderer's headless-export-done message (or by it dying) */
+const headlessExportWaiters = new Map<number, (result: HeadlessMarkdownReport) => void>()
+
+interface HeadlessMarkdownReport {
+  ok: boolean
+  error?: string
+}
+
+/**
+ * Render `input` to `outPath` with no visible window: a hidden markdown
+ * renderer opens the file through the normal pending-open queue and runs the
+ * File menu's own PDF export, which already prints in a second hidden window.
+ */
+export async function exportMarkdownPdfHeadless(
+  input: string,
+  outPath: string,
+  timeoutMs = 180_000,
+): Promise<void> {
+  registerMarkdownIpc()
+  const win = new BrowserWindow({
+    show: false,
+    width: 1200,
+    height: 850,
+    webPreferences: {
+      preload: runtime.preloadPath,
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+      backgroundThrottling: false,
+    },
+  })
+  const wcId = win.webContents.id
+  grantAndTrack(win.webContents, input)
+  headlessExportTargets.set(wcId, outPath)
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    const report = await new Promise<HeadlessMarkdownReport>((resolve) => {
+      headlessExportWaiters.set(wcId, resolve)
+      win.webContents.on('render-process-gone', (_event, details) =>
+        resolve({ ok: false, error: `markdown renderer stopped (${details.reason})` }),
+      )
+      timer = setTimeout(
+        () => resolve({ ok: false, error: `markdown export timed out after ${timeoutMs}ms` }),
+        timeoutMs,
+      )
+      void win.webContents.loadURL(rendererUrl(runtime.rendererUrl, 'markdown'))
+    })
+    if (!report.ok) throw new Error(report.error ?? 'markdown export failed')
+  } finally {
+    if (timer) clearTimeout(timer)
+    headlessExportWaiters.delete(wcId)
+    headlessExportTargets.delete(wcId)
+    if (!win.isDestroyed()) win.destroy()
+  }
 }
 
 export function createMarkdownView(openPath?: string | null): WebContentsView {
@@ -886,13 +1178,13 @@ export function createMarkdownView(openPath?: string | null): WebContentsView {
     },
   })
   grantAndTrack(view.webContents, openPath)
-  if (runtime.rendererUrl) void view.webContents.loadURL(runtime.rendererUrl)
-  else if (runtime.rendererFile) void view.webContents.loadFile(runtime.rendererFile)
+  void view.webContents.loadURL(rendererUrl(runtime.rendererUrl, 'markdown'))
   return view
 }
 
 /** Standalone window mode: `npm run dev -w @genoffice/markdown`, md path passed via argv */
 export function startMarkdownStandalone(): void {
+  registerRendererScheme()
   installNavigationGuard(app)
   installContextMenu(app, () => contextMenuLabels(getUiLang()))
   configureMarkdownRuntime({
@@ -901,6 +1193,7 @@ export function startMarkdownStandalone(): void {
     rendererFile: join(__dirname, '../renderer/index.html'),
   })
   void app.whenReady().then(() => {
+    installRendererProtocol({ markdown: join(__dirname, '../renderer') })
     registerMarkdownIpc()
     const win = new BrowserWindow({
       width: 1200,
@@ -914,8 +1207,7 @@ export function startMarkdownStandalone(): void {
     })
     const argPath = process.argv.slice(1).find((a) => /\.(md|markdown)$/i.test(a) && existsSync(a))
     grantAndTrack(win.webContents, argPath)
-    if (runtime.rendererUrl) void win.loadURL(runtime.rendererUrl)
-    else if (runtime.rendererFile) void win.loadFile(runtime.rendererFile)
+    void win.loadURL(rendererUrl(runtime.rendererUrl, 'markdown'))
   })
   app.on('window-all-closed', () => app.quit())
 }

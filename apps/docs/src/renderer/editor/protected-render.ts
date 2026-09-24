@@ -26,13 +26,23 @@ import {
   textHasComplexScript,
   textHasHangul,
   WORD_AUTO_SPACING_PT,
+  SPACE_ONLY_RE,
 } from '../line-metrics'
 import { custGeomBackgroundCss, shapeBackgroundCss, shapeTextInsetsPx } from './shape-svg'
 import { pictureTransformFns, quarterTurnInsetPx, quarterTurnMarginCss } from './image-rotation'
-import { DK_SIDE, dkBackground, dkBorder, dkColor } from './dark-page'
+import { DK_SIDE, dkBackground, dkBorder, dkColor, type DkBorderSide } from './dark-page'
+import { hfCellGeometry, hfCellParaStyle, hfRowStyle } from './hf-dom'
 import { INLINE_RULE_CLASS, inlineRuleDecls } from './inline-rule'
 import { fillInk } from './shading-ink'
 import { textColorDecls } from './text-color'
+import { textOutlineDecl } from './text-outline'
+import {
+  doubleStrikeDecl,
+  glowDecl,
+  paperColorEffect,
+  positionDecl,
+  textEffectDecls,
+} from './text-effects'
 import { t } from '../i18n/locale'
 import {
   lumHex,
@@ -43,6 +53,7 @@ import {
   type TableModel,
   type TableParagraph,
   type TextboxDisplay,
+  type TextboxParaDisplay,
 } from '@genoffice/docx-engine'
 
 /**
@@ -76,6 +87,16 @@ import { cellClipTwips, inferredBidi } from './convert'
 const jumpHint = () =>
   navigator.platform.toLowerCase().includes('mac') ? t('editorJumpHintMac') : t('editorJumpHintWin')
 
+/** w:leader glyphs Word repeats at their natural advance (heavy = bold underscores) */
+const TOC_LEADER_GLYPH: Record<NonNullable<FieldDisplay['leader']>, string> = {
+  none: '',
+  dot: '.',
+  hyphen: '-',
+  underscore: '_',
+  heavy: '_',
+  middleDot: '\u00b7',
+}
+
 /** Rendering of a field result; safe visible text becomes editable on double-click. */
 export function renderFieldSpec(field: FieldDisplay): DomSpec | null {
   if (field.kind === 'tocLine') {
@@ -85,6 +106,8 @@ export function renderFieldSpec(field: FieldDisplay): DomSpec | null {
       title: jumpHint(),
     }
     if (field.anchor) attrs['data-toc-anchor'] = field.anchor
+    const titleAttrs: Record<string, string> = { class: 'doc-toc-title', contenteditable: 'false' }
+    if (field.runStyleId) titleAttrs['data-style'] = field.runStyleId
     // direct pPr/run metrics of the entry paragraph beat the inherited body size
     const tocStyles: string[] = []
     if (field.szHalfPoints) tocStyles.push(`font-size:${field.szHalfPoints / 2}pt`)
@@ -115,10 +138,17 @@ export function renderFieldSpec(field: FieldDisplay): DomSpec | null {
       'div',
       attrs,
       ...num,
-      ['span', { class: 'doc-toc-title', contenteditable: 'false' }, field.left || '\u00a0'],
-      // real dot glyphs (clipped to the free width), not a border decoration:
+      ['span', titleAttrs, field.left || '\u00a0'],
+      // real leader glyphs (clipped to the free width), not a border decoration:
       // Word/LO leader dots are text, and exported-PDF text comparison sees them
-      ['span', { class: 'doc-toc-dots', contenteditable: 'false' }, '.'.repeat(220)],
+      [
+        'span',
+        {
+          class: `doc-toc-dots${field.leader === 'heavy' ? ' doc-toc-leader-heavy' : ''}`,
+          contenteditable: 'false',
+        },
+        TOC_LEADER_GLYPH[field.leader ?? 'dot'].repeat(220),
+      ],
       ['span', { class: 'doc-toc-page', contenteditable: 'false' }, field.right ?? ''],
     ]
   }
@@ -156,7 +186,22 @@ export function renderFieldSpec(field: FieldDisplay): DomSpec | null {
     }
     // formatted result runs (italic citations, a drop-cap letter before body
     // text); the wrapper keeps the dominant size for the line strut
-    if (field.runs) return ['div', attrs, ...field.runs.flatMap((r) => runSpanSpecs(r))]
+    // EQ layouts: the MathML host is empty in the spec; buildProtectedDom fills it
+    if (field.runs)
+      return [
+        'div',
+        attrs,
+        ...field.runs.flatMap((r) => {
+          if (!r.math) return runSpanSpecs(r)
+          const [, style] = textSpanSpec({ ...r, link: undefined }) as [string, object]
+          const attrs = {
+            ...style,
+            class: 'doc-inline-math doc-field-math',
+            'data-omml': r.math.omml,
+          }
+          return [['span', attrs, r.text] as DomSpec]
+        }),
+      ]
     return ['div', attrs, field.left]
   }
   return null
@@ -218,16 +263,38 @@ function pointColor(chart: ChartDisplay, s: number, i: number): string {
  * editable on double-click, everything else stays protected.
  */
 export function renderChartSpec(chart: ChartDisplay): DomSpec {
-  const children: DomSpec[] = []
+  const frame: DomSpec[] = []
   if (chart.title !== undefined) {
-    children.push([
+    const titleStyle: Record<string, string> =
+      chart.titleFontPt !== undefined
+        ? {
+            style:
+              `font-size:${chart.titleFontPt}pt;height:${chartTitleRowPx(chart)}px;` +
+              `line-height:${Math.round(chart.titleFontPt * PT_TO_PX * 1.2)}px`,
+          }
+        : {}
+    frame.push([
       'div',
-      { class: 'doc-chart-title', contenteditable: 'false' },
+      { class: 'doc-chart-title', contenteditable: 'false', ...titleStyle },
       chart.title || '\u00a0',
     ])
   }
   // SVG preview drawn imperatively after mount (renderSpec has no SVG namespace)
-  children.push(['div', { class: 'doc-chart-canvas' }])
+  frame.push(['div', { class: 'doc-chart-canvas' }])
+  // the chart-area border encloses title + plot; an inset shadow keeps the
+  // wp:extent box size, which a CSS border would grow
+  const children: DomSpec[] = [
+    [
+      'div',
+      {
+        class: 'doc-chart-frame',
+        style:
+          `width:${chartPlotWidth(chart)}px` +
+          (chart.frameLine ? `;box-shadow:inset 0 0 0 1px #${chart.frameLine}` : ''),
+      },
+      ...frame,
+    ],
+  ]
 
   const colCount = Math.max(chart.categories.length, ...chart.series.map((s) => s.values.length))
   const headCells: DomSpec[] = [['th', { class: 'doc-chart-corner' }, '\u00a0']]
@@ -292,6 +359,72 @@ interface ChartGeom {
   /** side-legend gutters; pies center in the remaining box (axes use left/right) */
   sideLeft?: number
   sideRight?: number
+  /** a data table under the plot carries the category texts */
+  noCatLabels?: boolean
+  /** axis tick-label size in px (explicit c:txPr sz, else 10) */
+  labelPx?: number
+}
+
+export function chartPlotWidth(chart: ChartDisplay): number {
+  return Math.min(chart.widthPx ?? 560, CHART_MAX_WIDTH_PX)
+}
+
+/** c:marker/c:size default (5pt) in px */
+const MARKER_PX = (5 * 96) / 72
+
+/** Office's automatic marker symbol sequence by series index */
+const MARKER_SHAPES = ['diamond', 'square', 'triangle', 'x', 'star', 'circle', 'plus', 'dash']
+
+function drawMarker(svg: Element, x: number, y: number, s: number, color: string): void {
+  const h = MARKER_PX / 2
+  const shape = MARKER_SHAPES[s % MARKER_SHAPES.length]
+  const line = (x1: number, y1: number, x2: number, y2: number) =>
+    svgEl(svg, 'line', {
+      x1: String(x1),
+      y1: String(y1),
+      x2: String(x2),
+      y2: String(y2),
+      stroke: color,
+      'stroke-width': '1.5',
+    })
+  if (shape === 'square') {
+    svgEl(svg, 'rect', {
+      x: String(x - h),
+      y: String(y - h),
+      width: String(MARKER_PX),
+      height: String(MARKER_PX),
+      fill: color,
+    })
+  } else if (shape === 'diamond') {
+    svgEl(svg, 'polygon', {
+      points: `${x},${y - h} ${x + h},${y} ${x},${y + h} ${x - h},${y}`,
+      fill: color,
+    })
+  } else if (shape === 'triangle') {
+    svgEl(svg, 'polygon', {
+      points: `${x},${y - h} ${x + h},${y + h} ${x - h},${y + h}`,
+      fill: color,
+    })
+  } else if (shape === 'circle') {
+    svgEl(svg, 'circle', { cx: String(x), cy: String(y), r: String(h), fill: color })
+  } else if (shape === 'dash') {
+    svgEl(svg, 'rect', {
+      x: String(x - h),
+      y: String(y - 1.5),
+      width: String(MARKER_PX),
+      height: '3',
+      fill: color,
+    })
+  } else {
+    if (shape !== 'plus') {
+      line(x - h, y - h, x + h, y + h)
+      line(x - h, y + h, x + h, y - h)
+    }
+    if (shape !== 'x') {
+      line(x - h, y, x + h, y)
+      line(x, y - h, x, y + h)
+    }
+  }
 }
 
 /** widest a chart draws at; the resize handle clamps to this too so mouseup never snaps back */
@@ -300,6 +433,61 @@ export const CHART_MAX_WIDTH_PX = 660
 /** height of the title row above the plot SVG; heightPx = title row + plot,
  * so the resize write-back must add it before storing the measured SVG height */
 export const CHART_TITLE_ROW_PX = 22
+const PT_TO_PX = 96 / 72
+
+/** estimated text advance at a font size: CJK glyphs ~1em, Latin ~0.7em (0.55em at title sizes) */
+function chartTextPx(text: string, fontPx: number, latinEm = 0.7): number {
+  return [...text].reduce((w, ch) => w + fontPx * (isCjk(ch.codePointAt(0) ?? 0) ? 1 : latinEm), 0)
+}
+
+/** greedy word wrap (CJK breaks anywhere) for category labels that overflow their slot */
+function wrapChartText(text: string, maxPx: number, fontPx: number): string[] {
+  const lines: string[] = []
+  let cur = ''
+  for (const ch of text) {
+    if (cur && chartTextPx(cur + ch, fontPx) > maxPx && lines.length < 2) {
+      const space = cur.lastIndexOf(' ')
+      if (space > 0 && !isCjk(ch.codePointAt(0) ?? 0)) {
+        lines.push(cur.slice(0, space))
+        cur = cur.slice(space + 1) + ch
+      } else {
+        lines.push(cur)
+        cur = ch
+      }
+    } else cur += ch
+  }
+  if (cur) lines.push(cur)
+  return lines.length ? lines : [text]
+}
+
+/** title row height; an explicit c:title size wraps inside the chart width like Word */
+export function chartTitleRowPx(chart: ChartDisplay): number {
+  if (chart.title === undefined) return 0
+  if (chart.titleFontPt === undefined) return CHART_TITLE_ROW_PX
+  const fontPx = chart.titleFontPt * PT_TO_PX
+  const lines = Math.max(
+    1,
+    Math.ceil(chartTextPx(chart.title, fontPx, 0.55) / Math.max(1, chartPlotWidth(chart) - 16)),
+  )
+  return Math.round(lines * fontPx * 1.2 + 6)
+}
+
+/** inline size/color of document-authored chart text (beats the class defaults) */
+function chartTextStyle(fontPt?: number, color?: string): Record<string, string> {
+  const decls: string[] = []
+  if (fontPt !== undefined) decls.push(`font-size:${Math.round(fontPt * PT_TO_PX * 10) / 10}px`)
+  if (color) decls.push(`fill:#${color}`)
+  return decls.length ? { style: decls.join(';') } : {}
+}
+
+/** c:numFmt subset for data labels: decimals from the 0s after '.', ',' switches grouping on */
+function formatDataLabel(value: number, fmt?: string): string {
+  if (!fmt || fmt === 'General') return formatAxisValue(value)
+  const decimals = /\.(0+)/.exec(fmt)?.[1].length ?? 0
+  const [int, frac] = Math.abs(value).toFixed(decimals).split('.')
+  const grouped = fmt.includes(',') ? int.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : int
+  return (value < 0 ? '-' : '') + grouped + (frac ? `.${frac}` : '')
+}
 
 /** draw the read-only SVG preview into the node's .doc-chart-canvas */
 export function drawChartSvg(dom: HTMLElement, chart: ChartDisplay | null): void {
@@ -310,43 +498,95 @@ export function drawChartSvg(dom: HTMLElement, chart: ChartDisplay | null): void
   // legend itself, like Word/LibreOffice output. Pie legends list the
   // categories (one colored slice each), not the series.
   const isPie = chart.kind === 'pie'
+  const isRadar = chart.kind === 'radar'
   const legendNames = isPie
     ? chart.categories
     : chart.series.map((s, i) => s.name ?? t('editorChartSeries', { num: i + 1 }))
   const legendColor = (i: number) => (isPie ? pointColor(chart, 0, i) : seriesColor(chart, i))
-  const showLegend = isPie
-    ? legendNames.length > 0
-    : chart.series.length > 1 || chart.series.some((s) => s.name)
+  const showLegend =
+    !chart.noLegend &&
+    (isPie ? legendNames.length > 0 : chart.series.length > 1 || chart.series.some((s) => s.name))
   // the title row renders above the SVG but Word draws the title inside the
   // drawing extent; shrink the plot so title + plot together fill heightPx,
   // or pagination gains ~22px per titled chart and drifts
-  const titleRowPx = chart.title !== undefined ? CHART_TITLE_ROW_PX : 0
-  // horizontal bars put category labels on the y axis; reserve room for the
-  // longest one (10px axis font: CJK glyphs are ~1em wide, Latin ~0.7em)
-  const catLabelPx = (s: string) =>
-    [...s].reduce((w, ch) => w + (isCjk(ch.codePointAt(0) ?? 0) ? 10 : 7), 0)
+  const titleRowPx = chartTitleRowPx(chart)
+  const axisPt = chart.xAxis?.fontPt ?? chart.yAxis?.fontPt
+  const labelPx = axisPt !== undefined ? axisPt * PT_TO_PX : 10
+  const legendPx = chart.legendFontPt !== undefined ? chart.legendFontPt * PT_TO_PX : 10
+  // horizontal bars put category labels on the y axis; reserve room for the longest one
+  const catLabelPx = (s: string) => chartTextPx(s, labelPx)
+  const legendTextPx = (s: string) => chartTextPx(s, legendPx)
   const maxCatPx = Math.max(0, ...chart.categories.map(catLabelPx))
-  const width = Math.min(chart.widthPx ?? 560, CHART_MAX_WIDTH_PX)
+  const width = chartPlotWidth(chart)
   // l/r/tr legends stack vertically in a side gutter, like Word; other
   // positions (and legacy models without legendPos) keep the bottom row
   const sideLegend =
     showLegend && (chart.legendPos === 'l' || chart.legendPos === 'r' || chart.legendPos === 'tr')
+  const topLegend = showLegend && chart.legendPos === 't'
   const legendW = sideLegend
-    ? Math.min(Math.round(width * 0.35), 20 + Math.max(0, ...legendNames.map(catLabelPx)))
+    ? Math.min(Math.round(width * 0.35), 20 + Math.max(0, ...legendNames.map(legendTextPx)))
     : 0
+  // bottom legends wrap into centered rows when the entries overflow the width, like Word
+  const legendEntryW = (i: number) => 14 + legendTextPx(legendNames[i]) + 12
+  const legendEntryH = Math.max(18, Math.round(legendPx * 1.8))
+  const legendRows: number[][] = []
+  if (showLegend && !sideLegend && !topLegend) {
+    let row: number[] = []
+    let rowW = 0
+    legendNames.forEach((_, i) => {
+      if (row.length > 0 && rowW + legendEntryW(i) > width - 8) {
+        legendRows.push(row)
+        row = []
+        rowW = 0
+      }
+      row.push(i)
+      rowW += legendEntryW(i)
+    })
+    if (row.length > 0) legendRows.push(row)
+  }
+  const bottomLegendPx = legendRows.length * legendEntryH
   const legendLeft = sideLegend && chart.legendPos === 'l'
+  const cartesian = !isPie && !isRadar
+  const xTitle = cartesian && !chart.xAxis?.deleted ? chart.xAxis?.title : undefined
+  const yTitle = cartesian && !chart.yAxis?.deleted ? chart.yAxis?.title : undefined
+  const tableRowH = 14
+  const dataTable =
+    chart.dataTable &&
+    cartesian &&
+    chart.kind !== 'scatter' &&
+    chart.kind !== 'bubble' &&
+    !(chart.kind === 'bar' && chart.horizontal)
+      ? chart.dataTable
+      : undefined
+  const tableH = dataTable ? (chart.series.length + 1) * tableRowH : 0
   const geom: ChartGeom = {
     width,
     height: (chart.heightPx ?? 240) - titleRowPx,
     // also capped against the chart's own width: resize allows 120px-wide
     // charts, and a gutter wider than the plot would flip plotW negative
     left:
-      (chart.kind === 'bar' && chart.horizontal ? Math.min(140, width * 0.4, 16 + maxCatPx) : 46) +
-      (legendLeft ? legendW : 0),
+      (chart.kind === 'bar' && chart.horizontal
+        ? Math.min(140, width * 0.4, 16 + maxCatPx)
+        : Math.round(4.6 * labelPx)) +
+      (legendLeft ? legendW : 0) +
+      (yTitle ? 14 : 0),
     right: 12 + (sideLegend && !legendLeft ? legendW : 0),
-    top: 12,
-    bottom: 26 + (showLegend && !sideLegend ? 18 : 0),
+    top: 12 + (topLegend ? 18 : 0),
+    bottom:
+      (dataTable ? 4 + tableH : Math.round(2.6 * labelPx)) + bottomLegendPx + (xTitle ? 14 : 0),
     ...(sideLegend ? (legendLeft ? { sideLeft: legendW } : { sideRight: legendW }) : {}),
+    ...(dataTable ? { noCatLabels: true } : {}),
+    labelPx,
+  }
+  // column charts wrap overflowing category labels inside their slot like Word
+  if (cartesian && !(chart.kind === 'bar' && chart.horizontal) && !geom.noCatLabels) {
+    const cols = Math.max(chart.categories.length, 1)
+    const slotW = (geom.width - geom.left - geom.right) / cols
+    const lines = Math.max(
+      1,
+      ...chart.categories.map((c) => wrapChartText(c, slotW - 4, labelPx).length),
+    )
+    geom.bottom += (lines - 1) * Math.round(labelPx * 1.2)
   }
   const svg = document.createElementNS(SVG_NS, 'svg')
   svg.setAttribute('viewBox', `0 0 ${geom.width} ${geom.height}`)
@@ -354,11 +594,73 @@ export function drawChartSvg(dom: HTMLElement, chart: ChartDisplay | null): void
   svg.style.width = `${geom.width}px`
   svg.style.height = `${geom.height}px`
 
-  if (chart.kind === 'pie') drawPie(svg, chart, geom)
+  if (isPie) drawPie(svg, chart, geom)
+  else if (isRadar) drawRadar(svg, chart, geom)
   else if (chart.kind === 'scatter' || chart.kind === 'bubble') drawScatter(svg, chart, geom)
   else if (chart.kind === 'bar' && chart.horizontal) drawAxesHorizontal(svg, chart, geom)
   else drawAxes(svg, chart, geom)
+  if (dataTable) drawDataTable(svg, chart, geom, dataTable, tableRowH)
 
+  const plotMidY = geom.top + (geom.height - geom.top - geom.bottom) / 2
+  if (yTitle) {
+    const x = (legendLeft ? legendW : 0) + 10
+    svgEl(
+      svg,
+      'text',
+      {
+        x: String(x),
+        y: String(plotMidY),
+        class: 'doc-chart-axis-title',
+        'text-anchor': 'middle',
+        transform: `rotate(-90 ${x} ${plotMidY})`,
+      },
+      yTitle,
+    )
+  }
+  if (xTitle) {
+    const legendRow = bottomLegendPx
+    svgEl(
+      svg,
+      'text',
+      {
+        x: String(geom.left + (geom.width - geom.left - geom.right) / 2),
+        y: String(geom.height - legendRow - 4),
+        class: 'doc-chart-axis-title',
+        'text-anchor': 'middle',
+      },
+      xTitle,
+    )
+  }
+
+  // line-like series get a line key (with the marker); fills get a swatch
+  const lineKey =
+    chart.kind === 'line' ||
+    (isRadar && chart.radarStyle !== 'filled') ||
+    (chart.kind === 'scatter' && chart.series.some((s) => s.line))
+  const drawKey = (x: number, y: number, i: number) => {
+    if (lineKey) {
+      svgEl(svg, 'line', {
+        x1: String(x - 3),
+        y1: String(y + 4),
+        x2: String(x + 11),
+        y2: String(y + 4),
+        stroke: legendColor(i),
+        'stroke-width': '2',
+      })
+      if (chart.markers) drawMarker(svg, x + 4, y + 4, i, legendColor(i))
+    } else {
+      svgEl(svg, 'rect', {
+        x: String(x),
+        y: String(y),
+        width: '8',
+        height: '8',
+        fill: legendColor(i),
+      })
+    }
+  }
+  // stacked charts list the top series first in a side legend, like Word
+  const order = legendNames.map((_, i) => i)
+  if (sideLegend && chart.grouping && !(chart.kind === 'bar' && chart.horizontal)) order.reverse()
   if (sideLegend) {
     const entryH = 16
     const x0 = legendLeft ? 4 : geom.width - legendW + 4
@@ -366,39 +668,49 @@ export function drawChartSvg(dom: HTMLElement, chart: ChartDisplay | null): void
       chart.legendPos === 'tr'
         ? geom.top
         : Math.max(geom.top, (geom.height - legendNames.length * entryH) / 2)
-    legendNames.forEach((name, i) => {
-      const y = y0 + entryH * i
-      svgEl(svg, 'rect', {
-        x: String(x0),
-        y: String(y),
-        width: '8',
-        height: '8',
-        fill: legendColor(i),
-      })
+    order.forEach((i, row) => {
+      const y = y0 + entryH * row
+      drawKey(x0, y, i)
       svgEl(
         svg,
         'text',
         { x: String(x0 + 12), y: String(y + 8), class: 'doc-chart-axis-label' },
-        name,
+        legendNames[i],
       )
+    })
+  } else if (showLegend && !topLegend) {
+    legendRows.forEach((row, r) => {
+      const rowW = row.reduce((w, i) => w + legendEntryW(i), 0) - 12
+      let x = (geom.width - rowW) / 2
+      const y = geom.height - bottomLegendPx + r * legendEntryH + 3
+      for (const i of row) {
+        drawKey(x, y, i)
+        svgEl(
+          svg,
+          'text',
+          {
+            x: String(x + 14),
+            y: String(y + 8),
+            class: 'doc-chart-axis-label',
+            ...chartTextStyle(chart.legendFontPt),
+          },
+          legendNames[i],
+        )
+        x += legendEntryW(i)
+      }
     })
   } else if (showLegend) {
     const slot = geom.width / legendNames.length
+    const rowY = 4
     legendNames.forEach((name, i) => {
       const cx = slot * i + slot / 2
-      svgEl(svg, 'rect', {
-        x: String(cx - Math.min(name.length * 3.2, slot / 2 - 14) - 12),
-        y: String(geom.height - 15),
-        width: '8',
-        height: '8',
-        fill: legendColor(i),
-      })
+      drawKey(cx - Math.min(name.length * 3.2, slot / 2 - 14) - 12, rowY, i)
       svgEl(
         svg,
         'text',
         {
           x: String(cx),
-          y: String(geom.height - 7),
+          y: String(rowY + 8),
           class: 'doc-chart-axis-label',
           'text-anchor': 'middle',
         },
@@ -408,6 +720,109 @@ export function drawChartSvg(dom: HTMLElement, chart: ChartDisplay | null): void
   }
 
   canvas.replaceChildren(svg)
+}
+
+/** axis lines: value axis at the plot edge, category axis on the zero line */
+function drawAxisLines(
+  svg: SVGElement,
+  chart: ChartDisplay,
+  geom: ChartGeom,
+  zeroY: number,
+  zeroX: number,
+): void {
+  const xLine = chart.xAxis && !chart.xAxis.deleted ? chart.xAxis.line : undefined
+  const yLine = chart.yAxis && !chart.yAxis.deleted ? chart.yAxis.line : undefined
+  if (xLine) {
+    svgEl(svg, 'line', {
+      x1: String(geom.left),
+      y1: String(zeroY),
+      x2: String(geom.width - geom.right),
+      y2: String(zeroY),
+      stroke: `#${xLine}`,
+      'stroke-width': '1',
+    })
+  }
+  if (yLine) {
+    svgEl(svg, 'line', {
+      x1: String(zeroX),
+      y1: String(geom.top),
+      x2: String(zeroX),
+      y2: String(geom.height - geom.bottom),
+      stroke: `#${yLine}`,
+      'stroke-width': '1',
+    })
+  }
+}
+
+/** c:dTable under the category axis: category header row, one row per series, keys in the row header */
+function drawDataTable(
+  svg: SVGElement,
+  chart: ChartDisplay,
+  geom: ChartGeom,
+  table: NonNullable<ChartDisplay['dataTable']>,
+  rowH: number,
+): void {
+  const cols = Math.max(chart.categories.length, ...chart.series.map((s) => s.values.length), 1)
+  const x0 = 4
+  const x1 = geom.left
+  const xEnd = geom.width - geom.right
+  const slotW = (xEnd - x1) / cols
+  const yTop = geom.height - geom.bottom
+  const yEnd = yTop + rowH * (chart.series.length + 1)
+  const stroke = `#${table.line ?? '000000'}`
+  const line = (xa: number, ya: number, xb: number, yb: number) =>
+    svgEl(svg, 'line', {
+      x1: String(xa),
+      y1: String(ya),
+      x2: String(xb),
+      y2: String(yb),
+      stroke,
+      'stroke-width': '1',
+    })
+  if (table.outline) {
+    // the empty corner cell above the row header has no border, like Word
+    line(x1, yTop, xEnd, yTop)
+    line(x0, yTop + rowH, x0, yEnd)
+    line(x0, yEnd, xEnd, yEnd)
+    line(xEnd, yTop, xEnd, yEnd)
+  }
+  if (table.horz) {
+    for (let r = 1; r <= chart.series.length; r++) line(x0, yTop + rowH * r, xEnd, yTop + rowH * r)
+  }
+  if (table.vert) {
+    for (let c = 0; c < cols; c++) line(x1 + slotW * c, yTop, x1 + slotW * c, yEnd)
+  }
+  const cell = (x: number, y: number, text: string, anchor: string) =>
+    svgEl(
+      svg,
+      'text',
+      {
+        x: String(x),
+        y: String(y + rowH - 4),
+        class: 'doc-chart-axis-label',
+        'text-anchor': anchor,
+      },
+      text,
+    )
+  chart.categories.forEach((cat, c) => {
+    if (c < cols) cell(x1 + slotW * c + slotW / 2, yTop, cat, 'middle')
+  })
+  chart.series.forEach((ser, s) => {
+    const y = yTop + rowH * (s + 1)
+    if (table.keys) {
+      svgEl(svg, 'rect', {
+        x: String(x0 + 3),
+        y: String(y + 3),
+        width: '8',
+        height: '8',
+        fill: seriesColor(chart, s),
+      })
+    }
+    cell(x0 + (table.keys ? 14 : 4), y, ser.name ?? t('editorChartSeries', { num: s + 1 }), 'start')
+    ser.values.forEach((v, c) => {
+      if (v !== null && c < cols) cell(x1 + slotW * c + slotW / 2, y, String(v), 'middle')
+    })
+  })
 }
 
 function svgEl(
@@ -445,7 +860,9 @@ function stackSums(
 /** bar / line / area charts share the same axes and scale */
 function drawAxes(svg: SVGElement, chart: ChartDisplay, geom: ChartGeom): void {
   const cols = Math.max(chart.categories.length, ...chart.series.map((s) => s.values.length), 1)
-  const stacked = (chart.kind === 'bar' || chart.kind === 'area') && chart.grouping !== undefined
+  const stacked =
+    (chart.kind === 'bar' || chart.kind === 'area' || chart.kind === 'line') &&
+    chart.grouping !== undefined
   const pct = stacked && chart.grouping === 'percentStacked'
   const sums = stacked ? stackSums(chart, cols) : null
   // percentStacked: each value becomes its share of the category's absolute total
@@ -469,46 +886,81 @@ function drawAxes(svg: SVGElement, chart: ChartDisplay, geom: ChartGeom): void {
   const yOf = (v: number) => geom.top + plotH - ((v - min) / span) * plotH
   const slotW = plotW / cols
 
-  // horizontal gridlines with value labels
+  // horizontal gridlines with value labels; a parsed value axis without
+  // c:majorGridlines draws none, like Word
+  const grid = chart.yAxis?.gridLine
+  const labelPx = geom.labelPx ?? 10
+  const yStyle = chartTextStyle(chart.yAxis?.fontPt, chart.yAxis?.color)
+  const xStyle = chartTextStyle(chart.xAxis?.fontPt, chart.xAxis?.color)
   const steps = Math.max(1, Math.round(span / step))
   for (let i = 0; i <= steps; i++) {
     const v = min + step * i
     const y = yOf(v)
-    svgEl(svg, 'line', {
-      x1: String(geom.left),
-      y1: String(y),
-      x2: String(geom.width - geom.right),
-      y2: String(y),
-      class: 'doc-chart-grid',
-    })
+    if (!chart.yAxis || grid !== undefined) {
+      svgEl(svg, 'line', {
+        x1: String(geom.left),
+        y1: String(y),
+        x2: String(geom.width - geom.right),
+        y2: String(y),
+        class: 'doc-chart-grid',
+        ...(grid ? { style: `stroke:#${grid}` } : {}),
+      })
+    }
+    if (chart.yAxis?.deleted) continue
     svgEl(
       svg,
       'text',
       {
         x: String(geom.left - 6),
-        y: String(y + 3),
+        y: String(y + labelPx * 0.3),
         class: 'doc-chart-axis-label',
         'text-anchor': 'end',
+        ...yStyle,
       },
       formatAxisValue(v) + (pct ? '%' : ''),
     )
   }
+  drawAxisLines(svg, chart, geom, yOf(0), geom.left)
 
   // category labels
   chart.categories.forEach((cat, c) => {
-    if (c >= cols) return
+    if (c >= cols || geom.noCatLabels || chart.xAxis?.deleted) return
+    wrapChartText(cat, slotW - 4, labelPx).forEach((line, k) => {
+      svgEl(
+        svg,
+        'text',
+        {
+          x: String(geom.left + slotW * c + slotW / 2),
+          y: String(
+            geom.height - geom.bottom + Math.round(labelPx * 1.4) + k * Math.round(labelPx * 1.2),
+          ),
+          class: 'doc-chart-axis-label',
+          'text-anchor': 'middle',
+          ...xStyle,
+        },
+        line,
+      )
+    })
+  })
+
+  // c:showVal on bars: clustered labels sit above the bar, stacked ones in the segment
+  const valueLabels = chart.dataLabels?.val ? chart.dataLabels : undefined
+  const labelStyle = chartTextStyle(valueLabels?.fontPt, valueLabels?.color)
+  const valueLabelPx = valueLabels?.fontPt !== undefined ? valueLabels.fontPt * PT_TO_PX : 10
+  const drawValueLabel = (cx: number, y: number, value: number) => {
     svgEl(
       svg,
       'text',
       {
-        x: String(geom.left + slotW * c + slotW / 2),
-        y: String(geom.height - geom.bottom + 14),
+        x: String(cx),
+        y: String(y),
         class: 'doc-chart-axis-label',
         'text-anchor': 'middle',
+        ...labelStyle,
       },
-      cat,
+      formatDataLabel(value, valueLabels?.numFmt),
     )
-  })
+  }
 
   if (chart.kind === 'bar' && stacked) {
     // one bar per category, series segments cumulated up (down for negatives)
@@ -530,6 +982,13 @@ function drawAxes(svg: SVGElement, chart: ChartDisplay, geom: ChartGeom): void {
           height: String(Math.max(1, Math.abs(y0 - y1))),
           fill: seriesColor(chart, s),
         })
+        if (valueLabels && Math.abs(y0 - y1) >= valueLabelPx) {
+          drawValueLabel(
+            geom.left + slotW * c + slotW / 2,
+            (y0 + y1) / 2 + valueLabelPx * 0.35,
+            value,
+          )
+        }
         if (v >= 0) posBase[c] = to
         else negBase[c] = to
       })
@@ -550,6 +1009,13 @@ function drawAxes(svg: SVGElement, chart: ChartDisplay, geom: ChartGeom): void {
           height: String(Math.max(1, Math.abs(y0 - y1))),
           fill: seriesColor(chart, s),
         })
+        if (valueLabels) {
+          drawValueLabel(
+            x + barW / 2,
+            value >= 0 ? Math.min(y0, y1) - 3 : Math.max(y0, y1) + valueLabelPx,
+            value,
+          )
+        }
       })
     })
   } else if (chart.kind === 'area' && stacked) {
@@ -576,12 +1042,17 @@ function drawAxes(svg: SVGElement, chart: ChartDisplay, geom: ChartGeom): void {
       tops.forEach((v, c) => (bases[c] = v))
     })
   } else {
-    // line / area / other: one polyline per series through slot centers
+    // line / area / other: one polyline per series through slot centers;
+    // stacked lines climb on the running total of the series below
+    const bases = new Array<number>(cols).fill(0)
     chart.series.forEach((ser, s) => {
       const points = ser.values
-        .map((value, c) =>
-          value === null ? null : `${geom.left + slotW * c + slotW / 2},${yOf(value)}`,
-        )
+        .map((value, c) => {
+          if (value === null || c >= cols) return null
+          const v = stacked ? bases[c] + norm(value, c) : value
+          if (stacked) bases[c] = v
+          return `${geom.left + slotW * c + slotW / 2},${yOf(v)}`
+        })
         .filter((p): p is string => p !== null)
       if (points.length === 0) return
       if (chart.kind === 'area' && points.length > 1) {
@@ -603,11 +1074,135 @@ function drawAxes(svg: SVGElement, chart: ChartDisplay, geom: ChartGeom): void {
       if (chart.markers) {
         for (const p of points) {
           const [x, y] = p.split(',')
-          svgEl(svg, 'circle', { cx: x, cy: y, r: '2.5', fill: seriesColor(chart, s) })
+          drawMarker(svg, Number(x), Number(y), s, seriesColor(chart, s))
         }
       }
     })
   }
+}
+
+/** radar: one spoke per category, polygon rings at the value steps, series as closed outlines (filled: opaque) */
+function drawRadar(svg: SVGElement, chart: ChartDisplay, geom: ChartGeom): void {
+  const cols = Math.max(chart.categories.length, ...chart.series.map((s) => s.values.length), 1)
+  const values = chart.series.flatMap((s) => s.values).filter((v): v is number => v !== null)
+  const rawMax = Math.max(0, ...values)
+  const rawMin = Math.min(0, ...values)
+  const step = niceStep((rawMax - rawMin) / 5 || 1)
+  const min = Math.floor(rawMin / step) * step
+  let max = Math.ceil(rawMax / step) * step || step
+  if (rawMax > 0 && max <= rawMax + 1e-9) max += step
+  const span = max - min || 1
+  const availW = geom.width - (geom.sideLeft ?? 0) - (geom.sideRight ?? 0)
+  const plotH = geom.height - geom.top - geom.bottom
+  const cx = (geom.sideLeft ?? 0) + availW / 2
+  const cy = geom.top + plotH / 2
+  // category labels sit outside the outer ring
+  const r = Math.max(10, Math.min(availW, plotH) / 2 - 24)
+  const angleOf = (c: number) => -Math.PI / 2 + (Math.PI * 2 * c) / cols
+  const rOf = (v: number) => (r * (v - min)) / span
+  const pt = (c: number, v: number) => {
+    const rr = rOf(v)
+    return `${cx + rr * Math.cos(angleOf(c))},${cy + rr * Math.sin(angleOf(c))}`
+  }
+
+  const steps = Math.max(1, Math.round(span / step))
+  for (let i = 1; i <= steps; i++) {
+    const v = min + step * i
+    const ring = Array.from({ length: cols }, (_, c) => pt(c, v)).join(' ')
+    svgEl(svg, 'polygon', { points: ring, fill: 'none', class: 'doc-chart-grid' })
+  }
+  for (let c = 0; c < cols; c++) {
+    const [x, y] = pt(c, max).split(',')
+    svgEl(svg, 'line', { x1: String(cx), y1: String(cy), x2: x, y2: y, class: 'doc-chart-grid' })
+  }
+  if (!chart.yAxis?.deleted) {
+    for (let i = 0; i <= steps; i++) {
+      const v = min + step * i
+      svgEl(
+        svg,
+        'text',
+        {
+          x: String(cx - 4),
+          y: String(cy - rOf(v) + 3),
+          class: 'doc-chart-axis-label',
+          'text-anchor': 'end',
+        },
+        formatAxisValue(v),
+      )
+    }
+  }
+  if (!chart.xAxis?.deleted) {
+    chart.categories.forEach((cat, c) => {
+      if (c >= cols) return
+      const a = angleOf(c)
+      const cos = Math.cos(a)
+      const sin = Math.sin(a)
+      svgEl(
+        svg,
+        'text',
+        {
+          x: String(cx + (r + 6) * cos),
+          y: String(cy + (r + 6) * sin + (sin > 0.1 ? 10 : sin < -0.1 ? -2 : 3)),
+          class: 'doc-chart-axis-label',
+          'text-anchor': cos > 0.1 ? 'start' : cos < -0.1 ? 'end' : 'middle',
+        },
+        cat,
+      )
+    })
+  }
+
+  chart.series.forEach((ser, s) => {
+    const vertices = Array.from({ length: cols }, (_, c) => {
+      const v = ser.values[c]
+      return v === null || v === undefined ? null : pt(c, v)
+    })
+    const points = vertices.filter((p): p is string => p !== null)
+    if (points.length === 0) return
+    const color = seriesColor(chart, s)
+    if (chart.radarStyle === 'filled') {
+      // a gap pulls the filled outline to the center instead of skipping the spoke
+      svgEl(svg, 'polygon', {
+        points: vertices.map((p) => p ?? `${cx},${cy}`).join(' '),
+        fill: color,
+        stroke: color,
+        'stroke-width': '1',
+      })
+    } else if (points.length === cols) {
+      svgEl(svg, 'polygon', {
+        points: points.join(' '),
+        fill: 'none',
+        stroke: color,
+        'stroke-width': '2',
+      })
+    } else {
+      // gaps break the outline (dispBlanksAs gap); runs wrap around the last spoke
+      const runs: string[][] = []
+      const start = vertices.findIndex((p) => p === null)
+      let run: string[] = []
+      for (let i = 1; i <= cols; i++) {
+        const p = vertices[(start + i) % cols]
+        if (p === null) {
+          if (run.length > 1) runs.push(run)
+          run = []
+        } else run.push(p)
+      }
+      if (run.length > 1) runs.push(run)
+      for (const r of runs) {
+        svgEl(svg, 'polyline', {
+          points: r.join(' '),
+          fill: 'none',
+          stroke: color,
+          'stroke-width': '2',
+        })
+      }
+    }
+    if (chart.markers) {
+      for (const p of points) {
+        const [x, y] = p.split(',')
+        drawMarker(svg, Number(x), Number(y), s, color)
+      }
+    }
+  })
 }
 
 /** scatter / bubble: numeric x-y plot; bubble radius scales by point size (area-true) */
@@ -661,6 +1256,7 @@ function drawScatter(svg: SVGElement, chart: ChartDisplay, geom: ChartGeom): voi
       y2: String(y),
       class: 'doc-chart-grid',
     })
+    if (chart.yAxis?.deleted) continue
     svgEl(
       svg,
       'text',
@@ -673,6 +1269,7 @@ function drawScatter(svg: SVGElement, chart: ChartDisplay, geom: ChartGeom): voi
       formatAxisValue(v),
     )
   }
+  drawAxisLines(svg, chart, geom, yOf(Math.max(ay.min, 0)), xOf(Math.max(ax.min, 0)))
 
   // x labels: date/text categories sit under their own data points (Word puts
   // the cached texts along the axis); numeric x gets plain scale ticks
@@ -680,7 +1277,9 @@ function drawScatter(svg: SVGElement, chart: ChartDisplay, geom: ChartGeom): voi
     chart.categories.length === 0 ||
     chart.categories.every((c) => c === '' || Number.isFinite(Number(c)))
   const labelY = String(geom.height - geom.bottom + 14)
-  if (catNumeric) {
+  if (chart.xAxis?.deleted) {
+    // no labels
+  } else if (catNumeric) {
     const xSteps = Math.max(1, Math.round(ax.span / ax.step))
     for (let i = 0; i <= xSteps; i++) {
       const v = ax.min + ax.step * i
@@ -727,6 +1326,10 @@ function drawScatter(svg: SVGElement, chart: ChartDisplay, geom: ChartGeom): voi
     if (chart.kind === 'scatter' && !chart.markers && chart.series[s]?.line) return
     for (const p of points) {
       const bubble = chart.kind === 'bubble' && p.size !== null && maxSize > 0
+      if (!bubble && chart.kind === 'scatter') {
+        drawMarker(svg, xOf(p.x), yOf(p.y), s, color)
+        continue
+      }
       const r = bubble ? Math.max(3, rMax * Math.sqrt(Math.abs(p.size!) / maxSize)) : 3
       svgEl(svg, 'circle', {
         cx: String(xOf(p.x)),
@@ -775,6 +1378,7 @@ function drawAxesHorizontal(svg: SVGElement, chart: ChartDisplay, geom: ChartGeo
       y2: String(geom.height - geom.bottom),
       class: 'doc-chart-grid',
     })
+    if (chart.xAxis?.deleted) continue
     svgEl(
       svg,
       'text',
@@ -787,9 +1391,10 @@ function drawAxesHorizontal(svg: SVGElement, chart: ChartDisplay, geom: ChartGeo
       formatAxisValue(v) + (pct ? '%' : ''),
     )
   }
+  drawAxisLines(svg, chart, geom, geom.height - geom.bottom, xOf(0))
 
   chart.categories.forEach((cat, c) => {
-    if (c >= rows) return
+    if (c >= rows || chart.yAxis?.deleted) return
     svgEl(
       svg,
       'text',
@@ -854,15 +1459,24 @@ function drawPie(svg: SVGElement, chart: ChartDisplay, geom: ChartGeom): void {
   const total = values.reduce((a, b) => a + b, 0)
   if (total <= 0) return
   const availW = geom.width - (geom.sideLeft ?? 0) - (geom.sideRight ?? 0)
-  const cx = (geom.sideLeft ?? 0) + availW / 2
-  const cy = geom.height / 2
-  const r = Math.min(availW, geom.height) / 2 - 16
+  // only a top legend row shifts the pie; the default margins keep the old centering
+  const topRow = geom.top - 12
+  const availH = geom.height - topRow
+  const cx0 = (geom.sideLeft ?? 0) + availW / 2
+  const cy0 = topRow + availH / 2
+  const labels = chart.dataLabels
+  const explode = Math.min(Math.max(chart.explosionPct ?? 0, 0), 400) / 100
+  // exploded slices and outside labels stay within the box: shrink the radius
+  const r = Math.max(8, (Math.min(availW, availH) / 2 - (labels ? 28 : 16)) / (1 + explode))
   const ri = (r * Math.min(Math.max(chart.holePct ?? 0, 0), 90)) / 100
   const single = values.filter((v) => v > 0).length === 1
   let angle = -Math.PI / 2
   values.forEach((value, i) => {
     if (value === 0) return
     const sweep = (value / total) * Math.PI * 2
+    const mid = angle + sweep / 2
+    const cx = cx0 + r * explode * Math.cos(mid)
+    const cy = cy0 + r * explode * Math.sin(mid)
     const x1 = cx + r * Math.cos(angle)
     const y1 = cy + r * Math.sin(angle)
     const ix1 = cx + ri * Math.cos(angle)
@@ -886,6 +1500,34 @@ function drawPie(svg: SVGElement, chart: ChartDisplay, geom: ChartGeom): void {
       d = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`
     }
     svgEl(svg, 'path', { d, fill: pointColor(chart, 0, i), stroke: '#fff', 'stroke-width': '1' })
+    if (!labels) return
+    const parts: string[] = []
+    if (labels.cat) parts.push(chart.categories[i] ?? '')
+    if (labels.val) parts.push(String(value))
+    if (labels.pct) parts.push(`${Math.round((value / total) * 100)}%`)
+    const text = parts.join(', ')
+    const labelPx = labels.fontPt !== undefined ? labels.fontPt * PT_TO_PX : 10
+    // bestFit: inside the slice when the arc at the label radius fits the text, else just outside
+    const inside = sweep * r * 0.65 >= text.length * labelPx * 0.6 && !single
+    const lr = inside ? Math.max(ri, r * 0.65) : r + 10
+    svgEl(
+      svg,
+      'text',
+      {
+        x: String(cx + lr * Math.cos(mid)),
+        y: String(cy + lr * Math.sin(mid) + 3),
+        class: inside ? 'doc-chart-axis-label doc-chart-label-in' : 'doc-chart-axis-label',
+        ...chartTextStyle(labels.fontPt, labels.color),
+        'text-anchor': inside
+          ? 'middle'
+          : Math.cos(mid) > 0.1
+            ? 'start'
+            : Math.cos(mid) < -0.1
+              ? 'end'
+              : 'middle',
+      },
+      text,
+    )
   })
 }
 
@@ -991,7 +1633,7 @@ export function textboxIsFilled(box: TextboxDisplay): boolean {
   return Boolean(box.fill || box.fillImageDataUrl)
 }
 
-export function textboxBoxStyle(box: TextboxDisplay): string {
+export function textboxBoxStyle(box: TextboxDisplay, opts?: { inCell?: boolean }): string {
   const boxW = box.widthPx ?? 189
   const boxH = box.heightPx ?? 113
   // Word keeps shape text inside the preset's text rectangle (e.g. the
@@ -1023,9 +1665,25 @@ export function textboxBoxStyle(box: TextboxDisplay): string {
         : 'background-repeat:no-repeat;background-size:100% 100%')
     : ''
   const transforms = [box.rotDeg ? `rotate(${box.rotDeg}deg)` : '']
+  // Word keeps floating drawing objects on the page: a column-relative X that
+  // would hang past a paper edge is pulled back on (Word-authored files carry
+  // far-negative posOffsets; drawn literally the box leaves the page and cuts
+  // across the body text). The floor is the page left edge (a
+  // float may sit in the margin), the cap the page right edge; a box wider
+  // than the page pins at the left edge like Word. Page-frame offsets
+  // (pagePinned / pageRelX) already measure from the page and stay raw, and
+  // the authored offset is never rewritten — the clamp is display-only.
+  // Cell-anchored boxes resolve against the zero-width .doc-cell-boxes strut
+  // (100% = 0px collapses the cap below the floor, pinning every in-cell
+  // float at the page edge) and position from the cell anyway: no clamp.
+  const rawLeftPx = ((box.offsetXEmu ?? 0) / 9525).toFixed(1)
+  const leftCss =
+    box.widthPx && !box.pagePinned && !box.pageRelX && !opts?.inCell
+      ? `clamp(calc(0px - var(--doc-margin-left,0px)), ${rawLeftPx}px, ` +
+        `calc(var(--doc-content-w,100%) - ${box.widthPx}px + var(--doc-margin-right,0px)))`
+      : `${rawLeftPx}px`
   const floatPos = box.floating
-    ? `position:absolute;left:${((box.offsetXEmu ?? 0) / 9525).toFixed(1)}px;` +
-      `top:${((box.offsetYEmu ?? 0) / 9525).toFixed(1)}px`
+    ? `position:absolute;left:${leftCss};top:${((box.offsetYEmu ?? 0) / 9525).toFixed(1)}px`
     : ''
   return [
     geomCss ?? '',
@@ -1131,7 +1789,7 @@ function textSpanSpec(run: Run, autoSpace?: boolean, leadPad = false): DomSpec {
   const kerning = fontKerningCss(run)
   const runStyle = [
     // authored color stays the declaration; the --dk-c twin feeds the dark page (dark-page.ts)
-    run.color ? textColorDecls(run.color).join(';') : '',
+    run.color && !paperColorEffect(run.textEffect) ? textColorDecls(run.color).join(';') : '',
     run.bold ? 'font-weight:700' : run.bold === false ? 'font-weight:normal' : '',
     run.italic ? 'font-style:italic' : run.italic === false ? 'font-style:normal' : '',
     run.underline ? 'text-decoration:underline' : '',
@@ -1145,6 +1803,11 @@ function textSpanSpec(run: Run, autoSpace?: boolean, leadPad = false): DomSpec {
     run.sizeHalfPoints ? `font-size:${run.sizeHalfPoints / 2}pt` : '',
     letterSpacing ? `letter-spacing:${letterSpacing}` : '',
     kerning ? `font-kerning:${kerning}` : '',
+    run.textOutline ? textOutlineDecl(run.textOutline) : '',
+    run.textEffect ? textEffectDecls(run.textEffect).join(';') : '',
+    run.dstrike ? doubleStrikeDecl() : '',
+    run.glow ? glowDecl(run.glow) : '',
+    run.positionHalfPoints ? positionDecl(run.positionHalfPoints) : '',
     run.caps === 'all' ? 'text-transform:uppercase' : '',
     run.caps === 'small' ? 'font-variant-caps:small-caps' : '',
     run.caps === 'none' ? 'text-transform:none;font-variant-caps:normal' : '',
@@ -1156,13 +1819,16 @@ function textSpanSpec(run: Run, autoSpace?: boolean, leadPad = false): DomSpec {
   const content = autoSpace === false ? [run.text] : padSegments(run.text, leadPad)
   // hyperlink runs keep the editable path's look (.doc-link) and real href;
   // App-level click handling prevents in-place navigation (jump on mod+click)
+  const attrs: Record<string, string> = {}
+  if (runStyle) attrs.style = runStyle
+  if (run.styleId) attrs['data-style'] = run.styleId
   if (run.link?.href) {
-    const attrs: Record<string, string> = { class: 'doc-link', href: run.link.href }
+    attrs.class = 'doc-link'
+    attrs.href = run.link.href
     if (run.link.tooltip) attrs.title = run.link.tooltip
-    if (runStyle) attrs.style = runStyle
     return ['a', attrs, ...content]
   }
-  return runStyle ? ['span', { style: runStyle }, ...content] : ['span', {}, ...content]
+  return ['span', attrs, ...content]
 }
 
 /** run spans with pads at run-boundary CJK-Latin seams (empty runs keep their span, no pad) */
@@ -1180,8 +1846,40 @@ function runSpansWithPads(runs: Run[], autoSpace?: boolean): DomSpec[] {
   return out
 }
 
-export function renderTextboxSpec(box: TextboxDisplay): DomSpec {
-  const style = textboxBoxStyle(box)
+/** camelCase style record (hf-dom helpers) as inline CSS text */
+function styleText(style: Record<string, string>): string {
+  return Object.entries(style)
+    .map(([k, v]) => `${k.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}:${v}`)
+    .join(';')
+}
+
+/** table row inside a textbox: the header/footer layout-table row markup
+ *  (flex columns sized by the cells, per-cell borders / shading / margins) */
+function textboxRowSpec(para: TextboxParaDisplay): DomSpec {
+  const cells = (para.cells ?? []).map((cell): DomSpec => {
+    const geom = hfCellGeometry(cell)
+    const decls = [styleText(geom.style)]
+    // document content colors (w:shd / borders) plus their dark-page twins
+    if (cell.fill) decls.push(`background-color:#${cell.fill}`, dkBackground(`#${cell.fill}`))
+    for (const [side, css] of Object.entries(geom.borders)) {
+      decls.push(dkBorder(side as DkBorderSide, css))
+    }
+    const lines = (cell.paras.length > 0 ? cell.paras : [[]]).map((runs, k): DomSpec => {
+      const attrs: Record<string, string> = { class: 'page-hf-cell-para' }
+      const style = styleText(hfCellParaStyle(cell.paraProps?.[k]))
+      if (style) attrs.style = style
+      return runs.length === 0 ? ['div', attrs, ' '] : ['div', attrs, ...runSpansWithPads(runs)]
+    })
+    return ['div', { class: 'page-hf-cell', style: decls.filter(Boolean).join(';') }, ...lines]
+  })
+  const attrs: Record<string, string> = { class: 'doc-textbox-row page-hf-row' }
+  const style = styleText(hfRowStyle(para.row))
+  if (style) attrs.style = style
+  return ['div', attrs, ...cells]
+}
+
+export function renderTextboxSpec(box: TextboxDisplay, opts?: { inCell?: boolean }): DomSpec {
+  const style = textboxBoxStyle(box, opts)
   const boxAttrs: Record<string, string> = {
     class: textboxIsFilled(box) ? 'doc-textbox doc-textbox-filled' : 'doc-textbox',
   }
@@ -1193,20 +1891,32 @@ export function renderTextboxSpec(box: TextboxDisplay): DomSpec {
   }
   // page-absolute X: the column-layout counter-translate keys on this
   if (box.floating && box.pageRelX) boxAttrs['data-page-rel-x'] = '1'
+  // wrapNone/front/behind boxes never open pages: Word clips them at their
+  // anchor's page edge (a letterhead's page-tall art box must not add a page)
+  if (box.floating && !box.bandTopPx && !box.bandBottomPx && !box.wrapSide) {
+    boxAttrs['data-no-spill'] = '1'
+  }
 
   const paras: DomSpec[] = box.paras.map((para) => {
+    if (para.cells) return textboxRowSpec(para)
     const spans: DomSpec[] = runSpansWithPads(para.runs, para.autoSpace)
     const text = para.runs.map((r) => r.text).join('')
     // same line strut as body/cell paragraphs (factor by run fonts + run-size
     // strut + grid snapping); inheriting the page's computed line-height
     // instead inflated every CJK textbox line to the body's pixel value
     const fontStyles: string[] = []
-    if (text) {
+    if (text && !SPACE_ONLY_RE.test(text)) {
       fontStyles.push(`--doc-line-factor:${runsLineFactor(para.runs, text)}`)
       const fam = runsDeclaredFontFamily(para.runs)
       if (fam) fontStyles.push(`font-family:${fam}`)
       const strut = runStrutHalfPoints(para.runs)
       if (strut) fontStyles.push(...strutFontCss(strut))
+    } else {
+      // space-only paragraph: the mark sizes the line (Word probe 2026-09-11),
+      // with the Latin factor like body/cell empties, never the space run
+      fontStyles.push('--doc-line-factor:var(--doc-line-factor-latin,1.2)')
+      if (para.emptyRunSizeHalfPoints)
+        fontStyles.push(`font-size:${para.emptyRunSizeHalfPoints / 2}pt`)
     }
     const lineMult = cssAutoLineMult(para.lineRule, para.lineRawTwips, para.lineSpacing)
     const lh = cssLineHeight(para.lineRule, para.lineRawTwips, para.lineSpacing)
@@ -1260,6 +1970,7 @@ function runStrutHalfPoints(runs: Run[]): { halfPoints: number; uniform: boolean
   let max: number | null = null
   let min: number | null = null
   for (const run of runs) {
+    if (SPACE_ONLY_RE.test(run.text)) continue
     if (run.sizeHalfPoints == null) return null
     max = Math.max(max ?? 0, run.sizeHalfPoints)
     min = Math.min(min ?? Infinity, run.sizeHalfPoints)
@@ -1328,7 +2039,9 @@ function cellParaSpec(
   // explicit per-paragraph direction (same rule as the editor's blockAttrs):
   // a bidiVisual table's dir="rtl" mirrors columns but must not reorder cell text
   styles.push(fmt?.bidi || inferredBidi(fmt, runs ?? undefined) ? 'direction:rtl' : 'direction:ltr')
-  if (text) {
+  // a space-only paragraph is sized by its mark like an empty one (Word probe 2026-09-11)
+  const markSized = !text || SPACE_ONLY_RE.test(text)
+  if (!markSized) {
     // Korean cells break at spaces like Word (same rule as the editor's blockAttrs)
     if (textHasHangul(text) && fmt?.wordWrap !== false) {
       styles.push('word-break:keep-all', 'overflow-wrap:anywhere')
@@ -1354,12 +2067,17 @@ function cellParaSpec(
   if (fmt?.spaceAfterAuto) styles.push(`margin-bottom:${cssGridSpacingPt(WORD_AUTO_SPACING_PT)}`)
   else if (fmt?.spaceAfter) styles.push(`margin-bottom:${cssGridSpacingPt(fmt.spaceAfter / 20)}`)
   // Word sizes an empty line by the paragraph mark / empty run (same as blockAttrs)
-  if (!text && !pictureOnly && fmt?.emptyRunSizeHalfPoints) {
+  if (markSized && !pictureOnly && fmt?.emptyRunSizeHalfPoints) {
     styles.push(`font-size:${fmt.emptyRunSizeHalfPoints / 2}pt`)
   }
   // Western mark faces only (same scoping as blockAttrs): empty cells keep
   // the Latin-factor rule instead of growing to a CJK mark face
-  if (!text && !pictureOnly && fmt?.emptyRunFontFamily && !isCjkFontName(fmt.emptyRunFontFamily)) {
+  if (
+    markSized &&
+    !pictureOnly &&
+    fmt?.emptyRunFontFamily &&
+    !isCjkFontName(fmt.emptyRunFontFamily)
+  ) {
     const fam = fmt.emptyRunFontFamily
     styles.push(`--doc-line-factor:${lineHeightFactor(fam)}`, `font-family:${cssFontFamily(fam)}`)
   }
@@ -1367,12 +2085,49 @@ function cellParaSpec(
   const classes: string[] = []
   // empty paragraphs get the Latin factor (.doc-table .doc-p-empty) and a <br> line box
   if (pictureOnly) classes.push('doc-p-picture')
-  else if (!text) classes.push('doc-p-empty')
+  else if (markSized) classes.push('doc-p-empty')
   // the sp-auto-* cell rules (styles.css) zero the auto margins at the cell boundaries
   if (fmt?.spaceBeforeAuto) classes.push('sp-auto-b')
   if (fmt?.spaceAfterAuto) classes.push('sp-auto-a')
   if (classes.length) attrs.class = classes.join(' ')
-  return content.length > 0 ? ['div', attrs, ...content] : ['div', attrs, ['br', {}]]
+  if (content.length === 0) return ['div', attrs, ['br', {}]]
+  // runs without w:rtl order LTR inside an RTL paragraph (same rule as the editor's paraContentSpec)
+  const ltrRuns =
+    (fmt?.bidi || inferredBidi(fmt, runs ?? undefined)) && !!runs?.length && !runs.some((r) => r.cs)
+  return ltrRuns
+    ? ['div', attrs, ['span', { class: 'doc-ltr-runs' }, ...content]]
+    : ['div', attrs, ...content]
+}
+
+/** anchored shapes/textboxes of a table cell: a zero-width float strut whose
+ * height reserves the lowest box bottom (Word grows the row to hold them);
+ * wrapNone boxes overlay the cell without growing it */
+export function cellBoxesSpec(boxes: TextboxDisplay[]): DomSpec {
+  if (boxes.length === 0) return ['div', { class: 'doc-cell-boxes' }]
+  let bottom = 0
+  for (const b of boxes) {
+    if (b.noWrap) continue
+    bottom = Math.max(bottom, (b.offsetYEmu ?? 0) / 9525 + (b.heightPx ?? b.minHeightPx ?? 0))
+  }
+  return [
+    'div',
+    {
+      class: 'doc-cell-boxes',
+      contenteditable: 'false',
+      style: bottom > 0 ? `height:${bottom.toFixed(1)}px` : '',
+    },
+    ...boxes.map((b): DomSpec => {
+      const spec = renderTextboxSpec(b, { inCell: true })
+      if (b.floating) return spec
+      const left = (b.offsetXEmu ?? 0) / 9525
+      const top = (b.offsetYEmu ?? 0) / 9525
+      return [
+        'div',
+        { style: `position:absolute;left:${left.toFixed(1)}px;top:${top.toFixed(1)}px` },
+        spec,
+      ]
+    }),
+  ]
 }
 
 /** read-only <table> DOM spec from the display model (vMerge -> rowSpan);
@@ -1407,8 +2162,8 @@ export function renderTableSpec(model: TableModel, nested = false): DomSpec {
         // vertical-text cells: writing-mode rides the .cell-vert/.cell-clip wrapper below
         cell.textDirection ? 'position:relative' : '',
         // authored colors stay the declarations; --dk-* twins feed the dark page (dark-page.ts)
-        cell.color ? `color:#${cell.color};${dkColor(cell.color)}` : '',
-        cell.bold ? 'font-weight:600' : '',
+        cell.styleColor ? `color:#${cell.styleColor};${dkColor(cell.styleColor)}` : '',
+        cell.styleBold ? 'font-weight:600' : '',
         cell.fill ? `background-color:#${cell.fill};${dkBackground(`#${cell.fill}`)}` : '',
         cell.align ? `text-align:${cell.align}` : '',
         cell.vAlign && cell.vAlign !== 'top'
@@ -1457,14 +2212,27 @@ export function renderTableSpec(model: TableModel, nested = false): DomSpec {
       const nested = cell.nestedTables ?? []
       const anchorOf = (i: number) =>
         Math.min(cell.nestedTableAnchors?.[i] ?? paraBlocks.length, paraBlocks.length)
+      // anchored shapes group before their anchor paragraph (same strut as the
+      // editable docCellBoxes node), so read-only and nested cells draw them too
+      const boxGroups = new Map<number, TextboxDisplay[]>()
+      ;(cell.anchoredBoxes ?? []).forEach((b, i) => {
+        const at = Math.min(cell.anchoredBoxAnchors?.[i] ?? 0, paraBlocks.length)
+        boxGroups.set(at, [...(boxGroups.get(at) ?? []), b])
+      })
       const content: unknown[] = []
       let ni = 0
+      const boxesAt = (pi: number) => {
+        const group = boxGroups.get(pi)
+        if (group) content.push(cellBoxesSpec(group))
+      }
       paraBlocks.forEach((blk, pi) => {
         while (ni < nested.length && anchorOf(ni) <= pi)
           content.push(renderTableSpec(nested[ni++], true))
+        boxesAt(pi)
         content.push(blk)
       })
       while (ni < nested.length) content.push(renderTableSpec(nested[ni++], true))
+      boxesAt(paraBlocks.length)
       if (content.length === 0) content.push('\u00a0')
       const clip = cellClipTwips(model, ri, cell, rowSpan)
       const wm = cellWritingMode(cell.textDirection ?? null)
@@ -1503,7 +2271,7 @@ export function renderTableSpec(model: TableModel, nested = false): DomSpec {
 
   const tableChildren: unknown[] = []
   const colPx = !model.widthPct
-    ? model.colWidthsTwips?.map((w) => Math.max(24, Math.round(w / 15)))
+    ? model.colWidthsTwips?.map((w) => Math.max(1, Math.round(w / 15)))
     : undefined
   if (colPx) {
     tableChildren.push(['colgroup', {}, ...colPx.map((w) => ['col', { style: `width:${w}px` }])])
@@ -1554,13 +2322,18 @@ export function renderTableSpec(model: TableModel, nested = false): DomSpec {
       centerMargin = `margin-left:calc((${contentW} - min(${widthPx}px,${paper}))/2)`
     } else {
       const indented =
-        model.align !== 'center' && model.align !== 'right' && (model.indentTwips ?? 0) > 0
+        model.align !== 'center' && model.align !== 'right' && (model.indentTwips ?? 0) !== 0
       const indentPx = indented ? model.indentTwips! / 15 : 0
       const base = nested ? '100%' : `calc(${contentW} + ${spillMargin})`
+      // a negative w:tblInd moves the box into the left margin and widens the
+      // right-hand spill allowance by the same amount (see DocTable.renderHTML)
+      const shift = indentPx < 0 ? `+ ${(-indentPx).toFixed(1)}px` : `- ${indentPx.toFixed(1)}px`
       const avail = indentPx
         ? nested
-          ? `calc(100% - ${indentPx.toFixed(1)}px)`
-          : `calc(${contentW} + ${spillMargin} - ${indentPx.toFixed(1)}px)`
+          ? indentPx > 0
+            ? `calc(100% - ${indentPx.toFixed(1)}px)`
+            : base
+          : `calc(${contentW} + ${spillMargin} ${shift})`
         : base
       widthExpr = `min(${widthPx}px,${avail})`
       tableStyles.push(`width:${widthExpr}`)

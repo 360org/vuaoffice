@@ -34,7 +34,7 @@ describe('character styles (w:rStyle)', () => {
     expect(doc.styles.get('Hyperlink')!.display).toMatchObject({ underline: true, color: '0563C1' })
   })
 
-  it('captures w:rStyle on runs, except the implied Hyperlink style', async () => {
+  it('captures w:rStyle on runs, the Hyperlink style included', async () => {
     const bytes = await buildDocx({
       bodyXml:
         '<w:p><w:r><w:rPr><w:rStyle w:val="Emphasis"/></w:rPr><w:t>styled</w:t></w:r>' +
@@ -49,7 +49,7 @@ describe('character styles (w:rStyle)', () => {
     expect(runs[0].styleId).toBe('Emphasis')
     expect(runs[1].styleId).toBeUndefined()
     expect(runs[2].link?.href).toBe('https://example.com/')
-    expect(runs[2].styleId).toBeUndefined()
+    expect(runs[2].styleId).toBe('Hyperlink')
   })
 
   it('does not merge adjacent runs with different character styles', async () => {
@@ -287,8 +287,70 @@ describe('styleUpserts style write-back', () => {
     const stylesXml = await zip.file('word/styles.xml')!.async('string')
     expect(stylesXml.match(/w:styleId="MyQuote"/g)).toHaveLength(1)
     const reparsed2 = await parseDocx(saved2)
-    expect(reparsed2.styles.get('MyQuote')!.display).toMatchObject({ bold: true })
-    expect(reparsed2.styles.get('MyQuote')!.display?.italic).toBeUndefined()
+    // a re-upsert patches: bold added, the earlier italic/color kept
+    expect(reparsed2.styles.get('MyQuote')!.display).toMatchObject({
+      bold: true,
+      italic: true,
+      color: '595959',
+    })
+  })
+
+  it('patching an existing style keeps the children and attributes it does not name', async () => {
+    const { saveDocx, mergeStyleXml } = await import('../src/index')
+    const existing =
+      '<w:style w:type="paragraph" w:styleId="Body"><w:name w:val="Body Text"/>' +
+      '<w:basedOn w:val="Normal"/><w:link w:val="BodyChar"/><w:uiPriority w:val="9"/>' +
+      '<w:pPr><w:keepNext/><w:spacing w:before="240" w:after="120" w:line="276" w:lineRule="auto"/><w:ind w:left="720" w:hanging="360"/></w:pPr>' +
+      '<w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsiaTheme="minorEastAsia"/><w:b/><w:sz w:val="24"/></w:rPr></w:style>'
+    const out = mergeStyleXml(existing, {
+      styleId: 'Body',
+      pPr: { spaceAfterTwips: 0, firstLineTwips: 480, align: 'justify' },
+      rPr: { bold: false, italic: true, sizeHalfPoints: 22, eastAsiaFont: 'SimSun' },
+    })
+    expect(out).toContain('<w:basedOn w:val="Normal"/>')
+    expect(out).toContain('<w:link w:val="BodyChar"/>')
+    expect(out).toContain('<w:uiPriority w:val="9"/>')
+    expect(out).toContain('<w:keepNext/>')
+    expect(out).toContain('<w:spacing w:before="240" w:after="0" w:line="276" w:lineRule="auto"/>')
+    expect(out).toContain('<w:ind w:left="720" w:firstLine="480"/>')
+    expect(out).not.toContain('w:hanging')
+    expect(out).toContain('<w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="SimSun"/>')
+    expect(out).toContain('<w:b w:val="0"/>')
+    expect(out).toContain('<w:i/>')
+    expect(out).toContain('<w:sz w:val="22"/><w:szCs w:val="22"/>')
+    // schema order: pPr children spacing < ind < jc; rPr b before i before sz
+    expect(out.indexOf('<w:spacing')).toBeLessThan(out.indexOf('<w:ind'))
+    expect(out.indexOf('<w:ind')).toBeLessThan(out.indexOf('<w:jc'))
+    expect(out.indexOf('<w:b ')).toBeLessThan(out.indexOf('<w:i/>'))
+    expect(out.indexOf('<w:pPr>')).toBeLessThan(out.indexOf('<w:rPr>'))
+    expect(out.indexOf('<w:uiPriority')).toBeLessThan(out.indexOf('<w:pPr>'))
+
+    const parsed = await parseDocx(
+      await buildDocx({ bodyXml: '<w:p><w:r><w:t>x</w:t></w:r></w:p>' }),
+    )
+    const blocks = parsed.blocks
+      .filter((b) => !b.hidden && b.docxIndex !== null)
+      .map((b) => ({ kind: 'original' as const, docxIndex: b.docxIndex! }))
+    const saved = await saveDocx(parsed, blocks, {
+      styleUpserts: [
+        { styleId: 'Heading1', pPr: { spaceBeforeTwips: 480 }, rPr: { color: 'FF0000' } },
+        {
+          styleId: 'Callout',
+          type: 'paragraph',
+          basedOn: 'Normal',
+          next: 'Normal',
+          rPr: { italic: true },
+        },
+      ],
+    })
+    const reparsed = await parseDocx(saved)
+    expect(reparsed.styles.get('Heading1')!.headingLevel).toBe(1)
+    expect(reparsed.styles.get('Heading1')!.display?.color).toBe('FF0000')
+    expect(reparsed.styles.get('Callout')).toMatchObject({ name: 'Callout', basedOn: 'Normal' })
+    const zip = await (await import('jszip')).default.loadAsync(saved)
+    const stylesXml = await zip.file('word/styles.xml')!.async('string')
+    expect(stylesXml).toContain('<w:next w:val="Normal"/>')
+    expect(stylesXml.match(/w:styleId="Heading1"/g)).toHaveLength(1)
   })
 })
 
@@ -344,5 +406,39 @@ describe('toggle-off (w:val="0") overrides inherited formatting', () => {
     expect(runs[2].bold).toBeUndefined()
     expect(runs[2].underline).toBeUndefined()
     expect(runs[2].caps).toBeUndefined()
+  })
+})
+
+describe('linked styles (w:link)', () => {
+  const BODY_TEXT_PAIR =
+    '<w:style w:type="paragraph" w:styleId="BodyText"><w:name w:val="Body Text"/><w:link w:val="BodyTextChar"/></w:style>' +
+    '<w:style w:type="character" w:styleId="BodyTextChar"><w:name w:val="Body Text Char"/><w:link w:val="BodyText"/></w:style>'
+
+  it('fills a character shell from its reciprocal paragraph twin', async () => {
+    const doc = await parseDocx(
+      await buildDocx({
+        bodyXml: '<w:p><w:r><w:t>x</w:t></w:r></w:p>',
+        extraStylesXml:
+          '<w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:link w:val="QuoteChar"/><w:rPr><w:i/></w:rPr></w:style>' +
+          '<w:style w:type="character" w:styleId="QuoteChar"><w:name w:val="Quote Char"/><w:link w:val="Quote"/></w:style>',
+      }),
+    )
+    expect(doc.styles.get('QuoteChar')!.display?.italic).toBe(true)
+  })
+
+  it("ignores a one-way w:link into another style's character twin", async () => {
+    // a caption style pointing at Body Text Char must not italicize Body Text
+    const doc = await parseDocx(
+      await buildDocx({
+        bodyXml:
+          '<w:p><w:pPr><w:pStyle w:val="BodyText"/></w:pPr><w:r><w:t>plain</w:t></w:r></w:p>',
+        extraStylesXml:
+          BODY_TEXT_PAIR +
+          '<w:style w:type="paragraph" w:styleId="Caption"><w:name w:val="caption"/><w:link w:val="BodyTextChar"/><w:rPr><w:i/></w:rPr></w:style>',
+      }),
+    )
+    expect(doc.styles.get('BodyText')!.display?.italic).toBeUndefined()
+    expect(doc.styles.get('BodyTextChar')!.display?.italic).toBeUndefined()
+    expect(doc.styles.get('Caption')!.display?.italic).toBe(true)
   })
 })

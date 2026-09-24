@@ -934,6 +934,25 @@ describe('vertical text (bodyPr vert) column layout', () => {
   const layoutV = (b: TextBody, w = 200, h = 300) =>
     layoutText({ body: b, boxWidthPx: w, boxHeightPx: h, metrics: m, vp })
 
+  it('numbered paragraphs keep their scheme on the bullet glyph run (ribbon highlight / toggle)', () => {
+    const layout = layoutV(
+      body({
+        vert: 'eaVert',
+        paragraphs: [
+          {
+            runs: [{ text: '\u7e26', fontSize: 18 }],
+            bullet: { type: 'number', numType: 'romanUcPeriod' },
+            marL: 342900,
+            indent: -342900,
+          },
+        ],
+      }),
+    )
+    const b = layout.lines[0]!.runs.find((r) => r.isBullet)!
+    expect(b.text).toBe('I.')
+    expect(b.numType).toBe('romanUcPeriod')
+  })
+
   it('eaVert: two CJK paragraphs → two columns, right-to-left, chars flow downward within a column, all inside the box', () => {
     const layout = layoutV(
       body({
@@ -1248,9 +1267,11 @@ describe('buAutoNum startAt', () => {
     indent: -457200,
   })
 
-  it('starts the sequence at startAt and continues from there', () => {
+  it('starts the sequence at startAt; a following paragraph without startAt restarts at 1 (PowerPoint probe)', () => {
     const layout = layoutText({
-      body: body({ paragraphs: [para('first', 3), para('second')] as any }),
+      body: body({
+        paragraphs: [para('first', 3), para('second', 3), para('third')] as any,
+      }),
       boxWidthPx: 800,
       boxHeightPx: 200,
       metrics: m,
@@ -1260,7 +1281,11 @@ describe('buAutoNum startAt', () => {
       .map((l) => l.runs.find((r: any) => r.isBullet))
       .filter(Boolean)
       .map((r: any) => r.text)
-    expect(bullets).toEqual(['3.', '4.'])
+    expect(bullets).toEqual(['3.', '4.', '1.'])
+    const runs = layout.lines
+      .map((l) => l.runs.find((r: any) => r.isBullet))
+      .filter(Boolean) as any[]
+    expect(runs.map((r) => r.startAt)).toEqual([3, 3, undefined])
   })
 
   it('defaults to 1 without startAt', () => {
@@ -1643,7 +1668,7 @@ describe('Symbol-font bullets', () => {
     }).lines[0]!.runs.find((r) => r.isBullet)!
 
   it('maps <a:buFont Symbol> PUA/byte bullet codes through the Symbol table (U+F0B7 → •)', () => {
-    // prod deck: every level-1 bullet drew as a tofu box because the PUA code stayed raw
+    // a real deck: every level-1 bullet drew as a tofu box because the PUA code stayed raw
     const pua = bulletOf([
       {
         runs: [{ text: 'item', fontSize: 14 }],
@@ -1818,5 +1843,252 @@ describe('latinOnly substitution hint', () => {
         (s) => s.fontFamily === 'Malgun Gothic' && !s.latinOnly && s.substScript === 'ko',
       ),
     ).toBe(true)
+  })
+})
+
+describe('bullet parity (PowerPoint)', () => {
+  const m = new HeuristicMetrics()
+  const lay = (paragraphs: Paragraph[], media?: (ref: string) => string | undefined) =>
+    layoutText({
+      body: body({ paragraphs: paragraphs as Paragraph[] }),
+      boxWidthPx: 800,
+      boxHeightPx: 600,
+      metrics: m,
+      vp,
+      media,
+    })
+  const bulletsOf = (l: ReturnType<typeof lay>) =>
+    l.lines.filter((ln) => ln.paraStart).map((ln) => ln.runs.find((r) => r.isBullet))
+  const num = (text: string, level = 0, numType = 'arabicPeriod'): Paragraph =>
+    ({
+      runs: [{ text, fontSize: 18 }],
+      ...(level ? { level } : {}),
+      marL: 342900 * (level + 1),
+      indent: -342900,
+      bullet: { type: 'number', numType },
+    }) as Paragraph
+
+  it('nested numbering keeps one counter per level; the outer list continues after a sublist', () => {
+    const l = lay([
+      num('one'),
+      num('two'),
+      num('a', 1, 'alphaLcPeriod'),
+      num('b', 1, 'alphaLcPeriod'),
+      num('i', 2, 'romanLcPeriod'),
+      num('c', 1, 'alphaLcPeriod'),
+      num('three'),
+      num('a again', 1, 'alphaLcPeriod'),
+    ])
+    expect(bulletsOf(l).map((b) => b!.text)).toEqual([
+      '1.',
+      '2.',
+      'a.',
+      'b.',
+      'i.',
+      'c.',
+      '3.',
+      'a.',
+    ])
+  })
+
+  it('an unnumbered text paragraph restarts its level; empty paragraphs change nothing', () => {
+    const l = lay([
+      num('one'),
+      { runs: [{ text: '', fontSize: 18 }], bullet: { type: 'number' } } as Paragraph,
+      num('two'),
+      { runs: [{ text: 'plain', fontSize: 18 }], bullet: { type: 'none' } } as Paragraph,
+      num('one again'),
+    ])
+    expect(bulletsOf(l).map((b) => b?.text)).toEqual(['1.', undefined, '2.', undefined, '1.'])
+  })
+
+  it('a scheme change or a differing startAt (1 when absent) restarts the level', () => {
+    const withStart = (text: string, startAt: number): Paragraph =>
+      ({ ...num(text), bullet: { type: 'number', numType: 'arabicPeriod', startAt } }) as Paragraph
+    const l = lay([
+      num('one'),
+      num('two'),
+      num('A', 0, 'alphaUcPeriod'),
+      num('B', 0, 'alphaUcPeriod'),
+      withStart('seven', 7),
+      withStart('eight', 7),
+      num('one again'),
+      withStart('seven again', 7),
+    ])
+    expect(bulletsOf(l).map((b) => b!.text)).toEqual([
+      '1.',
+      '2.',
+      'A.',
+      'B.',
+      '7.',
+      '8.',
+      '1.',
+      '7.',
+    ])
+  })
+
+  it('buSzPts sizes the glyph in absolute points, buSzPct relative to the first run', () => {
+    const l = lay([
+      {
+        runs: [{ text: 'x', fontSize: 18 }],
+        marL: 342900,
+        indent: -342900,
+        bullet: { type: 'char', char: '•', sizePt: 36 },
+      } as Paragraph,
+      {
+        runs: [{ text: 'x', fontSize: 18 }],
+        marL: 342900,
+        indent: -342900,
+        bullet: { type: 'char', char: '•', sizePct: 50 },
+      } as Paragraph,
+    ])
+    const [a, b] = bulletsOf(l)
+    expect(a!.fontSizePx).toBeCloseTo(48, 3) // 36pt at scale 1 (96/72)
+    expect(b!.fontSizePx).toBeCloseTo(12, 3)
+  })
+
+  it('picture bullet: image run on the baseline, cap-height tall; missing media falls back to the dot', () => {
+    const para = {
+      runs: [{ text: 'x', fontSize: 18 }],
+      marL: 342900,
+      indent: -342900,
+      bullet: { type: 'blip', mediaRef: 'ppt/media/image1.png', blipEmbedId: 'rId6' },
+    } as Paragraph
+    const withMedia = lay([para], (ref) =>
+      ref === 'ppt/media/image1.png' ? 'data:image/png;base64,AA' : undefined,
+    )
+    const b = bulletsOf(withMedia)[0]!
+    expect(b.image).toBe('data:image/png;base64,AA')
+    expect(b.text).toBe('')
+    expect(b.ascentPx).toBeCloseTo(24 * 0.75, 3) // 18pt text at scale 1, 1:1 image
+    expect(b.widthPx).toBeCloseTo(b.ascentPx!, 3)
+    const textRun = withMedia.lines[0]!.runs.find((r) => !r.isBullet)!
+    expect(textRun.x).toBeGreaterThanOrEqual(b.x + b.widthPx)
+    const noMedia = bulletsOf(lay([para]))[0]!
+    expect(noMedia.image).toBeUndefined()
+    expect(noMedia.text).toBe('•')
+  })
+})
+
+describe('PowerPoint super/subscript glyph size + hanging indent clamp', () => {
+  it('super/subscript runs draw at 2/3 of the run size (probe: 18pt reads 12pt at any offset)', () => {
+    const layout = layoutText({
+      body: body({
+        paragraphs: [
+          {
+            runs: [
+              { text: 'x', fontSize: 18 },
+              { text: '2', fontSize: 18, baseline: 30 },
+              { text: 'n', fontSize: 18, baseline: -25 },
+            ],
+          },
+        ],
+      }),
+      boxWidthPx: 400,
+      boxHeightPx: 200,
+      metrics: new HeuristicMetrics(),
+      vp,
+    })
+    const [base, sup, sub] = layout.lines[0]!.runs
+    expect(base!.fontSizePx).toBeCloseTo(24, 4)
+    expect(sup!.fontSizePx).toBeCloseTo(16, 4)
+    expect(sub!.fontSizePx).toBeCloseTo(16, 4)
+  })
+
+  it('a hanging indent without a bullet cannot start the first line left of the inset', () => {
+    const layout = layoutText({
+      body: body({
+        paragraphs: [{ runs: [{ text: 'Hello', fontSize: 18 }], marL: 0, indent: -402590 }],
+      }),
+      boxWidthPx: 400,
+      boxHeightPx: 200,
+      metrics: new HeuristicMetrics(),
+      vp,
+    })
+    expect(layout.lines[0]!.runs[0]!.x).toBeCloseTo(0, 4)
+  })
+})
+
+describe('Korean word wrap and hanging punctuation (PowerPoint probe)', () => {
+  const m = new HeuristicMetrics()
+  // 24pt runs lay out at 32px (scale 1)
+  const style = { fontFamily: 'Arial', fontSizePx: 32, bold: false, italic: false }
+  const w = (t: string) => m.measure(t, style)
+  const lines = (text: string, boxWidthPx: number, para: Partial<Paragraph> = {}) =>
+    layoutText({
+      body: body({ paragraphs: [{ runs: [{ text, fontSize: 24 }], ...para }] }),
+      boxWidthPx,
+      boxHeightPx: 3000,
+      metrics: m,
+      vp,
+    }).lines.map((l) =>
+      l.runs
+        .map((r) => r.text)
+        .join('')
+        .trim(),
+    )
+
+  it('Hangul wraps by word: the whole space-delimited word moves down', () => {
+    // room for one more syllable, but PowerPoint keeps the second word together
+    const box = w('가나다 라') + 1
+    expect(lines('가나다 라마바', box)).toEqual(['가나다', '라마바'])
+  })
+
+  it('a Hangul word wider than the line still hard-breaks per syllable', () => {
+    const box = w('가나') + 1
+    expect(lines('가나다라', box)).toEqual(['가나', '다라'])
+  })
+
+  it('an over-long word leaves its last piece open for the following words', () => {
+    // two syllables fill a line; the tail '다' shares its line with ' 라'
+    const box = w('\uac00\ub098') + w('\uac00') / 2
+    expect(lines('\uac00\ub098\ub2e4 \ub77c', box)).toEqual(['\uac00\ub098', '\ub2e4 \ub77c'])
+  })
+
+  it('a first-on-line word wider than the box only by its closing mark hangs instead of breaking', () => {
+    const box = w('\u3042\u3042\u3042\u3042') + w('\uff09') / 2
+    expect(lines('\u3042\u3042\u3042\u3042\uff09', box)).toEqual(['\u3042\u3042\u3042\u3042\uff09'])
+  })
+
+  it('a trailing closing mark hangs past the margin by its own advance', () => {
+    // room for the ideographs and only half the bracket: the bracket overhangs
+    const box = w('あああ') + w('）') / 2
+    expect(lines('あああ）', box)).toEqual(['あああ）'])
+    // the allowance is the mark itself: anything after it starts the next line
+    expect(lines('あああ）い', box)).toEqual(['あああ）', 'い'])
+  })
+
+  it('a trailing Hangul syllable gets no allowance', () => {
+    const box = w('가나다 라마') + w('바') / 2
+    expect(lines('가나다 라마바', box)).toEqual(['가나다', '라마바'])
+  })
+
+  it('hangingPunct="0" switches the overhang off', () => {
+    const box = w('あああ') + w('）') / 2
+    expect(lines('あああ）', box, { hangingPunct: false }).length).toBe(2)
+  })
+
+  it('latinLnBrk="1" lets Hangul break per syllable again', () => {
+    const box = w('\uac00\ub098\ub2e4 \ub77c') + 1
+    expect(lines('\uac00\ub098\ub2e4 \ub77c\ub9c8\ubc14', box, { latinLnBrk: true })).toEqual([
+      '\uac00\ub098\ub2e4 \ub77c',
+      '\ub9c8\ubc14',
+    ])
+  })
+
+  it('eaLnBrk="0" switches kinsoku off: a closing mark may start a line', () => {
+    // hanging punctuation off too, so the mark cannot simply overhang
+    const box = w('\u3042\u3042\u3042\u3042') + 1
+    const text = '\u3042\u3042\u3042\u3042\u3001\u3044'
+    expect(lines(text, box, { eaLnBrk: false, hangingPunct: false })).toEqual([
+      '\u3042\u3042\u3042\u3042',
+      '\u3001\u3044',
+    ])
+    expect(lines(text, box, { hangingPunct: false })[0]).toBe('\u3042\u3042\u3042')
+  })
+
+  it('Latin-only paragraphs never hang', () => {
+    const box = w('aaa bb') + w(')') / 2
+    expect(lines('aaa bb)', box)).toEqual(['aaa', 'bb)'])
   })
 })

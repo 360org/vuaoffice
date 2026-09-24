@@ -7,6 +7,8 @@ import {
   readFileSync,
   readdirSync,
   renameSync,
+  rmSync,
+  statSync,
   writeFileSync,
 } from 'node:fs'
 import { basename, dirname, extname, isAbsolute, join, resolve, sep } from 'node:path'
@@ -23,6 +25,7 @@ import {
   webContents,
 } from 'electron'
 import type { MenuItemConstructorOptions, NativeImage, WebContents } from 'electron'
+import { tabStripOverlay } from './title-bar-overlay'
 import menuDocxIcon1x from './assets/menu-docx.png?asset'
 import menuDocxIcon2x from './assets/menu-docx@2x.png?asset'
 import menuXlsxIcon1x from './assets/menu-xlsx.png?asset'
@@ -47,11 +50,26 @@ import {
   installContextMenu,
   installNavigationGuard,
   isUsableSaveDir,
+  HEADLESS_EXIT,
+  formatHeadlessEnvelope,
+  headlessExitCode,
+  parseHeadlessExportArgv,
+  setHeadlessMode,
+  type HeadlessArgvParse,
   showOpenDialogWithMemory,
   showSaveDialogWithMemory,
   windowMenuTemplate,
+  aboutMenuItem,
+  checkUpdatesMenuItem,
+  setUpdateCheckInvoker,
+  installRendererProtocol,
 } from '@genoffice/electron-utils'
 import { readAppSettings, writeAppSetting, writeAppSettings } from './app-settings'
+import { OPEN_DOCUMENTS_FILE, clearOpenDocuments, publishOpenDocuments } from './open-documents'
+import { startControlServer, type ControlServer } from './control-server'
+import { controlHandler } from './control-handlers'
+import { installCliLinkBestEffort } from './cli-link'
+import { registerIntegrationsIpc } from './integrations-ipc'
 import {
   ANALYTICS_ENABLED_KEY,
   analyticsEnabledFrom,
@@ -75,11 +93,14 @@ import {
   syncCloudProjects,
 } from './cloud-projects'
 import { ProjectStore } from '@genoffice/project-store'
+import { handleDroppedFiles } from './dropped-files'
 import {
   genofficeLogout,
   loadGenofficeAuth,
   saveGenofficeAuth,
   setGskProxyUrl,
+  startGenofficeLogin,
+  watchGskApiKey,
 } from '@genoffice/ai-search'
 
 import {
@@ -97,32 +118,57 @@ import {
   registerProjectIpc,
   toggleStarredFile,
   registerDocsIpc,
+  exportDocsHeadless,
   setDocsExtraFileMenuItems,
   setDocsMenuGate,
   setDocsShellHooks,
   createAiDocument,
+  projectFilePaths,
   projectFileRenamed,
+  setDocsHostWindowHook,
   setDocsShellWindow,
   setDocsFileSavedHook,
   setDocsFileOpenedHook,
   setSessionPathResolver,
   defaultSaveDir,
   uniquePathIn,
+  authorizeMcpDocWrite,
 } from '../../../docs/src/main/docs-main'
-import { blankXlsxBuffer } from '../../../sheets/src/gateway/csv-import'
+import { blankXlsxBuffer } from '@genoffice/xlsx-gateway/gateway/csv-import'
 import { blankPdfBuffer } from '../../../pdf/src/main/blank-pdf'
 import {
+  applyMcpSettings,
+  clearMcpLogs,
+  configureMcpRuntime,
+  getMcpRecentLogs,
+  mcpLogFilePath,
+  mcpStatus,
+  revealMcpLogFile,
+  startMcpFromSettings,
+  stopMcpSync,
+  type McpSettings,
+} from './mcp/app-mcp'
+import { createCliRunner } from './mcp/cli-runner'
+import { DEFAULT_MCP_PORT } from './mcp/mcp-server'
+import { createDocsControl, installDocsBridge } from './mcp/docs-bridge'
+import { createSlidesControl } from './mcp/slides-bridge'
+import { createSheetsControl, installSheetsBridge } from './mcp/sheets-bridge'
+import { createOpenDocumentsControl, createOpenTargetResolver } from './mcp/open-documents-bridge'
+import {
   configureSheetsRuntime,
+  exportSheetsPdfHeadless,
   hasActiveQueuedWorkbook,
   installSheetsMenu,
   markSheetsShuttingDown,
   requestSheetsClose,
   resolveSheetsSessionPath,
   markSheetsUntitledPath,
+  authorizeMcpSheetWrite,
   sendSheetsMenuAction,
   sheetsFileRenamed,
   setSheetsCloseTabHook,
   setSheetsExtraFileMenuItems,
+  setSheetsHostWindowHook,
   setSheetsShellWindow,
   setSheetsWorkbookOpenedHook,
   startSheetsCaptureServer,
@@ -130,7 +176,10 @@ import {
 } from '../../../sheets/src/main/sheets-main'
 import {
   configureSlidesRuntime,
+  discardSlidesRecovery,
+  exportSlidesPdfHeadless,
   installSlidesMenu,
+  readSlidesRecentFiles,
   replaceSlidesRecentFile,
   requestSlidesClose,
   setSlidesCloseTabHook,
@@ -144,11 +193,13 @@ import {
   configurePdfRuntime,
   flushPdfSave,
   markPdfUntitledPath,
+  pdfFileRenamed,
   pdfIsDirty,
   requestPdfClose,
   requestPdfSaveAs,
   sendPdfPrintRequest,
   setPdfRenamedHook,
+  setPdfRedactionSavedHook,
   setPdfSaveAsInFlight,
 } from '../../../pdf/src/main/pdf-main'
 import { PDF_CHANNELS } from '../../../pdf/src/shared/ipc'
@@ -158,7 +209,11 @@ import { convertPdfFileToXlsxLocalWithPrompt } from './pdf2xlsx-local'
 import { closePdfPasswordDialog, promptPdfPassword } from './pdf-password-dialog'
 import {
   configureMarkdownRuntime,
+  exportMarkdownPdfHeadless,
+  markdownDiscardPendingAssets,
   markdownFileRenamed,
+  markdownReadText,
+  markdownSaveToPath,
   requestMarkdownClose,
   requestMarkdownSave,
   sendMarkdownExportRequest,
@@ -168,8 +223,12 @@ import {
 } from '../../../markdown/src/main/markdown-main'
 import {
   configureHtmlRuntime,
+  exportHtmlHeadless,
+  htmlDiscardPendingAssets,
   htmlFileRenamed,
-  registerHtmlSchemes,
+  htmlReadText,
+  htmlSaveToPath,
+  registerPrivilegedSchemes,
   requestHtmlClose,
   requestHtmlSave,
   sendHtmlExportRequest,
@@ -185,11 +244,20 @@ import type {
   AccountLoginEvent,
   AccountStatus,
   AutoSaveDefault,
+  FolderListing,
+  FolderRoot,
+  MoveConflictPolicy,
+  MoveResult,
+  NewFileOpts,
   RecentEntry,
   RecentPage,
   RenameResult,
   StarPromptShow,
   UiTheme,
+  FileSearchPage,
+  FileSearchQuery,
+  FileSearchRerank,
+  FileSearchSettings,
 } from '../shared/home-api'
 import { HOME_CHANNELS } from '../shared/home-api'
 import {
@@ -200,10 +268,61 @@ import {
 import type { TabKind } from '../shared/tabs-api'
 import { TABS_CHANNELS } from '../shared/tabs-api'
 import { showErrorDialog } from './error-dialog'
-import { normalizeRecentQuery, pageRecentPaths, statPathEntries } from './recent-files'
-import { isSameFile, isValidRenameName } from './rename-validation'
+import {
+  matchesExtFamily,
+  normalizeRecentQuery,
+  pageRecentPaths,
+  statPathEntries,
+} from './recent-files'
+import { isSameFile, isValidRawRenameName } from './rename-validation'
+import {
+  FolderWatcher,
+  createFolder,
+  describeRoot,
+  isInsideRoot,
+  pathsUnder,
+  listFolder,
+  movePathsInto,
+  rebasePath,
+  renameFolder,
+  uniqueNameIn,
+  type FolderErrors,
+} from './folder-tree'
+import {
+  FOLDER_ROOTS_KEY,
+  describeExtraRoot,
+  readExtraRoots,
+  withExtraRoot,
+  withoutExtraRoot,
+} from './folder-roots'
+import extractWorkerPath from './file-index/extract-worker?modulePath'
+import { FileIndexer } from './file-index/indexer'
+import { FileIndexStore } from './file-index/store'
+import {
+  jevEndpointOf,
+  normalizeFileSearchSettings,
+  probeJev,
+  SearchReranker,
+} from './file-index/rerank'
+import { runHeadlessExport, type HeadlessExporters } from './headless-export'
 import { TabManager } from './tab-manager'
-import { applyUpdateChannel, checkForUpdatesManual, initAutoUpdater } from './updater'
+import {
+  activateDetached,
+  closeDetachedWithoutPrompt,
+  createDetachedEditorWindow,
+  detachedFilePaths,
+  detachedOpenDocuments,
+  detachedRenameFile,
+  detachedSetFileFor,
+  detachedWebContentsFor,
+  detachedWindowForWebContents,
+  findDetachedTabByPath,
+  focusDetachedByPath,
+  focusedDetachedKind,
+  isDetachedTabId,
+  setDetachedChangedListener,
+} from './detached-windows'
+import { applyUpdateChannel, checkForUpdatesNow, initAutoUpdater } from './updater'
 import { isUpdateChannel, type UpdateChannel } from '../shared/update-api'
 import {
   exportDiagnosticReportToFile,
@@ -231,6 +350,18 @@ if (!app.isPackaged)
     'userData',
     process.env.GENOFFICE_USER_DATA ?? join(app.getPath('appData'), 'GenOffice Dev'),
   )
+
+/**
+ * `--headless-export <file> --to <format> --out <path> [--json]`: one document, no
+ * window, one stdout line, then exit. Parsed at module scope so the dock icon
+ * is gone before the app can bounce it and so every editor module sees the
+ * headless flag before it registers anything.
+ */
+const headlessArgv = parseHeadlessExportArgv(process.argv)
+if (headlessArgv.kind !== 'none') {
+  setHeadlessMode(true)
+  app.dock?.hide()
+}
 
 // The product rename from "AI Office" to VuaOffice changed the userData path; migrate old user data once
 if (app.isPackaged) {
@@ -314,13 +445,26 @@ configureMailRuntime({
   openDocumentPath: (path) => openDocumentPath(path),
 })
 // privileged-scheme registration is only legal before app ready
-registerHtmlSchemes()
+registerPrivilegedSchemes()
 
 // ---- UI language ----
 // Persisted in userData/app-settings.json so the editor modules can read the
 // same file when they pick up i18n later. GENOFFICE_LANG overrides for tests.
 
 const APP_SETTINGS_PATH = () => join(app.getPath('userData'), 'app-settings.json')
+const OPEN_DOCUMENTS_PATH = () => join(app.getPath('userData'), OPEN_DOCUMENTS_FILE)
+/** only the instance holding the single-instance lock may write or remove the registry */
+let ownsOpenDocumentsRegistry = false
+let stopAuthWatch: (() => void) | null = null
+const publishOpenDocumentsIfOwner = (paths: readonly string[]) => {
+  if (ownsOpenDocumentsRegistry) publishOpenDocuments(OPEN_DOCUMENTS_PATH(), paths)
+}
+
+/** every open file: the shell's tabs plus the detached editor windows */
+function publishAllOpenDocuments(): void {
+  publishOpenDocumentsIfOwner([...(tabManager?.openFilePaths() ?? []), ...detachedFilePaths()])
+}
+setDetachedChangedListener(publishAllOpenDocuments)
 
 let uiLang: Lang | null = null
 
@@ -375,12 +519,27 @@ function currentAutoSaveDefault(): AutoSaveDefault {
   return cachedAutoSaveDefault
 }
 
-let cachedAiPanelPrefs: AiPanelPrefs | null = null
+/** MCP server settings (persisted in userData/app-settings.json; default off). */
+function currentMcpSettings(): McpSettings {
+  const saved = readAppSettings(APP_SETTINGS_PATH())
+  const port = saved.mcpPort
+  return {
+    enabled: saved.mcpEnabled === true,
+    port:
+      typeof port === 'number' && Number.isInteger(port) && port > 0 && port < 65536
+        ? port
+        : DEFAULT_MCP_PORT,
+    background: saved.mcpBackground === true,
+    logging: saved.mcpLogging === true,
+  }
+}
 
+let cachedAiPanelPrefs: AiPanelPrefs | null = null
 function currentAiPanelPrefs(): AiPanelPrefs {
   if (cachedAiPanelPrefs) return cachedAiPanelPrefs
   const saved = readAppSettings(APP_SETTINGS_PATH())
   cachedAiPanelPrefs = normalizeAiPanelPrefs({
+    side: saved.aiPanelSide,
     fontSize: saved.aiPanelFontSize,
     customFontSize: saved.aiPanelCustomFontSize,
     spellcheck: saved.aiPanelSpellcheck,
@@ -505,8 +664,11 @@ async function fetchGithubStars(): Promise<number | null> {
 
 const tMain = createI18n({
   zh: {
+    dlgAddFolderRoot: '添加文件夹到首页',
+    errFolderRootUnusable: '无法读取所选文件夹',
     menuFile: '文件',
     menuSectionNew: '新建',
+    menuOpenInNewWindow: '在新窗口中打开',
     menuNewDoc: 'AI Docs',
     menuNewSheet: 'AI Sheets',
     untitledSheet: '未命名表格',
@@ -520,6 +682,8 @@ const tMain = createI18n({
     menuNewHtml: 'AI HTML',
     menuNewPdf: 'AI PDF',
     menuExportPdf: '导出为 PDF…',
+    menuExportImages: '导出为图片…',
+    menuExportHtml: '导出为单文件 HTML…',
     menuOpenInDocs: '转换为 Docs 文档并打开',
     menuPrint: '打印…',
     menuOpen: '打开…',
@@ -589,8 +753,11 @@ const tMain = createI18n({
     errSaveDirUnusable: '所选文件夹不可写，无法用作默认保存位置',
   },
   en: {
+    dlgAddFolderRoot: 'Add Folder to Home',
+    errFolderRootUnusable: 'The selected folder cannot be read',
     menuFile: 'File',
     menuSectionNew: 'New',
+    menuOpenInNewWindow: 'Open in New Window',
     menuNewDoc: 'AI Docs',
     menuNewSheet: 'AI Sheets',
     untitledSheet: 'Untitled Spreadsheet',
@@ -604,6 +771,8 @@ const tMain = createI18n({
     menuNewHtml: 'AI HTML',
     menuNewPdf: 'AI PDF',
     menuExportPdf: 'Export as PDF…',
+    menuExportImages: 'Export as Images…',
+    menuExportHtml: 'Export as Single-File HTML…',
     menuOpenInDocs: 'Convert and Open in Docs',
     menuPrint: 'Print…',
     menuOpen: 'Open…',
@@ -681,8 +850,11 @@ const tMain = createI18n({
       'The selected folder is not writable and cannot be used as the default save location',
   },
   ja: {
+    dlgAddFolderRoot: 'フォルダーをホームに追加',
+    errFolderRootUnusable: '選択したフォルダーを読み取れません',
     menuFile: 'ファイル',
     menuSectionNew: '新規作成',
+    menuOpenInNewWindow: '新しいウィンドウで開く',
     menuNewDoc: 'AI Docs',
     menuNewSheet: 'AI Sheets',
     untitledSheet: '無題のスプレッドシート',
@@ -696,6 +868,8 @@ const tMain = createI18n({
     menuNewHtml: 'AI HTML',
     menuNewPdf: 'AI PDF',
     menuExportPdf: 'PDF として書き出す…',
+    menuExportImages: '画像としてエクスポート…',
+    menuExportHtml: '単一ファイル HTML として書き出す…',
     menuOpenInDocs: 'Docs 文書に変換して開く',
     menuPrint: '印刷…',
     menuOpen: '開く…',
@@ -773,8 +947,11 @@ const tMain = createI18n({
       '選択したフォルダーは書き込みできないため、既定の保存先として使用できません',
   },
   ko: {
+    dlgAddFolderRoot: '홈에 폴더 추가',
+    errFolderRootUnusable: '선택한 폴더를 읽을 수 없습니다',
     menuFile: '파일',
     menuSectionNew: '새로 만들기',
+    menuOpenInNewWindow: '새 창에서 열기',
     menuNewDoc: 'AI Docs',
     menuNewSheet: 'AI Sheets',
     untitledSheet: '제목 없는 스프레드시트',
@@ -788,6 +965,8 @@ const tMain = createI18n({
     menuNewHtml: 'AI HTML',
     menuNewPdf: 'AI PDF',
     menuExportPdf: 'PDF로 내보내기…',
+    menuExportImages: '이미지로 내보내기…',
+    menuExportHtml: '단일 파일 HTML로 내보내기…',
     menuOpenInDocs: 'Docs 문서로 변환하여 열기',
     menuPrint: '인쇄…',
     menuOpen: '열기…',
@@ -864,8 +1043,11 @@ const tMain = createI18n({
     errSaveDirUnusable: '선택한 폴더에 쓸 수 없어 기본 저장 위치로 사용할 수 없습니다',
   },
   fr: {
+    dlgAddFolderRoot: "Ajouter un dossier à l'accueil",
+    errFolderRootUnusable: 'Le dossier sélectionné ne peut pas être lu',
     menuFile: 'Fichier',
     menuSectionNew: 'Nouveau',
+    menuOpenInNewWindow: 'Ouvrir dans une nouvelle fenêtre',
     menuNewDoc: 'AI Docs',
     menuNewSheet: 'AI Sheets',
     untitledSheet: 'Feuille de calcul sans titre',
@@ -879,6 +1061,8 @@ const tMain = createI18n({
     menuNewHtml: 'AI HTML',
     menuNewPdf: 'AI PDF',
     menuExportPdf: 'Exporter en PDF…',
+    menuExportImages: 'Exporter en images…',
+    menuExportHtml: 'Exporter en HTML (fichier unique)…',
     menuOpenInDocs: 'Convertir et ouvrir dans Docs',
     menuPrint: 'Imprimer…',
     menuOpen: 'Ouvrir…',
@@ -957,8 +1141,11 @@ const tMain = createI18n({
       "Le dossier sélectionné n'est pas accessible en écriture et ne peut pas servir d'emplacement d'enregistrement par défaut",
   },
   de: {
+    dlgAddFolderRoot: 'Ordner zur Startseite hinzufügen',
+    errFolderRootUnusable: 'Der ausgewählte Ordner kann nicht gelesen werden',
     menuFile: 'Datei',
     menuSectionNew: 'Neu',
+    menuOpenInNewWindow: 'In neuem Fenster öffnen',
     menuNewDoc: 'AI Docs',
     menuNewSheet: 'AI Sheets',
     untitledSheet: 'Unbenannte Tabelle',
@@ -972,6 +1159,8 @@ const tMain = createI18n({
     menuNewHtml: 'AI HTML',
     menuNewPdf: 'AI PDF',
     menuExportPdf: 'Als PDF exportieren…',
+    menuExportImages: 'Als Bilder exportieren…',
+    menuExportHtml: 'Als Einzeldatei-HTML exportieren…',
     menuOpenInDocs: 'In Docs umwandeln und öffnen',
     menuPrint: 'Drucken…',
     menuOpen: 'Öffnen…',
@@ -1050,8 +1239,11 @@ const tMain = createI18n({
       'Der ausgewählte Ordner ist nicht beschreibbar und kann nicht als Standard-Speicherort verwendet werden',
   },
   es: {
+    dlgAddFolderRoot: 'Añadir carpeta al inicio',
+    errFolderRootUnusable: 'No se puede leer la carpeta seleccionada',
     menuFile: 'Archivo',
     menuSectionNew: 'Nuevo',
+    menuOpenInNewWindow: 'Abrir en una ventana nueva',
     menuNewDoc: 'AI Docs',
     menuNewSheet: 'AI Sheets',
     untitledSheet: 'Hoja de cálculo sin título',
@@ -1065,6 +1257,8 @@ const tMain = createI18n({
     menuNewHtml: 'AI HTML',
     menuNewPdf: 'AI PDF',
     menuExportPdf: 'Exportar como PDF…',
+    menuExportImages: 'Exportar como imágenes…',
+    menuExportHtml: 'Exportar como HTML de archivo único…',
     menuOpenInDocs: 'Convertir y abrir en Docs',
     menuPrint: 'Imprimir…',
     menuOpen: 'Abrir…',
@@ -1143,8 +1337,11 @@ const tMain = createI18n({
       'La carpeta seleccionada no admite escritura y no puede usarse como ubicación de guardado predeterminada',
   },
   th: {
+    dlgAddFolderRoot: 'เพิ่มโฟลเดอร์ไปยังหน้าแรก',
+    errFolderRootUnusable: 'ไม่สามารถอ่านโฟลเดอร์ที่เลือกได้',
     menuFile: 'ไฟล์',
     menuSectionNew: 'สร้างใหม่',
+    menuOpenInNewWindow: 'เปิดในหน้าต่างใหม่',
     menuNewDoc: 'AI Docs',
     menuNewSheet: 'AI Sheets',
     untitledSheet: 'สเปรดชีตไม่มีชื่อ',
@@ -1158,6 +1355,8 @@ const tMain = createI18n({
     menuNewHtml: 'AI HTML',
     menuNewPdf: 'AI PDF',
     menuExportPdf: 'ส่งออกเป็น PDF…',
+    menuExportImages: 'ส่งออกเป็นรูปภาพ…',
+    menuExportHtml: 'ส่งออกเป็น HTML ไฟล์เดียว…',
     menuOpenInDocs: 'แปลงและเปิดใน Docs',
     menuPrint: 'พิมพ์…',
     menuOpen: 'เปิด…',
@@ -1232,8 +1431,11 @@ const tMain = createI18n({
     errSaveDirUnusable: 'โฟลเดอร์ที่เลือกไม่สามารถเขียนได้ จึงใช้เป็นตำแหน่งบันทึกเริ่มต้นไม่ได้',
   },
   id: {
+    dlgAddFolderRoot: 'Tambahkan Folder ke Beranda',
+    errFolderRootUnusable: 'Folder yang dipilih tidak dapat dibaca',
     menuFile: 'File',
     menuSectionNew: 'Baru',
+    menuOpenInNewWindow: 'Buka di Jendela Baru',
     menuNewDoc: 'AI Docs',
     menuNewSheet: 'AI Sheets',
     untitledSheet: 'Spreadsheet tanpa judul',
@@ -1247,6 +1449,8 @@ const tMain = createI18n({
     menuNewHtml: 'AI HTML',
     menuNewPdf: 'AI PDF',
     menuExportPdf: 'Ekspor sebagai PDF…',
+    menuExportImages: 'Ekspor sebagai gambar…',
+    menuExportHtml: 'Ekspor sebagai HTML satu file…',
     menuOpenInDocs: 'Konversi dan buka di Docs',
     menuPrint: 'Cetak…',
     menuOpen: 'Buka…',
@@ -1325,8 +1529,11 @@ const tMain = createI18n({
       'Folder yang dipilih tidak dapat ditulis dan tidak bisa digunakan sebagai lokasi penyimpanan default',
   },
   ru: {
+    dlgAddFolderRoot: 'Добавить папку на главную',
+    errFolderRootUnusable: 'Не удалось прочитать выбранную папку',
     menuFile: 'Файл',
     menuSectionNew: 'Создать',
+    menuOpenInNewWindow: 'Открыть в новом окне',
     menuNewDoc: 'AI Docs',
     menuNewSheet: 'AI Sheets',
     untitledSheet: 'Таблица без названия',
@@ -1340,6 +1547,8 @@ const tMain = createI18n({
     menuNewHtml: 'AI HTML',
     menuNewPdf: 'AI PDF',
     menuExportPdf: 'Экспортировать в PDF…',
+    menuExportImages: 'Экспорт в изображения…',
+    menuExportHtml: 'Экспортировать в один файл HTML…',
     menuOpenInDocs: 'Преобразовать и открыть в Docs',
     menuPrint: 'Печать…',
     menuOpen: 'Открыть…',
@@ -1418,8 +1627,11 @@ const tMain = createI18n({
       'Выбранная папка недоступна для записи и не может использоваться как папка сохранения по умолчанию',
   },
   ar: {
+    dlgAddFolderRoot: 'إضافة مجلد إلى الصفحة الرئيسية',
+    errFolderRootUnusable: 'لا يمكن قراءة المجلد المحدد',
     menuFile: 'ملف',
     menuSectionNew: 'جديد',
+    menuOpenInNewWindow: 'فتح في نافذة جديدة',
     menuNewDoc: 'AI Docs',
     menuNewSheet: 'AI Sheets',
     untitledSheet: 'جدول بيانات بلا عنوان',
@@ -1433,6 +1645,8 @@ const tMain = createI18n({
     menuNewHtml: 'AI HTML',
     menuNewPdf: 'AI PDF',
     menuExportPdf: 'تصدير بتنسيق PDF…',
+    menuExportImages: 'تصدير كصور…',
+    menuExportHtml: 'تصدير كملف HTML واحد…',
     menuOpenInDocs: 'التحويل والفتح في Docs',
     menuPrint: 'طباعة…',
     menuOpen: 'فتح…',
@@ -1507,8 +1721,11 @@ const tMain = createI18n({
     errSaveDirUnusable: 'المجلد المحدد غير قابل للكتابة ولا يمكن استخدامه كموقع حفظ افتراضي',
   },
   pt: {
+    dlgAddFolderRoot: 'Adicionar pasta à página inicial',
+    errFolderRootUnusable: 'Não é possível ler a pasta selecionada',
     menuFile: 'Arquivo',
     menuSectionNew: 'Novo',
+    menuOpenInNewWindow: 'Abrir em nova janela',
     menuNewDoc: 'AI Docs',
     menuNewSheet: 'AI Sheets',
     untitledSheet: 'Planilha sem título',
@@ -1522,6 +1739,8 @@ const tMain = createI18n({
     menuNewHtml: 'AI HTML',
     menuNewPdf: 'AI PDF',
     menuExportPdf: 'Exportar como PDF…',
+    menuExportImages: 'Exportar como imagens…',
+    menuExportHtml: 'Exportar como HTML de arquivo único…',
     menuOpenInDocs: 'Converter e abrir no Docs',
     menuPrint: 'Imprimir…',
     menuOpen: 'Abrir…',
@@ -1600,8 +1819,11 @@ const tMain = createI18n({
       'A pasta selecionada não permite gravação e não pode ser usada como local de salvamento padrão',
   },
   it: {
+    dlgAddFolderRoot: 'Aggiungi cartella alla Home',
+    errFolderRootUnusable: 'Impossibile leggere la cartella selezionata',
     menuFile: 'File',
     menuSectionNew: 'Nuovo',
+    menuOpenInNewWindow: 'Apri in una nuova finestra',
     menuNewDoc: 'AI Docs',
     menuNewSheet: 'AI Sheets',
     untitledSheet: 'Foglio di calcolo senza titolo',
@@ -1615,6 +1837,8 @@ const tMain = createI18n({
     menuNewHtml: 'AI HTML',
     menuNewPdf: 'AI PDF',
     menuExportPdf: 'Esporta come PDF…',
+    menuExportImages: 'Esporta come immagini…',
+    menuExportHtml: 'Esporta come HTML a file singolo…',
     menuOpenInDocs: 'Converti e apri in Docs',
     menuPrint: 'Stampa…',
     menuOpen: 'Apri…',
@@ -1693,8 +1917,11 @@ const tMain = createI18n({
       'La cartella selezionata non è scrivibile e non può essere usata come posizione di salvataggio predefinita',
   },
   pl: {
+    dlgAddFolderRoot: 'Dodaj folder do strony głównej',
+    errFolderRootUnusable: 'Nie można odczytać wybranego folderu',
     menuFile: 'Plik',
     menuSectionNew: 'Nowy',
+    menuOpenInNewWindow: 'Otwórz w nowym oknie',
     menuNewDoc: 'AI Docs',
     menuNewSheet: 'AI Sheets',
     untitledSheet: 'Arkusz bez tytułu',
@@ -1708,6 +1935,8 @@ const tMain = createI18n({
     menuNewHtml: 'AI HTML',
     menuNewPdf: 'AI PDF',
     menuExportPdf: 'Eksportuj jako PDF…',
+    menuExportImages: 'Eksportuj jako obrazy…',
+    menuExportHtml: 'Eksportuj jako pojedynczy plik HTML…',
     menuOpenInDocs: 'Konwertuj i otwórz w Docs',
     menuPrint: 'Drukuj…',
     menuOpen: 'Otwórz…',
@@ -1786,8 +2015,11 @@ const tMain = createI18n({
       'Wybrany folder nie pozwala na zapis i nie może być domyślną lokalizacją zapisu',
   },
   cs: {
+    dlgAddFolderRoot: 'Přidat složku na domovskou stránku',
+    errFolderRootUnusable: 'Vybranou složku nelze načíst',
     menuFile: 'Soubor',
     menuSectionNew: 'Nový',
+    menuOpenInNewWindow: 'Otevřít v novém okně',
     menuNewDoc: 'AI Docs',
     menuNewSheet: 'AI Sheets',
     untitledSheet: 'Sešit bez názvu',
@@ -1801,6 +2033,8 @@ const tMain = createI18n({
     menuNewHtml: 'AI HTML',
     menuNewPdf: 'AI PDF',
     menuExportPdf: 'Exportovat jako PDF…',
+    menuExportImages: 'Exportovat jako obrázky…',
+    menuExportHtml: 'Exportovat jako samostatné HTML…',
     menuOpenInDocs: 'Převést a otevřít v Docs',
     menuPrint: 'Tisk…',
     menuOpen: 'Otevřít…',
@@ -1877,8 +2111,11 @@ const tMain = createI18n({
       'Do vybrané složky nelze zapisovat a nelze ji použít jako výchozí umístění pro ukládání',
   },
   nl: {
+    dlgAddFolderRoot: 'Map toevoegen aan startpagina',
+    errFolderRootUnusable: 'De geselecteerde map kan niet worden gelezen',
     menuFile: 'Bestand',
     menuSectionNew: 'Nieuw',
+    menuOpenInNewWindow: 'Openen in nieuw venster',
     menuNewDoc: 'AI Docs',
     menuNewSheet: 'AI Sheets',
     untitledSheet: 'Naamloze spreadsheet',
@@ -1892,6 +2129,8 @@ const tMain = createI18n({
     menuNewHtml: 'AI HTML',
     menuNewPdf: 'AI PDF',
     menuExportPdf: 'Exporteren als PDF…',
+    menuExportImages: 'Exporteren als afbeeldingen…',
+    menuExportHtml: 'Exporteren als één HTML-bestand…',
     menuOpenInDocs: 'Converteren en openen in Docs',
     menuPrint: 'Afdrukken…',
     menuOpen: 'Openen…',
@@ -1970,8 +2209,11 @@ const tMain = createI18n({
       'De geselecteerde map is niet beschrijfbaar en kan niet als standaard opslaglocatie worden gebruikt',
   },
   ms: {
+    dlgAddFolderRoot: 'Tambah Folder ke Laman Utama',
+    errFolderRootUnusable: 'Folder yang dipilih tidak dapat dibaca',
     menuFile: 'Fail',
     menuSectionNew: 'Baharu',
+    menuOpenInNewWindow: 'Buka dalam Tetingkap Baharu',
     menuNewDoc: 'AI Docs',
     menuNewSheet: 'AI Sheets',
     untitledSheet: 'Hamparan tanpa tajuk',
@@ -1985,6 +2227,8 @@ const tMain = createI18n({
     menuNewHtml: 'AI HTML',
     menuNewPdf: 'AI PDF',
     menuExportPdf: 'Eksport sebagai PDF…',
+    menuExportImages: 'Eksport sebagai imej…',
+    menuExportHtml: 'Eksport sebagai HTML fail tunggal…',
     menuOpenInDocs: 'Tukar dan buka dalam Docs',
     menuPrint: 'Cetak…',
     menuOpen: 'Buka…',
@@ -2062,8 +2306,11 @@ const tMain = createI18n({
       'Folder yang dipilih tidak boleh ditulis dan tidak dapat digunakan sebagai lokasi simpanan lalai',
   },
   he: {
+    dlgAddFolderRoot: 'הוספת תיקייה לדף הבית',
+    errFolderRootUnusable: 'לא ניתן לקרוא את התיקייה שנבחרה',
     menuFile: 'קובץ',
     menuSectionNew: 'חדש',
+    menuOpenInNewWindow: 'פתח בחלון חדש',
     menuNewDoc: 'AI Docs',
     menuNewSheet: 'AI Sheets',
     untitledSheet: 'גיליון אלקטרוני ללא שם',
@@ -2077,6 +2324,8 @@ const tMain = createI18n({
     menuNewHtml: 'AI HTML',
     menuNewPdf: 'AI PDF',
     menuExportPdf: 'ייצוא כ-PDF…',
+    menuExportImages: 'ייצוא כתמונות…',
+    menuExportHtml: 'ייצוא כ-HTML בקובץ יחיד…',
     menuOpenInDocs: 'המרה ופתיחה ב-Docs',
     menuPrint: 'הדפסה…',
     menuOpen: 'פתיחה…',
@@ -2152,8 +2401,11 @@ const tMain = createI18n({
       'התיקייה שנבחרה אינה ניתנת לכתיבה ולא ניתן להשתמש בה כמיקום שמירה כברירת מחדל',
   },
   hi: {
+    dlgAddFolderRoot: 'होम में फ़ोल्डर जोड़ें',
+    errFolderRootUnusable: 'चयनित फ़ोल्डर पढ़ा नहीं जा सका',
     menuFile: 'फ़ाइल',
     menuSectionNew: 'नया',
+    menuOpenInNewWindow: 'नई विंडो में खोलें',
     menuNewDoc: 'AI Docs',
     menuNewSheet: 'AI Sheets',
     untitledSheet: 'शीर्षकहीन स्प्रेडशीट',
@@ -2167,6 +2419,8 @@ const tMain = createI18n({
     menuNewHtml: 'AI HTML',
     menuNewPdf: 'AI PDF',
     menuExportPdf: 'PDF के रूप में निर्यात…',
+    menuExportImages: 'छवियों के रूप में निर्यात…',
+    menuExportHtml: 'एकल-फ़ाइल HTML के रूप में निर्यात…',
     menuOpenInDocs: 'Docs में बदलें और खोलें',
     menuPrint: 'प्रिंट करें…',
     menuOpen: 'खोलें…',
@@ -2245,8 +2499,11 @@ const tMain = createI18n({
       'चयनित फ़ोल्डर में लिखा नहीं जा सकता, इसलिए इसे डिफ़ॉल्ट सहेजने के स्थान के रूप में उपयोग नहीं किया जा सकता',
   },
   'zh-TW': {
+    dlgAddFolderRoot: '將資料夾加入首頁',
+    errFolderRootUnusable: '無法讀取所選資料夾',
     menuFile: '檔案',
     menuSectionNew: '新增',
+    menuOpenInNewWindow: '在新視窗中開啟',
     menuNewDoc: 'AI Docs',
     menuNewSheet: 'AI Sheets',
     untitledSheet: '未命名試算表',
@@ -2260,6 +2517,8 @@ const tMain = createI18n({
     menuNewHtml: 'AI HTML',
     menuNewPdf: 'AI PDF',
     menuExportPdf: '匯出為 PDF…',
+    menuExportImages: '匯出為圖片…',
+    menuExportHtml: '匯出為單檔 HTML…',
     menuOpenInDocs: '轉換為 Docs 文件並開啟',
     menuPrint: '列印…',
     menuOpen: '開啟…',
@@ -2433,37 +2692,191 @@ let tabManager: TabManager | null = null
 let pendingLoginState: { nonce: string; expiresAt: number } | null = null
 
 /**
- * When the user creates a file from a specific project view, remember which
- * project the next save should belong to. key: 'doc' | 'sheet' | 'slide', value: projectId.
- * Consumed by each app's saveHook once the file first hits disk (P1 item 3).
+ * New file from a folder view: the click remembers the folder per kind, the
+ * new-tab code consumes it right away. Sheets / PDF write their blank file
+ * straight into that folder; the editors that save untitled files themselves
+ * (docs, slides, markdown, html) get the folder bound to the tab that was just
+ * created, and the tab's first save moves the fresh file there.
+ * key: 'doc' | 'sheet' | 'slide' | 'markdown' | 'html' | 'pdf'
  */
-const pendingNewFileProject = new Map<string, string>()
+/** folders the user added to the home tree beside the default save folder */
+function extraFolderRoots(): string[] {
+  return readExtraRoots(readAppSettings(APP_SETTINGS_PATH()), defaultSaveDir())
+}
+
+function folderRootPaths(): string[] {
+  return [defaultSaveDir(), ...extraFolderRoots()]
+}
+
+function insideAnyRoot(path: string): boolean {
+  return folderRootPaths().some((root) => isInsideRoot(root, path))
+}
+
+function isAnyRoot(path: string): boolean {
+  const key = resolve(path)
+  return folderRootPaths().some((root) => resolve(root) === key)
+}
+
+const pendingNewFileDir = new Map<string, { dir: string; setAt: number }>()
+/** folder bound to a freshly created editor tab, keyed by its webContents id; consumed by the first save */
+const pendingDirByWc = new Map<number, { dir: string; setAt: number }>()
+/** a pending folder only applies to a file created within this window after the click */
+const PENDING_DIR_TTL_MS = 30 * 60 * 1000
+
+function rememberPendingDir(kind: string, opts?: NewFileOpts): void {
+  const dir = opts?.dir
+  if (!dir || resolve(dir) === resolve(defaultSaveDir()) || !insideAnyRoot(dir)) {
+    pendingNewFileDir.delete(kind)
+    return
+  }
+  pendingNewFileDir.set(kind, { dir, setAt: Date.now() })
+}
+
+/** the folder remembered for this kind, consumed; null when none, expired or gone */
+function takePendingDir(kind: string): { dir: string; setAt: number } | null {
+  const pending = pendingNewFileDir.get(kind)
+  pendingNewFileDir.delete(kind)
+  if (!pending) return null
+  if (Date.now() - pending.setAt > PENDING_DIR_TTL_MS) return null
+  return existsSync(pending.dir) ? pending : null
+}
+
+/** where a shell-created blank file (sheet, pdf) lands: the remembered folder, else the root */
+function newFileDir(kind: string): string {
+  return takePendingDir(kind)?.dir ?? defaultSaveDir()
+}
+
+/** hand the remembered folder to the tab that was just opened for it */
+function bindPendingDir(kind: string, tabId: string | undefined): void {
+  const pending = takePendingDir(kind)
+  const wc = tabId ? tabManager?.webContentsForTab(tabId) : undefined
+  if (pending && wc) pendingDirByWc.set(wc.id, pending)
+}
 
 /**
- * P1: after a file first hits disk, if a pending project was set earlier via
- * "create from project view", move the new file into that project automatically.
- * Called from createShellWindow's opened/saved hooks.
+ * A tab's file first hit disk (silent first save, Save As, or an open): if a
+ * folder is bound to that tab and the file is a fresh one in the root, move
+ * it there. A pre-existing file opened in the tab never qualifies: its birth
+ * time (or, where the filesystem reports none, its mtime) predates the click.
  */
-function applyPendingProject(filePath: string): void {
-  const ext = extname(filePath).slice(1).toLowerCase()
-  let key: string | undefined
-  if (ext === 'docx') key = 'doc'
-  else if (ext === 'xlsx' || ext === 'xlsm' || ext === 'xls' || ext === 'csv') key = 'sheet'
-  else if (ext === 'pptx') key = 'slide'
-  else if (ext === 'md' || ext === 'markdown') key = 'markdown'
-  else if (ext === 'html' || ext === 'htm') key = 'html'
-  else if (ext === 'pdf') key = 'pdf'
-  if (!key) return
-  const projectId = pendingNewFileProject.get(key)
-  if (!projectId) return
-  pendingNewFileProject.delete(key)
+function applyPendingDir(wcId: number, filePath: string): string {
+  const pending = pendingDirByWc.get(wcId)
+  if (!pending) return filePath
+  if (Date.now() - pending.setAt > PENDING_DIR_TTL_MS) {
+    pendingDirByWc.delete(wcId)
+    return filePath
+  }
+  if (resolve(dirname(filePath)) !== resolve(defaultSaveDir())) return filePath
   try {
-    const store = new ProjectStore(app.getPath('userData'))
-    store.ensureDefaultProject()
-    store.resolveProjectForFile(filePath) // assign to default first (idempotent)
-    store.moveFileToProject(filePath, projectId)
+    const stat = statSync(filePath)
+    const born = stat.birthtimeMs || stat.mtimeMs
+    if (born < pending.setAt - 2000) return filePath
+  } catch {
+    return filePath
+  }
+  pendingDirByWc.delete(wcId)
+  if (!existsSync(pending.dir)) return filePath
+  // a clash with an existing name takes the "(2)" suffix rather than staying in the root
+  const target = join(pending.dir, uniqueNameIn(pending.dir, basename(filePath)))
+  try {
+    renameSync(filePath, target)
   } catch (err) {
-    console.warn('[shell] applyPendingProject failed:', err)
+    console.warn('[shell] move new file into folder failed:', err)
+    return filePath
+  }
+  afterFileMoved(filePath, target)
+  return target
+}
+
+/**
+ * Everything that keys on a file path follows a rename/move: recents, stars,
+ * the AI chat history (project-store), the slides start-screen list and any
+ * open tab (which re-grants the new path and refreshes its title).
+ */
+function afterFileMoved(oldPath: string, newPath: string): void {
+  replaceRecentFile(oldPath, newPath)
+  projectFileRenamed(oldPath, newPath)
+  if (/\.pptx$/i.test(newPath)) void replaceSlidesRecentFile(oldPath, newPath)
+  const affected = tabManager?.renameTabFile(oldPath, newPath) ?? []
+  const detachedAffected = detachedRenameFile(oldPath, newPath)
+  if (detachedAffected) affected.push(detachedAffected)
+  for (const t of affected) {
+    if (t.kind === 'slides') slidesFileRenamed(t.webContents, oldPath, newPath)
+    else if (t.kind === 'docs') docsFileRenamed(t.webContents, oldPath, newPath)
+    else if (t.kind === 'sheets') sheetsFileRenamed(t.webContents, oldPath, newPath)
+    else if (t.kind === 'markdown') markdownFileRenamed(t.webContents, oldPath, newPath)
+    else if (t.kind === 'html') htmlFileRenamed(t.webContents, oldPath, newPath)
+    else if (t.kind === 'pdf') pdfFileRenamed(t.webContents, oldPath, newPath)
+  }
+}
+
+function trackedFilesUnder(dir: string): string[] {
+  return pathsUnder(dir, [
+    ...readRecentFiles(),
+    ...readStarredFiles(),
+    ...projectFilePaths(),
+    ...readSlidesRecentFiles(),
+    ...(tabManager?.openFilePaths() ?? []),
+    ...detachedFilePaths(),
+  ])
+}
+
+/** a folder moved/renamed: re-key every tracked file that lived under it */
+function afterFolderMoved(oldDir: string, newDir: string, filesBefore: readonly string[]): void {
+  for (const file of filesBefore) afterFileMoved(file, rebasePath(file, oldDir, newDir))
+}
+
+const folderWatchers = new Map<string, FolderWatcher>()
+
+let fileIndexStore: FileIndexStore | null = null
+let fileIndexer: FileIndexer | null = null
+let searchReranker: SearchReranker | null = null
+
+function readFileSearchSettings(): FileSearchSettings {
+  return normalizeFileSearchSettings(readAppSettings(APP_SETTINGS_PATH()).fileSearch)
+}
+
+/** the search index lives in userData and follows the save folder plus recents/starred */
+function ensureFileIndexer(): FileIndexer | null {
+  if (fileIndexer) return fileIndexer
+  try {
+    fileIndexStore = new FileIndexStore(join(app.getPath('userData'), 'file-index.db'))
+  } catch (e) {
+    console.warn('[file-index] unavailable:', e instanceof Error ? e.message : e)
+    return null
+  }
+  fileIndexer = new FileIndexer(fileIndexStore, extractWorkerPath, {
+    roots: () => folderRootPaths().filter((root) => existsSync(root)),
+    extraPaths: () => [...readRecentFiles(), ...readStarredFiles()],
+  })
+  return fileIndexer
+}
+
+const SEARCH_EXT_FAMILY: Record<string, readonly string[]> = {
+  docx: ['docx', 'doc'],
+  xlsx: ['xlsx', 'xlsm', 'xls', 'csv'],
+  pptx: ['pptx', 'ppt'],
+  md: ['md', 'markdown'],
+  html: ['html', 'htm'],
+}
+
+/** one recursive watcher per tree root; follows the save-folder setting and the added folders */
+function ensureFolderWatchers(): void {
+  const wanted = new Set(folderRootPaths().filter((root) => existsSync(root)))
+  for (const [root, watcher] of folderWatchers) {
+    if (wanted.has(root) && watcher.active) continue
+    watcher.close()
+    folderWatchers.delete(root)
+  }
+  for (const root of wanted) {
+    if (folderWatchers.has(root)) continue
+    const watcher = new FolderWatcher(root, (dirs) => {
+      fileIndexer?.refresh()
+      for (const wc of webContents.getAllWebContents()) {
+        if (!wc.isDestroyed()) wc.send(HOME_CHANNELS.folderChanged, dirs)
+      }
+    })
+    folderWatchers.set(root, watcher)
   }
 }
 
@@ -2495,6 +2908,11 @@ function applyMenuFor(kind: TabKind): void {
   }
 }
 
+function refreshTitleBarOverlay(): void {
+  if (process.platform === 'darwin' || !shellWindow || shellWindow.isDestroyed()) return
+  shellWindow.setTitleBarOverlay(tabStripOverlay(nativeTheme.shouldUseDarkColors))
+}
+
 function createShellWindow(): void {
   const win = new BrowserWindow({
     width: 1360,
@@ -2506,7 +2924,14 @@ function createShellWindow(): void {
     // thumbnail pane) through to the desktop
     ...(process.platform === 'darwin'
       ? { titleBarStyle: 'hiddenInset' as const, vibrancy: 'sidebar' as const }
-      : {}),
+      : {
+          // the tab strip is the title bar, as on macOS; the application menu
+          // stays registered for its accelerators and opens from the strip's
+          // menu button (Alt still reveals the native bar where one exists)
+          titleBarStyle: 'hidden' as const,
+          titleBarOverlay: tabStripOverlay(nativeTheme.shouldUseDarkColors),
+          autoHideMenuBar: true,
+        }),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -2515,16 +2940,26 @@ function createShellWindow(): void {
     },
   })
   shellWindow = win
+  nativeTheme.on('updated', refreshTitleBarOverlay)
+  win.once('closed', () => nativeTheme.off('updated', refreshTitleBarOverlay))
   // dragging the window by the tab strip's blank (draggable) area produces no
   // DOM event anywhere — will-move is the only signal to dismiss popovers
   win.on('will-move', () => broadcastChromePressed())
   // A detached editor window claims the process-global menu/active-editor targets
-  // while focused; take them back when the shell window regains focus
-  win.on('focus', () => tabManager?.refreshActiveTargets())
+  // while focused; take them back when the shell window regains focus. Keyboard
+  // focus must land back on the active tab's view too — regaining window focus
+  // gives it to the chrome webContents, leaving typing dead in the document.
+  win.on('focus', () => {
+    tabManager?.refreshActiveTargets()
+    tabManager?.focusActiveView()
+  })
 
   const manager = new TabManager(
     win,
-    () => win.webContents.send(TABS_CHANNELS.changed, manager.list()),
+    () => {
+      win.webContents.send(TABS_CHANNELS.changed, manager.list())
+      publishOpenDocumentsIfOwner([...manager.openFilePaths(), ...detachedFilePaths()])
+    },
     applyMenuFor,
     // no extension: these tabs have no file on disk yet; the title becomes the
     // real filename (the localized untitled default + .docx etc.) once the first save lands
@@ -2541,11 +2976,17 @@ function createShellWindow(): void {
   )
   tabManager = manager
 
-  // pushRecent-triggered docs menu rebuilds must not clobber the active tab's menu
-  setDocsMenuGate(() => manager.list().some((t) => t.active && t.kind === 'docs'))
+  // pushRecent-triggered docs menu rebuilds must not clobber the active tab's
+  // menu; a focused detached docs window owns the menu just like an active tab
+  setDocsMenuGate(
+    () =>
+      focusedDetachedKind() === 'docs' || manager.list().some((t) => t.active && t.kind === 'docs'),
+  )
 
   setDocsShellWindow(win)
   setSheetsShellWindow(win)
+  setDocsHostWindowHook((wc) => detachedWindowForWebContents(wc.id))
+  setSheetsHostWindowHook((wc) => detachedWindowForWebContents(wc.id))
   setSlidesShellWindow(win)
   setSlidesShowBleed((wc, on) => manager.setContentBleed(wc, on))
   setHtmlPresentHooks({
@@ -2561,20 +3002,30 @@ function createShellWindow(): void {
       return !!id
     },
   })
+  // A detached docs/sheets window can outlive the shell window; its hooks must
+  // then reach the live tab manager (recreating the shell), never this closure's.
   setDocsShellHooks({
-    openTab: (openPath, options) => manager.openDocsTab(openPath, options),
+    openTab: (openPath, options) => ensureTabManager().openDocsTab(openPath, options),
     openAiDocTab: (content) =>
-      manager.openDocsTab(undefined, { newBlank: true, aiContent: content }),
+      ensureTabManager().openDocsTab(undefined, { newBlank: true, aiContent: content }),
     listTabs: () =>
-      manager
-        .list()
+      (tabManager?.list() ?? [])
         .filter((t) => t.kind === 'docs')
         .map((t) => ({ id: t.id, title: t.title, focused: t.active })),
-    focusTab: (id) => manager.activateTab(id),
-    closeActiveTab: () => manager.closeActiveTab(),
+    focusTab: (id) => tabManager?.activateTab(id),
+    // ⌘W in a detached docs window closes that window (its own close guard runs)
+    closeActiveTab: () => {
+      const focused = BrowserWindow.getFocusedWindow()
+      if (focused && focused !== win) focused.close()
+      else tabManager?.closeActiveTab()
+    },
     openGeneratedPath: (path) => openGeneratedDocument(path),
   })
-  setSheetsCloseTabHook(() => manager.closeActiveTab())
+  setSheetsCloseTabHook(() => {
+    const focused = BrowserWindow.getFocusedWindow()
+    if (focused && focused !== win) focused.close()
+    else tabManager?.closeActiveTab()
+  })
   // ⌘W targets the focused window: in a detached slides editor window it closes
   // that window (running its own close guard), not the shell's active tab
   setSlidesCloseTabHook(() => {
@@ -2583,43 +3034,51 @@ function createShellWindow(): void {
     else manager.closeActiveTab()
   })
   // When ⌘O opens a file inside a tab, sync the tab title/path (used for de-dup by path) and record it as recent.
-  // The first save / save-as fires this too, so applyPendingProject also runs here.
+  // The first save / save-as fires this too, so applyPendingDir also runs here.
   setSheetsWorkbookOpenedHook((wc, path) => {
     manager.setTabFileFor(wc.id, path)
+    detachedSetFileFor(wc.id, path)
     recordRecentFile(path)
-    applyPendingProject(path)
   })
   setSlidesOpenedHook((wc, path) => {
     manager.setTabFileFor(wc.id, path)
     recordRecentFile(path)
-    applyPendingProject(path)
+    applyPendingDir(wc.id, path)
   })
   // docs' save-as / silent first save lands on a new path → sync the tab title too
   setDocsFileSavedHook((wc, path) => {
     manager.setTabFileFor(wc.id, path)
+    detachedSetFileFor(wc.id, path)
     recordRecentFile(path)
-    applyPendingProject(path)
+    return applyPendingDir(wc.id, path)
   })
   // ⌘O / open-path inside a docs tab: sync the tab title immediately, same
   // contract as the sheets/slides opened hooks (a plain save to the original
   // path never renames the tab, so the open must — r115)
   setDocsFileOpenedHook((wcId, path) => {
     manager.setTabFileFor(wcId, path)
+    detachedSetFileFor(wcId, path)
     recordRecentFile(path)
-    applyPendingProject(path)
+    applyPendingDir(wcId, path)
   })
   // markdown untitled first save / Save As lands on a new path
   setMarkdownFileSavedHook((wc, path) => {
     manager.setTabFileFor(wc.id, path)
     recordRecentFile(path)
-    applyPendingProject(path)
+    applyPendingDir(wc.id, path)
   })
   setHtmlFileSavedHook((wc, path) => {
     manager.setTabFileFor(wc.id, path)
     recordRecentFile(path)
-    applyPendingProject(path)
+    applyPendingDir(wc.id, path)
   })
   setHtmlProvisionalTitleHook((wc, title) => manager.setTabTitleFor(wc.id, title))
+  // A redacted copy becomes this tab's document; the source still exists.
+  setPdfRedactionSavedHook((wc, path) => {
+    manager.setTabFileFor(wc.id, path)
+    recordRecentFile(path)
+    applyPendingDir(wc.id, path)
+  })
   // pdf content-derived auto-rename: the file moved on disk, follow it everywhere
   setPdfRenamedHook((wc, oldPath, newPath) => {
     manager.setTabFileFor(wc.id, newPath)
@@ -2701,7 +3160,10 @@ function createShellWindow(): void {
 
   win.on('closed', () => {
     if (shellWindow === win) shellWindow = null
-    if (tabManager === manager) tabManager = null
+    if (tabManager === manager) {
+      tabManager = null
+      publishAllOpenDocuments()
+    }
   })
 
   if (process.env.ELECTRON_RENDERER_URL) {
@@ -2775,6 +3237,24 @@ function notifyUnsupportedFile(filePath: string): void {
   }
 }
 
+/**
+ * Files dropped from the OS into any renderer arrive via installDropOpenBridge
+ * and route through the normal File > Open pipeline; detached editor windows
+ * can host the drop target, so the shell must reveal itself after opening.
+ */
+const droppedFilesDeps = () => ({
+  openDocumentPath,
+  revealShellWindow,
+  showWarning: showAppWarning,
+  unsupportedMessage: (exts: string[]) => tm('errUnsupportedExt', { ext: exts.join(', ') }),
+})
+
+function registerDroppedFilesIpc(): void {
+  ipcMain.on(DROP_OPEN_CHANNEL, (_event, raw: unknown) =>
+    handleDroppedFiles(raw, droppedFilesDeps()),
+  )
+}
+
 /** the single router: extension decides which module owns the file; false = nothing opened */
 function openDocumentPath(filePath: string): boolean {
   const opened = routeDocumentPath(filePath)
@@ -2806,7 +3286,10 @@ function openGeneratedDocument(filePath: string): boolean {
 }
 
 function routeDocumentPath(filePath: string): boolean {
-  if (!existsSync(filePath) || !tabManager) return false
+  if (!existsSync(filePath)) return false
+  // a detached editor window already shows this file — focus it, never a second copy
+  if (focusDetachedByPath(filePath)) return true
+  if (!tabManager) return false
   if (DOCX_RE.test(filePath)) {
     recordRecentFile(filePath)
     const existing = tabManager.findDocsTabByPath(filePath)
@@ -2869,7 +3352,7 @@ function routeDocumentPath(filePath: string): boolean {
  */
 async function newSheetTab(): Promise<void> {
   try {
-    const filePath = uniquePathIn(defaultSaveDir(), `${tm('untitledSheet')}.xlsx`)
+    const filePath = uniquePathIn(newFileDir('sheet'), `${tm('untitledSheet')}.xlsx`)
     writeFileSync(filePath, await blankXlsxBuffer())
     // eligible for content-derived auto-rename after the first AI generation
     markSheetsUntitledPath(filePath)
@@ -2900,7 +3383,7 @@ function surfaceNewTabError(err: unknown): void {
 
 function newDocTab(): void {
   try {
-    tabManager?.openDocsTab(undefined, { newBlank: true })
+    bindPendingDir('doc', tabManager?.openDocsTab(undefined, { newBlank: true }))
     // creating a document is as much a value moment as opening one
     recordStarPromptDocOpen()
     analytics.track('file_new', { kind: 'docx' })
@@ -2909,9 +3392,108 @@ function newDocTab(): void {
   }
 }
 
+/** MCP: open a blank docs tab and return its webContents id, for the visible-editor bridge */
+function openBlankDocsTabForMcp(): number {
+  if (!tabManager) throw new Error('GenOffice is not ready')
+  const tabId = tabManager.openDocsTab(undefined, { newBlank: true })
+  const view = tabManager.docsTabs().find((t) => t.id === tabId)
+  if (!view) throw new Error('the new document tab could not be opened')
+  recordStarPromptDocOpen()
+  analytics.track('file_new', { kind: 'docx' })
+  return view.webContents.id
+}
+
+/**
+ * MCP: open a blank sheets tab and return its webContents id, for the
+ * visible-grid bridge. Like the app's own "new spreadsheet", a real blank
+ * .xlsx is created up front (the save pipeline needs an on-disk workbook;
+ * the fallback in-memory demo grid cannot save) — but the AI auto-rename
+ * marking is skipped, the file name is the agent's business.
+ */
+async function openBlankSheetsTabForMcp(): Promise<number> {
+  if (!tabManager) throw new Error('GenOffice is not ready')
+  const filePath = uniquePathIn(defaultSaveDir(), `${tm('untitledSheet')}.xlsx`)
+  writeFileSync(filePath, await blankXlsxBuffer())
+  const tabId = tabManager.openSheetsTab(filePath)
+  const view = tabManager.sheetsTabs().find((t) => t.id === tabId)
+  if (!view) {
+    // the tab never appeared, so nothing will ever consume this file
+    try {
+      rmSync(filePath)
+    } catch (error) {
+      console.warn('[mcp] could not remove the unused blank workbook:', error)
+    }
+    throw new Error('the new spreadsheet tab could not be opened')
+  }
+  const wcId = view.webContents.id
+  mcpBlankSheetPaths.set(wcId, filePath)
+  view.webContents.once('destroyed', () => mcpBlankSheetPaths.delete(wcId))
+  // Same nudge the interactive path uses: the renderer subscribes to the open
+  // action only after Univer mounts, so a single push can land in the void on a
+  // cold start and leave the tab sitting on a blank in-memory workbook.
+  startQueuedWorkbookNudge()
+  recordStarPromptDocOpen()
+  analytics.track('file_new', { kind: 'xlsx' })
+  return view.webContents.id
+}
+
+/** backing files of blank sheets tabs created by the MCP session tools */
+const mcpBlankSheetPaths = new Map<number, string>()
+
+/**
+ * MCP: drop a blank sheets tab whose session never became ready, and delete the
+ * empty workbook created for it. Without this a failed `create_session` leaves
+ * an orphan tab plus an .xlsx in the default save folder that the user never
+ * asked for — and nothing in the MCP surface can clean either one up.
+ */
+function abandonBlankSheetsTabForMcp(wcId: number): void {
+  const manager = tabManager
+  const filePath = mcpBlankSheetPaths.get(wcId)
+  mcpBlankSheetPaths.delete(wcId)
+  if (!manager) return
+  // the grid may already be usable while the MCP bridge is not: keep anything the user typed
+  if (manager.dirtySheetsTabs().some((t) => t.webContents.id === wcId)) return
+  if (!abandonBlankTabForMcp(manager.sheetsTabs(), wcId)) return
+  if (!filePath) return
+  try {
+    if (existsSync(filePath)) rmSync(filePath)
+  } catch (error) {
+    console.warn('[mcp] could not remove the unused blank workbook:', error)
+  }
+}
+
+/**
+ * MCP: close a tab whose session never became ready. Returns false when the
+ * tab could not be closed (it is already gone, or the close failed).
+ */
+function abandonBlankTabForMcp(
+  tabs: Array<{ id: string; webContents: WebContents }>,
+  wcId: number,
+): boolean {
+  const tab = tabs.find((t) => t.webContents.id === wcId)
+  if (!tab || !tabManager) return false
+  try {
+    return tabManager.closeTabWithoutPrompt(tab.id)
+  } catch (error) {
+    console.warn('[mcp] could not close the unused tab:', error)
+    return false
+  }
+}
+
+/** MCP: open a blank slides tab and return its webContents id, for the visible-deck bridge */
+function openBlankSlidesTabForMcp(): number {
+  if (!tabManager) throw new Error('GenOffice is not ready')
+  const tabId = tabManager.openSlidesTab()
+  const view = tabManager.slidesTabs().find((t) => t.id === tabId)
+  if (!view) throw new Error('the new presentation tab could not be opened')
+  recordStarPromptDocOpen()
+  analytics.track('file_new', { kind: 'pptx' })
+  return view.webContents.id
+}
+
 function newSlideTab(): void {
   try {
-    tabManager?.openSlidesTab()
+    bindPendingDir('slide', tabManager?.openSlidesTab())
     recordStarPromptDocOpen()
     analytics.track('file_new', { kind: 'pptx' })
   } catch (err) {
@@ -2921,7 +3503,7 @@ function newSlideTab(): void {
 
 function newMarkdownTab(): void {
   try {
-    tabManager?.openMarkdownTab()
+    bindPendingDir('markdown', tabManager?.openMarkdownTab())
     recordStarPromptDocOpen()
     analytics.track('file_new', { kind: 'md' })
   } catch (err) {
@@ -2931,7 +3513,7 @@ function newMarkdownTab(): void {
 
 function newHtmlTab(): void {
   try {
-    tabManager?.openHtmlTab()
+    bindPendingDir('html', tabManager?.openHtmlTab())
     recordStarPromptDocOpen()
     analytics.track('file_new', { kind: 'html' })
   } catch (err) {
@@ -2946,12 +3528,10 @@ function newHtmlTab(): void {
  */
 async function newPdfTab(): Promise<void> {
   try {
-    const filePath = uniquePathIn(defaultSaveDir(), `${tm('untitledPdf')}.pdf`)
+    const filePath = uniquePathIn(newFileDir('pdf'), `${tm('untitledPdf')}.pdf`)
     writeFileSync(filePath, await blankPdfBuffer())
     // Opt the file into content-derived auto-naming on its first save
     markPdfUntitledPath(filePath)
-    // PDF has no opened/saved shell hook — assign the pending project right here
-    applyPendingProject(filePath)
     // route directly (not via openDocumentPath) so creating a pdf emits only
     // file_new and counts one doc-open — same as the blank workbook above
     if (routeDocumentPath(filePath)) recordStarPromptDocOpen()
@@ -3080,11 +3660,76 @@ function registerHomeIpc(): void {
     pageRecentPaths(readRecentFiles(), query, new Set(readStarredFiles())),
   )
 
+  ipcMain.handle(HOME_CHANNELS.searchFiles, (_event, raw: unknown): FileSearchPage => {
+    const query = (raw && typeof raw === 'object' ? raw : {}) as Partial<FileSearchQuery>
+    const indexer = ensureFileIndexer()
+    if (!indexer || !fileIndexStore) {
+      return { hits: [], total: 0, index: { indexed: 0, pending: 0, scanning: false } }
+    }
+    // an open search box is the moment a stale index shows; rescan at most once a minute
+    indexer.refreshIfStale(60_000)
+    const q = typeof query.q === 'string' ? query.q.trim().slice(0, 200) : ''
+    const filter = typeof query.ext === 'string' ? query.ext : ''
+    const exts = filter && filter !== 'all' ? (SEARCH_EXT_FAMILY[filter] ?? [filter]) : undefined
+    const offset = Number.isFinite(query.offset) ? Math.max(0, Math.floor(query.offset!)) : 0
+    const limit = Number.isFinite(query.limit) ? Math.max(0, Math.floor(query.limit!)) : 50
+    const starred = new Set(readStarredFiles())
+    const result = q ? fileIndexStore.search(q, { exts, offset, limit }) : { hits: [], total: 0 }
+    return {
+      hits: result.hits.map((h) => ({ ...h, starred: starred.has(h.path) })),
+      total: result.total,
+      index: indexer.progress(),
+    }
+  })
+
+  ipcMain.handle(
+    HOME_CHANNELS.rerankSearch,
+    async (_event, raw: unknown): Promise<FileSearchRerank | null> => {
+      const settings = readFileSearchSettings()
+      if (!settings.rerank) return null
+      const query = (raw && typeof raw === 'object' ? raw : {}) as { q?: unknown; paths?: unknown }
+      const q = typeof query.q === 'string' ? query.q.trim().slice(0, 200) : ''
+      const paths = Array.isArray(query.paths)
+        ? query.paths.filter((p): p is string => typeof p === 'string').slice(0, 20)
+        : []
+      if (!q || paths.length < 2 || !ensureFileIndexer() || !fileIndexStore) return null
+      searchReranker ??= new SearchReranker(fileIndexStore)
+      return searchReranker.rerank(q, paths, settings)
+    },
+  )
+
+  ipcMain.handle(HOME_CHANNELS.getFileSearchSettings, (): FileSearchSettings =>
+    readFileSearchSettings(),
+  )
+
+  ipcMain.handle(
+    HOME_CHANNELS.setFileSearchSettings,
+    (_event, patch: unknown): FileSearchSettings => {
+      const current = readFileSearchSettings()
+      const p = (patch && typeof patch === 'object' ? patch : {}) as Partial<FileSearchSettings>
+      const next = normalizeFileSearchSettings({
+        ...current,
+        ...p,
+        jevKeys: { ...current.jevKeys, ...(p.jevKeys ?? {}) },
+      })
+      writeAppSetting(APP_SETTINGS_PATH(), 'fileSearch', next)
+      return next
+    },
+  )
+
+  ipcMain.handle(HOME_CHANNELS.testFileSearchRerank, (_event, input: unknown) => {
+    const { endpoint, apiKey } = (input && typeof input === 'object' ? input : {}) as {
+      endpoint?: unknown
+      apiKey?: unknown
+    }
+    return probeJev(jevEndpointOf(endpoint), typeof apiKey === 'string' ? apiKey : '')
+  })
+
   // Starred files sort by mtime, which requires stat-ing them all first; they are hand-picked and few, so this is fine
   ipcMain.handle(HOME_CHANNELS.starred, (_event, query: unknown): RecentPage => {
     const { offset, limit, ext } = normalizeRecentQuery(query)
     const all = statEntries(readStarredFiles()).sort((a, b) => b.mtimeMs - a.mtimeMs)
-    const filtered = ext ? all.filter((entry) => entry.ext === ext) : all
+    const filtered = ext ? all.filter((entry) => matchesExtFamily(entry.ext, ext)) : all
     return {
       entries: limit === 0 ? [] : filtered.slice(offset, offset + limit),
       total: filtered.length,
@@ -3101,7 +3746,9 @@ function registerHomeIpc(): void {
   })
 
   ipcMain.handle(HOME_CHANNELS.openPath, (_event, path: unknown) => {
-    if (typeof path === 'string' && assertSafeUserPath(path)) openDocumentPath(path)
+    if (typeof path !== 'string' || !path || path.length > 4096 || !assertSafeUserPath(path)) return
+    openDocumentPath(path)
+    fileIndexer?.refresh()
   })
 
   ipcMain.handle(HOME_CHANNELS.browse, async (event) => {
@@ -3123,38 +3770,28 @@ function registerHomeIpc(): void {
     if (!result.canceled) for (const path of result.filePaths) openDocumentPath(path)
   })
 
-  ipcMain.handle(HOME_CHANNELS.newDoc, (_event, opts?: { projectId?: string }) => {
-    if (opts?.projectId && opts.projectId !== 'default') {
-      pendingNewFileProject.set('doc', opts.projectId)
-    }
+  ipcMain.handle(HOME_CHANNELS.newDoc, (_event, opts?: NewFileOpts) => {
+    rememberPendingDir('doc', opts)
     newDocTab()
   })
 
-  ipcMain.handle(HOME_CHANNELS.newSheet, (_event, opts?: { projectId?: string }) => {
-    if (opts?.projectId && opts.projectId !== 'default') {
-      pendingNewFileProject.set('sheet', opts.projectId)
-    }
+  ipcMain.handle(HOME_CHANNELS.newSheet, (_event, opts?: NewFileOpts) => {
+    rememberPendingDir('sheet', opts)
     void newSheetTab()
   })
 
-  ipcMain.handle(HOME_CHANNELS.newSlide, (_event, opts?: { projectId?: string }) => {
-    if (opts?.projectId && opts.projectId !== 'default') {
-      pendingNewFileProject.set('slide', opts.projectId)
-    }
+  ipcMain.handle(HOME_CHANNELS.newSlide, (_event, opts?: NewFileOpts) => {
+    rememberPendingDir('slide', opts)
     newSlideTab()
   })
 
-  ipcMain.handle(HOME_CHANNELS.newMarkdown, (_event, opts?: { projectId?: string }) => {
-    if (opts?.projectId && opts.projectId !== 'default') {
-      pendingNewFileProject.set('markdown', opts.projectId)
-    }
+  ipcMain.handle(HOME_CHANNELS.newMarkdown, (_event, opts?: NewFileOpts) => {
+    rememberPendingDir('markdown', opts)
     newMarkdownTab()
   })
 
-  ipcMain.handle(HOME_CHANNELS.newHtml, (_event, opts?: { projectId?: string }) => {
-    if (opts?.projectId && opts.projectId !== 'default') {
-      pendingNewFileProject.set('html', opts.projectId)
-    }
+  ipcMain.handle(HOME_CHANNELS.newHtml, (_event, opts?: NewFileOpts) => {
+    rememberPendingDir('html', opts)
     newHtmlTab()
   })
 
@@ -3162,10 +3799,13 @@ function registerHomeIpc(): void {
     tabManager?.openMailTab()
   })
 
-  ipcMain.handle(HOME_CHANNELS.newPdf, (_event, opts?: { projectId?: string }) => {
+  ipcMain.handle(HOME_CHANNELS.newPdf, (_event, opts?: NewFileOpts) => {
     if (opts?.projectId && opts.projectId !== 'default') {
       pendingNewFileProject.set('pdf', opts.projectId)
     }
+    rememberPendingDir('pdf', opts)
+    tabManager?.openNewTab('pdf')
+  })
     void newPdfTab()
   })
 
@@ -3184,8 +3824,8 @@ function registerHomeIpc(): void {
       if (typeof path !== 'string' || typeof newName !== 'string')
         return { ok: false, error: tm('errBadArgs') }
       if (!assertSafeUserPath(path)) return { ok: false, error: tm('errBadArgs') }
+      if (!isValidRawRenameName(newName)) return { ok: false, error: tm('errBadName') }
       const name = newName.trim()
-      if (!isValidRenameName(name)) return { ok: false, error: tm('errBadName') }
       if (!existsSync(path)) return { ok: false, error: tm('errMissing') }
       const target = join(dirname(path), name)
       if (target === path) return { ok: true, path }
@@ -3199,20 +3839,7 @@ function registerHomeIpc(): void {
       } catch (err) {
         return { ok: false, error: err instanceof Error ? err.message : tm('errRenameFailed') }
       }
-      replaceRecentFile(path, target)
-      // project-store's fileMap/chatIdByPath re-key too, so AI chat history follows the file
-      projectFileRenamed(path, target)
-      // the slides module's own recent list switches to the new path as well (used by the start screen)
-      if (/\.pptx$/i.test(target)) void replaceSlidesRecentFile(path, target)
-      // open tabs sync their title/path; each editor then syncs its internal save path and title bar
-      const affected = tabManager?.renameTabFile(path, target) ?? []
-      for (const t of affected) {
-        if (t.kind === 'slides') slidesFileRenamed(t.webContents, path, target)
-        else if (t.kind === 'docs') docsFileRenamed(t.webContents, path, target)
-        else if (t.kind === 'sheets') sheetsFileRenamed(t.webContents, path, target)
-        else if (t.kind === 'markdown') markdownFileRenamed(t.webContents, path, target)
-        else if (t.kind === 'html') htmlFileRenamed(t.webContents, path, target)
-      }
+      afterFileMoved(path, target)
       return { ok: true, path: target }
     },
   )
@@ -3298,6 +3925,7 @@ function registerHomeIpc(): void {
     cachedTheme = theme
     writeAppSetting(APP_SETTINGS_PATH(), 'theme', theme)
     nativeTheme.themeSource = theme
+    refreshTitleBarOverlay()
     for (const wc of webContents.getAllWebContents()) wc.send('app:theme-changed', theme)
   })
 
@@ -3316,6 +3944,54 @@ function registerHomeIpc(): void {
     for (const wc of webContents.getAllWebContents()) wc.send('app:auto-save-default-changed', next)
   })
 
+  ipcMain.handle(HOME_CHANNELS.getMcpStatus, () => mcpStatus())
+
+  ipcMain.handle(HOME_CHANNELS.setMcpSettings, async (_event, patch: unknown) => {
+    if (!patch || typeof patch !== 'object') return mcpStatus()
+    const request = patch as {
+      enabled?: unknown
+      port?: unknown
+      background?: unknown
+      logging?: unknown
+    }
+    const current = currentMcpSettings()
+    const enabled = typeof request.enabled === 'boolean' ? request.enabled : current.enabled
+    const port =
+      typeof request.port === 'number' &&
+      Number.isInteger(request.port) &&
+      request.port > 0 &&
+      request.port < 65536
+        ? request.port
+        : current.port
+    const background =
+      typeof request.background === 'boolean' ? request.background : current.background
+    const logging = typeof request.logging === 'boolean' ? request.logging : current.logging
+    writeAppSettings(APP_SETTINGS_PATH(), {
+      mcpEnabled: enabled,
+      mcpPort: port,
+      mcpBackground: background,
+      mcpLogging: logging,
+    })
+    try {
+      return await applyMcpSettings({ enabled, port, background, logging })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      return { ...mcpStatus(), error: message }
+    }
+  })
+
+  ipcMain.handle(HOME_CHANNELS.getMcpLogs, () => getMcpRecentLogs())
+
+  ipcMain.handle(HOME_CHANNELS.clearMcpLogs, () => {
+    clearMcpLogs()
+  })
+
+  ipcMain.handle(HOME_CHANNELS.openMcpLogFile, () => {
+    revealMcpLogFile()
+    const logPath = mcpLogFilePath()
+    if (logPath) shell.showItemInFolder(logPath)
+  })
+
   ipcMain.handle(HOME_CHANNELS.getAnalyticsEnabled, (): boolean => analyticsEnabled())
 
   ipcMain.handle(HOME_CHANNELS.setAnalyticsEnabled, (_event, enabled: unknown): boolean => {
@@ -3326,12 +4002,13 @@ function registerHomeIpc(): void {
   ipcMain.handle(HOME_CHANNELS.getAiPanelPrefs, (): AiPanelPrefs => currentAiPanelPrefs())
   ipcMain.handle('app:get-ai-panel-prefs', (): AiPanelPrefs => currentAiPanelPrefs())
 
-  ipcMain.handle(HOME_CHANNELS.setAiPanelPrefs, (_event, patch: unknown): AiPanelPrefs => {
+  const setAiPanelPrefs = (patch: unknown): AiPanelPrefs => {
     const prev = currentAiPanelPrefs()
     const raw =
       patch !== null && typeof patch === 'object' ? (patch as Record<string, unknown>) : {}
     // unknown/malformed fields fall back to the previous value, not the default
     const next = normalizeAiPanelPrefs({
+      side: raw.side === 'left' || raw.side === 'right' ? raw.side : prev.side,
       fontSize: 'fontSize' in raw ? raw.fontSize : prev.fontSize,
       customFontSize: 'customFontSize' in raw ? raw.customFontSize : prev.customFontSize,
       spellcheck: 'spellcheck' in raw ? raw.spellcheck : prev.spellcheck,
@@ -3339,16 +4016,181 @@ function registerHomeIpc(): void {
     if (sameAiPanelPrefs(next, prev)) return prev
     cachedAiPanelPrefs = next
     writeAppSettings(APP_SETTINGS_PATH(), {
+      aiPanelSide: next.side,
       aiPanelFontSize: next.fontSize,
       aiPanelCustomFontSize: next.customFontSize,
       aiPanelSpellcheck: next.spellcheck,
     })
     for (const wc of webContents.getAllWebContents()) wc.send('app:ai-panel-prefs-changed', next)
     return next
-  })
+  }
+  ipcMain.handle(HOME_CHANNELS.setAiPanelPrefs, (_event, patch) => setAiPanelPrefs(patch))
+  ipcMain.handle('app:set-ai-panel-prefs', (_event, patch) => setAiPanelPrefs(patch))
 
   // effective folder where new/untitled files land; the editor mains resolve
   // the same setting themselves (configuredDefaultSaveDir via docs' defaultSaveDir)
+  // ── folder tree over the default save folder ──
+  const folderErrors = (): FolderErrors => ({
+    badArgs: tm('errBadArgs'),
+    badName: tm('errBadName'),
+    missing: tm('errMissing'),
+    exists: tm('errExists'),
+    failed: tm('errRenameFailed'),
+  })
+  const insideRoot = (path: unknown): path is string =>
+    typeof path === 'string' && insideAnyRoot(path)
+  const isRoot = (path: string) => isAnyRoot(path)
+
+  ipcMain.handle(HOME_CHANNELS.folderRoots, (): FolderRoot[] => {
+    // describeRoot creates a missing save folder, so its watcher has something to attach to
+    const roots = [describeRoot(defaultSaveDir()), ...extraFolderRoots().map(describeExtraRoot)]
+    ensureFolderWatchers()
+    return roots
+  })
+
+  // an added folder joins the tree where it is: nothing on disk is created, copied or moved
+  const addFolderRoot = (path: string): FolderRoot | null => {
+    const extras = withExtraRoot(extraFolderRoots(), defaultSaveDir(), path)
+    if (!extras) return null
+    writeAppSetting(APP_SETTINGS_PATH(), FOLDER_ROOTS_KEY, extras)
+    ensureFolderWatchers()
+    fileIndexer?.refresh()
+    return describeExtraRoot(path)
+  }
+
+  ipcMain.handle(HOME_CHANNELS.addFolderRoot, async (): Promise<FolderRoot | null> => {
+    const result = await showOpenDialogWithMemory(dialog, shellWindow, {
+      title: tm('dlgAddFolderRoot'),
+      properties: ['openDirectory'],
+    })
+    const picked = result.filePaths[0]
+    if (result.canceled || !picked) return null
+    if (!describeExtraRoot(picked).readable) {
+      showErrorDialog(shellWindow, tm('errFolderRootUnusable'), picked)
+      return null
+    }
+    return addFolderRoot(picked)
+  })
+
+  ipcMain.handle(HOME_CHANNELS.dropFolderRoots, (_event, paths: unknown): FolderRoot[] => {
+    const added: FolderRoot[] = []
+    const files: string[] = []
+    for (const path of stringPaths(paths)) {
+      if (!describeExtraRoot(path).readable) {
+        files.push(path)
+        continue
+      }
+      const root = addFolderRoot(path)
+      if (root) added.push(root)
+    }
+    if (files.length > 0) handleDroppedFiles(files, droppedFilesDeps())
+    return added
+  })
+
+  ipcMain.handle(HOME_CHANNELS.removeFolderRoot, (_event, path: unknown) => {
+    if (typeof path !== 'string') return
+    const extras = withoutExtraRoot(extraFolderRoots(), path)
+    writeAppSetting(APP_SETTINGS_PATH(), FOLDER_ROOTS_KEY, extras)
+    ensureFolderWatchers()
+    fileIndexer?.refresh()
+  })
+
+  ipcMain.handle(HOME_CHANNELS.listFolder, (_event, dir: unknown): FolderListing => {
+    if (!insideRoot(dir)) return { dir: String(dir), folders: [], files: [] }
+    return listFolder(dir, new Set(readStarredFiles()))
+  })
+
+  ipcMain.handle(
+    HOME_CHANNELS.createFolder,
+    (_event, parent: unknown, name: unknown): RenameResult => {
+      if (!insideRoot(parent) || typeof name !== 'string')
+        return { ok: false, error: tm('errBadArgs') }
+      return createFolder(parent, name, folderErrors())
+    },
+  )
+
+  ipcMain.handle(
+    HOME_CHANNELS.renameFolder,
+    (_event, dir: unknown, newName: unknown): RenameResult => {
+      if (!insideRoot(dir) || isRoot(dir) || typeof newName !== 'string')
+        return { ok: false, error: tm('errBadArgs') }
+      const filesBefore = trackedFilesUnder(dir)
+      const result = renameFolder(dir, newName, folderErrors())
+      if (result.ok && result.path && result.path !== dir) {
+        afterFolderMoved(dir, result.path, filesBefore)
+      }
+      return result
+    },
+  )
+
+  ipcMain.handle(
+    HOME_CHANNELS.movePaths,
+    async (_event, paths: unknown, targetDir: unknown, policy: unknown): Promise<MoveResult> => {
+      const list = stringPaths(paths)
+      if (!insideRoot(targetDir)) {
+        const error = tm('errBadArgs')
+        return { moved: [], conflicts: [], failed: list.map((path) => ({ path, error })) }
+      }
+      const conflictPolicy: MoveConflictPolicy =
+        policy === 'replace' || policy === 'keepBoth' || policy === 'skip' ? policy : 'ask'
+      const isDir = (p: string) => {
+        try {
+          return statSync(p).isDirectory()
+        } catch {
+          return false
+        }
+      }
+      // files may come from anywhere (the Recent list); folders only from inside the tree, never a root itself
+      const sources = list.filter((p) => !isDir(p) || (insideAnyRoot(p) && !isAnyRoot(p)))
+      const dirFiles = new Map(sources.filter(isDir).map((p) => [p, trackedFilesUnder(p)]))
+      // 'replace' must not destroy data: the displaced target goes to the trash,
+      // and everything keyed on its path (recents, stars, chat history) leaves
+      // with it so the incoming file does not inherit another document's record
+      const displaced: string[] = []
+      const result = movePathsInto(sources, targetDir, conflictPolicy, folderErrors(), {
+        replaceExisting: (path) => {
+          const parked = join(dirname(path), `.genoffice-replaced-${Date.now()}-${basename(path)}`)
+          const files = isDir(path) ? trackedFilesUnder(path) : [path]
+          renameSync(path, parked)
+          return {
+            commit: () => {
+              displaced.push(parked)
+              removeRecentFiles(files)
+              removeStarredFiles(files)
+              for (const file of files) projectFileRenamed(file, rebasePath(file, path, parked))
+            },
+            rollback: () => renameSync(parked, path),
+          }
+        },
+      })
+      for (const parked of displaced) {
+        try {
+          await shell.trashItem(parked)
+        } catch {
+          rmSync(parked, { recursive: true, force: true })
+        }
+      }
+      for (const { from, to } of result.moved) {
+        const files = dirFiles.get(from)
+        if (files) afterFolderMoved(from, to, files)
+        else afterFileMoved(from, to)
+      }
+      return result
+    },
+  )
+
+  ipcMain.handle(HOME_CHANNELS.deleteFolder, async (_event, dir: unknown) => {
+    if (!insideRoot(dir) || isRoot(dir)) return
+    const files = trackedFilesUnder(dir)
+    try {
+      await shell.trashItem(dir)
+    } catch {
+      return
+    }
+    removeRecentFiles(files)
+    removeStarredFiles(files)
+  })
+
   ipcMain.handle(HOME_CHANNELS.getDefaultSaveDir, (): string => defaultSaveDir())
 
   ipcMain.handle(HOME_CHANNELS.pickDefaultSaveDir, async (): Promise<string | null> => {
@@ -3364,6 +4206,7 @@ function registerHomeIpc(): void {
       return null
     }
     writeAppSetting(APP_SETTINGS_PATH(), DEFAULT_SAVE_DIR_KEY, picked)
+    ensureFolderWatchers()
     return picked
   })
 
@@ -3521,11 +4364,34 @@ function broadcastChromePressed(exclude?: WebContents): void {
   }
 }
 
+/** the shell's tab manager, recreating the shell window when a detached editor outlived it */
+function ensureTabManager(): TabManager {
+  if (!tabManager) createShellWindow()
+  if (!tabManager) throw new Error('the shell window could not be created')
+  return tabManager
+}
+
+/** "Open in New Window": reparent the tab's live view into a detached editor
+ *  window — the document moves as-is, unsaved edits included. */
+function detachTabToWindow(id: string): void {
+  if (!tabManager) return
+  const record = tabManager.detachTab(id)
+  if (!record) return
+  const win = createDetachedEditorWindow({ ...record, applyMenuFor })
+  win.focus()
+}
+
 function registerTabsIpc(): void {
   ipcMain.on(TABS_CHANNELS.chromePressed, (event) => broadcastChromePressed(event.sender))
   ipcMain.handle(TABS_CHANNELS.list, () => tabManager?.list() ?? [])
-  ipcMain.handle(TABS_CHANNELS.activate, (_event, id: string) => tabManager?.activateTab(id))
-  ipcMain.handle(TABS_CHANNELS.close, (_event, id: string) => tabManager?.closeTab(id))
+  ipcMain.handle(TABS_CHANNELS.activate, (_event, id: unknown) => {
+    if (typeof id !== 'string' || !id) return
+    tabManager?.activateTab(id)
+  })
+  ipcMain.handle(TABS_CHANNELS.close, (_event, id: unknown) => {
+    if (typeof id !== 'string' || !id) return
+    return tabManager?.closeTab(id)
+  })
   ipcMain.handle(TABS_CHANNELS.reorder, (_event, id: string, toIndex: number) => {
     if (typeof id === 'string' && Number.isInteger(toIndex)) tabManager?.reorderTab(id, toIndex)
   })
@@ -3585,6 +4451,15 @@ function registerTabsIpc(): void {
   )
   // "all tabs" overflow menu — native popup because the editors' WebContentsView
   // would cover any DOM dropdown the shell renderer draws below the tab strip
+  ipcMain.handle(TABS_CHANNELS.showAppMenu, (_event, x: unknown, y: unknown) => {
+    if (!shellWindow) return
+    Menu.getApplicationMenu()?.popup({
+      window: shellWindow,
+      ...(typeof x === 'number' && typeof y === 'number'
+        ? { x: Math.round(x), y: Math.round(y) }
+        : {}),
+    })
+  })
   ipcMain.handle(TABS_CHANNELS.showMenu, (_event, x: unknown, y: unknown) => {
     if (!tabManager || !shellWindow) return
     const menu = Menu.buildFromTemplate(
@@ -3597,6 +4472,38 @@ function registerTabsIpc(): void {
       })),
     )
     menu.popup({
+      window: shellWindow,
+      ...(typeof x === 'number' && typeof y === 'number'
+        ? { x: Math.round(x), y: Math.round(y) }
+        : {}),
+    })
+  })
+  ipcMain.handle(TABS_CHANNELS.detach, (_event, id: unknown) => {
+    if (typeof id !== 'string') return
+    const tab = tabManager?.list().find((t) => t.id === id)
+    if (tab && (tab.kind === 'docs' || tab.kind === 'sheets')) detachTabToWindow(id)
+  })
+  // per-tab context menu — native for the same reason as the tab list above
+  ipcMain.handle(TABS_CHANNELS.showTabMenu, (_event, id: unknown, x: unknown, y: unknown) => {
+    if (!tabManager || !shellWindow || typeof id !== 'string') return
+    const tab = tabManager.list().find((t) => t.id === id)
+    if (!tab || tab.kind === 'home') return
+    const template: MenuItemConstructorOptions[] = []
+    // MVP: docs + sheets; the other editors follow once their
+    // detached-window quirks (slides fullscreen bleed, pdf) are covered
+    if (tab.kind === 'docs' || tab.kind === 'sheets') {
+      template.push({
+        label: tm('menuOpenInNewWindow'),
+        click: () => detachTabToWindow(id),
+      })
+      template.push({ type: 'separator' })
+    }
+    template.push({
+      label: tm('menuClose'),
+      enabled: tab.closable,
+      click: () => void tabManager?.closeTab(id),
+    })
+    Menu.buildFromTemplate(template).popup({
       window: shellWindow,
       ...(typeof x === 'number' && typeof y === 'number'
         ? { x: Math.round(x), y: Math.round(y) }
@@ -3782,6 +4689,9 @@ function buildHomeMenu(): void {
       label: tm('menuHelp'),
       submenu: helpMenuSubmenu([
         { label: tm('thirdPartyNotices'), click: () => void openThirdPartyNotices() },
+        { type: 'separator' },
+        checkUpdatesMenuItem(appMenuLabels(currentLang())),
+        aboutMenuItem(appMenuLabels(currentLang())),
       ]),
     },
   ]
@@ -3861,6 +4771,9 @@ function buildPdfMenu(): void {
       label: tm('menuHelp'),
       submenu: helpMenuSubmenu([
         { label: tm('thirdPartyNotices'), click: () => void openThirdPartyNotices() },
+        { type: 'separator' },
+        checkUpdatesMenuItem(appMenuLabels(currentLang())),
+        aboutMenuItem(appMenuLabels(currentLang())),
       ]),
     },
   ]
@@ -3919,6 +4832,13 @@ function buildMarkdownMenu(): void {
           },
         },
         {
+          label: tm('menuExportImages'),
+          click: () => {
+            const tab = tabManager?.activeMarkdownTab()
+            if (tab) sendMarkdownExportRequest(tab.webContents, 'png')
+          },
+        },
+        {
           label: tm('menuOpenInDocs'),
           click: () => {
             const tab = tabManager?.activeMarkdownTab()
@@ -3949,6 +4869,9 @@ function buildMarkdownMenu(): void {
       label: tm('menuHelp'),
       submenu: helpMenuSubmenu([
         { label: tm('thirdPartyNotices'), click: () => void openThirdPartyNotices() },
+        { type: 'separator' },
+        checkUpdatesMenuItem(appMenuLabels(currentLang())),
+        aboutMenuItem(appMenuLabels(currentLang())),
       ]),
     },
   ]
@@ -4007,6 +4930,13 @@ function buildHtmlMenu(): void {
             if (tab) sendHtmlExportRequest(tab.webContents, 'pdf')
           },
         },
+        {
+          label: tm('menuExportHtml'),
+          click: () => {
+            const tab = tabManager?.activeHtmlTab()
+            if (tab) sendHtmlExportRequest(tab.webContents, 'html')
+          },
+        },
         { type: 'separator' },
         {
           label: tm('menuPrint'),
@@ -4029,7 +4959,12 @@ function buildHtmlMenu(): void {
     {
       role: 'help',
       label: tm('menuHelp'),
-      submenu: [{ label: tm('thirdPartyNotices'), click: () => void openThirdPartyNotices() }],
+      submenu: [
+        { label: tm('thirdPartyNotices'), click: () => void openThirdPartyNotices() },
+        { type: 'separator' },
+        checkUpdatesMenuItem(appMenuLabels(currentLang())),
+        aboutMenuItem(appMenuLabels(currentLang())),
+      ],
     },
   ]
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))
@@ -4601,6 +5536,7 @@ function handleVuaOfficeUrl(rawUrl: string): boolean {
 
 let pendingLaunchPath = supportedFileIn(process.argv) ?? unsupportedFileIn(process.argv)
 let pendingProtocolUrl = findProtocolUrlIn(process.argv)
+let controlServer: ControlServer | null = null
 
 // show() does not un-minimize, and on macOS ⌘W destroys the shell window while the
 // app keeps running — either way a file opened from Finder would land out of sight.
@@ -4657,6 +5593,19 @@ registerAiIpc()
 registerProjectIpc()
 registerDocsIpc()
 registerHomeIpc()
+registerIntegrationsIpc({
+  settingsPath: APP_SETTINGS_PATH,
+  window: () => shellWindow,
+  cliDir: app.isPackaged
+    ? join(process.resourcesPath, 'cli')
+    : join(APPS_ROOT, '..', 'packages', 'cli', 'bin'),
+  skillPath: app.isPackaged
+    ? join(process.resourcesPath, 'cli', 'skills', 'genoffice', 'SKILL.md')
+    : join(APPS_ROOT, '..', 'skills', 'genoffice', 'SKILL.md'),
+  cliPackageJson: app.isPackaged
+    ? join(process.resourcesPath, 'cli', 'package.json')
+    : join(APPS_ROOT, '..', 'packages', 'cli', 'package.json'),
+})
 registerTabsIpc()
 
 // sheets' project:resolveChat goes through the handler registered by docs-main; the sessionId reverse lookup hooks in here
@@ -4666,7 +5615,59 @@ setSessionPathResolver(resolveSheetsSessionPath)
 app.name = 'GenOffice'
 const devPidFile = () => join(app.getPath('userData'), 'dev-instance.pid')
 
+/** Hidden-window exporters, one per editor module (HEADLESS_TARGETS says which formats each takes). */
+const headlessExporters: HeadlessExporters = {
+  docs: exportDocsHeadless,
+  sheets: (input, outPath) => exportSheetsPdfHeadless(input, outPath),
+  slides: (input, outPath) => exportSlidesPdfHeadless(input, outPath),
+  markdown: (input, outPath) => exportMarkdownPdfHeadless(input, outPath),
+  html: exportHtmlHeadless,
+}
+
+/**
+ * The whole `--headless-export` run: no shell window, no menus, no updater,
+ * no single-instance lock (a GUI instance may well be running). Prints
+ * exactly one line and exits with the genoffice convention (0/1/2/3).
+ */
+async function runHeadlessExportEntry(
+  parsed: Exclude<HeadlessArgvParse, { kind: 'none' }>,
+): Promise<void> {
+  const outcome =
+    parsed.kind === 'error'
+      ? ({ ok: false, code: HEADLESS_EXIT.badArgs, message: parsed.message } as const)
+      : await runHeadlessExport(parsed.request, headlessExporters)
+  const json = parsed.kind === 'error' ? parsed.json : parsed.request.json
+  stopSheetsSidecar()
+  for (const win of BrowserWindow.getAllWindows()) if (!win.isDestroyed()) win.destroy()
+  // Writing to a pipe can finish asynchronously, and app.exit() would cut the
+  // envelope off mid-line; wait for the flush (but never longer than 2s).
+  const line = formatHeadlessEnvelope(outcome, json) + '\n'
+  await new Promise<void>((resolve) => {
+    const bail = setTimeout(resolve, 2000)
+    process.stdout.write(line, () => {
+      clearTimeout(bail)
+      resolve()
+    })
+  })
+  // app.quit() always exits 0; the genoffice envelope needs the real code, and
+  // every teardown this run owns has already happened.
+  app.exit(headlessExitCode(outcome))
+}
+
 app.whenReady().then(async () => {
+  setTimeout(() => ensureFileIndexer()?.refresh(), 4000)
+  installRendererProtocol({
+    docs: join(DOCS_OUT, 'renderer'),
+    sheets: join(SHEETS_OUT, 'renderer'),
+    slides: join(SLIDES_OUT, 'renderer'),
+    pdf: join(PDF_OUT, 'renderer'),
+    markdown: join(MARKDOWN_OUT, 'renderer'),
+    html: join(HTML_OUT, 'renderer'),
+  })
+  if (headlessArgv.kind !== 'none') {
+    await runHeadlessExportEntry(headlessArgv)
+    return
+  }
   const lockData = () => {
     const data: { launchPath?: string; protocolUrl?: string } = {}
     if (pendingLaunchPath) data.launchPath = pendingLaunchPath
@@ -4701,6 +5702,17 @@ app.whenReady().then(async () => {
     app.quit()
     return
   }
+  // another GenOffice-family app re-logging in rotates the shared key; the
+  // home page re-reads its account status. A logout that leaves only the
+  // gsk CLI fallback key is not a login
+  stopAuthWatch = watchGskApiKey(() => {
+    if (!loadGenofficeAuth()) return
+    for (const w of BrowserWindow.getAllWindows())
+      w.webContents.send(HOME_CHANNELS.accountLoginEvent, { phase: 'success' })
+  })
+  // a registry left by a crashed instance must not block genoffice writes
+  ownsOpenDocumentsRegistry = true
+  publishOpenDocuments(OPEN_DOCUMENTS_PATH(), [])
   if (!app.isPackaged) {
     try {
       writeFileSync(devPidFile(), String(process.pid))
@@ -4736,13 +5748,108 @@ app.whenReady().then(async () => {
   } catch {
     // settings write failures must never block startup
   }
+  // off the startup path: a symlink / registry write nobody is waiting for
+  setTimeout(() => installCliLinkBestEffort(APP_SETTINGS_PATH()), 3000)
   initAnalytics()
   analytics.track('app_launch')
   startSheetsCaptureServer()
+  // Register the docs renderer bridge listeners before the MCP server can take
+  // a visible-editing request.
+  installDocsBridge()
+  installSheetsBridge()
+  // MCP server: localhost-only, docx generation for external agents. Deps are
+  // injected so the mcp module never imports this file back.
+  // family controls are referenced twice (their own tools + the open-documents
+  // tool), so create them once here
+  const mcpDocsControl = createDocsControl({
+    openBlankTab: () => openBlankDocsTabForMcp(),
+    authorizeSave: authorizeMcpDocWrite,
+    abandonBlankTab: (wcId) => {
+      if (tabManager) abandonBlankTabForMcp(tabManager.docsTabs(), wcId)
+    },
+  })
+  const mcpSlidesControl = createSlidesControl({
+    openBlankTab: () => openBlankSlidesTabForMcp(),
+    abandonBlankTab: (wcId) => {
+      if (tabManager) abandonBlankTabForMcp(tabManager.slidesTabs(), wcId)
+    },
+  })
+  const mcpSheetsControl = createSheetsControl({
+    openBlankTab: () => openBlankSheetsTabForMcp(),
+    authorizeSave: authorizeMcpSheetWrite,
+    abandonBlankTab: (wcId) => abandonBlankSheetsTabForMcp(wcId),
+  })
+  configureMcpRuntime({
+    version: app.getVersion(),
+    defaultSaveDir: () => defaultSaveDir(),
+    openPath: (filePath) => routeDocumentPath(filePath),
+    docsControl: mcpDocsControl,
+    slidesControl: mcpSlidesControl,
+    sheetsControl: mcpSheetsControl,
+    // documents the user has open: the tab list plus each family's own bridge,
+    // so an agent reaches a tab nobody but the user opened
+    openDocumentsControl: createOpenDocumentsControl({
+      list: async () => {
+        const tabs = tabManager ? await tabManager.openDocuments() : []
+        return [...tabs, ...(await detachedOpenDocuments())]
+      },
+      webContentsFor: (tabId) =>
+        tabManager?.webContentsForTab(tabId) ?? detachedWebContentsFor(tabId),
+      closeTab: (tabId) =>
+        closeDetachedWithoutPrompt(tabId) || (tabManager?.closeTabWithoutPrompt(tabId) ?? false),
+      defaultSaveDir: () => defaultSaveDir(),
+      docs: mcpDocsControl,
+      sheets: mcpSheetsControl,
+      slides: mcpSlidesControl,
+      slidesDiscard: discardSlidesRecovery,
+      markdown: {
+        read: markdownReadText,
+        save: markdownSaveToPath,
+        discard: markdownDiscardPendingAssets,
+      },
+      html: {
+        read: htmlReadText,
+        save: htmlSaveToPath,
+        discard: htmlDiscardPendingAssets,
+      },
+    }),
+    // the headless create_*/read_* tools delegate to the bundled genoffice CLI
+    // (the same engines, no second implementation); it runs on the app's own
+    // Node runtime via ELECTRON_RUN_AS_NODE
+    cliRunner: createCliRunner({
+      executable: process.execPath,
+      entry: app.isPackaged
+        ? join(process.resourcesPath, 'cli', 'genoffice.cjs')
+        : join(APPS_ROOT, '..', 'packages', 'cli', 'dist', 'genoffice.cjs'),
+    }),
+    // lets the content tools take a `document` argument (tab id or path) and edit
+    // a tab the *user* has open, with no create_session involved
+    resolveTarget: createOpenTargetResolver({
+      list: async () => {
+        const tabs = tabManager ? await tabManager.openDocuments() : []
+        return [...tabs, ...(await detachedOpenDocuments())]
+      },
+      webContentsFor: (tabId) =>
+        tabManager?.webContentsForTab(tabId) ?? detachedWebContentsFor(tabId),
+      // an agent editing a background tab would otherwise work where nobody can
+      // see it: switch to that tab and bring its window forward first
+      activate: (tabId) => {
+        if (!activateDetached(tabId)) tabManager?.activateTab(tabId)
+      },
+      revealWindow: (tabId) => {
+        if (!isDetachedTabId(tabId)) revealShellWindow()
+      },
+    }),
+    logFilePath: join(app.getPath('userData'), 'mcp-log.txt'),
+  })
+  void startMcpFromSettings(currentMcpSettings()).catch((error) => {
+    console.error('[mcp] failed to start on boot:', error)
+  })
   createShellWindow()
   // deferred to ready: labels need currentLang(), which reads app.getLocale()
   installBackToHomeItems()
   installDockMenu()
+  setUpdateCheckInvoker(() => void checkForUpdatesNow())
   initAutoUpdater(() => shellWindow, currentUpdateChannel())
 
   if (pendingProtocolUrl) {
@@ -4753,12 +5860,32 @@ app.whenReady().then(async () => {
   if (!pendingLaunchPath || !openDocumentPath(pendingLaunchPath)) tabManager?.openHomeTab()
   pendingLaunchPath = null
 
+  startControlServer(
+    app.getPath('userData'),
+    controlHandler({
+      reveal: revealShellWindow,
+      openDocument: openDocumentPath,
+      activateTab: (id) => {
+        if (!activateDetached(id)) tabManager?.activateTab(id)
+      },
+      findTab: (path) => tabManager?.findTabByPath(path) ?? findDetachedTabByPath(path),
+    }),
+  ).then(
+    (server) => {
+      controlServer = server
+    },
+    (err: unknown) => console.warn('[control] not listening:', err),
+  )
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createShellWindow()
   })
 })
 
 app.on('window-all-closed', () => {
+  // A headless export destroys its hidden window between documents; only
+  // runHeadlessExportEntry decides when that run is over.
+  if (headlessArgv.kind !== 'none') return
   if (process.platform !== 'darwin') app.quit()
 })
 
@@ -4766,4 +5893,18 @@ app.on('before-quit', () => {
   // No close prompt may fall through to "Save" during shutdown
   markSheetsShuttingDown()
   stopSheetsSidecar()
+  // release the MCP port synchronously (macOS keeps the process alive after
+  // the last window closes, so window-all-closed is not enough)
+  stopMcpSync()
+})
+
+// after every window has closed, so the shell window's own 'closed' republish cannot revive the file
+app.on('will-quit', () => {
+  fileIndexer?.stop()
+  fileIndexStore?.close()
+  stopAuthWatch?.()
+  for (const watcher of folderWatchers.values()) watcher.close()
+  controlServer?.close()
+  // a second instance that lost the lock quits too; it must not delete the running editor's list
+  if (ownsOpenDocumentsRegistry) clearOpenDocuments(OPEN_DOCUMENTS_PATH())
 })

@@ -25,6 +25,7 @@ import {
   IconRedo,
   IconSave,
   IconSearch,
+  IconSpellcheck,
   IconTable,
   IconTaskList,
   IconUndo,
@@ -35,6 +36,7 @@ interface Props {
   disabled: boolean
   dirty: boolean
   onSave: () => void
+  onSaveAs: () => void
   onFind: () => void
   autoSave: boolean
   onToggleAutoSave: (on: boolean) => void
@@ -45,6 +47,8 @@ interface Props {
   outlineOpen: boolean
   onToggleOutline: () => void
   hasOutline: boolean
+  spellcheck: boolean
+  onToggleSpellcheck: () => void
   aiOpen: boolean
   onToggleAi: () => void
   onAiPreset: (instruction: string) => void
@@ -156,6 +160,7 @@ export function Ribbon({
   disabled,
   dirty,
   onSave,
+  onSaveAs,
   onFind,
   autoSave,
   onToggleAutoSave,
@@ -166,6 +171,8 @@ export function Ribbon({
   outlineOpen,
   onToggleOutline,
   hasOutline,
+  spellcheck,
+  onToggleSpellcheck,
   aiOpen,
   onToggleAi,
   onAiPreset,
@@ -262,6 +269,17 @@ export function Ribbon({
           onClick={onSave}
         >
           <IconSave size={16} />
+        </button>
+        <button
+          type="button"
+          className="qa-btn qa-save-as"
+          data-tip={t('saveAs')}
+          aria-label={t('saveAs')}
+          disabled={off}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={onSaveAs}
+        >
+          {t('saveAs')}
         </button>
         <button
           type="button"
@@ -499,10 +517,18 @@ export function Ribbon({
             <IconBtn
               title={t('outline')}
               active={outlineOpen}
-              disabled={disabled || !hasOutline}
+              disabled={disabled || (!hasOutline && !outlineOpen)}
               onClick={onToggleOutline}
             >
               <IconOutlineView size={ICON} />
+            </IconBtn>
+            <IconBtn
+              title={t('spellcheck')}
+              active={spellcheck}
+              disabled={disabled}
+              onClick={onToggleSpellcheck}
+            >
+              <IconSpellcheck size={ICON} />
             </IconBtn>
           </div>
         </div>

@@ -9,6 +9,9 @@ import type { AutoSaveDefault, ExportFormat, HtmlApi, SaveMode, UiTheme } from '
 
 const api: HtmlApi = {
   consumePending: () => ipcRenderer.invoke(HTML_CHANNELS.consumePending),
+  consumeHeadlessExport: () => ipcRenderer.invoke(HTML_CHANNELS.consumeHeadlessExport),
+  headlessExportDone: (result: { ok: boolean; error?: string }) =>
+    ipcRenderer.send(HTML_CHANNELS.headlessExportDone, result),
   readFile: (path) => ipcRenderer.invoke(HTML_CHANNELS.readFile, path),
   updatePreview: (text) => ipcRenderer.send(HTML_CHANNELS.previewUpdate, text),
   getPreviewInfo: () => ipcRenderer.invoke(HTML_CHANNELS.previewInfo),
@@ -28,6 +31,12 @@ const api: HtmlApi = {
   },
   sendCloseSaveResult: (ok) => ipcRenderer.send(HTML_CHANNELS.closeSaveResult, ok),
   sendSaveRequestAck: (ok) => ipcRenderer.send(HTML_CHANNELS.saveRequestAck, ok),
+  onReadTextRequest: (handler) => {
+    const listener = () => handler()
+    ipcRenderer.on(HTML_CHANNELS.readTextRequest, listener)
+    return () => ipcRenderer.removeListener(HTML_CHANNELS.readTextRequest, listener)
+  },
+  sendReadTextResult: (result) => ipcRenderer.send(HTML_CHANNELS.readTextResult, result),
   onFileRenamed: (handler) => {
     const listener = (_e: Electron.IpcRendererEvent, newPath: string) => handler(newPath)
     ipcRenderer.on(HTML_CHANNELS.fileRenamed, listener)
@@ -56,6 +65,7 @@ const api: HtmlApi = {
   },
   exportDocx: (request) => ipcRenderer.invoke(HTML_CHANNELS.exportDocx, request),
   exportPdf: (request) => ipcRenderer.invoke(HTML_CHANNELS.exportPdf, request),
+  exportHtml: (request) => ipcRenderer.invoke(HTML_CHANNELS.exportHtml, request),
   getLanguage: () => ipcRenderer.invoke(HTML_CHANNELS.getLanguage),
   onLanguageChanged: (handler) => {
     const listener = (_e: Electron.IpcRendererEvent, lang: Lang) => handler(lang)
@@ -75,6 +85,7 @@ const api: HtmlApi = {
     return () => ipcRenderer.removeListener(HTML_CHANNELS.autoSaveDefaultChanged, listener)
   },
   getAiPanelPrefs: () => ipcRenderer.invoke(HTML_CHANNELS.getAiPanelPrefs),
+  setAiPanelPrefs: (patch) => ipcRenderer.invoke('app:set-ai-panel-prefs', patch),
   onAiPanelPrefsChanged: (handler) => {
     const listener = (_event: Electron.IpcRendererEvent, prefs: AiPanelPrefs) => handler(prefs)
     ipcRenderer.on(HTML_CHANNELS.aiPanelPrefsChanged, listener)

@@ -29,16 +29,23 @@ import {
   fetchRemoteImage,
   installContextMenu,
   installNavigationGuard,
+  isHeadlessMode,
   safeExternalUrl,
   showOpenDialogWithMemory,
   showSaveDialogWithMemory,
+  type HeadlessExportFormat,
+  type HeadlessExportTarget,
+  installRendererProtocol,
+  rendererUrl,
+  MAX_REMOTE_IMAGE_BYTES,
+  readBodyCapped,
 } from '@genoffice/electron-utils'
 import { createI18n, getUiLang } from '@genoffice/i18n'
 import { generateImageTool } from '@genoffice/ai-search'
 import { parseFileToText } from '@genoffice/file-parse'
 import { convertHtmlToDocx } from '../../../../packages/html2docx/src'
 import { atomicWriteFile } from './atomic-write'
-import { ElectronBrowserDriver } from './html2docx-driver'
+import { ElectronBrowserDriver } from '../../../../packages/html2docx/src/drivers/electron'
 import {
   copyImageIntoOwnedAssets,
   discardPendingOwnedAssets,
@@ -59,10 +66,11 @@ import {
   extensionlessAssetMime,
 } from './asset-mime'
 import { buildPreviewDocument } from './preview-document'
+import { inlineImagesForSingleFile, singleFileExportBaseName } from './single-file-html'
 import {
   assetBaseHref,
   previewUrlFor,
-  registerHtmlSchemes,
+  registerPrivilegedSchemes,
   registerPreviewProtocol,
 } from './preview-protocol'
 import { ATTACHMENT_IMAGE_EXTS, HTML_CHANNELS } from '../shared/ipc'
@@ -72,6 +80,7 @@ import type {
   AttachmentMeta,
   AttachmentReadResult,
   ExportDocxRequest,
+  ExportHtmlRequest,
   ExportFormat,
   ExportPdfRequest,
   ExportResult,
@@ -793,12 +802,14 @@ export function configureHtmlRuntime(paths: RuntimePaths): void {
   runtime = paths
 }
 
-export { registerHtmlSchemes }
+export { registerPrivilegedSchemes }
 
 /** After a successful Html → PDF export: open the file in a PDF tab (shell)
  * or reveal it in the folder (standalone). Tab-opening failure must not
  * report the export itself as failed — the file is already persisted. */
 function openExportedPdf(path: string): void {
+  // Headless export must stay silent: no tab, no Finder window.
+  if (isHeadlessMode()) return
   try {
     if (runtime.openGeneratedPath?.(path)) return
   } catch (err) {
@@ -821,6 +832,10 @@ const previewTextByWc = new Map<number, string>()
 const closeSaveWaiters = new Map<number, (ok: boolean) => void>()
 /** Resolvers for menu-triggered saves, resolved when the renderer's save invoke completes */
 const saveWaiters = new Map<number, (ok: boolean) => void>()
+/** Resolvers for MCP reads of the live document source, resolved by the renderer's reply */
+const readTextWaiters = new Map<number, (result: { text: string } | { error: string }) => void>()
+/** one read per tab at a time: concurrent callers share this promise */
+const readTextInFlight = new Map<number, Promise<string>>()
 
 /** Fired after a save lands on a NEW path (untitled first save / Save As) — the shell syncs tab title, recents, projects */
 let fileSavedHook: ((wc: WebContents, path: string) => void) | null = null
@@ -851,6 +866,7 @@ export function setHtmlDocxExportPrepareHook(hook: (path: string) => Promise<boo
 }
 
 function openExportedDocx(path: string): void {
+  if (isHeadlessMode()) return
   try {
     if (docxExportedHook) {
       docxExportedHook(path)
@@ -1013,6 +1029,20 @@ export async function requestHtmlClose(
   })
 }
 
+/**
+ * Drop assets staged next to the document but never written into it — the MCP
+ * "discard unsaved changes" path, same cleanup the interactive close prompt
+ * runs when the user picks "Don't Save".
+ */
+export async function htmlDiscardPendingAssets(contents: WebContents): Promise<void> {
+  const documentPath = savePathByWc.get(contents.id)
+  if (!documentPath) return
+  const discarded = await discardPendingOwnedAssets(documentPath)
+  if (discarded.errors.length > 0) {
+    console.warn('[html] pending asset discard incomplete:', discarded.errors)
+  }
+}
+
 /** Menu Save / Save As: ask the renderer to serialize and save; clean views resolve true immediately on plain save */
 export function requestHtmlSave(contents: WebContents, mode: SaveMode): Promise<boolean> {
   if (contents.isDestroyed()) return Promise.resolve(false)
@@ -1030,6 +1060,94 @@ export function requestHtmlSave(contents: WebContents, mode: SaveMode): Promise<
       resolve(ok)
     })
     contents.send(HTML_CHANNELS.saveRequest, mode)
+  })
+}
+
+/**
+ * Read the live document source for an MCP `open_documents` read. The buffer the
+ * renderer pushes for the preview is instrumented for the iframe, so it cannot
+ * be reused here: this asks for the saved serialization instead, unsaved edits
+ * included.
+ */
+export function htmlReadText(contents: WebContents): Promise<string> {
+  if (contents.isDestroyed()) return Promise.reject(new Error('the document is no longer open'))
+  const wcId = contents.id
+  const inFlight = readTextInFlight.get(wcId)
+  if (inFlight) return inFlight
+  const request = new Promise<string>((resolve, reject) => {
+    // The renderer registers its listener while mounting, which can land after
+    // the tab appears; a request sent before that is dropped silently. Re-send
+    // on an interval until the renderer answers, the way the shell's own
+    // control channel polls for a not-yet-ready editor.
+    let settled = false
+    const settle = (finish: () => void): void => {
+      if (settled) return
+      settled = true
+      clearInterval(retry)
+      clearTimeout(timer)
+      readTextWaiters.delete(wcId)
+      readTextInFlight.delete(wcId)
+      finish()
+    }
+    const retry = setInterval(() => {
+      if (contents.isDestroyed()) {
+        settle(() => reject(new Error('the document is no longer open')))
+        return
+      }
+      contents.send(HTML_CHANNELS.readTextRequest)
+    }, 250)
+    const timer = setTimeout(
+      () => settle(() => reject(new Error('timed out reading the document'))),
+      30_000,
+    )
+    readTextWaiters.set(wcId, (result) => {
+      settle(() => {
+        if ('text' in result) resolve(result.text)
+        else reject(new Error(result.error))
+      })
+    })
+    contents.send(HTML_CHANNELS.readTextRequest)
+  })
+  readTextInFlight.set(wcId, request)
+  return request
+}
+
+/**
+ * Save the live document to `filePath` with no dialog — the MCP close path
+ * ("save before closing"). Pointing the view's save target at `filePath` first
+ * keeps `resolveSaveTarget` from opening the save dialog, so the renderer's
+ * normal save runs unattended.
+ */
+export function htmlSaveToPath(contents: WebContents, filePath: string): Promise<void> {
+  if (contents.isDestroyed()) return Promise.reject(new Error('the document is no longer open'))
+  const wcId = contents.id
+  const previousPath = savePathByWc.get(wcId)
+  const previousOpenPath = openPathByWc.get(wcId)
+  savePathByWc.set(wcId, filePath)
+  const allowed = allowedByWc.get(wcId) ?? new Set<string>()
+  allowed.add(filePath)
+  allowedByWc.set(wcId, allowed)
+  return new Promise<void>((resolve, reject) => {
+    const restore = (): void => {
+      if (previousPath === undefined) savePathByWc.delete(wcId)
+      else savePathByWc.set(wcId, previousPath)
+      if (previousOpenPath === undefined) openPathByWc.delete(wcId)
+      else openPathByWc.set(wcId, previousOpenPath)
+    }
+    const timer = setTimeout(() => {
+      saveWaiters.delete(wcId)
+      restore()
+      reject(new Error('timed out saving the document'))
+    }, 120_000)
+    saveWaiters.set(wcId, (ok) => {
+      clearTimeout(timer)
+      if (ok) resolve()
+      else {
+        restore()
+        reject(new Error('could not save the document'))
+      }
+    })
+    contents.send(HTML_CHANNELS.saveRequest, 'save')
   })
 }
 
@@ -1142,6 +1260,25 @@ function registerHtmlIpc(): void {
   })
 
   ipcMain.handle(HTML_CHANNELS.consumePending, (e) => openPathByWc.get(e.sender.id) ?? null)
+
+  // ---- headless export mode (--headless-export) ----
+
+  ipcMain.handle(HTML_CHANNELS.consumeHeadlessExport, (e): HeadlessExportTarget | null => {
+    const target = headlessExportTargets.get(e.sender.id) ?? null
+    headlessExportTargets.delete(e.sender.id)
+    return target
+  })
+
+  ipcMain.on(HTML_CHANNELS.headlessExportDone, (e, result: unknown) => {
+    const settle = headlessExportWaiters.get(e.sender.id)
+    if (!settle) return
+    headlessExportWaiters.delete(e.sender.id)
+    const state = result as { ok?: unknown; error?: unknown } | null
+    settle({
+      ok: state?.ok === true,
+      ...(typeof state?.error === 'string' ? { error: state.error } : {}),
+    })
+  })
 
   ipcMain.on(HTML_CHANNELS.previewUpdate, (e, text: unknown) => {
     if (typeof text === 'string') previewTextByWc.set(e.sender.id, text)
@@ -1455,7 +1592,8 @@ function registerHtmlIpc(): void {
         : ct.includes('gif')
           ? 'image/gif'
           : 'image/jpeg'
-      return { base64: Buffer.from(await resp.arrayBuffer()).toString('base64'), mime }
+      const bytes = await readBodyCapped(resp, MAX_REMOTE_IMAGE_BYTES)
+      return { base64: Buffer.from(bytes).toString('base64'), mime }
     } catch {
       return null
     }
@@ -1469,15 +1607,19 @@ function registerHtmlIpc(): void {
       }
       const win =
         BrowserWindow.fromWebContents(e.sender) ?? BrowserWindow.getFocusedWindow() ?? undefined
-      const picked = await showSaveDialogWithMemory(
-        dialog,
-        win,
-        {
-          defaultPath: `${exportFileName(request.suggestedName)}.docx`,
-          filters: [{ name: 'Word', extensions: ['docx'] }],
-        },
-        configuredDefaultSaveDir(app),
-      )
+      // Headless export has no dialog to authorize a path; the CLI already chose one.
+      const picked =
+        isHeadlessMode() && typeof request.outPath === 'string' && request.outPath
+          ? { canceled: false, filePath: request.outPath }
+          : await showSaveDialogWithMemory(
+              dialog,
+              win,
+              {
+                defaultPath: `${exportFileName(request.suggestedName)}.docx`,
+                filters: [{ name: 'Word', extensions: ['docx'] }],
+              },
+              configuredDefaultSaveDir(app),
+            )
       if (picked.canceled || !picked.filePath) return { ok: true, canceled: true }
       if (docxExportPrepareHook && !(await docxExportPrepareHook(picked.filePath))) {
         return { ok: true, canceled: true }
@@ -1513,15 +1655,19 @@ function registerHtmlIpc(): void {
       }
       const win =
         BrowserWindow.fromWebContents(e.sender) ?? BrowserWindow.getFocusedWindow() ?? undefined
-      const picked = await showSaveDialogWithMemory(
-        dialog,
-        win,
-        {
-          defaultPath: `${exportFileName(request.suggestedName)}.pdf`,
-          filters: [{ name: 'PDF', extensions: ['pdf'] }],
-        },
-        configuredDefaultSaveDir(app),
-      )
+      // Headless export has no dialog to authorize a path; the CLI already chose one.
+      const picked =
+        isHeadlessMode() && typeof request.outPath === 'string' && request.outPath
+          ? { canceled: false, filePath: request.outPath }
+          : await showSaveDialogWithMemory(
+              dialog,
+              win,
+              {
+                defaultPath: `${exportFileName(request.suggestedName)}.pdf`,
+                filters: [{ name: 'PDF', extensions: ['pdf'] }],
+              },
+              configuredDefaultSaveDir(app),
+            )
       if (picked.canceled || !picked.filePath) return { ok: true, canceled: true }
       const workDir = await mkdtemp(join(tmpdir(), 'genoffice-html-pdf-'))
       try {
@@ -1533,6 +1679,44 @@ function registerHtmlIpc(): void {
         return { ok: false, error: err instanceof Error ? err.message : String(err) }
       } finally {
         await rm(workDir, { recursive: true, force: true }).catch(() => {})
+      }
+    },
+  )
+
+  ipcMain.handle(
+    HTML_CHANNELS.exportHtml,
+    async (e, request: ExportHtmlRequest): Promise<ExportResult> => {
+      if (typeof request?.html !== 'string') {
+        return { ok: false, error: 'html: bad export request' }
+      }
+      const win =
+        BrowserWindow.fromWebContents(e.sender) ?? BrowserWindow.getFocusedWindow() ?? undefined
+      // Headless export has no dialog to authorize a path; the CLI already chose one.
+      const picked =
+        isHeadlessMode() && typeof request.outPath === 'string' && request.outPath
+          ? { canceled: false, filePath: request.outPath }
+          : await showSaveDialogWithMemory(
+              dialog,
+              win,
+              {
+                defaultPath: `${singleFileExportBaseName(exportFileName(request.suggestedName))}.html`,
+                filters: [{ name: 'HTML', extensions: ['html'] }],
+              },
+              configuredDefaultSaveDir(app),
+            )
+      if (picked.canceled || !picked.filePath) return { ok: true, canceled: true }
+      const docPath = savePathByWc.get(e.sender.id) ?? null
+      // inlining the document into itself would silently rewrite the working file
+      if (docPath && resolve(picked.filePath) === resolve(docPath)) {
+        return { ok: false, error: 'single-file export cannot overwrite the open document' }
+      }
+      try {
+        const { html } = await inlineImagesForSingleFile(request.html, docPath)
+        await writeFile(picked.filePath, html, 'utf8')
+        if (!isHeadlessMode()) shell.showItemInFolder(picked.filePath)
+        return { ok: true, path: picked.filePath }
+      } catch (err) {
+        return { ok: false, error: err instanceof Error ? err.message : String(err) }
       }
     },
   )
@@ -1552,6 +1736,17 @@ function registerHtmlIpc(): void {
     const waiter = closeSaveWaiters.get(e.sender.id)
     closeSaveWaiters.delete(e.sender.id)
     waiter?.(ok === true)
+  })
+
+  ipcMain.on(HTML_CHANNELS.readTextResult, (e, result: unknown) => {
+    const waiter = readTextWaiters.get(e.sender.id)
+    readTextWaiters.delete(e.sender.id)
+    if (!waiter) return
+    if (result && typeof result === 'object' && 'text' in result) {
+      waiter({ text: String((result as { text: unknown }).text) })
+    } else {
+      waiter({ error: 'the document could not be read' })
+    }
   })
 
   // safety net for menu saves the renderer declined without invoking save()
@@ -1604,11 +1799,7 @@ function bindPresentView(wc: WebContents, ownerWcId: number, title: string): voi
   installExternalLinkOpener(wc)
   wc.once('destroyed', () => presentOwnerByWc.delete(wcId))
   const query = { present: String(ownerWcId), title }
-  if (runtime.rendererUrl) {
-    const url = new URL(runtime.rendererUrl)
-    for (const [k, v] of Object.entries(query)) url.searchParams.set(k, v)
-    void wc.loadURL(url.toString())
-  } else if (runtime.rendererFile) void wc.loadFile(runtime.rendererFile, { query })
+  void wc.loadURL(rendererUrl(runtime.rendererUrl, 'html', query))
 }
 
 export function createHtmlPresentView(owner: WebContents, title: string): WebContentsView {
@@ -1625,6 +1816,65 @@ export function createHtmlPresentView(owner: WebContents, title: string): WebCon
   return view
 }
 
+/** hidden export windows: webContents id -> what the renderer must write */
+const headlessExportTargets = new Map<number, HeadlessExportTarget>()
+/** settled by the renderer's headless-export-done message (or by it dying) */
+const headlessExportWaiters = new Map<number, (result: HeadlessHtmlReport) => void>()
+
+interface HeadlessHtmlReport {
+  ok: boolean
+  error?: string
+}
+
+/**
+ * Render `input` to `outPath` (PDF or Word) with no visible window: a hidden
+ * html renderer opens the file through the normal pending-open queue and runs
+ * the File menu's own export, which already renders in a second hidden window.
+ */
+export async function exportHtmlHeadless(
+  input: string,
+  outPath: string,
+  format: HeadlessExportFormat = 'pdf',
+  timeoutMs = 180_000,
+): Promise<void> {
+  registerHtmlIpc()
+  const win = new BrowserWindow({
+    show: false,
+    width: 1200,
+    height: 850,
+    webPreferences: {
+      preload: runtime.preloadPath,
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+      backgroundThrottling: false,
+    },
+  })
+  const wcId = win.webContents.id
+  grantAndTrack(win.webContents, input)
+  headlessExportTargets.set(wcId, { outPath, format })
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    const report = await new Promise<HeadlessHtmlReport>((resolve) => {
+      headlessExportWaiters.set(wcId, resolve)
+      win.webContents.on('render-process-gone', (_event, details) =>
+        resolve({ ok: false, error: `html renderer stopped (${details.reason})` }),
+      )
+      timer = setTimeout(
+        () => resolve({ ok: false, error: `html export timed out after ${timeoutMs}ms` }),
+        timeoutMs,
+      )
+      void win.webContents.loadURL(rendererUrl(runtime.rendererUrl, 'html'))
+    })
+    if (!report.ok) throw new Error(report.error ?? 'html export failed')
+  } finally {
+    if (timer) clearTimeout(timer)
+    headlessExportWaiters.delete(wcId)
+    headlessExportTargets.delete(wcId)
+    if (!win.isDestroyed()) win.destroy()
+  }
+}
+
 export function createHtmlView(openPath?: string | null): WebContentsView {
   registerHtmlIpc()
   const view = new WebContentsView({
@@ -1636,14 +1886,13 @@ export function createHtmlView(openPath?: string | null): WebContentsView {
     },
   })
   grantAndTrack(view.webContents, openPath)
-  if (runtime.rendererUrl) void view.webContents.loadURL(runtime.rendererUrl)
-  else if (runtime.rendererFile) void view.webContents.loadFile(runtime.rendererFile)
+  void view.webContents.loadURL(rendererUrl(runtime.rendererUrl, 'html'))
   return view
 }
 
 /** Standalone window mode: `npm run dev -w @genoffice/html`, md path passed via argv */
 export function startHtmlStandalone(): void {
-  registerHtmlSchemes()
+  registerPrivilegedSchemes()
   installNavigationGuard(app)
   installContextMenu(app, () => contextMenuLabels(getUiLang()))
   configureHtmlRuntime({
@@ -1652,6 +1901,7 @@ export function startHtmlStandalone(): void {
     rendererFile: join(__dirname, '../renderer/index.html'),
   })
   void app.whenReady().then(() => {
+    installRendererProtocol({ html: join(__dirname, '../renderer') })
     registerHtmlIpc()
     const win = new BrowserWindow({
       width: 1200,
@@ -1665,8 +1915,7 @@ export function startHtmlStandalone(): void {
     })
     const argPath = process.argv.slice(1).find((a) => /\.html?$/i.test(a) && existsSync(a))
     grantAndTrack(win.webContents, argPath)
-    if (runtime.rendererUrl) void win.loadURL(runtime.rendererUrl)
-    else if (runtime.rendererFile) void win.loadFile(runtime.rendererFile)
+    void win.loadURL(rendererUrl(runtime.rendererUrl, 'html'))
   })
   app.on('window-all-closed', () => app.quit())
 }

@@ -84,6 +84,18 @@ describe('built-in table style Medium Style 2 (PowerPoint default)', () => {
     expect(t2.rows[0][1].fill).toEqual({ type: 'solid', color: '#4472C4' })
   })
 
+  it('tblPr "true"/"True" flags enable header and banding like "1"', () => {
+    const slide2 = parseSlide({
+      path: 'ppt/slides/slide1.xml',
+      slideXml: tableSlideXml('firstRow="true" bandRow="True"', MEDIUM2_A1),
+      ctx: { theme },
+    })
+    const t2 = slide2.elements[0] as any
+    expect(t2.rows[0][0].fill).toEqual({ type: 'solid', color: '#4472C4' })
+    expect(t2.rows[1][0].fill.color).toBe('#B4C7E7')
+    expect(t2.rows[2][0].fill.color).toBe('#DAE3F3')
+  })
+
   it('tblPr rtl="1" is parsed onto the table element', () => {
     const slide2 = parseSlide({
       path: 'ppt/slides/slide1.xml',
@@ -132,9 +144,13 @@ describe('tableStyles.xml custom styles', () => {
     expect(resolveTableStyle(undefined, xml, theme)).toBeUndefined()
   })
 
-  it('a populated part without the referenced built-in id renders unstyled; an empty part keeps the built-in', () => {
-    // PowerPoint-measured: the built-in gallery only backs a def-id-only part
-    expect(resolveTableStyle(MEDIUM2_A1, xml, theme)).toBeUndefined()
+  it('a built-in id missing from a populated part still resolves from the gallery', () => {
+    // PowerPoint draws Light Style 1 - Accent 3 banding next to a one-entry part (prod
+    // deck); the earlier "unstyled" reading came from cells with an explicit <a:noFill/>
+    expect(resolveTableStyle(MEDIUM2_A1, xml, theme)?.firstRow?.fill).toEqual({
+      type: 'solid',
+      color: '#4472C4',
+    })
     const emptyPart = `<?xml version="1.0"?><a:tblStyleLst xmlns:a="a" def="${MEDIUM2_A1}"/>`
     expect(resolveTableStyle(MEDIUM2_A1, emptyPart, theme)?.firstRow?.fill).toEqual({
       type: 'solid',

@@ -1,5 +1,6 @@
 import type { AgentSkill } from '@genoffice/agent-core'
 import type { Editor } from '@tiptap/core'
+import type { AiDocWriter } from './doc-writer'
 import {
   AGENT_TOOLS,
   buildDocContext,
@@ -8,11 +9,12 @@ import {
   type FrontmatterAccess,
 } from './tools'
 
-const MARKDOWN_RULES = [
+export const MARKDOWN_RULES = [
   'All markdown passed to tools must be pure GFM plus math. Rules:',
-  '- Allowed syntax, and nothing else: `#`–`######` headings, paragraphs, `**bold**`, `*italic*`, `~~strikethrough~~`, `` `inline code` ``, `[links](url)`, `![images](path)`, `-` / `1.` lists, `- [ ]` task lists, `>` blockquotes, ``` fenced code blocks, `|` pipe tables, `---` horizontal rules, hard line breaks (two trailing spaces), LaTeX math, and ```mermaid diagrams.',
+  '- Allowed syntax, and nothing else: `#`–`######` headings, paragraphs, `**bold**`, `*italic*`, `~~strikethrough~~`, `` `inline code` ``, `[links](url)`, `![images](path)`, `-` / `1.` lists, `- [ ]` task lists, `>` blockquotes, ``` fenced code blocks, `|` pipe tables, `---` horizontal rules, hard line breaks (two trailing spaces), LaTeX math, ```mermaid diagrams, and ```wavedrom timing diagrams.',
   '- Math: `$...$` inline and `$$...$$` blocks are rendered with KaTeX. The content of `$...$` must not start or end with whitespace, and the closing `$` must not be followed by a digit (so currency amounts stay text).',
   '- Diagrams: a fenced code block with the `mermaid` language (flowchart, sequenceDiagram, classDiagram, stateDiagram-v2, erDiagram, gantt, pie, mindmap, timeline) renders as a diagram. Use it when the user asks for a flow, process, architecture, or timeline chart. The syntax must be valid mermaid — an invalid block falls back to showing its source.',
+  "- Timing diagrams: a fenced code block with the `wavedrom` language holding WaveJSON (`{ signal: [{ name: 'clk', wave: 'p....' }, …] }`) renders as a digital timing diagram. Use it only for clock / bus / signal waveforms.",
   '- Never emit raw HTML — no tag of any kind (`<span>`, `<div>`, `<p>`, `<img>`, `<br>`, `<u>`, `<mark>`, …) and no style attributes. The editor forces everything through its GFM-only schema: semantic tags degrade to plain GFM and all other tags and styling are silently dropped.',
   '- Never emit other non-GFM extensions: `==highlight==`, `++underline++`, `:::` fenced divs, footnotes, or emoji shortcodes. They are not parsed and end up as literal text in the document.',
   '- This editor has no colored text, fonts, font sizes, underline, highlight, alignment, or line spacing. If the user asks for such styling, explain that pure markdown cannot express it — never fake it with HTML.',
@@ -53,9 +55,9 @@ const AGENT_SYSTEM_PROMPT = [
   '- Only cite block indexes that exist in the block list — never guess; prefer heading blocks as citation anchors. Whole-document answers may omit citations.',
   '',
   '## Writing a new document',
-  '- When the document is blank and the user asks for content, write the full document in one insertContent op: start with a single `#` title, use `##` sections, keep paragraphs short.',
-  '- Use tables for comparisons, task lists for actionable items, blockquotes for important notes.',
-  '- Never invent facts or numbers; use web_search when the topic needs current information and attribute sources.',
+  '- Long new content (a whole document, a chapter, a full report/article/translation — anything beyond a few paragraphs) goes through write_document: you pass the plan and the reference material, and the system writer streams the markdown into the document while the user watches; never paste long content into insertContent. When the document is blank and the user asks for content, use write_document.',
+  '- The plan: a single `#` title, `##` sections with the key points of each, tone and target length; tables for comparisons, task lists for actionable items, blockquotes for important notes.',
+  '- Never invent facts or numbers; use web_search when the topic needs current information, put the findings into context, and attribute sources.',
   '',
   '## Conversation',
   '- Answer questions about the document directly, without editing it.',
@@ -70,6 +72,8 @@ export function createMarkdownSkill(
   fm?: FrontmatterAccess,
   /** live predicate (gsk login && cloud-tools toggle, or a BYOK media key); false hides generate_image */
   imageGenAvailable?: () => boolean,
+  /** streaming long-form writer behind write_document (panel-owned: progress chip, partial keep/discard) */
+  getWriter?: () => AiDocWriter | undefined,
 ): AgentSkill {
   return {
     id: 'markdown',
@@ -95,7 +99,7 @@ export function createMarkdownSkill(
       if (!editor) {
         return { output: 'editor not ready', isError: true, summary: call.name }
       }
-      return executeTool(editor, call, signal, fm)
+      return executeTool(editor, call, signal, fm, getWriter?.())
     },
   }
 }

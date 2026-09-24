@@ -46,6 +46,7 @@ import { applyCase, type CaseMode } from '../editor/case-transform'
 import { setParagraphDirection, setSelectionAlign } from '../editor/direction'
 import { setInactiveSelectionShown } from '../editor/inactive-selection'
 import { stepParagraphIndent } from '../editor/indent'
+import { beginForeignPaste, defaultPasteMode, stashPastePayload } from '../editor/paste-options'
 import { formatNumber } from '../editor/numbering'
 import type { InkTool } from '../editor/ink'
 import type { RibbonFormatState } from './ribbon-format-state'
@@ -199,6 +200,8 @@ interface RibbonProps {
   /** References → footnotes / endnotes / citations */
   onInsertNote: (kind: 'footnote' | 'endnote') => void
   sources: SourceInfo[]
+  /** footnotes/endnotes hold Zotero citation fields the bridge cannot see yet */
+  zoteroNoteFields?: boolean
   onAddSource: (source: SourceInfo) => void
   /** TOC page-number backfill: docHeadings in document order → real page numbers (null when not computable) */
   headingPages?: () => number[] | null
@@ -654,6 +657,7 @@ function RibbonInner({
   onInkClearAll,
   onInsertNote,
   sources,
+  zoteroNoteFields,
   onAddSource,
   headingPages,
   zoom,
@@ -717,7 +721,8 @@ function RibbonInner({
   const docEmpty = !hasDoc || fs.docEmpty
   const [tab, setTab] = useState<RibbonTab>('home')
   const [dropdown, setDropdown] = useState<string | null>(null)
-  const [penColor, setPenColor] = useState('C00000')
+  // null = Automatic: the pen button clears the run colour instead of writing one
+  const [penColor, setPenColor] = useState<string | null>('C00000')
   const [penHighlight, setPenHighlight] = useState('yellow')
   const [painter, setPainter] = useState<PainterState | null>(null)
   const fontStepRef = useRef<{
@@ -1348,11 +1353,6 @@ function RibbonInner({
   }, [tab, charStyleItems.length, lang, styleGalleryOverflow])
 
   const currentSize = fs.fontSizePt
-  const currentFont = fs.fontFamily
-  // The "(Body)" entry means "no explicit run font — inherit the document's body
-  // font", so it has to name that font rather than a fixed one: docDefaults is what
-  // actually renders, the theme's minor font is what "+Body" resolves to.
-  const bodyFontName = docDefaults?.asciiFont?.trim() || themeFonts?.minor?.trim() || 'Calibri'
   // computed unconditionally (not inside the dropdown render): cheap, and the
   // render-isolation test uses fontFamiliesFor calls as its render probe
   const fontFamilies = fontFamiliesFor(lang)
@@ -1370,12 +1370,23 @@ function RibbonInner({
     setDropdown(null)
   }
 
-  /** font picks target only their script's rFonts slot (Word never flattens the other one) */
-  const setFont = (name: string | null) => {
-    if (!name) setTextStyle({ font: null, fontAscii: null })
-    else if (isEastAsianFontName(name)) setTextStyle({ font: name })
-    else setTextStyle({ fontAscii: name })
-  }
+  const currentFont = fs.fontFamily
+  // Word's font box: an East Asian face fills every rFonts slot, a Latin face only
+  // w:ascii/w:hAnsi so the CJK font survives; the body entries clear their own slot
+  const setFont = (name: string) =>
+    setTextStyle(
+      isEastAsianFontName(name)
+        ? { font: name, fontAscii: name, eastAsiaFont: name, eaSlotEmpty: false }
+        : { fontAscii: name },
+    )
+  const latinBodyFont = docDefaults?.asciiFont?.trim() || themeFonts?.minor?.trim() || 'Calibri'
+  const eastAsiaBodyFont = docDefaults?.eastAsiaFont?.trim() || themeFonts?.eastAsia?.trim() || ''
+  const bodyEntries: Array<[string, Record<string, unknown>]> = [
+    [latinBodyFont, { fontAscii: null }],
+  ]
+  if (eastAsiaBodyFont && eastAsiaBodyFont !== latinBodyFont)
+    bodyEntries.push([eastAsiaBodyFont, { font: null, eastAsiaFont: null, eaSlotEmpty: null }])
+  const isBodyFont = (f: string) => bodyEntries.some(([name]) => name === f)
 
   /** apply paragraph-level attrs to every paragraph in the selection (textbox sub-editor included) */
   const setParaAttr = (attrs: Record<string, unknown>) => {
@@ -1588,13 +1599,13 @@ function RibbonInner({
     // level / list numbering / styleId) — which then applies to whole target
     // paragraphs. A PARTIAL in-paragraph drag copies character formatting
     // only — but a selection covering the paragraph's ENTIRE content counts
-    // as including the ¶ mark, exactly like Word's triple-click (alpha ledger
-    // r134: "select whole paragraph → painter" dropped line spacing/indents
-    // while a caret pickup carried them — backwards to any user).
+    // as including the ¶ mark, exactly like Word's triple-click ("select whole
+    // paragraph → painter" dropped line spacing/indents while a caret pickup
+    // carried them — backwards to any user).
     const { $to } = state.selection
     const coversWholeParagraph =
       !empty &&
-      $from.parent.isTextblock && // AllSelection's parent is the doc (bugbot)
+      $from.parent.isTextblock && // AllSelection's parent is the doc
       $from.sameParent($to) &&
       $from.parentOffset === 0 &&
       $to.parentOffset === $to.parent.content.size
@@ -1835,6 +1846,12 @@ function RibbonInner({
           if (item.types.includes('text/html')) {
             const html = await (await item.getType('text/html')).text()
             if (html) {
+              // arm the foreign-paste handshake exactly like a Ctrl+V — the
+              // synthetic pasteHTML never fires the DOM paste handler, so
+              // ribbon pastes skipped the paste mode and the r181 fill
+              if (beginForeignPaste(html)) {
+                stashPastePayload({ html, text, mode: defaultPasteMode() })
+              }
               ed.view.pasteHTML(html, pasteEvent(html, text))
               ed.commands.focus()
               return
@@ -2483,7 +2500,7 @@ function RibbonInner({
               <div className="ribbon-group-label">{t('ribbonGroupShading')}</div>
             </div>
             <div className="ribbon-sep" />
-            <div className="table-tool-group">
+            <div className="table-tool-group table-tool-borders">
               <div className="table-tool-grid table-tool-grid-four">
                 <button data-tip={t('ribbonAllBordersTip')} onClick={() => applyCellBorders('all')}>
                   <IconBorderAll />
@@ -3009,13 +3026,10 @@ function RibbonInner({
                       disabled={!canEdit}
                       key={`f:${currentFont}:${hasDoc}`}
                       defaultValue={currentFont}
-                      placeholder={t('ribbonFontBodyNamed', { font: bodyFontName })}
+                      aria-label={t('ribbonFontFamilyTip')}
                       data-tip={t('ribbonFontFamilyTip')}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          fontCommitRef.current = true
-                          ;(e.target as HTMLInputElement).blur()
-                        }
+                        if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
                       }}
                       // focusing the input relocates the DOM selection into it,
                       // hiding the document highlight — the decoration keeps the
@@ -3025,16 +3039,12 @@ function RibbonInner({
                         setInactiveSelectionShown(ed, true)
                       }}
                       onBlur={(e) => {
-                        const committed = fontCommitRef.current
-                        fontCommitRef.current = false
                         setInactiveSelectionShown(ed, false)
                         const v = e.target.value.trim()
-                        // Enter always applies, even an unchanged name: over a
-                        // mixed-font selection the shown value is just the first
-                        // run's font, and committing it must normalize the rest
-                        // (r121). Plain click-away keeps the no-op guard.
-                        if (v !== currentFont) setFont(v || null)
-                        else if (committed && v) setFont(v)
+                        // an unchanged name is a no-op: re-applying the East Asian face the
+                        // box shows on CJK text would overwrite the run's Latin font
+                        if (v && v !== currentFont) setFont(v)
+                        else e.target.value = currentFont
                       }}
                     />
                     <button
@@ -3051,15 +3061,18 @@ function RibbonInner({
                     </button>
                     {dropdown === 'fontFamily' && (
                       <div data-rb-panel="" className="spacing-menu rb-font-family-menu">
-                        <button
-                          className={!currentFont ? 'active' : ''}
-                          style={{ fontFamily: cssFontFamily(bodyFontName) }}
-                          onClick={() => setFont(null)}
-                        >
-                          {t('ribbonFontBodyNamed', { font: bodyFontName })}
-                        </button>
+                        {bodyEntries.map(([name, patch]) => (
+                          <button
+                            key={`body:${name}`}
+                            className={name === currentFont ? 'active' : ''}
+                            style={{ fontFamily: cssFontFamily(name) }}
+                            onClick={() => setTextStyle(patch)}
+                          >
+                            {t('ribbonFontBodyNamed', { font: name })}
+                          </button>
+                        ))}
                         {fontFamilies
-                          .filter((f) => f !== bodyFontName)
+                          .filter((f) => !isBodyFont(f))
                           .map((f) => (
                             <button
                               key={f}
@@ -3074,7 +3087,7 @@ function RibbonInner({
                           <>
                             <div className="rb-menu-group-label">{t('ribbonFontsSystem')}</div>
                             {systemFontFamilies
-                              .filter((f) => f !== bodyFontName)
+                              .filter((f) => !isBodyFont(f))
                               .map((f) => (
                                 <button
                                   key={f}
@@ -3294,13 +3307,14 @@ function RibbonInner({
                       className="rb-icon rb-color-btn"
                       disabled={!canEdit}
                       data-tip={t('ribbonFontColor')}
-                      onClick={() =>
-                        setTextStyle({ color: penColor === '000000' ? null : penColor })
-                      }
+                      onClick={() => setTextStyle({ color: penColor })}
                     >
                       <span className="rb-color-glyph rb-color-glyph-svg">
                         <IconFontColorA />
-                        <span className="rb-color-bar" style={{ background: `#${penColor}` }} />
+                        <span
+                          className="rb-color-bar"
+                          style={{ background: `#${penColor ?? '000000'}` }}
+                        />
                       </span>
                     </button>
                     <button
@@ -3316,11 +3330,11 @@ function RibbonInner({
                         noneLabel={t('ribbonAutomatic')}
                         onPick={(hex) => {
                           if (!hex) {
-                            setPenColor('000000')
+                            setPenColor(null)
                             setTextStyle({ color: null })
                           } else {
                             setPenColor(hex)
-                            setTextStyle({ color: hex === '000000' ? null : hex })
+                            setTextStyle({ color: hex })
                           }
                         }}
                       />
@@ -3328,7 +3342,6 @@ function RibbonInner({
                   </div>
                 </div>
               </div>
-              <div className="ribbon-group-label">{t('ribbonGroupFont')}</div>
             </div>
 
             <div className="ribbon-sep" />
@@ -3814,6 +3827,7 @@ function RibbonInner({
             setDropdown={setDropdown}
             onInsertNote={onInsertNote}
             sources={sources}
+            zoteroNoteFields={zoteroNoteFields}
             onAddSource={onAddSource}
             headingPages={headingPages}
           />
