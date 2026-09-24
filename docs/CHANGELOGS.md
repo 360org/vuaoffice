@@ -7,36 +7,33 @@ Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaO
 
 ## [1.0.41] - 2026-09-24
 
-### Hợp nhất 246 commit upstream & Tích hợp MCP Server
+### 1. Hợp nhất 246 commit upstream từ `genspark-ai/genoffice`
 
-- **[MERGE] Đồng bộ 246 commit mới nhất từ `genspark-ai/genoffice`**: Hợp nhất toàn bộ các bản vá lỗi và tính năng mới nhất từ dự án gốc (Docs zotero/citations, Excel shift lowercase formula, PPTX slide picture extraction, PDF redaction, MCP Server Streamable HTTP).
-- **[FEAT] Tích hợp MCP Server cục bộ**: Hỗ trợ kết nối các AI Agent bên ngoài (Claude Code, Cursor, Claude Desktop) vào VuaOffice qua giao thức MCP chuẩn để tương tác với tài liệu.
-- **[FEAT] Tìm kiếm tệp & thư mục trên Home**: Bổ sung thanh công cụ tìm kiếm tệp nhanh và phân cấp quản lý thư mục trên giao diện chính.
-- **[I18N] Bản dịch tiếng Việt đầy đủ**: Bổ sung 141 khóa ngôn ngữ tiếng Việt cho toàn bộ các thành phần mới trong Shell và UI.
-- **[UI] Tối ưu độ tương phản hộp thoại cập nhật**: Thêm nền trắng sáng và viền bo tròn cho biểu tượng ứng dụng trong hộp thoại cập nhật để hiển thị sắc nét trên nền xanh.
-- **[GATE] Duy trì 100% cổng chất lượng 360**: Vượt qua 5 cổng kiểm tra thương hiệu và kiểm toán (`brand:gate`), typecheck và test suite toàn diện.
+- **[NEW] Tích hợp MCP Server chuẩn hóa**: Hỗ trợ hai chế độ kết nối gồm Streamable HTTP (`/mcp`, `/sse`) và stdio (`genoffice mcp`). Cho phép các trợ lý AI bên ngoài như Claude Code, Cursor, Claude Desktop kết nối trực tiếp vào VuaOffice để tự động hóa tạo, chuyển đổi và biên tập tài liệu văn phòng.
+- **[NEW] Tìm kiếm tài liệu và quản lý thư mục trên Home**: Bổ sung thanh công cụ tìm kiếm nhanh tên tệp và nội dung văn bản ngay trên màn hình chính, tích hợp bộ lọc cây thư mục và hỗ trợ sắp xếp ngữ nghĩa nâng cao (Jev reranking).
+- **[NEW] Công cụ dòng lệnh CLI `@genoffice/cli`**: Cung cấp công cụ chạy dòng lệnh độc lập hỗ trợ xuất bản tài liệu headless (`--headless-export`) sang nhiều định dạng mà không cần mở giao diện đồ họa.
+- **[IMPROVE] Cải tiến ứng dụng Docs**: Bổ sung hỗ trợ quản lý trích dẫn và liên kết thư viện Zotero (`zotero-wire.ts`, `zotero-ipc.ts`), tối ưu cơ chế tải lười tệp dung lượng lớn (`openLazyDocx`), hiển thị thanh tùy chọn dán (`PasteOptionsChip`), đếm từ chính xác cho tiếng Hy Lạp, Kirin, Do Thái, Ả Rập, và chuẩn hóa công thức toán MathML / OMML.
+- **[IMPROVE] Cải tiến Sheets & Bảng tính XLSX**: Khắc phục lỗi dịch chuyển tham chiếu công thức chữ thường, phân biệt chính xác kiểu dữ liệu khi đếm phân biệt (distinct counts), bảo toàn ngắt dòng CR liên tiếp khi dán dữ liệu TSV từ bộ nhớ tạm.
+- **[IMPROVE] Cải tiến Slides & Trình chiếu PPTX**: Nâng cấp bộ phân tích cấu trúc slide từ `presentation.xml`, nhận diện và gắn nhãn cho slide chỉ chứa hình ảnh (picture-only slide), đồng bộ kiểu chữ với phông hệ thống.
+- **[IMPROVE] Nâng cấp ứng dụng PDF**: Tích hợp tính năng bôi đen / che khuất vĩnh viễn vùng nội dung nhạy cảm (`Redaction`), kiểm tra hợp lệ các vùng đánh dấu trước khi lưu đè, và tinh chỉnh cơ chế in ấn theo trang cuộn.
+- **[NEW] Ứng dụng soạn thảo HTML**: Bổ sung tính năng tạo và xuất bản tài liệu HTML chuyên nghiệp kèm trợ lý AI viết mã (`page-writer.ts`, `brief-writer.ts`).
 
+### 2. Bảo tồn 100% tính năng và cấu trúc 360 CORP
 
-### Khôi phục biểu mẫu góp ý trên `vuaoffice.com`
+- **[EMAIL] Ứng dụng VuaOffice Mail**: Giữ trọn vẹn giải pháp thư điện tử tích hợp sẵn trong bộ ứng dụng, hỗ trợ cả hai giao thức IMAP và POP3, bảo mật kết nối TLS fail-closed bắt buộc, quản lý hộp thư và trợ lý AI Mail.
+- **[AI ROUTER] Cổng định tuyến AI Gateway**: Duy trì kết nối mặc định qua VuaAI Gateway (`vuahethong.net` / `OmiRouter`), hỗ trợ chế độ Developer Mode đa endpoint (`Hermes`, `OmiRouter`, `OpenCode`), bảo vệ quyền riêng tư người dùng.
+- **[OCR] Nhận dạng chữ quang học (OCR) ngoại tuyến**: Bảo toàn bộ xử lý OCR Apple Vision và Windows Media OCR chạy ngoại tuyến 100%, tự động nhận diện chữ từ trang scan và chuyển đổi thành văn bản vector có thể tìm kiếm, bôi đen.
+- **[COMPAT] Tương thích tệp Word định dạng cũ `.doc`**: Duy trì bộ chuyển đổi nhị phân `docToDocx` tự động nhận diện và mở mượt mà các tệp Word cổ điển.
+- **[PROJECTS] Quản lý dự án nội bộ**: Duy trì bảng quản lý dự án `ProjectPanel` trên thanh bên, hỗ trợ gom nhóm và chuyển đổi nhanh giữa các tài liệu dự án.
+- **[I18N] Bản dịch tiếng Việt toàn diện**: Bổ sung trọn bộ 141 khóa ngôn ngữ tiếng Việt cho toàn bộ các thành phần mới của Shell, AI Panel, MCP Server và thanh tìm kiếm; chuẩn hóa 100% thuật ngữ giao diện.
+- **[UI] Tối ưu độ tương phản hộp thoại cập nhật**: Tinh chỉnh khung biểu tượng phần mềm với nền sáng và bo viền mềm mại, giải quyết triệt để lỗi biểu tượng xanh bị chìm trên nền xanh của hộp thoại cập nhật.
 
-- **[FIX] Biểu mẫu góp ý bị `push -f` đẩy ra khỏi mọi nhánh**: tính năng người dùng gửi báo lỗi / góp ý từ `vuaoffice.com` (mục `#feedback` trong `docs/index.html` + Cloudflare Worker tạo GitHub Issue) đã được xây trên kho GitHub, nhưng lần đồng bộ ngược bằng `push -f` khiến hai commit chứa nó trở thành commit mồ côi, không nhánh nào trỏ tới. Truy lại bằng `git fsck --lost-found` và ghép trở lại `main`: khối CSS, quy tắc responsive, liên kết điều hướng, `<section id="feedback">` và khối JavaScript xử lý gửi biểu mẫu.
-- **[FIX] Danh sách phiên bản trong biểu mẫu để trống khi `updates.json` hỏng**: trường chọn phiên bản là `<select required>` nên hỏng tệp dữ liệu đồng nghĩa **không ai gửi được báo lỗi nào**. Bổ sung `setVersionOptions()` chạy cả trên nhánh lỗi, lấy phiên bản dự phòng từ thanh trên cùng.
-- **[FIX] Điểm cuối trỏ vào tên miền không bao giờ tới được Worker**: bản khôi phục mới nhất gọi thẳng `workers.dev` thay vì `vuaoffice.com/api/feedback`, vì DNS của `vuaoffice.com` trỏ vào GitHub Pages ở chế độ **DNS-only** nên route Cloudflare không được kích hoạt. Ghi rõ lý do trong mã nguồn và `worker/README.md`.
-- **[REFACTOR] Worker lưu ảnh đính kèm qua GitHub contents API**: thay cho bucket R2, ảnh được commit vào chính kho mã và nhúng bằng liên kết `raw.githubusercontent.com`; đường đọc R2 cũ giữ lại để ảnh của các Issue trước không hỏng liên kết. `worker/README.md` được viết lại cho khớp mã nguồn.
-- **[CHORE] `worker/` chỉ sống trên GitLab**: mã Worker triển khai bằng `wrangler deploy`, không phần nào của trang tĩnh cần tới nó, nên được thêm vào `.githubignore`.
+### 3. Cổng chất lượng & Quy trình phát hành
 
-### Đồng bộ phiên bản trên `vuaoffice.com`
+- **[GATE] Đạt 100% 5 cổng kiểm tra 360**: Cổng thương hiệu và kiểm toán (`npm run brand:gate`) đạt chuẩn: selftest song ánh 1154 tệp, trạng thái whitelabel sạch, không rò rỉ chuỗi upstream, bản ghi kiểm toán bất biến và website đồng bộ.
+- **[TEST] Kiểm thử đơn vị toàn diện**: Vượt qua 54/54 tệp kiểm thử của Shell (544 bài test) và các bộ kiểm thử lõi `i18n`, `electron-utils`, `docx-engine`, `pptx-engine`.
+- **[SYNC] Đồng bộ website chính thức**: Tự động sinh lại giao diện trang chủ `docs/index.html`, lịch sử phiên bản `docs/changelog.html` và sơ đồ trang `sitemap.xml` phản ánh chính xác phiên bản v1.0.41.
 
-- **[FIX] Trang chủ quảng cáo bản cũ sau khi phát hành v1.0.40**: thanh thông báo và dòng thời gian vẫn ghi "Phiên bản v1.0.38 (Mới nhất)" dù `docs/updates.json` đã có 1.0.40. Nguyên nhân: `docs/index.html` và `docs/changelog.html` là **tệp sinh ra** từ `package.json` + `updates.json` qua `tools/sync-site-updates.mjs`, nhưng quy trình phát hành đã bỏ sót bước `npm run site:sync` (RELEASE_PROTOCOL.md §Bước 5). Đã chạy lại generator: thanh thông báo, 6 mục dòng thời gian trang chủ, 15 mục trang changelog, `softwareVersion` trong JSON-LD và `<lastmod>` của sitemap đều về 1.0.40.
-- **[NEW] Cổng `npm run site:check` chặn tái phát**: chạy generator rồi so sánh, lệch là chặn — đã gộp vào `brand:gate` nên mọi commit đều phải qua. Bỏ qua `<lastmod>` của sitemap vì trường này đổi theo ngày mà không phải lỗi đồng bộ.
-- **[FIX] Ghép biểu mẫu góp ý làm hỏng ranh giới cắt footer**: `<section id="feedback">` bị chèn ngay sau chú thích `<!-- Footer & 360 Ecosystem -->` — đúng dấu mốc generator dùng để cắt footer sang `changelog.html`, nên lần chạy `site:sync` kế tiếp sẽ nhân bản cả biểu mẫu sang trang changelog. Đã tách dấu mốc về đúng thẻ `<footer>`.
-- **[FIX] Liên kết "Góp Ý" trên trang changelog trỏ vào khoảng không**: biểu mẫu chỉ có ở trang chủ, nhưng generator giữ nguyên `href="#feedback"` khi dựng thanh điều hướng. Nay viết lại thành `index.html#feedback` cùng nhóm với `#apps`, `#compare`, `#download`, `#faq`.
-
-### Một nhánh duy nhất
-
-- **[REFACTOR] `main` trên GitLab là nhánh duy nhất của toàn dự án**: mã nguồn, tài liệu, tài liệu thiết kế và bản ghi kiểm toán nằm chung một chỗ. Cấm đẩy nhánh nào khác lên remote — kể cả `sync/upstream-*`. GitHub không phải một nhánh mà là **bản chiếu phần công khai** của `main`, lọc qua `.githubignore` và bị `push -f` ghi đè mỗi lần đồng bộ. Luật ghi ở đầu `CLAUDE.md`, quy chế thương hiệu §2 CẤM 6 và §7 sửa theo.
-- **[MERGE] Gộp `erp-pro` về `main`**: `docs/pro/{IDEA,ARCH,PLAN}.md` (1.115 dòng thiết kế VuaHeThong Pro) từng sống riêng trên nhánh `erp-pro` suốt nhiều ngày. Nay nằm trên `main` và được `.githubignore` giữ lại không đẩy lên GitHub.
-- **[FIX] Đồng bộ upstream nay merge thẳng vào `main`**: quy trình cũ bắt tạo nhánh `sync/upstream-YYYYMMDD` rồi mở Pull Request — không áp dụng được cho kho một nhánh. Cổng chất lượng chuyển sang chạy **trước khi push**, vì không còn PR làm chốt chặn và push mới là điểm không lùi được.
 
 ## [1.0.40] - 2026-09-13
 
