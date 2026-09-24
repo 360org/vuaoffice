@@ -1097,6 +1097,8 @@ export function AiPanel({
                 </button>
               </span>
             ))}
+          </div>
+        )}
         {activePartial && (
           <div className="ai-queue ai-partial-card" role="group" aria-label={t('aiPartialTitle')}>
             <div className="ai-queue-head">

@@ -5,7 +5,7 @@ Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaO
 
 ## [Chưa phát hành]
 
-## [1.0.44] - 2026-09-24
+## [1.0.45] - 2026-09-24
 
 ### 1. Hợp nhất 246 commit upstream từ `genspark-ai/genoffice`
 
