@@ -19,5 +19,8 @@
       "/Volumes/DATA/DEV/SKILL_SOURCES/deepseek-harness",
       "/Volumes/DATA/DEV/backend_base"
     ]
+  },
+  "env": {
+    "CLAUDE_CODE_MAX_CONTEXT_TOKENS": "200000"
   }
 }

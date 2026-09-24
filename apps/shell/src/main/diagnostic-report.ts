@@ -97,7 +97,7 @@ async function checkEndpointReachability(name: string, url: string): Promise<Dia
     const res = await fetch(url, {
       method: 'GET',
       signal: controller.signal,
-      headers: { 'User-Agent': `GenOffice-Diagnostic/${app.getVersion()}` },
+      headers: { 'User-Agent': `VuaOffice-Diagnostic/${app.getVersion()}` },
     })
     clearTimeout(timer)
     return {
@@ -171,7 +171,7 @@ export async function generateDiagnosticReportData(settingsPath: string): Promis
     `================================================================================`,
     ``,
     `[SYSTEM & RUNTIME INFORMATION]`,
-    `- App Version:        GenOffice Suite v${system.appVersion}`,
+    `- App Version:        VuaOffice Suite v${system.appVersion}`,
     `- Platform / OS:      ${system.osPlatform} (${system.osRelease}) [${system.osArch}]`,
     `- Electron Version:   v${system.electronVersion}`,
     `- Chromium Version:   v${system.chromeVersion}`,
@@ -263,7 +263,7 @@ export async function submitDiagnosticReportToGitLab(
   const issueTitle = `[Bug Report] Diagnostic Log - ${report.reportId}`
 
   const markdownDescription = [
-    `## 📋 GenOffice Diagnostic Report (${report.reportId})`,
+    `## 📋 VuaOffice Diagnostic Report (${report.reportId})`,
     ``,
     `### 👤 User Note / Issue Description:`,
     userNote?.trim() ? userNote.trim() : `*(No additional user note provided)*`,
@@ -297,7 +297,7 @@ export async function submitDiagnosticReportToGitLab(
     `</details>`,
     ``,
     `---`,
-    `*Report submitted automatically via GenOffice Suite Help > Troubleshooting*`,
+    `*Report submitted automatically via VuaOffice Suite Help > Troubleshooting*`,
   ].join('\n')
 
   try {
@@ -307,7 +307,7 @@ export async function submitDiagnosticReportToGitLab(
       headers: {
         'Content-Type': 'application/json',
         'PRIVATE-TOKEN': GITLAB_REPORT_TOKEN,
-        'User-Agent': `GenOffice-Suite/${report.system.appVersion}`,
+        'User-Agent': `VuaOffice-Suite/${report.system.appVersion}`,
       },
       body: JSON.stringify({
         title: issueTitle,
@@ -320,7 +320,7 @@ export async function submitDiagnosticReportToGitLab(
       const data = (await response.json()) as { web_url?: string; iid?: number }
       return {
         success: true,
-        issueUrl: data.web_url || `https://gitlab.com/genspark-ai/genoffice/-/work_items/${data.iid}`,
+        issueUrl: data.web_url || `https://gitlab.com/360org/vuaoffice/-/work_items/${data.iid}`,
         issueIid: data.iid,
       }
     } else {

@@ -1,8 +1,7 @@
 {
   "name": "@genoffice/shell",
   "productName": "GenOffice",
-  "version": "1.0.40",
-
+  "version": "1.0.41",
   "license": "Apache-2.0",
   "homepage": "https://github.com/360org/vuaoffice",
   "private": true,
@@ -35,7 +34,6 @@
     "@genoffice/mail": "*",
     "@genoffice/mail-engine": "*",
     "@genoffice/pipelines": "*",
-
     "@genoffice/pptx-engine": "*",
     "@genoffice/pptx-render": "*",
     "@genoffice/sheets": "*",

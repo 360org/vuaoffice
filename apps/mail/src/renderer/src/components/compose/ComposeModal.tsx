@@ -141,7 +141,7 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
     setIsGeneratingAi(true)
     setTimeout(() => {
       setSubject(`Phản hồi: ${aiPrompt}`)
-      const aiGenerated = `<p>Kính gửi Quý đối tác / Anh/Chị,</p><p>Cảm ơn thông tin liên quan đến <strong>"${aiPrompt}"</strong>.</p><p>Tôi đã tiếp nhận yêu cầu và sẽ phối hợp xử lý dứt điểm trước 17h hôm nay.</p><p>Trân trọng cảm ơn,<br/><strong>Châu Lê</strong><br/><em>360 CORP / GenOffice Team</em></p>`
+      const aiGenerated = `<p>Kính gửi Quý đối tác / Anh/Chị,</p><p>Cảm ơn thông tin liên quan đến <strong>"${aiPrompt}"</strong>.</p><p>Tôi đã tiếp nhận yêu cầu và sẽ phối hợp xử lý dứt điểm trước 17h hôm nay.</p><p>Trân trọng cảm ơn,<br/><strong>Châu Lê</strong><br/><em>360 CORP / VuaOffice Team</em></p>`
       setBodyHtml(aiGenerated)
       if (editorRef.current) {
         editorRef.current.innerHTML = aiGenerated
@@ -239,7 +239,7 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontWeight: 700, fontSize: '13.5px', color: 'var(--text-primary, #232425)' }}>
-              Soạn thư mới (GenOffice Mail)
+              Soạn thư mới (VuaOffice Mail)
             </span>
             {lastAutoSaved && (
               <span style={{ fontSize: '11px', color: 'var(--text-muted, #878e96)' }}>
@@ -303,7 +303,7 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
               <IconSparkles size={14} color="var(--mail-primary-blue, #0077cd)" />
               <input
                 type="text"
-                placeholder="Yêu cầu Genspark AI viết nháp thư..."
+                placeholder="Yêu cầu VuaOffice AI viết nháp thư..."
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAiDraft()}

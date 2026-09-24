@@ -5,6 +5,18 @@ Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaO
 
 ## [Chưa phát hành]
 
+## [1.0.41] - 2026-09-24
+
+### Hợp nhất 246 commit upstream & Tích hợp MCP Server
+
+- **[MERGE] Đồng bộ 246 commit mới nhất từ `genspark-ai/genoffice`**: Hợp nhất toàn bộ các bản vá lỗi và tính năng mới nhất từ dự án gốc (Docs zotero/citations, Excel shift lowercase formula, PPTX slide picture extraction, PDF redaction, MCP Server Streamable HTTP).
+- **[FEAT] Tích hợp MCP Server cục bộ**: Hỗ trợ kết nối các AI Agent bên ngoài (Claude Code, Cursor, Claude Desktop) vào VuaOffice qua giao thức MCP chuẩn để tương tác với tài liệu.
+- **[FEAT] Tìm kiếm tệp & thư mục trên Home**: Bổ sung thanh công cụ tìm kiếm tệp nhanh và phân cấp quản lý thư mục trên giao diện chính.
+- **[I18N] Bản dịch tiếng Việt đầy đủ**: Bổ sung 141 khóa ngôn ngữ tiếng Việt cho toàn bộ các thành phần mới trong Shell và UI.
+- **[UI] Tối ưu độ tương phản hộp thoại cập nhật**: Thêm nền trắng sáng và viền bo tròn cho biểu tượng ứng dụng trong hộp thoại cập nhật để hiển thị sắc nét trên nền xanh.
+- **[GATE] Duy trì 100% cổng chất lượng 360**: Vượt qua 5 cổng kiểm tra thương hiệu và kiểm toán (`brand:gate`), typecheck và test suite toàn diện.
+
+
 ### Khôi phục biểu mẫu góp ý trên `vuaoffice.com`
 
 - **[FIX] Biểu mẫu góp ý bị `push -f` đẩy ra khỏi mọi nhánh**: tính năng người dùng gửi báo lỗi / góp ý từ `vuaoffice.com` (mục `#feedback` trong `docs/index.html` + Cloudflare Worker tạo GitHub Issue) đã được xây trên kho GitHub, nhưng lần đồng bộ ngược bằng `push -f` khiến hai commit chứa nó trở thành commit mồ côi, không nhánh nào trỏ tới. Truy lại bằng `git fsck --lost-found` và ghép trở lại `main`: khối CSS, quy tắc responsive, liên kết điều hướng, `<section id="feedback">` và khối JavaScript xử lý gửi biểu mẫu.

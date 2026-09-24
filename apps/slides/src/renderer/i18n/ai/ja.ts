@@ -17,8 +17,8 @@ export const ja = {
   aiQcPageSkipped: 'ページ {n}:自動レイアウトチェックをスキップ',
   aiQcStopped: 'レイアウトチェックを停止しました',
   aiQcCapped: '残り {count} ページは未チェック(1回の上限)',
-  aiGskLoginBtn: 'Genspark にサインイン',
-  aiPanelTitle: 'Genspark',
+  aiGskLoginBtn: 'VuaOffice にサインイン',
+  aiPanelTitle: 'VuaOffice AI',
   aiOpenAssistant: 'AI アシスタントを開く',
   aiFactCheckBtn: 'AI ファクトチェック',
   aiFactCheckPrompt:

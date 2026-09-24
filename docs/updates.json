@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.0.41",
+    "date": "Tháng 9/2026",
+    "highlight": "Hợp nhất 246 cải tiến mới nhất từ dự án gốc, tối ưu MCP Server, tìm kiếm tài liệu nâng cao và hoàn thiện giao diện.",
+    "features": [
+      {
+        "title": "Tích hợp công cụ MCP & CLI thông minh",
+        "desc": "Hỗ trợ kết nối trực tiếp trợ lý AI bên ngoài (Claude Code, Cursor) với các ứng dụng VuaOffice qua giao thức MCP Streamable HTTP để tự động hóa tạo và chỉnh sửa tài liệu."
+      },
+      {
+        "title": "Tìm kiếm và sắp xếp tài liệu nâng cao",
+        "desc": "Bổ sung thanh tìm kiếm nhanh tệp và nội dung ngay trên trang chủ, hỗ trợ phân loại thư mục linh hoạt."
+      },
+      {
+        "title": "Hoàn thiện bản dịch tiếng Việt và tương thích đa nền tảng",
+        "desc": "Bổ sung trọn bộ 141 thuật ngữ tiếng Việt cho các tính năng mới, nâng cao độ tương phản biểu tượng cập nhật phần mềm."
+      }
+    ]
+  },
+  {
     "version": "1.0.40",
     "date": "Tháng 9/2026",
     "highlight": "Siết bảo mật đường truyền thư điện tử và bổ sung nhận thư qua POP3.",

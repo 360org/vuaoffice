@@ -18,7 +18,7 @@ const { execFileSync } = require('node:child_process')
 const { existsSync } = require('node:fs')
 const { join } = require('node:path')
 
-const updateUrl = process.env.GENOFFICE_UPDATE_URL || 'https://github.com/genspark-ai/genoffice/releases/latest/download'
+const updateUrl = process.env.GENOFFICE_UPDATE_URL || 'https://github.com/360org/vuaoffice/releases/latest/download'
 
 // GENOFFICE_MAC_X64=1 — opt into packaging the Intel (x64) dmg/zip alongside
 // arm64. Off by default: Intel packages must only ever ship signed with the
@@ -125,11 +125,11 @@ function assertModuleTreesPresent(platformName, arch) {
 
 /** @type {import('electron-builder').Configuration} */
 const config = {
-  appId: 'com.genspark.genoffice',
-  productName: 'GenOffice',
+  appId: 'com.vuahethong.vuaoffice',
+  productName: 'VuaOffice',
   protocols: [
     {
-      name: 'GenOffice Deep Link',
+      name: 'VuaOffice Deep Link',
       schemes: ['vuaoffice'],
       role: 'Viewer',
     },
@@ -205,55 +205,71 @@ const config = {
     {
       ext: 'docx',
       name: 'Word Document',
+      description: 'Word Document',
+      icon: 'docx',
       role: 'Editor',
       mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     },
     {
       ext: 'xlsx',
       name: 'Excel Workbook',
+      description: 'Excel Workbook',
+      icon: 'xlsx',
       role: 'Editor',
       mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     },
     {
       ext: 'pptx',
       name: 'PowerPoint Presentation',
+      description: 'PowerPoint Presentation',
+      icon: 'pptx',
       role: 'Editor',
       mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     },
     {
       ext: 'xls',
       name: 'Excel 97-2003 Workbook',
+      description: 'Excel 97-2003 Workbook',
+      icon: 'xlsx',
       role: 'Editor',
       mimeType: 'application/vnd.ms-excel',
     },
     {
       ext: 'csv',
       name: 'CSV Document',
+      description: 'CSV Document',
+      icon: 'xlsx',
       role: 'Editor',
       mimeType: 'text/csv',
     },
     {
       ext: 'pdf',
       name: 'PDF Document',
+      description: 'PDF Document',
+      icon: 'pdf',
       role: 'Editor',
       mimeType: 'application/pdf',
     },
     {
       ext: 'md',
       name: 'Markdown Document',
+      description: 'Markdown Document',
+      icon: 'md',
       role: 'Editor',
       mimeType: 'text/markdown',
     },
     {
       ext: 'markdown',
       name: 'Markdown Document',
+      description: 'Markdown Document',
+      icon: 'md',
       role: 'Editor',
       mimeType: 'text/markdown',
     },
   ],
   npmRebuild: false,
   mac: {
-    artifactName: 'GenOffice-${version}-macOS-${arch}.${ext}',
+    artifactName: 'VuaOffice-${version}-macOS-${arch}.${ext}',
     // Two separate arch packages (NOT universal): arm64 keeps the exact
     // artifact names and update-feed entries it always had, x64 (opt-in via
     // GENOFFICE_MAC_X64=1, see includeMacX64 above) adds Intel support with
@@ -283,7 +299,7 @@ const config = {
     ],
   },
   win: {
-    artifactName: 'GenOffice-${version}-Windows-${arch}-Setup.${ext}',
+    artifactName: 'VuaOffice-${version}-Windows-${arch}-Setup.${ext}',
     // No `arch` here on purpose: computeArchToTargetNamesMap() ignores the CLI
     // arch flag whenever a target declares its own `arch`, so `--win --x64`
     // would still queue an ia32 pass whose sidecar was never cross-compiled.
@@ -293,6 +309,11 @@ const config = {
       {
         from: windowsSidecarPath,
         to: 'native/xlsx-sidecar.exe',
+      },
+      {
+        from: 'build/shell-new',
+        to: 'shell-new',
+        filter: ['*.docx', '*.xlsx', '*.pptx'],
       },
       ...(existsSync(join(__dirname, '../../packages/pdf2docx/ocr-helper/win-ocr.exe'))
         ? [

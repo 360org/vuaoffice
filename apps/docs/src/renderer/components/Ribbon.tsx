@@ -2860,7 +2860,7 @@ function RibbonInner({
                   <span className="rb-big-icon">
                     <GensparkMark size={26} />
                   </span>
-                  <span>Genspark AI</span>
+                  <span>VuaOffice AI</span>
                 </button>
                 <button
                   className="rb-big ai-entry"
@@ -2960,7 +2960,7 @@ function RibbonInner({
                   <span>{t('aiTidyBtn')}</span>
                 </button>
               </div>
-              <div className="ribbon-group-label">Genspark AI</div>
+              <div className="ribbon-group-label">VuaOffice AI</div>
             </div>
 
             <div className="ribbon-sep" />

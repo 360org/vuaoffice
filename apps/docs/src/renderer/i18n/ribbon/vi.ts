@@ -141,7 +141,7 @@ export const vi = {
   ribbonMoreStyles: 'Thêm kiểu dáng',
   ribbonGroupStyles: 'Kiểu dáng',
     // Trang đầu · AI,
-  ribbonAiAssistant: 'Genspark AI',
+  ribbonAiAssistant: 'VuaOffice AI',
   ribbonAiAssistantTip: 'Mở trợ lý AI',
     // Thiết kế bảng,
   ribbonRemoveTableStyleTip: 'Xóa kiểu bảng',

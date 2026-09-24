@@ -14,6 +14,7 @@ const showMessageBox = vi.hoisted(() =>
   vi.fn<(opts: unknown) => Promise<{ response: number }>>(() => Promise.resolve({ response: 0 })),
 )
 
+const existsSyncMock = vi.hoisted(() => vi.fn<(...args: unknown[]) => boolean>(() => true))
 const readFileSyncMock = vi.hoisted(() => vi.fn<(...args: unknown[]) => string>())
 
 vi.mock('electron', () => ({
@@ -27,7 +28,7 @@ vi.mock('electron', () => ({
     openExternal: (url: string) => openExternal(url),
   },
   dialog: {
-    showMessageBox: (opts: unknown) => showMessageBox(opts),
+    showMessageBox: (...args: unknown[]) => showMessageBox(...args),
 
   },
 }))
@@ -600,7 +601,7 @@ describe('checkForUpdatesNow (r148 manual check)', () => {
     expect(showMessageBox).toHaveBeenCalledTimes(1)
     expect(lastDialogOpts().buttons.length).toBe(2)
     expect(openExternal).toHaveBeenCalledWith(
-      'https://github.com/genspark-ai/genoffice/releases/latest',
+      'https://vuahethong.net/#download-desktop-app',
     )
     expect(checkForUpdates).not.toHaveBeenCalled()
   })

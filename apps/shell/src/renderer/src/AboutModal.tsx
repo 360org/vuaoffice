@@ -3,8 +3,8 @@ import { useI18n } from './locale'
 
 const LOCAL_STRINGS: Record<string, Record<string, string>> = {
   zh: {
-    aboutTitle: '关于 GenOffice',
-    appName: 'GenOffice Suite',
+    aboutTitle: '关于 VuaOffice',
+    appName: 'VuaOffice Suite',
     copyright: '© 2026 360 CORP. 保留所有权利。',
     licenseTitle: '软件许可与开源致谢',
     licenseNotice: 'VuaOffice 是由 360 CORP 开发的企业级办公套件，集成了第三方开源项目（如 GenOffice 及其他开源库），严格遵守第三方声明（Third-Party Notices）中的各开源许可协议规定，并作为专有免费软件（Proprietary Freeware）向最终用户免费分发。',
@@ -12,8 +12,8 @@ const LOCAL_STRINGS: Record<string, Record<string, string>> = {
     close: '关闭',
   },
   'zh-TW': {
-    aboutTitle: '關於 GenOffice',
-    appName: 'GenOffice Suite',
+    aboutTitle: '關於 VuaOffice',
+    appName: 'VuaOffice Suite',
     copyright: '© 2026 360 CORP. 保留所有權利。',
     licenseTitle: '軟體許可與開源致謝',
     licenseNotice: 'VuaOffice 是由 360 CORP 開發的企業級辦公軟體，整合了第三方開源專案（如 GenOffice 及其他開源庫），嚴格遵守第三方聲明（Third-Party Notices）中的各開源許可條款規定，並作為專有免費軟體（Proprietary Freeware）向最終用戶免費分發。',
@@ -21,8 +21,8 @@ const LOCAL_STRINGS: Record<string, Record<string, string>> = {
     close: '關閉',
   },
   vi: {
-    aboutTitle: 'Về GenOffice',
-    appName: 'Bộ ứng dụng văn phòng GenOffice',
+    aboutTitle: 'Về VuaOffice',
+    appName: 'Bộ ứng dụng văn phòng VuaOffice',
     copyright: '© 2026 360 CORP. Bảo lưu mọi quyền (All rights reserved).',
     licenseTitle: 'Giấy phép sử dụng & Ghi nhận nguồn gốc',
     licenseNotice: 'VuaOffice là phần mềm được phát triển bởi 360 CORP, có tích hợp mã nguồn mở của các bên thứ ba (như: GenOffice và các thư viện mã nguồn mở khác), tuân thủ đầy đủ giấy phép mã nguồn mở của các bên này trong Third-Party Notices và được phát hành dưới dạng Phần mềm độc quyền miễn phí (Proprietary Freeware) cho người dùng cuối.',
@@ -30,8 +30,8 @@ const LOCAL_STRINGS: Record<string, Record<string, string>> = {
     close: 'Đóng',
   },
   en: {
-    aboutTitle: 'About GenOffice',
-    appName: 'GenOffice Suite',
+    aboutTitle: 'About VuaOffice',
+    appName: 'VuaOffice Suite',
     copyright: '© 2026 360 CORP. All rights reserved.',
     licenseTitle: 'License & Attribution',
     licenseNotice: 'VuaOffice is developed by 360 CORP, incorporating third-party open-source software (such as: GenOffice and other open-source libraries), in full compliance with their respective open-source licenses detailed in Third-Party Notices, and is distributed as Proprietary Freeware for end users.',
