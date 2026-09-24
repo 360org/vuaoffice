@@ -1,6 +1,7 @@
 import type { zh } from './zh'
 
 export const vi = {
+  aiClarifyPrev: 'Câu trước',
   aiInputPlaceholderGen: 'Mô tả bài trình chiếu cần tạo, hoặc hỏi bất kỳ điều gì',
   aiEmptyGenTitle: 'Để AI tạo bài trình chiếu cho bạn',
   aiEmptyGenBody1: 'Mô tả chủ đề, đối tượng người xem và số trang ước tính;',

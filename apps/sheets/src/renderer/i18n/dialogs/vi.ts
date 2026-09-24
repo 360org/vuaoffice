@@ -1,6 +1,14 @@
 import type { zh } from './zh'
 
 export const vi = {
+  dlgFnCatDatabase: 'Cơ sở dữ liệu',
+  dlgFnCatInformation: 'Thông tin',
+  dlgFnCatEngineering: 'Kỹ thuật',
+  dlgFnCatCube: 'Khối đa chiều',
+  dlgFnCatCompatibility: 'Tương thích',
+  dlgFnCatWeb: 'Web',
+  dlgFnCatArray: 'Mảng',
+  dlgFnCatOther: 'Khác',
   dlgAllowEditRangesTitle: 'Cho phép chỉnh sửa vùng',
   dlgAllowEditRangesHint: 'Các vùng này vẫn có thể chỉnh sửa khi trang tính được bảo vệ. Được lưu khi lưu tệp; không hỗ trợ mật khẩu.',
   dlgRangeName: 'Tiêu đề',

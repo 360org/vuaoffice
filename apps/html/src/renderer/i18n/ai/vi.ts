@@ -1,6 +1,9 @@
 import type { zh } from './zh'
 
 export const vi = {
+  aiClarifyPrev: 'Câu trước',
+  aiToolPlanFailed: 'Soạn thảo bản tóm tắt thất bại',
+  aiDraftingBrief: 'Đang soạn thảo bản tóm tắt…',
   aiCollapsePanel: 'Thu gọn bảng',
   aiComposerPlaceholder: 'Yêu cầu AI viết hoặc chỉnh sửa tài liệu…',
   aiCopyReplyTitle: 'Sao chép câu trả lời',

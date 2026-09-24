@@ -1429,6 +1429,7 @@ const tMain = createI18n({
     menuSave: 'Lưu',
     menuSaveAs: 'Lưu thành…',
     menuExportPdf: 'Xuất PDF…',
+    menuPrint: 'In…',
     menuClose: 'Đóng',
     menuQuit: 'Thoát',
     menuEdit: 'Chỉnh sửa',

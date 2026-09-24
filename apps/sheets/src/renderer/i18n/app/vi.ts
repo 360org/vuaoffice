@@ -1,6 +1,15 @@
 import type { zh } from './zh'
 
 export const vi = {
+  appPrintPreparing: 'Đang chuẩn bị in…',
+  appPrintSent: 'Đã gửi đến máy in.',
+  appPrintCanceled: 'Đã hủy lệnh in.',
+  appPrintFailed: 'Không thể in.',
+  appPrintNeedsFullLoad: 'Quá trình in cần tải toàn bộ sổ làm việc — vui lòng chờ tải xong.',
+  appCopyLoadingRange: 'Đang tải {range} để sao chép…',
+  appCopyValuesOnly: '{range} đã sao chép dưới dạng giá trị thuần ({cells} ô): vượt quá {max} ô không giữ kiểu dáng.',
+  appAutoFitRowHeight: 'Tự động chỉnh độ cao hàng',
+  appAutoFitColWidth: 'Tự động chỉnh độ rộng cột',
   appMergeWorkbooks: 'Gộp sổ làm việc',
   appMergeWorkbooksTip: 'Thêm trang tính từ các tệp Excel khác vào sổ làm việc hiện tại',
   appMergeWorkbooksPicking: 'Chọn tệp để gộp…',
@@ -123,7 +132,6 @@ export const vi = {
   appMoreItems: '+{count} mục khác…',
   appTruncationNote: 'Hiển thị {shown} trên tổng số {total}',
   appGoToButtonTitle: 'Đi đến (⌘G)',
-  appNameBoxTitle: 'Hộp tên — nhập địa chỉ hoặc tên, sau đó nhấn Enter',
   appPivotChartHintIn: 'Tạo PivotChart từ PivotTable hiện tại',
   appPivotChartHintOut: 'Chọn một ô trong vùng kết quả Bảng Pivot trước, sau đó chọn loại biểu đồ',
   appChartColumn: 'Cột',
@@ -266,7 +274,6 @@ export const vi = {
   appTableFilterNoEdit: 'Bộ lọc của trang tính này thuộc về một bảng Excel — chưa hỗ trợ lưu chỉnh sửa bộ lọc này.',
   appAutofillStreaming: 'Đang tự động điền…',
   appDvNeedsIndexed: 'Chỉnh sửa kiểm tra dữ liệu hợp lệ cần trang tính này được lập chỉ mục đầy đủ — vui lòng thử lại sau giây lát.',
-  appDuplicateNeedsFullLoad: 'Nhân bản trang tính cần chế độ tải đầy đủ — sổ làm việc này quá lớn và đang tải một phần.',
   appPivotSheetNoDuplicate: 'Trang tính này chứa Bảng Pivot — chưa hỗ trợ nhân bản trang tính này.',
   appDuplicateScopedNames: 'Trang tính này có tên xác định theo trang — chưa hỗ trợ nhân bản trang này.',
   appMoveRowsColsUnsaved: 'Chưa hỗ trợ lưu di chuyển toàn bộ cột vào sổ làm việc đã nhập — hỗ trợ di chuyển toàn bộ hàng.',

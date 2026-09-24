@@ -2286,6 +2286,7 @@ export const tMain = createI18n({
   vi: {
     dlgInsertImage: 'Chèn hình ảnh',
     dlgReplacePicture: 'Thay thế hình ảnh',
+    dlgSavePicture: 'Lưu hình ảnh',
     freezeTitle: 'Trang không phản hồi',
     freezeBody: 'Trang trình chiếu đã ngừng phản hồi. Bạn có thể tiếp tục chờ hoặc buộc tải lại (khôi phục từ phiên làm việc hiện tại, tối đa chỉ mất các thay đổi trong 30 giây gần nhất). Thông tin chẩn đoán đã được ghi lại.',
     freezeWait: 'Chờ',

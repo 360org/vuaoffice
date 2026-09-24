@@ -385,6 +385,8 @@ const tUpd = createI18n({
     updRetry: 'Thử lại',
     updManual: 'Cập nhật tự động thất bại. Vui lòng tải phiên bản mới nhất từ trang tải xuống và cài đặt thủ công.',
     updOpenDownload: 'Mở trang tải xuống',
+    updUpToDate: 'Bạn đang dùng phiên bản mới nhất ({version}).',
+    updCheckFailed: 'Không thể kiểm tra cập nhật. Vui lòng kiểm tra kết nối mạng và thử lại.',
   },
 })
 

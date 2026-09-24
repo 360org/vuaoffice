@@ -403,7 +403,7 @@ interface FolderPickerProps {
 }
 
 interface ProjectPanelProps {
-  projects: ProjectSummaryEntry[]
+  projects: any[]
   selectedId: string | null
   onSelect: (id: string | null) => void
   onRefresh: () => void
@@ -445,7 +445,7 @@ function ProjectPanel({ projects, selectedId, onSelect, onRefresh }: ProjectPane
     setNewName('')
     if (!name) return
     try {
-      await window.aiOfficeProject?.createProject(name)
+      await (window as any).aiOfficeProject?.createProject(name)
     } catch (error) {
       window.alert(error instanceof Error ? error.message : String(error))
       return
@@ -460,7 +460,7 @@ function ProjectPanel({ projects, selectedId, onSelect, onRefresh }: ProjectPane
     setRenaming(null)
     if (!name) return
     try {
-      await window.aiOfficeProject?.renameProject(id, name)
+      await (window as any).aiOfficeProject?.renameProject(id, name)
     } catch (error) {
       window.alert(error instanceof Error ? error.message : String(error))
       return
@@ -481,7 +481,7 @@ function ProjectPanel({ projects, selectedId, onSelect, onRefresh }: ProjectPane
     setConfirmDeleteId(null)
     if (!id) return
     try {
-      await window.aiOfficeProject?.deleteProject(id)
+      await (window as any).aiOfficeProject?.deleteProject(id)
     } catch (error) {
       window.alert(error instanceof Error ? error.message : String(error))
       return
@@ -571,7 +571,7 @@ function ProjectPanel({ projects, selectedId, onSelect, onRefresh }: ProjectPane
                 {isRenaming ? (
                   <input
                     className="proj-rename-input inline"
-                    value={renaming.value}
+                    value={renaming?.value ?? ''}
                     autoFocus
                     onFocus={(e) => e.target.select()}
                     onClick={(e) => e.stopPropagation()}
@@ -627,7 +627,7 @@ function ProjectPanel({ projects, selectedId, onSelect, onRefresh }: ProjectPane
                     <div
                       className="proj-menu"
                       role="menu"
-                      style={{ top: projMenu.top, right: projMenu.right }}
+                      style={{ top: projMenu?.top ?? 0, right: projMenu?.right ?? 0 }}
                     >
                       <button
                         role="menuitem"
@@ -2177,6 +2177,52 @@ function CloudProjectsView() {
   )
 }
 
+function DropToOpenOverlay(): ReactElement | null {
+  const [visible, setVisible] = useState(false)
+  useEffect(() => {
+    let depth = 0
+    const hasFiles = (ev: DragEvent): boolean => ev.dataTransfer?.types.includes('Files') ?? false
+    const onDragEnter = (ev: DragEvent) => {
+      if (!hasFiles(ev)) return
+      depth += 1
+      setVisible(true)
+    }
+    const onDragLeave = (ev: DragEvent) => {
+      if (!hasFiles(ev)) return
+      depth = Math.max(0, depth - 1)
+      if (depth === 0) setVisible(false)
+    }
+    const onHide = () => {
+      depth = 0
+      setVisible(false)
+    }
+    window.addEventListener('dragenter', onDragEnter)
+    window.addEventListener('dragleave', onDragLeave)
+    window.addEventListener('drop', onHide)
+    window.addEventListener('blur', onHide)
+    return () => {
+      window.removeEventListener('dragenter', onDragEnter)
+      window.removeEventListener('dragleave', onDragLeave)
+      window.removeEventListener('drop', onHide)
+      window.removeEventListener('blur', onHide)
+    }
+  }, [])
+  const { t } = useI18n()
+  if (!visible) return null
+  return (
+    <div className="home-drop-overlay" aria-hidden="true">
+      <div className="home-drop-card">
+        <div className="home-drop-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M12 3v12m0-12l4 4m-4-4L8 7m13 8v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+        <div className="home-drop-title">{t('dropToOpenTitle')}</div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main component ──────────────────────────────────────
 
 export function Home() {
@@ -2192,6 +2238,15 @@ export function Home() {
   const [view, setView] = useState<'recent' | 'starred'>('recent')
   // 360 CORP web projects take over the content area (like a selected project)
   const [cloudMode, setCloudMode] = useState(false)
+  const [confirmMissing, setConfirmMissing] = useState<RecentEntry | null>(null)
+  const hasProjectApi = () =>
+    typeof window !== 'undefined' &&
+    'aiOfficeProject' in window &&
+    (window as any).aiOfficeProject != null
+  const projectMode = hasProjectApi()
+  const [projects, setProjects] = useState<any[]>([])
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
+  const [projectTick, setProjectTick] = useState(0)
   const [filter, setFilter] = useState('all')
   // ── File search (names + indexed content); active while the box has text ──
   const [searchQuery, setSearchQuery] = useState('')
@@ -2606,8 +2661,9 @@ export function Home() {
       return
     }
     let active = true
-    const api = window.aiOfficeProject!
-    void api.listFiles(selectedProjectId).then(async (paths) => {
+    const api = (window as any).aiOfficeProject
+    if (!api) return
+    void api.listFiles(selectedProjectId).then(async (paths: string[]) => {
       const stats = await window.aiOffice.statPaths(paths)
       if (!active) return
       setProjectFileEntries(stats.sort((a, b) => b.mtimeMs - a.mtimeMs))
@@ -2872,7 +2928,7 @@ export function Home() {
   const moveFileTo = async (filePath: string, targetProjectId: string) => {
     setMoveFileMenu(null)
     setRowMenu(null)
-    await window.aiOfficeProject?.moveFile(filePath, targetProjectId)
+    await (window as any).aiOfficeProject?.moveFile(filePath, targetProjectId)
 
     refresh()
   }
@@ -2942,7 +2998,7 @@ export function Home() {
     const moved = new Set(paths)
     setProjectFileEntries((prev) => prev.filter((e) => !moved.has(e.path)))
     for (const path of paths) {
-      await window.aiOfficeProject?.moveFile(path, targetProjectId)
+      await (window as any).aiOfficeProject?.moveFile(path, targetProjectId)
     }
     refresh()
   }
@@ -3443,7 +3499,7 @@ export function Home() {
           {isRenaming ? (
             <input
               className="rename-input"
-              value={renaming.value}
+              value={renaming?.value ?? ''}
               autoFocus
               onFocus={(event) => event.target.select()}
               onClick={(event) => event.stopPropagation()}

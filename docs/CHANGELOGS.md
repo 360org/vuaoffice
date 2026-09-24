@@ -5,6 +5,16 @@ Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaO
 
 ## [Chưa phát hành]
 
+## [1.0.46] - 2026-09-24
+
+### Sửa triệt để lỗi màn hình trắng & Kiểm tra cập nhật trên menu
+
+- **[FIX] Khắc phục lỗi màn hình trắng (blank screen) khi khởi động**: Sau đợt hợp nhất lớn từ upstream, các biến trạng thái (`confirmMissing`, `projectMode`, `DropToOpenOverlay`) bị thiếu khai báo trong component `Home`, khiến React ném `ReferenceError` và unmount toàn bộ giao diện. Đã bổ sung đầy đủ các biến trạng thái, bọc an toàn các API `aiOfficeProject` và khôi phục `DropToOpenOverlay`.
+- **[FIX] Sửa lỗi `checkForUpdatesManual is not defined` trên thanh menu**: Đồng bộ lệnh gọi kiểm tra bản cập nhật trên menu hệ điều hành và hộp thoại cài đặt sang `checkForUpdatesNow()`, kèm thông báo tiến trình và kết quả rõ ràng.
+- **[I18N] Hoàn tất 100% bản dịch tiếng Việt**: Bổ sung đầy đủ các khóa tiếng Việt bị thiếu trong toàn bộ 23 workspace (Docs Zotero, Sheets App/Dialogs, Slides App/Panes/Ribbon, PDF outline, Markdown và Shell).
+- **[GATE] Đạt 100% toàn bộ 5 cổng kiểm tra 360**: Vượt qua `npm run typecheck` trên toàn bộ 23 workspace, 54/54 tệp test của Shell (544 bài test) và `npm run brand:gate`.
+
+
 ## [1.0.45] - 2026-09-24
 
 ### 1. Hợp nhất 246 commit upstream từ `genspark-ai/genoffice`

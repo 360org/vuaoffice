@@ -1,6 +1,18 @@
 import type { zh } from './zh'
 
 export const vi = {
+  paneAnimEffMediaPlay: 'Phát',
+  paneAnimEffMediaPause: 'Tạm dừng',
+  paneAnimEffMediaStop: 'Dừng',
+  paneShowMenuNext: 'Trang kế tiếp',
+  paneShowMenuPrev: 'Trang trước',
+  paneShowMenuLastViewed: 'Đã xem gần nhất',
+  paneShowMenuSeeAll: 'Xem tất cả trang chiếu',
+  paneShowMenuScreen: 'Màn hình',
+  paneShowMenuBlack: 'Màn hình đen',
+  paneShowMenuWhite: 'Màn hình trắng',
+  paneShowMenuEnd: 'Kết thúc trình chiếu',
+  panePresenterWhiteOn: 'Đang màn hình trắng (nhấn phím W để trở lại)',
     paneCancel: 'Hủy',
     paneOk: 'OK',
     paneMoveUp: 'Di chuyển lên',

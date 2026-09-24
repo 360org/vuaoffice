@@ -2253,6 +2253,8 @@ const tMain = createI18n({
     menuAlignLeft: 'Căn trái',
     menuAlignCenter: 'Căn giữa',
     menuAlignRight: 'Căn phải',
+    dlgPickExportDir: 'Chọn thư mục xuất',
+    menuExportImages: 'Xuất hình ảnh…',
     menuAlignJustify: 'Căn đều hai bên',
     menuFont: 'Phông chữ…',
     menuParagraph: 'Đoạn văn…',

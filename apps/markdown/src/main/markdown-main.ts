@@ -325,6 +325,7 @@ const tDlg = createI18n({
     dlgSaveTitle: 'Lưu tài liệu Markdown',
     filterMarkdown: 'Tài liệu Markdown',
     dlgPickImage: 'Chọn hình ảnh',
+    dlgSaveImage: 'Lưu hình ảnh',
     filterImages: 'Hình ảnh',
     untitledFile: 'Tài liệu không tên',
     closeUnsavedMsg: 'Tài liệu này có những thay đổi chưa được lưu.',

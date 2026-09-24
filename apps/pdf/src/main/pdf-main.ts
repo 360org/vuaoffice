@@ -464,6 +464,7 @@ const tDlg = createI18n({
     dlgReplace: 'Chọn tệp PDF để thay thế',
     dlgSplitPages: 'Lưu các trang đã chia nhỏ thành',
     filterPdf: 'Tài liệu PDF',
+    dlgRedactCopy: 'Lưu bản sao che khuất thành',
     closeUnsavedMsg: 'Tệp PDF này có các thay đổi chưa được lưu.',
     closeUnsavedDetail: 'Bạn có muốn lưu trước khi đóng không?',
     btnSave: 'Lưu',

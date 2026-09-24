@@ -172,5 +172,6 @@ export const strings = {
     ...tableStrings.vi,
     ...editorStrings.vi,
     ...aiStrings.vi,
+    ...zoteroStrings.vi,
   },
 }

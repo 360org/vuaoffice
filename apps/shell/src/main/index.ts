@@ -63,6 +63,7 @@ import {
   checkUpdatesMenuItem,
   setUpdateCheckInvoker,
   installRendererProtocol,
+  DROP_OPEN_CHANNEL,
 } from '@genoffice/electron-utils'
 import { readAppSettings, writeAppSetting, writeAppSettings } from './app-settings'
 import { OPEN_DOCUMENTS_FILE, clearOpenDocuments, publishOpenDocuments } from './open-documents'
@@ -113,6 +114,7 @@ import {
   readStarredFiles,
   recordRecentFile,
   removeRecentFiles,
+  removeStarredFiles,
   replaceRecentFile,
   registerAiIpc,
   registerProjectIpc,
@@ -2633,6 +2635,11 @@ const tMain = createI18n({
     menuTroubleshooting: 'Khắc phục sự cố',
     menuDeveloperMode: 'Bật chế độ nhà phát triển',
     menuDiagnosticReport: 'Tạo nhật ký và báo cáo chẩn đoán…',
+    menuExportHtml: 'Xuất HTML…',
+    menuExportImages: 'Xuất hình ảnh…',
+    dlgAddFolderRoot: 'Thêm thư mục',
+    errFolderRootUnusable: 'Thư mục không thể sử dụng',
+    menuOpenInNewWindow: 'Mở trong cửa sổ mới',
     menuCheckForUpdates: 'Kiểm tra cập nhật…',
     thirdPartyNotices: 'Thông báo phần mềm bên thứ ba',
     menuExportDocx: 'Xuất thành Word…',
@@ -3242,6 +3249,18 @@ function notifyUnsupportedFile(filePath: string): void {
  * and route through the normal File > Open pipeline; detached editor windows
  * can host the drop target, so the shell must reveal itself after opening.
  */
+
+function showAppWarning(message: string): void {
+  const options = { type: 'warning' as const, message }
+  if (shellWindow) {
+    shellWindow.show()
+    shellWindow.focus()
+    void dialog.showMessageBox(shellWindow, options)
+  } else {
+    void dialog.showMessageBox(options)
+  }
+}
+
 const droppedFilesDeps = () => ({
   openDocumentPath,
   revealShellWindow,
@@ -3800,11 +3819,8 @@ function registerHomeIpc(): void {
   })
 
   ipcMain.handle(HOME_CHANNELS.newPdf, (_event, opts?: NewFileOpts) => {
-    if (opts?.projectId && opts.projectId !== 'default') {
-      pendingNewFileProject.set('pdf', opts.projectId)
-    }
     rememberPendingDir('pdf', opts)
-    tabManager?.openNewTab('pdf')
+    void newPdfTab()
   })
 
   ipcMain.handle(HOME_CHANNELS.removeRecent, (_event, paths: unknown) => {
@@ -4221,7 +4237,7 @@ function registerHomeIpc(): void {
   })
 
   ipcMain.handle(HOME_CHANNELS.checkForUpdates, () => {
-    checkForUpdatesManual()
+    checkForUpdatesNow()
   })
 
   ipcMain.handle(HOME_CHANNELS.getDeveloperMode, (): boolean => {
@@ -4568,7 +4584,7 @@ function macAppMenu(): MenuItemConstructorOptions[] {
         { role: 'about' },
         {
           label: tm('menuCheckForUpdates'),
-          click: () => checkForUpdatesManual(),
+          click: () => checkForUpdatesNow(),
         },
         { type: 'separator' },
         { role: 'services' },
@@ -4596,7 +4612,7 @@ function helpMenuSubmenu(
       ? [
           {
             label: tm('menuCheckForUpdates'),
-            click: () => checkForUpdatesManual(),
+            click: () => checkForUpdatesNow(),
           },
           { type: 'separator' as const },
         ]

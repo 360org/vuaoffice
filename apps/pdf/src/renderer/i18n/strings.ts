@@ -7648,6 +7648,7 @@ export const strings = {
     forensicsTypePageRemove: 'Xóa trang',
     forensicsTypeForm: 'Biểu mẫu tương tác',
     forensicsTypeMeta: 'Siêu dữ liệu & Lịch sử',
+    outlineGenerated: 'Tự động tạo từ tiêu đề',
     forensicsGotoPage: 'Xem trang {page}',
   },
 }

@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.0.46",
+    "date": "Tháng 9/2026",
+    "highlight": "Khắc phục triệt để lỗi màn hình trắng khi khởi động và lỗi kiểm tra cập nhật trên menu.",
+    "features": [
+      {
+        "title": "Sửa lỗi màn hình trắng khi mở ứng dụng",
+        "desc": "Khắc phục lỗi biến trạng thái chưa được định nghĩa trong giao diện chính sau đợt hợp nhất mã nguồn, đảm bảo ứng dụng luôn hiển thị mượt mà ngay khi khởi động."
+      },
+      {
+        "title": "Kiểm tra cập nhật thủ công ổn định",
+        "desc": "Đồng bộ hàm kiểm tra bản cập nhật mới trên thanh menu và phần cài đặt, cung cấp hộp thoại thông báo chi tiết và rõ ràng cho người dùng."
+      },
+      {
+        "title": "Hoàn thiện hệ thống đa ngôn ngữ",
+        "desc": "Bổ sung đầy đủ 100% bản dịch tiếng Việt cho các phân hệ Docs, Sheets, Slides, PDF, Markdown và Shell."
+      }
+    ]
+  },
+  {
     "version": "1.0.45",
     "date": "Tháng 9/2026",
     "highlight": "Hợp nhất 246 cải tiến mới nhất từ dự án gốc, tối ưu MCP Server, tìm kiếm tài liệu nâng cao và hoàn thiện giao diện.",

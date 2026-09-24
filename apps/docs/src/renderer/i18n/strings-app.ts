@@ -45,6 +45,23 @@ export const appStrings = defineStrings({
   // Vietnamese is VuaOffice's own locale: upstream ships no vi/ shard, so the
   // dictionary lives inline here instead of in a ./*/vi.ts sibling.
   vi: {
+    appDocTooLargeBlocks: '{name}: Tài liệu quá lớn ({blocks} đoạn, {chars} ký tự), không thể mở',
+    appDocLargeReadOnly: 'Tài liệu rất lớn ({blocks} đoạn), đã mở ở chế độ chỉ đọc; nhấn Esc để bắt đầu chỉnh sửa',
+    appDocLargeSpellOff: 'Tài liệu rất lớn ({blocks} đoạn), đã tắt kiểm tra chính tả khi nhập; có thể bật lại trong «Đánh giá › Chính tả»',
+    appExportingImages: 'Đang xuất hình ảnh…',
+    appExportImagesProgress: 'Đang xuất {count} hình ảnh…',
+    appExportImagesDone: 'Đã xuất {count} hình ảnh vào {dir}',
+    appExportImagesFailed: 'Xuất hình ảnh thất bại: {error}',
+    appNavOutline: 'Mục lục',
+    appPasteOptions: 'Tùy chọn dán',
+    appPasteKeepSource: 'Giữ nguyên định dạng nguồn',
+    appPasteMergeFormat: 'Hòa trộn định dạng',
+    appPasteTextOnly: 'Chỉ giữ văn bản thuần',
+    appPasteRememberDefault: 'Luôn sử dụng tùy chọn này',
+    appViewImage: 'Xem hình ảnh',
+    appSaveImageAs: 'Lưu hình ảnh thành…',
+    appImgActualSize: 'Kích thước thực tế',
+    appImgFitWindow: 'Vừa với cửa sổ',
     appScTitle: 'Phím tắt bàn phím',
     appScFilter: 'Tìm kiếm phím tắt',
     appScNone: 'Không có phím tắt phù hợp',
