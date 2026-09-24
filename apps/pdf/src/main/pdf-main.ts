@@ -657,6 +657,7 @@ async function pdfChangedExternally(wcId: number, filePath: string): Promise<boo
       return null
     }
   })
+}
 
 /** Only a copy produced by this view may receive subsequent in-place redactions. */
 const redactionPathByWc = new Map<number, string>()

@@ -3806,8 +3806,6 @@ function registerHomeIpc(): void {
     rememberPendingDir('pdf', opts)
     tabManager?.openNewTab('pdf')
   })
-    void newPdfTab()
-  })
 
   ipcMain.handle(HOME_CHANNELS.removeRecent, (_event, paths: unknown) => {
     removeRecentFiles(stringPaths(paths))

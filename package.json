@@ -1,6 +1,6 @@
 {
   "name": "genoffice",
-  "version": "1.0.43",
+  "version": "1.0.44",
   "private": true,
   "description": "AI-native office suite (docs, sheets, slides, pdf, markdown, html)",
   "license": "Apache-2.0",

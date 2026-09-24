@@ -402,6 +402,9 @@ interface FolderPickerProps {
   onPick: (dir: string) => void
 }
 
+interface ProjectPanelProps {
+  projects: ProjectSummaryEntry[]
+  selectedId: string | null
   onSelect: (id: string | null) => void
   onRefresh: () => void
 }
@@ -572,6 +575,128 @@ function ProjectPanel({ projects, selectedId, onSelect, onRefresh }: ProjectPane
                     autoFocus
                     onFocus={(e) => e.target.select()}
                     onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => setRenaming({ id: proj.id, value: e.target.value })}
+                    onBlur={() => void commitRename()}
+                    onKeyDown={(e) => {
+                      e.stopPropagation()
+                      if (e.nativeEvent.isComposing) return
+                      if (e.key === 'Enter') void commitRename()
+                      if (e.key === 'Escape') setRenaming(null)
+                    }}
+                  />
+                ) : (
+                  <span className="proj-item-name">
+                    {proj.isDefault ? t('defaultProject') : proj.name}
+                  </span>
+                )}
+                <span className="proj-item-meta">
+                  <span className="proj-item-count">{proj.fileCount}</span>
+                </span>
+              </div>
+
+              {!proj.isDefault && (
+                <div
+                  className="proj-menu-wrap"
+                  ref={projMenu?.id === proj.id ? projMenuWrapRef : undefined}
+                >
+                  <button
+                    className="proj-more-btn"
+                    aria-label={t('projMoreActions', { name: proj.name })}
+                    aria-expanded={projMenu?.id === proj.id}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (projMenu?.id === proj.id) {
+                        setProjMenu(null)
+                        return
+                      }
+                      const rect = e.currentTarget.getBoundingClientRect()
+                      setProjMenu({
+                        id: proj.id,
+                        top: rect.bottom + 4,
+                        right: window.innerWidth - rect.right,
+                      })
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+                      <circle cx="3.2" cy="8" r="1.35" fill="currentColor" />
+                      <circle cx="8" cy="8" r="1.35" fill="currentColor" />
+                      <circle cx="12.8" cy="8" r="1.35" fill="currentColor" />
+                    </svg>
+                  </button>
+                  {projMenu?.id === proj.id && (
+                    <div
+                      className="proj-menu"
+                      role="menu"
+                      style={{ top: projMenu.top, right: projMenu.right }}
+                    >
+                      <button
+                        role="menuitem"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setProjMenu(null)
+                          setRenaming({ id: proj.id, value: proj.name })
+                        }}
+                      >
+                        {t('rename')}
+                      </button>
+                      <div className="row-menu-divider" />
+                      <button
+                        role="menuitem"
+                        className="danger"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          doDelete(proj.id)
+                        }}
+                      >
+                        {t('deleteProject')}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+
+      {confirmDeleteId &&
+        (() => {
+          // locale string is "title?\nbody" — split it across the dialog
+          const [confirmTitle, ...confirmBody] = t('deleteProjectConfirm').split('\n')
+          return (
+            <div className="modal-overlay" onClick={() => setConfirmDeleteId(null)}>
+              <div
+                className="modal"
+                role="dialog"
+                aria-modal="true"
+                aria-label={confirmTitle}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <h3>{confirmTitle}</h3>
+                <p>{confirmBody.join('\n')}</p>
+                <div className="modal-buttons">
+                  <button
+                    className="btn btn-secondary"
+                    autoFocus
+                    onClick={() => setConfirmDeleteId(null)}
+                  >
+                    {t('cancel')}
+                  </button>
+                  <button className="btn btn-danger" onClick={() => void confirmDeleteNow()}>
+                    {t('delete')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
+        })()}
+    </div>
+  )
+}
+
+// ── Account entry (bottom-left) ──────────────────────────
+// Currently the 360 CORP (gsk) login entry; to be upgraded to a signup/account system later.
+// Language switching also lives in this popup menu.
 
 
 function FolderPicker({
@@ -910,7 +1035,6 @@ const THEME_OPTIONS = [
 type ThemeValue = (typeof THEME_OPTIONS)[number]['value']
 
 function AccountEntry({
-  onStatusChange,
   onStatusChange,
   onOpenAiSettings,
   onOpenAbout,
@@ -2423,6 +2547,7 @@ export function Home() {
       confirmMissing === null &&
       confirmDeleteFolder === null
     )
+      return
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setRowMenu(null)
@@ -2741,6 +2866,8 @@ export function Home() {
       setExpanded((prev) => new Set([...prev].map(rebase)))
       if (selectedFolder) setSelectedFolder(rebase(selectedFolder))
     }
+    refresh()
+  }
 
   const moveFileTo = async (filePath: string, targetProjectId: string) => {
     setMoveFileMenu(null)
@@ -2804,14 +2931,18 @@ export function Home() {
       return Array.isArray(raw) ? raw.filter((p): p is string => typeof p === 'string') : []
     } catch {
       return []
+    }
+  }
 
+  const moveSelectedToProject = async (targetProjectId: string) => {
+    const paths = [...selected]
+    if (paths.length === 0) return
     // drop moved rows immediately (same as moveFileTo) so they cannot be
     // re-selected or re-moved while the sequential IPC loop is in flight
     const moved = new Set(paths)
     setProjectFileEntries((prev) => prev.filter((e) => !moved.has(e.path)))
     for (const path of paths) {
       await window.aiOfficeProject?.moveFile(path, targetProjectId)
-
     }
     refresh()
   }
@@ -2900,7 +3031,7 @@ export function Home() {
       title: t('newPdf'),
       sub: '.pdf',
       action: () => window.aiOffice.newPdf(newFileOpts),
-
+    },
     {
       ext: 'eml',
       title: t('newMail'),
@@ -2908,7 +3039,6 @@ export function Home() {
       action: handleNewMail,
       badge: isDevMode ? 'AI' : 'Soon',
       disabled: !isDevMode,
-    },
     },
   ]
 
@@ -4114,11 +4244,6 @@ export function Home() {
             />
           </>
         )}
-
-        <AccountEntry
-          onStatusChange={handleAccountStatus}
-          onOpenAiSettings={() => setShowAiSettings(true)}
-          onOpenAbout={() => setShowAbout(true)}
 
         <div className="sidebar-divider" />
         {renderFolderPanel()}
