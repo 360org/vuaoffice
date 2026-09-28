@@ -74,18 +74,21 @@ if (winArm64 && !process.env.ELECTRON_BUILDER_7Z_FILTER) {
   process.env.ELECTRON_BUILDER_7Z_FILTER = 'BCJ'
 }
 const winArch = winArm64 ? 'arm64' : 'x64'
-function resolveWinSidecarTarget() {
-  if (process.env.XLSX_SIDECAR_TARGET) return process.env.XLSX_SIDECAR_TARGET
-  if (winArm64) return 'aarch64-pc-windows-msvc'
-  for (const t of ['x86_64-pc-windows-msvc', 'x86_64-pc-windows-gnu', 'i686-pc-windows-msvc']) {
-    if (existsSync(join(__dirname, `../sheets/native/xlsx-engine/target/${t}/release/xlsx-sidecar.exe`))) {
-      return t
-    }
+function resolveWinSidecar() {
+  const target = process.env.XLSX_SIDECAR_TARGET || (winArm64 ? 'aarch64-pc-windows-msvc' : 'x86_64-pc-windows-msvc')
+  const candidates = [
+    `../sheets/native/xlsx-engine/target/${target}/release/xlsx-sidecar.exe`,
+    `../sheets/native/xlsx-engine/target/release/xlsx-sidecar.exe`,
+    '../sheets/native/xlsx-engine/target/x86_64-pc-windows-msvc/release/xlsx-sidecar.exe',
+    '../sheets/native/xlsx-engine/target/i686-pc-windows-msvc/release/xlsx-sidecar.exe',
+    '../sheets/native/xlsx-engine/target/x86_64-pc-windows-gnu/release/xlsx-sidecar.exe',
+  ]
+  for (const c of candidates) {
+    if (existsSync(join(__dirname, c))) return { path: c, target }
   }
-  return 'x86_64-pc-windows-msvc'
+  return { path: candidates[0], target }
 }
-const winSidecarTarget = resolveWinSidecarTarget()
-const WIN_SIDECAR = `../sheets/native/xlsx-engine/target/${winSidecarTarget}/release/xlsx-sidecar.exe`
+const { path: WIN_SIDECAR, target: winSidecarTarget } = resolveWinSidecar()
 
 function harfbuzzWasmSource() {
   for (const rel of [

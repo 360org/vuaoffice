@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.0.50",
+    "date": "28/09/2026",
+    "highlight": "Khắc phục triệt để lỗi rò rỉ module Node.js vào client renderer bundle của shell và tối ưu hóa phân giải đa kiến trúc cho Windows sidecar.",
+    "features": [
+      {
+        "title": "Khắc phục triệt để lỗi build Shell Renderer",
+        "desc": "Tách biệt hoàn toàn hằng số SKILL_NAME thuần túy tại shared/integrations-api.ts, ngăn ngừa lỗi rò rỉ module node:path/fs làm gãy Vite/Rollup build trên toàn bộ các runner."
+      },
+      {
+        "title": "Tối ưu hóa đa tầng cho binary Windows xlsx-sidecar.exe",
+        "desc": "Hoàn thiện cơ chế tự động tìm kiếm fallback candidates cho binary Rust xlsx-sidecar.exe trong electron-builder, hỗ trợ linh hoạt cả x86_64-pc-windows-msvc và i686-pc-windows-msvc."
+      },
+      {
+        "title": "Đồng bộ hóa 100% kỹ năng Agent skills/vuaoffice",
+        "desc": "Hoàn thiện tích hợp slash command /vuaoffice trên các công cụ coding agent hàng đầu và đồng bộ hóa giao diện cấu hình Integrations trong Settings."
+      }
+    ]
+  },
+  {
     "version": "1.0.49",
     "date": "28/09/2026",
     "highlight": "Đồng bộ thương hiệu thư mục kỹ năng skills/vuaoffice và tối ưu hoá biên dịch Windows sidecar.",

@@ -1,13 +1,12 @@
-import {
-  SKILL_NAME,
-  type AgentId,
-  type AgentTarget,
-  type SkillInstallState,
-  type SkillInstallStatus,
+import type {
+  AgentId,
+  AgentTarget,
+  SkillInstallState,
+  SkillInstallStatus,
 } from '@genoffice/cli/agent-skills'
 import type { InstallOutcome } from '@genoffice/cli/install'
 
-export { SKILL_NAME }
+export const SKILL_NAME = 'vuaoffice'
 export type { AgentId, AgentTarget, SkillInstallState, SkillInstallStatus }
 
 export interface CliStatus extends InstallOutcome {
