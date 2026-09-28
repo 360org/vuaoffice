@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.0.47",
+    "date": "28/09/2026",
+    "highlight": "Khắc phục triệt để màn hình trắng module HTML, hoàn thiện từ điển tiếng Việt và hợp nhất toàn bộ upstream mới nhất.",
+    "features": [
+      {
+        "title": "Khắc phục triệt để màn hình trắng module HTML",
+        "desc": "Bổ sung tài nguyên đóng gói bundle của module HTML vào electron-builder và quy trình kiểm tra an toàn, bảo đảm module HTML hoạt động trơn tru trên mọi nền tảng."
+      },
+      {
+        "title": "Đồng bộ 100% từ điển tiếng Việt vi cho 7 phân hệ",
+        "desc": "Hoàn thiện và chuẩn hóa cấu trúc từ điển tiếng Việt trên toàn bộ các ứng dụng Docs, Sheets, Slides, PDF, Markdown, HTML, Mail và Shell."
+      },
+      {
+        "title": "Hợp nhất toàn bộ tính năng và bản vá từ upstream",
+        "desc": "Tích hợp nhà cung cấp tìm kiếm AI Serply, tính năng xem trước và kiểm tra bản trình chiếu deck PPTX, cùng bản vá chuyển đổi PDF sang DOCX tối ưu."
+      }
+    ]
+  },
+  {
     "version": "1.0.46",
     "date": "Tháng 9/2026",
     "highlight": "Khắc phục triệt để lỗi màn hình trắng khi khởi động và lỗi kiểm tra cập nhật trên menu.",
