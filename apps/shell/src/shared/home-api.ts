@@ -605,8 +605,6 @@ export const HOME_CHANNELS = {
   cloudProjects: 'home:cloud-projects',
   cloudProjectsCached: 'home:cloud-projects-cached',
   openCloudProject: 'home:open-cloud-project',
-  getDefaultSaveDir: 'home:get-default-save-dir',
-  pickDefaultSaveDir: 'home:pick-default-save-dir',
   openCreditUsage: 'home:open-credit-usage',
   getAiSettings: 'home:get-ai-settings',
   setAiSettings: 'home:set-ai-settings',

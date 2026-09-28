@@ -49,7 +49,7 @@ export const aiStrings = defineStrings({
     aiEmptyBuildTitle: 'Để AI dựng sổ làm việc này cho bạn',
     aiEmptyBuildBody:
       'Mô tả bảng, dữ liệu hoặc biểu đồ bạn cần — AI sẽ tạo trực tiếp vào trang tính.',
-    aiGskLoginBtn: 'Đăng nhập Genspark',
+    aiGskLoginBtn: 'Đăng nhập VuaOffice',
     aiUndelivered: 'Chưa gửi',
     aiRetry: 'Thử lại',
     aiOpenAssistant: 'Mở trợ lý AI',
@@ -100,7 +100,7 @@ export const aiStrings = defineStrings({
     aiLoggedInAs: 'Đã đăng nhập: {email}',
     aiNotLoggedIn: 'Chưa đăng nhập (các tính năng AI yêu cầu tài khoản Genspark)',
     aiWaitingBrowserLogin: 'Đang chờ đăng nhập trên trình duyệt…',
-    aiLoginGenspark: 'Đăng nhập Genspark',
+    aiLoginGenspark: 'Đăng nhập VuaOffice',
     aiModel: 'Mô hình',
     aiCancel: 'Hủy',
     aiSave: 'Lưu',

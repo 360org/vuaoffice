@@ -84,7 +84,7 @@ function focusOutsideViewer(container: HTMLElement | null): boolean {
 /** Cycle Tab / Shift+Tab inside the backdrop so focus cannot walk out. */
 function trapTab(container: HTMLElement | null, e: ReactKeyboardEvent): void {
   if (!container) return
-  const items = [...container.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(
+  const items = Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
     (el) => !el.hasAttribute('disabled') && el.tabIndex >= 0,
   )
   if (items.length === 0) {

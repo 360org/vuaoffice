@@ -18,8 +18,8 @@ export const vi = {
   aiQcPageSkipped: 'Trang {n}: đã bỏ qua kiểm tra bố cục tự động',
   aiQcStopped: 'Đã dừng kiểm tra bố cục',
   aiQcCapped: 'Còn {count} trang chưa được kiểm tra (giới hạn mỗi lượt chạy)',
-  aiGskLoginBtn: 'Đăng nhập Genspark',
-  aiPanelTitle: 'Genspark',
+  aiGskLoginBtn: 'Đăng nhập VuaOffice',
+  aiPanelTitle: 'VuaOffice AI',
   aiOpenAssistant: 'Mở trợ lý AI',
   aiFactCheckBtn: 'Kiểm tra tính xác thực bằng AI',
   aiFactCheckPrompt: 'Kiểm tra tính xác thực của bản trình chiếu: xác minh số liệu, ngày tháng, tên và nhận định, sau đó chỉ ra và sửa các lỗi',
@@ -216,4 +216,6 @@ export const vi = {
   aiSumSaveTemplate: 'Đã lưu mẫu phong cách "{name}"',
   aiSumTemplatesEmpty: 'Mẫu phong cách (trống)',
   aiSumListTemplates: 'Đã liệt kê {count} mẫu phong cách',
+  aiPageCloudToLocal: 'Đám mây không khả dụng — đã tạo cục bộ',
+
 } satisfies Record<keyof typeof zh, string>

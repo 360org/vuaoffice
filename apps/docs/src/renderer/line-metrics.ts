@@ -938,7 +938,7 @@ export function cssFontFamily(font: string, followAltName = true): string {
   // registered weight-normal only, lets Blink synthesize. Unresolvable elsewhere.
   // SimSun's ASCII is half-width fixed pitch (0.5em); the Songti stand-in is proportional
   if (f.includes('simsun') || f.includes('宋体') || f.includes('nsimsun')) {
-    return `${chain(font, 'GenOffice SimSun Latin', 'GenOffice Songti SC', 'STSong', 'SimSun', CJK_SERIF)},serif`
+    return `${chain(font, 'VuaOffice SimSun Latin', 'GenOffice Songti SC', 'STSong', 'SimSun', CJK_SERIF)},serif`
   }
   if (f.includes('simhei') || f.includes('黑体') || f.includes('细黑') || f.includes('xihei'))
     return `${chain(font, 'Heiti SC', 'STHeiti', 'SimHei', 'PingFang SC', CJK_SANS)},sans-serif`
@@ -1151,7 +1151,7 @@ export function cssFontFamily(font: string, followAltName = true): string {
   // where YaHei itself is missing. Not gated on availability: macOS lists the
   // name for Apple's on-demand BiauKai asset while drawing nothing with it
   if (/\u6a19\u6977|dfkai/.test(f))
-    return `${chain(font, 'Microsoft YaHei', 'GenOffice YaHei Latin', 'PingFang SC', CJK_SANS)},sans-serif`
+    return `${chain(font, 'Microsoft YaHei', 'VuaOffice YaHei Latin', 'PingFang SC', CJK_SANS)},sans-serif`
   if (
     /jhenghei|p?mingliu|biaukai|dfkai|kaiu|正黑|細明|標楷|蘋方|-繁|繁體|pingfang (tc|hk)|(heiti|songti|kaiti) tc/i.test(
       nfkc,

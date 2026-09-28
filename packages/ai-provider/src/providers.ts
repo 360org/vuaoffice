@@ -534,7 +534,7 @@ export function resolveAiSettings(stored: unknown, defaults: AiSettings): AiSett
     }
     return defaults
   }
-  const providers = { ...defaults.providers, ...stored.providers }
+  const providers = { ...defaults.providers, ...(storedProviders as any) }
   if (providers.vuaairouter.baseUrl === LEGACY_VUAAIROUTER_BASE_URL) {
     providers.vuaairouter = {
       ...providers.vuaairouter,
@@ -549,7 +549,7 @@ export function resolveAiSettings(stored: unknown, defaults: AiSettings): AiSett
     providers: migrateRetiredModels(
       trimConfigs(mergeProviderConfigs(defaults.providers, providers)),
     ),
-    developerMode: stored.developerMode ?? defaults.developerMode,
+    developerMode: settings.developerMode ?? defaults.developerMode,
     gskToolsEnabled: settings.gskToolsEnabled ?? defaults.gskToolsEnabled ?? true,
     media: resolveAiMediaSettings(settings.media ?? defaults.media),
     search: resolveAiSearchSettings(settings.search ?? defaults.search),

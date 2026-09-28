@@ -4144,6 +4144,7 @@ export const strings = {
     zoomOut: '縮小',
   },
   vi: {
+    imageTooLarge: 'Hình ảnh vượt quá {mb} MB, không thể chèn',
     aiPartialAdopt: 'Giữ lại',
     aiPartialBody: 'Đã nhận {blocks} khối nội dung nhưng quá trình tạo bị ngắt. Bạn muốn giữ lại phần này hay hủy bỏ?',
     aiPartialDiscard: 'Hủy bỏ',

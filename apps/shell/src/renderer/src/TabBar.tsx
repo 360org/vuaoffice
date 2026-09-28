@@ -138,6 +138,7 @@ function MailIcon() {
 }
 
 const KIND_ICON: Record<TabSummary['kind'], ReactElement> = {
+  mail: <MailIcon />,
   home: <HomeIcon />,
   docs: <DocIcon />,
   sheets: <SheetIcon />,
@@ -145,7 +146,6 @@ const KIND_ICON: Record<TabSummary['kind'], ReactElement> = {
   pdf: <PdfIcon />,
   markdown: <MarkdownIcon />,
   html: <HtmlIcon />,
-  mail: <MailIcon />,
 }
 
 /**
@@ -205,7 +205,6 @@ export function TabBar() {
     widths: number[]
     target: number
     started: boolean
-    clickedTitle: boolean
   }
   const dragRef = useRef<DragInfo | null>(null)
   const [dragVisual, setDragVisual] = useState<{
@@ -226,14 +225,6 @@ export function TabBar() {
       stripRef.current
         ?.querySelector('.tab-item.active')
         ?.scrollIntoView({ inline: 'nearest', block: 'nearest' })
-      // If the user clicked on the title of an active tab without dragging, trigger inline rename
-      if (commit && drag.clickedTitle && drag.id !== 'home') {
-        const targetTab = tabs.find((t) => t.id === drag.id)
-        if (targetTab) {
-          setEditingTabId(targetTab.id)
-          setEditTitle(targetTab.title)
-        }
-      }
       return
     }
     setDragVisual(null)
@@ -305,34 +296,6 @@ export function TabBar() {
       ?.scrollIntoView({ inline: 'nearest', block: 'nearest' })
   }, [activeId])
 
-  useEffect(() => {
-    if (editingTabId && editInputRef.current) {
-      editInputRef.current.focus()
-      const val = editInputRef.current.value
-      // Select filename without extension if present
-      const dotIdx = val.lastIndexOf('.')
-      if (dotIdx > 0) {
-        editInputRef.current.setSelectionRange(0, dotIdx)
-      } else {
-        editInputRef.current.select()
-      }
-    }
-  }, [editingTabId])
-
-  const commitRename = (id: string) => {
-    const newName = editTitle.trim()
-    setEditingTabId(null)
-    if (!newName) return
-    const currentTab = tabs.find((t) => t.id === id)
-    if (currentTab && newName === currentTab.title) return
-
-    void window.aiOfficeTabs.rename(id, newName).then((result) => {
-      if (result && !result.ok && result.error) {
-        console.warn('Tab rename failed:', result.error)
-      }
-    })
-  }
-
   return (
     <div className="tab-bar">
       <div className="tab-bar-drag-spacer" />
@@ -395,7 +358,6 @@ export function TabBar() {
                 // activation never depends on the click that a drag would eat
                 if (!tab.active) void window.aiOfficeTabs.activate(tab.id)
                 if (tab.id === 'home') return
-                if (editingTabId === tab.id) return
                 const strip = stripRef.current
                 if (!strip) return
                 const rects = Array.from(strip.querySelectorAll<HTMLElement>('.tab-item'), (el) =>
@@ -410,7 +372,6 @@ export function TabBar() {
                   widths: rects.map((r) => r.width),
                   target: index,
                   started: false,
-                  clickedTitle: wasActive && clickedTitle,
                 }
                 event.currentTarget.setPointerCapture(event.pointerId)
               }}
@@ -477,7 +438,7 @@ export function TabBar() {
               {/* highlight plate behind the content — hover capsule / active white body */}
               <span className="tab-plate" aria-hidden="true" />
               <span className="tab-icon">{KIND_ICON[tab.kind]}</span>
-{renaming?.id === tab.id ? (
+              {renaming?.id === tab.id ? (
                 <input
                   className="tab-rename-input"
                   autoFocus
