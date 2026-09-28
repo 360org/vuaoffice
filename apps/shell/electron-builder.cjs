@@ -296,7 +296,7 @@ function ensureThirdPartyNotices() {
 
 /** @type {import('electron-builder').Configuration} */
 const config = {
-  appId: 'com.genoffice.app',
+  appId: 'com.vuahethong.vuaoffice',
   productName: 'VuaOffice',
   // Resolved from the installed electron package so dependency bumps can
   // never leave a stale hard-coded pin behind (packaging would silently ship
