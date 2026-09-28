@@ -145,7 +145,7 @@ function buildTools(): McpToolDefinition[] {
         openInTab: (filePath) => {
           if (!deps) return
           const opened = deps.openPath(filePath)
-          if (!opened) throw new Error(`could not open ${filePath} in VuaOffice`)
+          if (!opened) throw new Error(`could not open ${filePath} in GenOffice`)
         },
         docs: deps.docsControl,
         extraFormats,

@@ -85,7 +85,7 @@ export function startMailStandalone(): void {
       height: 800,
       minWidth: 900,
       minHeight: 600,
-      title: 'VuaOffice Mail',
+      title: 'GenOffice Mail',
       webPreferences: {
         preload: runtime.preloadPath,
         contextIsolation: true,
