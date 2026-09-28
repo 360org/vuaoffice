@@ -77,6 +77,18 @@ const winArch = winArm64 ? 'arm64' : 'x64'
 const winSidecarTarget = winArm64 ? 'aarch64-pc-windows-msvc' : 'x86_64-pc-windows-gnu'
 const WIN_SIDECAR = `../sheets/native/xlsx-engine/target/${winSidecarTarget}/release/xlsx-sidecar.exe`
 
+function harfbuzzWasmSource() {
+  for (const rel of [
+    '../../node_modules/harfbuzzjs/dist/harfbuzz-subset.wasm',
+    '../../node_modules/harfbuzzjs/hb-subset.wasm',
+    '../pdf/node_modules/harfbuzzjs/dist/harfbuzz-subset.wasm',
+    '../pdf/node_modules/harfbuzzjs/hb-subset.wasm',
+  ]) {
+    if (existsSync(join(__dirname, rel))) return rel
+  }
+  return '../../node_modules/harfbuzzjs/dist/harfbuzz-subset.wasm'
+}
+
 function assertExtraResourceSources() {
   for (const rel of [
     '../../node_modules/@genspark/cli',
@@ -84,7 +96,7 @@ function assertExtraResourceSources() {
     '../../node_modules/ws',
     '../../node_modules/electron/dist/LICENSES.chromium.html',
     '../../node_modules/@embedpdf/pdfium/dist/pdfium.wasm',
-    '../pdf/node_modules/harfbuzzjs/hb-subset.wasm',
+    harfbuzzWasmSource(),
   ]) {
     if (!existsSync(join(__dirname, rel))) {
       throw new Error(
@@ -298,6 +310,13 @@ function ensureThirdPartyNotices() {
 const config = {
   appId: 'com.vuahethong.vuaoffice',
   productName: 'VuaOffice',
+  protocols: [
+    {
+      name: 'VuaOffice Deep Link',
+      schemes: ['vuaoffice'],
+      role: 'Viewer',
+    },
+  ],
   // Resolved from the installed electron package so dependency bumps can
   // never leave a stale hard-coded pin behind (packaging would silently ship
   // the old runtime).
@@ -346,7 +365,7 @@ const config = {
       to: 'wasm/pdfium.wasm',
     },
     {
-      from: '../pdf/node_modules/harfbuzzjs/hb-subset.wasm',
+      from: harfbuzzWasmSource(),
       to: 'wasm/hb-subset.wasm',
     },
     // platform system-OCR helpers for scanned-page recovery (each exists only
@@ -508,6 +527,7 @@ const config = {
   ],
   npmRebuild: false,
   mac: {
+    artifactName: 'VuaOffice-${version}-macOS-${arch}.${ext}',
     // Two separate arch packages (NOT universal): arm64 keeps the exact
     // artifact names and update-feed entries it always had, x64 (opt-in via
     // GENOFFICE_MAC_X64=1, see includeMacX64 above) adds Intel support with
@@ -533,6 +553,7 @@ const config = {
     ],
   },
   win: {
+    artifactName: 'VuaOffice-${version}-Windows-${arch}-Setup.${ext}',
     // No `arch` here on purpose: computeArchToTargetNamesMap() ignores the CLI
     // arch flag whenever a target declares its own `arch`, so `--win --x64`
     // would still queue an ia32 pass too. Each release job passes --x64 / --ia32.

@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.0.48",
+    "date": "28/09/2026",
+    "highlight": "Tối ưu hóa cơ chế định vị tài nguyên Harfbuzz WASM và chuẩn hóa tên file cài đặt đa nền tảng.",
+    "features": [
+      {
+        "title": "Định vị tài nguyên Harfbuzz WASM linh hoạt",
+        "desc": "Hỗ trợ cơ chế phân giải đường dẫn tài nguyên động, tương thích hoàn hảo với cấu trúc npm hoisting trên mọi môi trường dev và CI runner."
+      },
+      {
+        "title": "Chuẩn hóa quy ước tên gói cài đặt Release",
+        "desc": "Khai báo minh định cấu trúc tên file cài đặt cho macOS (DMG/ZIP) và Windows (Setup EXE) tuân thủ nghiêm ngặt quy chế phát hành."
+      },
+      {
+        "title": "Khắc phục triệt để màn hình trắng module HTML",
+        "desc": "Tích hợp hoàn thiện module HTML vào gói ứng dụng cùng hệ thống từ điển tiếng Việt chuẩn hóa cho toàn bộ 7 phân hệ."
+      }
+    ]
+  },
+  {
     "version": "1.0.47",
     "date": "28/09/2026",
     "highlight": "Khắc phục triệt để màn hình trắng module HTML, hoàn thiện từ điển tiếng Việt và hợp nhất toàn bộ upstream mới nhất.",
