@@ -56,7 +56,7 @@ Cấm phát hành từ nhánh khác. Cấm phát hành khi còn thay đổi chư
 npm run brand:gate
 ```
 
-Gồm ba tầng: `selftest` (luật song ánh) + `status` (đã apply đầy đủ) + `check-brand` (không rò rỉ).
+Gồm sáu tầng tự động: `selftest` (luật song ánh) + `status` (áp dụng đầy đủ) + `check-brand` (không rò rỉ chuỗi) + `audit:check` (kiểm toán bất biến) + `site:check` (đồng bộ website) + `check:boundary` (ranh giới Renderer / Node.js).
 
 > 🚫 Cổng này báo đỏ → **DỪNG PHÁT HÀNH**. Xử lý theo `WHITELABEL_STRATEGY.md §8`, tuyệt đối không bỏ qua.
 

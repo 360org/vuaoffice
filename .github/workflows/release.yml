@@ -55,6 +55,7 @@ jobs:
             node scripts/360-brand.js status
             node tools/check-brand.mjs
             node tools/check-audit-immutable.mjs
+            node tools/check-renderer-boundary.mjs
           else
             echo "Public mirror does not contain private brand sources; GitHub release uses GitLab build source."
           fi

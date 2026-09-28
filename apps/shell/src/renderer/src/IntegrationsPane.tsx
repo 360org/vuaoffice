@@ -1,4 +1,4 @@
-import { mcpLaunch, type McpLaunch } from '@genoffice/cli/mcp-launch'
+import { mcpLaunch, type McpLaunch } from '../../shared/mcp-launch'
 import { useCallback, useEffect, useState } from 'react'
 import type { TFunc } from './locale'
 import { McpServerSection } from './McpServerSection'
