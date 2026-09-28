@@ -74,7 +74,17 @@ if (winArm64 && !process.env.ELECTRON_BUILDER_7Z_FILTER) {
   process.env.ELECTRON_BUILDER_7Z_FILTER = 'BCJ'
 }
 const winArch = winArm64 ? 'arm64' : 'x64'
-const winSidecarTarget = winArm64 ? 'aarch64-pc-windows-msvc' : 'x86_64-pc-windows-gnu'
+function resolveWinSidecarTarget() {
+  if (process.env.XLSX_SIDECAR_TARGET) return process.env.XLSX_SIDECAR_TARGET
+  if (winArm64) return 'aarch64-pc-windows-msvc'
+  for (const t of ['x86_64-pc-windows-msvc', 'x86_64-pc-windows-gnu', 'i686-pc-windows-msvc']) {
+    if (existsSync(join(__dirname, `../sheets/native/xlsx-engine/target/${t}/release/xlsx-sidecar.exe`))) {
+      return t
+    }
+  }
+  return 'x86_64-pc-windows-msvc'
+}
+const winSidecarTarget = resolveWinSidecarTarget()
 const WIN_SIDECAR = `../sheets/native/xlsx-engine/target/${winSidecarTarget}/release/xlsx-sidecar.exe`
 
 function harfbuzzWasmSource() {
@@ -406,8 +416,8 @@ const config = {
       to: 'cli/package.json',
     },
     {
-      from: '../../skills/genoffice/SKILL.md',
-      to: 'cli/skills/genoffice/SKILL.md',
+      from: '../../skills/vuaoffice/SKILL.md',
+      to: 'cli/skills/vuaoffice/SKILL.md',
     },
     // runtime deps the genoffice bundle leaves external (jsdom for the Word/Markdown
     // paths); collected by packages/cli/collect-deps.mjs during its build

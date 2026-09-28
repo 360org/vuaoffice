@@ -84,8 +84,10 @@ export function ocrHelperPath(): string | null {
 export function bundledSkillPath(): string | null {
   const packaged = packagedResourcesDir()
   const candidates = [
-    ...(packaged ? [join(packaged, 'cli', 'skills', 'genoffice', 'SKILL.md')] : []),
-    ...(repoRoot() ? [join(repoRoot()!, 'skills', 'genoffice', 'SKILL.md')] : []),
+    ...(packaged ? [join(packaged, 'cli', 'skills', 'vuaoffice', 'SKILL.md')
+  ] : []),
+    ...(repoRoot() ? [join(repoRoot()!, 'skills', 'vuaoffice', 'SKILL.md')
+  ] : []),
   ]
   return candidates.find((p) => existsSync(p)) ?? null
 }

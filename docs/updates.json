@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.0.49",
+    "date": "28/09/2026",
+    "highlight": "Đồng bộ thương hiệu thư mục kỹ năng skills/vuaoffice và tối ưu hoá biên dịch Windows sidecar.",
+    "features": [
+      {
+        "title": "Chuẩn hóa thương hiệu thư mục skills/vuaoffice",
+        "desc": "Chuyển đổi toàn diện kỹ năng tích hợp dòng lệnh từ skills/genoffice thành skills/vuaoffice, đồng bộ tên lệnh /vuaoffice trong Claude Code và Cursor."
+      },
+      {
+        "title": "Khắc phục triệt để lỗi biên dịch Windows sidecar",
+        "desc": "Tự động phân giải kiến trúc Rust toolchain (x86_64 / i686) theo biến môi trường XLSX_SIDECAR_TARGET, bảo đảm bộ cài đặt Windows NSIS đóng gói hoàn hảo."
+      },
+      {
+        "title": "Kế thừa toàn diện các bản vá v1.0.48",
+        "desc": "Bao gồm giải quyết màn hình trắng module HTML, chuẩn hóa từ điển tiếng Việt và cơ chế phân giải Harfbuzz WASM động."
+      }
+    ]
+  },
+  {
     "version": "1.0.48",
     "date": "28/09/2026",
     "highlight": "Tối ưu hóa cơ chế định vị tài nguyên Harfbuzz WASM và chuẩn hóa tên file cài đặt đa nền tảng.",

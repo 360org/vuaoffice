@@ -2,11 +2,12 @@ import { mcpLaunch, type McpLaunch } from '@genoffice/cli/mcp-launch'
 import { useCallback, useEffect, useState } from 'react'
 import type { TFunc } from './locale'
 import { McpServerSection } from './McpServerSection'
-import type {
-  AgentId,
-  AgentTarget,
-  IntegrationsStatus,
-  SkillInstallState,
+import {
+  SKILL_NAME,
+  type AgentId,
+  type AgentTarget,
+  type IntegrationsStatus,
+  type SkillInstallState,
 } from '../../shared/integrations-api'
 
 // ── Settings → Integrations ─────────────────────────────────
@@ -129,7 +130,7 @@ export function IntegrationsPane({
     const sep = dir.includes('\\') && !dir.includes('/') ? '\\' : '/'
     setPending({
       kind: 'install',
-      path: `${dir}${sep}genoffice${sep}SKILL.md`,
+      path: `${dir}${sep}${SKILL_NAME}${sep}SKILL.md`,
       target: { dir },
     })
   }

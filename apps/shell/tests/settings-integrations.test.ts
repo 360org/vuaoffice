@@ -76,7 +76,7 @@ function baseStatus(): IntegrationsStatus {
         id: 'claude-code',
         label: 'Claude Code',
         skillsDir: '/home/u/.claude/skills',
-        state: { status: 'missing', path: '/home/u/.claude/skills/genoffice/SKILL.md' },
+        state: { status: 'missing', path: '/home/u/.claude/skills/vuaoffice/SKILL.md' },
       },
       {
         id: 'codex',
@@ -84,7 +84,7 @@ function baseStatus(): IntegrationsStatus {
         skillsDir: '/home/u/.codex/skills',
         state: {
           status: 'outdated',
-          path: '/home/u/.codex/skills/genoffice/SKILL.md',
+          path: '/home/u/.codex/skills/vuaoffice/SKILL.md',
           installedVersion: '2.0.0',
           older: true,
         },
@@ -95,7 +95,7 @@ function baseStatus(): IntegrationsStatus {
         skillsDir: '/home/u/.cursor/skills',
         state: {
           status: 'foreign',
-          path: '/home/u/.cursor/skills/genoffice/SKILL.md',
+          path: '/home/u/.cursor/skills/vuaoffice/SKILL.md',
           installedVersion: '2.1.0',
         },
       },
@@ -218,7 +218,7 @@ describe('Settings → Integrations', () => {
     const row = host.querySelector('[data-agent="claude-code"]')!
     await click(buttonWithText('Install', row))
     expect(install).not.toHaveBeenCalled()
-    expect(row.textContent).toContain('Will write: /home/u/.claude/skills/genoffice/SKILL.md')
+    expect(row.textContent).toContain('Will write: /home/u/.claude/skills/vuaoffice/SKILL.md')
 
     await click(buttonWithText('Cancel', row))
     expect(row.querySelector('.set-intg-confirm')).toBeNull()
@@ -236,7 +236,7 @@ describe('Settings → Integrations', () => {
   it('installs into a picked folder and saves the zip through the main process', async () => {
     const install = vi.fn(async () => ({
       status: 'installed' as const,
-      path: '/x/genoffice/SKILL.md',
+      path: '/x/vuaoffice/SKILL.md',
       installedVersion: '2.1.0',
     }))
     const saveZip = vi.fn(async () => '/Users/u/Downloads/genoffice-skill-2.1.0.zip')
@@ -247,7 +247,7 @@ describe('Settings → Integrations', () => {
       saveSkillZip: saveZip,
     })
     await click(buttonWithText('Install into another folder…'))
-    expect(host.textContent).toContain('Will write: /x/genoffice/SKILL.md')
+    expect(host.textContent).toContain('Will write: /x/vuaoffice/SKILL.md')
     await click(buttonWithText('Confirm'))
     expect(install).toHaveBeenCalledWith({ dir: '/x' })
 
