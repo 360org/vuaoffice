@@ -11,16 +11,17 @@
   "scripts": {
     "dev": "electron-vite dev --watch",
     "build": "electron-vite build",
+    "notices": "node ../../tools/gen-third-party-notices.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "start": "electron-vite build && electron .",
-    "dist:mac": "electron-vite build && electron-builder --mac",
-    "dist:mac:x64": "electron-vite build && electron-builder --mac --x64",
-    "dist:mac:arm64": "electron-vite build && electron-builder --mac --arm64",
-    "dist:win": "electron-vite build && electron-builder --win",
-    "dist:win:x64": "electron-vite build && electron-builder --win --x64",
-    "dist:win:ia32": "electron-vite build && electron-builder --win --ia32",
-    "dist:linux": "electron-vite build && electron-builder --linux"
+    "dist:mac": "npm run notices && electron-vite build && electron-builder --mac",
+    "dist:mac:x64": "npm run notices && electron-vite build && electron-builder --mac --x64",
+    "dist:mac:arm64": "npm run notices && electron-vite build && electron-builder --mac --arm64",
+    "dist:win": "npm run notices && electron-vite build && electron-builder --win",
+    "dist:win:x64": "npm run notices && electron-vite build && electron-builder --win --x64",
+    "dist:win:ia32": "npm run notices && electron-vite build && electron-builder --win --ia32",
+    "dist:linux": "npm run notices && electron-vite build && electron-builder --linux"
   },
   "devDependencies": {
     "@genoffice/agent-core": "*",

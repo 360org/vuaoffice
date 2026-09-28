@@ -368,3 +368,27 @@ body.overlay-title-bar .tab-bar-drag-spacer {
     background: rgba(255, 255, 255, 0.1);
   }
 }
+/* Motion accessibility: suppress all animation for users who opt out */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.tab-rename-input {
+  min-width: 80px;
+  max-width: 220px;
+  width: 100%;
+  font: inherit;
+  font-size: inherit;
+  color: inherit;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 1px 4px;
+  outline: none;
+}

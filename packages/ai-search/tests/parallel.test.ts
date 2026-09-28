@@ -135,6 +135,33 @@ describe('Parallel search', () => {
     ])
   })
 
+  it('stops mapping results once the caller limit is filled', async () => {
+    const mapped = new Set<number>()
+    const many = Array.from({ length: 40 }, (_, i) => ({
+      title: `Result ${i}`,
+      url: `https://example.com/${i}`,
+      // A getter so the test can see which results were mapped; Response.json would
+      // have flattened this into a plain value before the search ever saw it.
+      get excerpts() {
+        mapped.add(i)
+        return [`Excerpt ${i}.`]
+      },
+    }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () => ({ ok: true, json: async () => ({ results: many }) }) as unknown as Response,
+      ),
+    )
+    const found = await webSearch('office', 3, { parallelKey: 'key', prefer: 'parallel' })
+    expect(found.method).toBe('parallel')
+    expect(found.results).toHaveLength(3)
+    expect(found.results[0]?.snippet).toBe('Excerpt 0.')
+    // v1 search returns everything it has, so the 37 results past the limit used to
+    // have their excerpts concatenated and then thrown away
+    expect([...mapped]).toEqual([0, 1, 2])
+  })
+
   it('aborts a stalled request and continues to the fallback', async () => {
     vi.useFakeTimers()
     let signal: AbortSignal | null | undefined

@@ -97,6 +97,7 @@ function assertModuleTreesPresent(platformName, arch) {
     '../slides/out',
     '../pdf/out',
     '../markdown/out',
+    '../html/out',
     '../mail/out',
   ]) {
     if (!existsSync(join(__dirname, rel))) {
@@ -170,6 +171,10 @@ const config = {
     {
       from: '../markdown/out',
       to: 'modules/markdown',
+    },
+    {
+      from: '../html/out',
+      to: 'modules/html',
     },
     {
       from: '../mail/out',
@@ -265,6 +270,22 @@ const config = {
       icon: 'md',
       role: 'Editor',
       mimeType: 'text/markdown',
+    },
+    {
+      ext: 'html',
+      name: 'HTML Document',
+      description: 'HTML Document',
+      icon: 'html',
+      role: 'Editor',
+      mimeType: 'text/html',
+    },
+    {
+      ext: 'htm',
+      name: 'HTML Document',
+      description: 'HTML Document',
+      icon: 'html',
+      role: 'Editor',
+      mimeType: 'text/html',
     },
   ],
   npmRebuild: false,

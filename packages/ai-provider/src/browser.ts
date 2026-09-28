@@ -14,6 +14,8 @@ export type {
 } from './types'
 export {
   AI_PROVIDERS,
+  activeProvider,
+  cloudToolsEnabled,
   DEFAULT_MAX_OUTPUT_TOKENS,
   MAX_MAX_OUTPUT_TOKENS,
   MIN_MAX_OUTPUT_TOKENS,

@@ -26,6 +26,8 @@ import {
   type WebSearchResult,
 } from './shared'
 import { genofficeApiKey, genofficeAuthPath, reloadGenofficeAuth } from './genoffice-auth'
+// deep import: the package root re-exports Electron-bound modules, and this file also runs in the genoffice CLI
+import { readBodyCapped } from '@genoffice/electron-utils/remote-image'
 
 const SEARCH_TIMEOUT_MS = 60_000
 const GENERATE_TIMEOUT_MS = 600_000
@@ -392,6 +394,16 @@ export async function gskResolveDownloadUrl(url: string): Promise<string> {
 const GSK_TOOL_CLI_BASE = 'https://www.genspark.ai/api/tool_cli'
 const SLIDE_GENERATE_TIMEOUT_MS = 240_000
 
+/**
+ * tool_cli answers a long call with an NDJSON heartbeat stream, so the body is
+ * read through the capped reader: a gateway that never stops sending must not
+ * grow the main-process buffer for the whole request.
+ */
+export const MAX_TOOL_CLI_NDJSON_BYTES = 8 * 1024 * 1024
+
+/** Cap for a downloaded slide artifact: one page of HTML plus its images. */
+export const MAX_SLIDE_ARTIFACT_BYTES = 64 * 1024 * 1024
+
 export interface GskSlideGenerateOptions {
   /** Content and layout brief for this page */
   brief: string
@@ -449,7 +461,7 @@ async function toolCliPost(
       body: JSON.stringify(body),
       signal: controller.signal,
     })
-    const text = await resp.text()
+    const text = new TextDecoder().decode(await readBodyCapped(resp, MAX_TOOL_CLI_NDJSON_BYTES))
     if (!resp.ok) throw new Error(`tool_cli ${path} HTTP ${resp.status}: ${text.slice(0, 200)}`)
     const result = parseToolCliNdjson(text)
     if (result.status !== 'ok') {
@@ -492,7 +504,10 @@ export async function gskSlideGenerate(
   if (!downloadUrl) throw new Error('file/download returned no download_url')
   const resp = await fetch(String(downloadUrl), signal ? { signal } : undefined)
   if (!resp.ok) throw new Error(`PPTX download failed: HTTP ${resp.status}`)
-  return { bytes: new Uint8Array(await resp.arrayBuffer()), model: String(data.model ?? '') }
+  return {
+    bytes: await readBodyCapped(resp, MAX_SLIDE_ARTIFACT_BYTES),
+    model: String(data.model ?? ''),
+  }
 }
 
 // ── Media analysis / transcription ──────────────────────────────────

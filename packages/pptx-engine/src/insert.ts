@@ -11,7 +11,7 @@
 import { cNvPrIdsInXml, pruneTimingForSpids } from './animation'
 import type { EmuRect, Paragraph, PictureElement, Slide, SlideElement, TextElement } from './types'
 import { generateParagraphXml, generateXfrmXml } from './generate'
-import { creationIdXml, escapeXmlAttr } from './xml-utils'
+import { creationIdXml, escapeXmlAttr, maxRelationshipIdNumber } from './xml-utils'
 import { relsPathFor } from './zip'
 import type { OpenedPptx } from './index'
 import { cleanupDeletedElementResources } from './resource-cleanup'
@@ -154,7 +154,8 @@ function buildCxnSpXml(
 export function nextCNvPrId(slide: Slide): number {
   let max = 1
   const scan = (xml: string) => {
-    for (const m of xml.matchAll(/<p:cNvPr\s[^>]*\bid="(\d+)"/g)) {
+    // quote-agnostic: a writer that single-quotes its attributes still owns those ids
+    for (const m of xml.matchAll(/<p:cNvPr\s[^>]*\bid=["'](\d+)["']/g)) {
       max = Math.max(max, Number(m[1]))
     }
   }
@@ -270,6 +271,15 @@ export interface NewTableOptions {
 /** PowerPoint's default style for new tables (Medium Style 2 - Accent 1, built-in fallback in the render layer) */
 const DEFAULT_TABLE_STYLE_ID = '{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}'
 
+/** Largest row/column count an inserted table may have (PowerPoint's Insert Table limit). */
+export const MAX_INSERT_TABLE_DIM = 75
+
+/** Finite integer clamp with a safe fallback (NaN/Infinity land on `fallback`). */
+function clampInt(v: number, min: number, max: number, fallback = min): number {
+  if (!Number.isFinite(v)) return fallback
+  return Math.min(Math.max(min, Math.floor(v)), max)
+}
+
 /**
  * Build the table graphicFrame fragment (equal-width columns / equal-height rows,
  * default built-in style, empty cells). Insertion goes through appendRawElements
@@ -277,8 +287,11 @@ const DEFAULT_TABLE_STYLE_ID = '{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}'
  */
 export function buildTableXml(slide: Slide, opts: NewTableOptions): string {
   const id = nextCNvPrId(slide)
-  const rows = Math.max(1, Math.floor(opts.rows))
-  const cols = Math.max(1, Math.floor(opts.cols))
+  // Hostile op JSON can carry NaN/Infinity rows/cols (Math.max passes them
+  // through, Array.from({length: Infinity}) throws) and Infinity spans
+  // (w="Infinity" is Word-unopenable): clamp everything up front.
+  const rows = clampInt(opts.rows, 1, MAX_INSERT_TABLE_DIM)
+  const cols = clampInt(opts.cols, 1, MAX_INSERT_TABLE_DIM)
   const colW = Math.max(1, Math.floor(opts.offset.cx / cols))
   const rowH = Math.max(1, Math.floor(opts.offset.cy / rows))
   const colWs =
@@ -293,8 +306,10 @@ export function buildTableXml(slide: Slide, opts: NewTableOptions): string {
   const cellXml = (r: number, c: number): string => {
     const p = opts.cellProps?.[r]?.[c]
     const attrs: string[] = []
-    if (p?.gridSpan && p.gridSpan > 1) attrs.push(`gridSpan="${Math.floor(p.gridSpan)}"`)
-    if (p?.rowSpan && p.rowSpan > 1) attrs.push(`rowSpan="${Math.floor(p.rowSpan)}"`)
+    const gridSpan = p?.gridSpan !== undefined ? clampInt(p.gridSpan, 1, cols - c) : 1
+    const rowSpan = p?.rowSpan !== undefined ? clampInt(p.rowSpan, 1, rows - r) : 1
+    if (gridSpan > 1) attrs.push(`gridSpan="${gridSpan}"`)
+    if (rowSpan > 1) attrs.push(`rowSpan="${rowSpan}"`)
     if (p?.hMerge) attrs.push('hMerge="1"')
     if (p?.vMerge) attrs.push('vMerge="1"')
     const tcPr = p?.anchor && p.anchor !== 't' ? `<a:tcPr anchor="${p.anchor}"/>` : '<a:tcPr/>'
@@ -354,10 +369,16 @@ function tableCellXml(
   cell: NewTableCellSpec,
   colIdx: number,
   border: NewTableGridOptions['border'],
+  maxGridSpan: number,
+  maxRowSpan: number,
 ): string {
   const attrs: string[] = []
-  if ((cell.gridSpan ?? 1) > 1) attrs.push(`gridSpan="${Math.floor(cell.gridSpan!)}"`)
-  if ((cell.rowSpan ?? 1) > 1) attrs.push(`rowSpan="${Math.floor(cell.rowSpan!)}"`)
+  // cap a span at the cells remaining right of / below it, as buildTableXml
+  // does: Math.floor alone emits gridSpan="Infinity" for a hostile payload
+  const gridSpan = cell.gridSpan !== undefined ? clampInt(cell.gridSpan, 1, maxGridSpan) : 1
+  const rowSpan = cell.rowSpan !== undefined ? clampInt(cell.rowSpan, 1, maxRowSpan) : 1
+  if (gridSpan > 1) attrs.push(`gridSpan="${gridSpan}"`)
+  if (rowSpan > 1) attrs.push(`rowSpan="${rowSpan}"`)
   if (cell.hMerge) attrs.push('hMerge="1"')
   if (cell.vMerge) attrs.push('vMerge="1"')
   const tcAttrs = attrs.length ? ` ${attrs.join(' ')}` : ''
@@ -411,6 +432,7 @@ function tableCellXml(
  */
 export function buildTableGridXml(slide: Slide, opts: NewTableGridOptions): string {
   const id = nextCNvPrId(slide)
+  const cols = opts.colWidthsEmu.length
   const grid = opts.colWidthsEmu
     .map((w) => `<a:gridCol w="${Math.max(1, Math.round(w))}"/>`)
     .join('')
@@ -418,7 +440,11 @@ export function buildTableGridXml(slide: Slide, opts: NewTableGridOptions): stri
     .map((row, r) => {
       const h = Math.max(1, Math.round(opts.rowHeightsEmu[r] ?? 1))
       // one <a:tc> per grid column (covered columns keep their own hMerge tc)
-      const tcs = row.map((cell, colIdx) => tableCellXml(cell, colIdx, opts.border)).join('')
+      const tcs = row
+        .map((cell, colIdx) =>
+          tableCellXml(cell, colIdx, opts.border, cols - colIdx, opts.cells.length - r),
+        )
+        .join('')
       return `<a:tr h="${h}">${tcs}</a:tr>`
     })
     .join('')
@@ -522,8 +548,7 @@ export function addImageMediaAndRel(
   const rels =
     archive.readText(relsPath) ??
     '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>'
-  let maxRid = 0
-  for (const m of rels.matchAll(/Id="rId(\d+)"/g)) maxRid = Math.max(maxRid, Number(m[1]))
+  const maxRid = maxRelationshipIdNumber(rels)
   const rid = `rId${maxRid + 1}`
   const relXml = `<Relationship Id="${rid}" Type="${IMAGE_REL_TYPE}" Target="../media/${mediaPath.slice('ppt/media/'.length)}"/>`
   archive.entries.set(

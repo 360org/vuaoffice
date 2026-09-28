@@ -5,8 +5,10 @@ import { gensparkAttributionHeaders, opencodeSessionHeaders } from '../providers
 import type { AiChatResponse, AiProviderConfig } from '../types'
 import { createStreamWatchdog, type StreamWatchdog } from '../watchdog'
 import {
+  endpointUrl,
   jsonBodyInsteadOfSse,
   parseToolInput,
+  readCappedResponseText,
   sseErrorText,
   sseLines,
   throwIfCreditsNotice,
@@ -84,6 +86,9 @@ function emitAnthropicJsonMessage(bodyText: string, cb: StreamCallbacks): void {
       cb.onDelta(block.text)
     } else if (block.type === 'tool_use' && block.name) {
       emitted = true
+      // A complete JSON body carries the whole turn at once, so the per-turn tool
+      // budget of the streamed path has to be applied here as well
+      throwIfToolCountOverBudget(toolCalls.length + 1, 'anthropic')
       toolCalls.push({
         id: block.id ?? crypto.randomUUID(),
         name: block.name,
@@ -128,7 +133,7 @@ async function anthropicTurn(
   }
   let response: Response
   try {
-    response = await aiFetch(`${baseUrl.replace(/\/$/, '')}/v1/messages`, {
+    response = await aiFetch(endpointUrl(baseUrl, 'v1/messages'), {
       method: 'POST',
       signal: wd.signal,
       headers: {
@@ -170,9 +175,11 @@ async function anthropicTurn(
   // headers arrived: ping the renderer watchdog too, or a slow first chunk could trip it
   onBytes()
   if (!response.ok || !response.body) {
-    throw new Error(`Claude HTTP ${response.status}: ${httpBodyDetail(await response.text())}`)
+    throw new Error(
+      `Claude HTTP ${response.status}: ${httpBodyDetail(await readCappedResponseText(response, onBytes))}`,
+    )
   }
-  const jsonBody = await jsonBodyInsteadOfSse(response)
+  const jsonBody = await jsonBodyInsteadOfSse(response, onBytes)
   if (jsonBody !== null) {
     throwIfCreditsNotice(jsonBody)
     return emitAnthropicJsonMessage(jsonBody, cb)
@@ -258,6 +265,9 @@ async function anthropicTurn(
   if (!emitted && completedTools.length === 0 && !stopReason) {
     throw new Error('Claude returned no content (empty stream)')
   }
+  if (!stopReason) {
+    throw new Error('Claude stream ended before a stop_reason')
+  }
   if (stopReason) cb.onStopReason?.(stopReason)
 }
 
@@ -268,7 +278,7 @@ export async function chatAnthropic(
   user: string,
   baseUrl = ANTHROPIC_BASE_URL,
 ): Promise<AiChatResponse> {
-  const response = await aiFetch(`${baseUrl.replace(/\/$/, '')}/v1/messages`, {
+  const response = await aiFetch(endpointUrl(baseUrl, 'v1/messages'), {
     method: 'POST',
     signal: wd.signal,
     headers: {
@@ -291,13 +301,13 @@ export async function chatAnthropic(
   if (!response.ok) {
     return {
       ok: false,
-      error: `Claude HTTP ${response.status}: ${httpBodyDetail(await response.text())}`,
+      error: `Claude HTTP ${response.status}: ${httpBodyDetail(await readCappedResponseText(response, () => wd.touch()))}`,
     }
   }
   // A 200 with an HTML shell / empty / truncated body (gateway soft-failure)
   // would make response.json() throw; return ok:false instead of leaking a
   // raw SyntaxError to the caller.
-  const bodyText = await response.text()
+  const bodyText = await readCappedResponseText(response, () => wd.touch())
   let json: { content?: Array<{ type: string; text?: string }> }
   try {
     json = JSON.parse(bodyText) as { content?: Array<{ type: string; text?: string }> }

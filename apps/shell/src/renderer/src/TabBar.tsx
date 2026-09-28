@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties, ReactElement } from 'react'
 import type { TabsApi, TabSummary } from '../../shared/tabs-api'
+import { notifyFilesChanged } from './file-events'
 import { useI18n } from './locale'
 
 declare global {
@@ -147,13 +148,50 @@ const KIND_ICON: Record<TabSummary['kind'], ReactElement> = {
   mail: <MailIcon />,
 }
 
+/**
+ * Extension of a path's last segment, without the dot ('' when it has none).
+ * Read off the basename: a dot in a directory name is not an extension, and
+ * taking 'v2\Notes' from C:\Users\me.v2\Notes built a rename target that
+ * renameFile could not resolve.
+ */
+export function fileExtension(filePath: string): string {
+  const name = filePath.slice(Math.max(filePath.lastIndexOf('\\'), filePath.lastIndexOf('/')) + 1)
+  const dot = name.lastIndexOf('.')
+  return dot > -1 ? name.slice(dot + 1) : ''
+}
+
 export function TabBar() {
   const { t } = useI18n()
   const [tabs, setTabs] = useState<TabSummary[]>([])
-  const [editingTabId, setEditingTabId] = useState<string | null>(null)
-  const [editTitle, setEditTitle] = useState('')
-  const editInputRef = useRef<HTMLInputElement>(null)
   const stripRef = useRef<HTMLDivElement>(null)
+
+  // Double-click a file tab to rename the underlying file inline (Home's row
+  // rename, one tab over): the input prefills the base name, Enter/blur commits
+  // through the same renameFile IPC (title syncs via tabManager.renameTabFile),
+  // Escape cancels. Home tabs and untitled documents cannot be renamed.
+  const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null)
+  const renamingRef = useRef(renaming)
+  renamingRef.current = renaming
+  const tabsRef = useRef(tabs)
+  tabsRef.current = tabs
+  const commitRename = () => {
+    const r = renamingRef.current
+    renamingRef.current = null
+    setRenaming(null)
+    if (!r) return
+    const tab = tabsRef.current.find((tb) => tb.id === r.id)
+    const value = r.value.trim()
+    if (!tab?.filePath || !value) return
+    const ext = fileExtension(tab.filePath)
+    const newName = ext ? `${value}.${ext}` : value
+    if (newName === tab.title) return
+    void window.aiOffice.renameFile(tab.filePath, newName).then((result) => {
+      if (!result.ok) window.alert(result.error ?? t('renameFailed'))
+      // Home shares this renderer and only re-pulls on window focus, which the
+      // rename input already holds: tell it the recents / folder rows moved.
+      else notifyFilesChanged()
+    })
+  }
 
   // Chrome-style drag-to-reorder: the grabbed tab tracks the pointer 1:1 while
   // its neighbours slide aside live; the final order is committed on release.
@@ -352,9 +390,7 @@ export function TabBar() {
               onPointerDown={(event) => {
                 if (event.button !== 0) return
                 if ((event.target as HTMLElement).closest('.tab-close')) return
-                if ((event.target as HTMLElement).closest('.tab-title-input')) return
-                const wasActive = tab.active
-                const clickedTitle = !!(event.target as HTMLElement).closest('.tab-title')
+                if ((event.target as HTMLElement).closest('.tab-rename-input')) return
                 // Chrome-style: pressing a tab activates it immediately, so
                 // activation never depends on the click that a drag would eat
                 if (!tab.active) void window.aiOfficeTabs.activate(tab.id)
@@ -441,34 +477,40 @@ export function TabBar() {
               {/* highlight plate behind the content — hover capsule / active white body */}
               <span className="tab-plate" aria-hidden="true" />
               <span className="tab-icon">{KIND_ICON[tab.kind]}</span>
-              {editingTabId === tab.id ? (
+{renaming?.id === tab.id ? (
                 <input
-                  ref={editInputRef}
-                  className="tab-title-input"
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  onBlur={() => commitRename(tab.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.currentTarget.blur()
-                    } else if (e.key === 'Escape') {
-                      setEditingTabId(null)
+                  className="tab-rename-input"
+                  autoFocus
+                  value={renaming.value}
+                  aria-label={t('rename')}
+                  spellCheck={false}
+                  onClick={(event) => event.stopPropagation()}
+                  onDoubleClick={(event) => event.stopPropagation()}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onChange={(event) => setRenaming({ id: tab.id, value: event.target.value })}
+                  onKeyDown={(event) => {
+                    // Enter that confirms an IME candidate is not a commit (Home's rename does the same)
+                    if (event.nativeEvent.isComposing) return
+                    if (event.key === 'Enter') commitRename()
+                    else if (event.key === 'Escape') {
+                      renamingRef.current = null
+                      setRenaming(null)
                     }
                   }}
-                  onClick={(e) => e.stopPropagation()}
-                  onPointerDown={(e) => e.stopPropagation()}
+                  onBlur={commitRename}
                 />
               ) : (
                 <span
                   className="tab-title"
-                  onClick={(e) => {
-                    if (tab.id === 'home') return
-                    // If the tab is already active, clicking on the title enters rename mode
-                    if (tab.active) {
-                      e.stopPropagation()
-                      setEditingTabId(tab.id)
-                      setEditTitle(tab.title)
-                    }
+                  onDoubleClick={(event) => {
+                    if (tab.id === 'home' || !tab.filePath) return
+                    if ((event.target as HTMLElement).closest('.tab-close')) return
+                    const ext = fileExtension(tab.filePath)
+                    const base =
+                      ext && tab.title.toLowerCase().endsWith(`.${ext.toLowerCase()}`)
+                        ? tab.title.slice(0, -(ext.length + 1))
+                        : tab.title
+                    setRenaming({ id: tab.id, value: base })
                   }}
                 >
                   {tab.title}

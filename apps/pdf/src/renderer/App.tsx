@@ -55,7 +55,7 @@ import { CropDialog, CutoutDialog, cropImagePng } from './ImageDialogs'
 import { cropRect, flipPixels, multiplyAlpha } from './image-bake'
 import type { CropFractions, ImageBakeOp } from './image-bake'
 import { removeBackground, type PixelImage } from './cutout'
-import { navAction } from './keyNav'
+import { navAction, shouldHandleDocumentUndo } from './keyNav'
 import { rowOfVisIdx, spreadRows, stepPage } from './spread'
 import {
   captureViewState,
@@ -109,12 +109,7 @@ import {
 } from './color-runs'
 import type { CharStyle } from './color-runs'
 import { platformShortcuts } from '@genoffice/i18n'
-import {
-  Dropdown,
-  RibbonCollapseButton,
-  useDismissablePopover,
-  useRibbonCollapse,
-} from '@genoffice/ui'
+import { Dropdown, useDismissablePopover, useRibbonCollapse } from '@genoffice/ui'
 import { useI18n } from './i18n/locale'
 import { useAutosave } from './useAutosave'
 import type {
@@ -292,7 +287,10 @@ type RibbonTab = (typeof RIBBON_TABS)[number]['id'] | 'fillForm'
 
 export default function App() {
   const { lang, t } = useI18n()
-  const collapse = useRibbonCollapse('genoffice-pdf-ribbon-collapsed')
+  const collapse = useRibbonCollapse('genoffice-pdf-ribbon-collapsed', {
+    collapse: t('ribbonCollapse'),
+    expand: t('ribbonExpand'),
+  })
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null)
   const [filePath, setFilePath] = useState('')
   const [status, setStatus] = useState<'loading' | 'error' | 'empty' | 'password' | 'ready'>(
@@ -3633,6 +3631,10 @@ export default function App() {
       setStatus('loading')
       try {
         await loadDoc(targetPath, doc)
+        // loadDoc leaves the text index and hits alone; both still hold the removed text
+        searchIndexRef.current = null
+        setSearchMatches([])
+        setSearchCur(0)
         setStatus('ready')
         requestAnimationFrame(() => {
           if (scrollRef.current) scrollRef.current.scrollTop = scrollTop
@@ -5834,6 +5836,7 @@ export default function App() {
           target.tagName === 'TEXTAREA' ||
           target.tagName === 'SELECT' ||
           target.isContentEditable)
+      if (!shouldHandleDocumentUndo(e.target, e.key, e.metaKey || e.ctrlKey)) return
       if (e.metaKey || e.ctrlKey) {
         const k = e.key.toLowerCase()
         if (k === 's') {
@@ -5863,6 +5866,8 @@ export default function App() {
         return
       }
       if (e.key === 'Escape') {
+        // Modal dialogs own Escape; the states behind them must not react too
+        if (signDlg || stampDlg || propsDlg) return
         if (askPop) setAskPop(null)
         else if (textDraft) setTextDraft(null)
         else if (pendingTextInsert) setPendingTextInsert(null)
@@ -6327,7 +6332,8 @@ export default function App() {
           {RIBBON_TABS.map(({ id, labelKey }) => (
             <button
               key={id}
-              className={`ribbon-tab${ribbonTab === id ? ' active' : ''}`}
+              className={`ribbon-tab ${collapse.tabClass(ribbonTab === id)}`}
+              data-tip={collapse.tabTip(ribbonTab === id)}
               onClick={() => {
                 collapse.onTabPress(ribbonTab === id)
                 setRibbonTab(id)
@@ -6338,7 +6344,8 @@ export default function App() {
           ))}
           {!readOnly && (
             <button
-              className={`ribbon-tab ribbon-tab-context${ribbonTab === 'fillForm' ? ' active' : ''}`}
+              className={`ribbon-tab ribbon-tab-context ${collapse.tabClass(ribbonTab === 'fillForm')}`}
+              data-tip={collapse.tabTip(ribbonTab === 'fillForm')}
               onClick={() => {
                 collapse.onTabPress(ribbonTab === 'fillForm')
                 setRibbonTab('fillForm')
@@ -7042,10 +7049,6 @@ export default function App() {
             </>
           )}
         </div>
-        <RibbonCollapseButton
-          state={collapse}
-          labels={{ collapse: t('ribbonCollapse'), pin: t('ribbonPin') }}
-        />
       </div>
       <input
         ref={imageFileRef}
