@@ -6,8 +6,8 @@ const LOCAL_STRINGS: Record<string, Record<string, string>> = {
     aboutTitle: '关于 VuaOffice',
     appName: 'VuaOffice Suite',
     copyright: '© 2026 360 CORP. 保留所有权利。',
-    licenseTitle: '软件许可与开源致谢',
-    licenseNotice: 'VuaOffice 是由 360 CORP 开发的企业级办公套件，集成了第三方开源项目（如 GenOffice 及其他开源库），严格遵守第三方声明（Third-Party Notices）中的各开源许可协议规定，并作为专有免费软件（Proprietary Freeware）向最终用户免费分发。',
+    licenseTitle: '软件许可与说明',
+    licenseNotice: 'VuaOffice 是由 360 CORP 开发的企业级办公套件，集成了第三方开源组件，并作为专有免费软件（Proprietary Freeware）向最终用户免费分发。',
     thirdPartyNotice: '查看第三方开源组件与著作权声明',
     close: '关闭',
   },
@@ -15,8 +15,8 @@ const LOCAL_STRINGS: Record<string, Record<string, string>> = {
     aboutTitle: '關於 VuaOffice',
     appName: 'VuaOffice Suite',
     copyright: '© 2026 360 CORP. 保留所有權利。',
-    licenseTitle: '軟體許可與開源致謝',
-    licenseNotice: 'VuaOffice 是由 360 CORP 開發的企業級辦公軟體，整合了第三方開源專案（如 GenOffice 及其他開源庫），嚴格遵守第三方聲明（Third-Party Notices）中的各開源許可條款規定，並作為專有免費軟體（Proprietary Freeware）向最終用戶免費分發。',
+    licenseTitle: '軟體許可與說明',
+    licenseNotice: 'VuaOffice 是由 360 CORP 開發的企業級辦公軟體，整合了第三方開源組件，並作為專有免費軟體（Proprietary Freeware）向最終用戶免費分發。',
     thirdPartyNotice: '檢視第三方開源組件與著作權聲明',
     close: '關閉',
   },
@@ -24,8 +24,8 @@ const LOCAL_STRINGS: Record<string, Record<string, string>> = {
     aboutTitle: 'Về VuaOffice',
     appName: 'Bộ ứng dụng văn phòng VuaOffice',
     copyright: '© 2026 360 CORP. Bảo lưu mọi quyền (All rights reserved).',
-    licenseTitle: 'Giấy phép sử dụng & Ghi nhận nguồn gốc',
-    licenseNotice: 'VuaOffice là phần mềm được phát triển bởi 360 CORP, có tích hợp mã nguồn mở của các bên thứ ba (như: GenOffice và các thư viện mã nguồn mở khác), tuân thủ đầy đủ giấy phép mã nguồn mở của các bên này trong Third-Party Notices và được phát hành dưới dạng Phần mềm độc quyền miễn phí (Proprietary Freeware) cho người dùng cuối.',
+    licenseTitle: 'Giấy phép sử dụng & Bản quyền',
+    licenseNotice: 'VuaOffice là bộ ứng dụng văn phòng được phát triển bởi 360 CORP, tích hợp các thành phần mã nguồn mở bên thứ ba và được phát hành dưới dạng Phần mềm độc quyền miễn phí (Proprietary Freeware) cho người dùng cuối.',
     thirdPartyNotice: 'Xem danh sách thư viện mã nguồn mở & Bản quyền bên thứ ba',
     close: 'Đóng',
   },
@@ -33,8 +33,8 @@ const LOCAL_STRINGS: Record<string, Record<string, string>> = {
     aboutTitle: 'About VuaOffice',
     appName: 'VuaOffice Suite',
     copyright: '© 2026 360 CORP. All rights reserved.',
-    licenseTitle: 'License & Attribution',
-    licenseNotice: 'VuaOffice is developed by 360 CORP, incorporating third-party open-source software (such as: GenOffice and other open-source libraries), in full compliance with their respective open-source licenses detailed in Third-Party Notices, and is distributed as Proprietary Freeware for end users.',
+    licenseTitle: 'License & Legal Notices',
+    licenseNotice: 'VuaOffice is developed by 360 CORP, incorporating third-party open-source components and distributed as Proprietary Freeware for end users.',
     thirdPartyNotice: 'View Third-Party Open Source Components & Notices',
     close: 'Close',
   },
@@ -99,12 +99,6 @@ export function AboutModal({ appVersion, onClose }: AboutModalProps) {
             </p>
           </div>
 
-          <div style={{ background: 'var(--surface-hover)', padding: '10px 12px', borderRadius: '6px', fontSize: '12px', lineHeight: 1.4 }}>
-            <div><strong>Attribution Notice:</strong></div>
-            <div>Derivative Work & Customizations: Copyright 2026 360 CORP (VuaOffice)</div>
-            <div>Original Work: Copyright 2026 Mainfunc, Inc. (GenOffice)</div>
-          </div>
-
           <div style={{ marginTop: '4px' }}>
             <button
               type="button"
@@ -126,21 +120,26 @@ export function AboutModal({ appVersion, onClose }: AboutModalProps) {
           {showFullNotice && (
             <div
               style={{
-                maxHeight: '120px',
+                maxHeight: '160px',
                 overflowY: 'auto',
                 background: 'var(--surface)',
                 border: '1px solid var(--border)',
                 borderRadius: '6px',
-                padding: '8px',
+                padding: '10px',
                 fontSize: '11px',
                 fontFamily: 'monospace',
                 color: 'var(--text-muted)',
+                lineHeight: 1.45,
+                whiteSpace: 'pre-wrap',
               }}
             >
-              Licensed under the Apache License, Version 2.0 (the "License");
-              you may not use this file except in compliance with the License.
-              You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-              <br /><br />
+              Original Work: Copyright 2026 Mainfunc, Inc. (GenOffice){'\n'}
+              Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);{'\n'}
+              you may not use this file except in compliance with the License.{'\n'}
+              You may obtain a copy of the License at:{'\n'}
+              http://www.apache.org/licenses/LICENSE-2.0{'\n\n'}
+              Derivative Work &amp; Customizations: Copyright 2026 360 CORP (https://github.com/360org/vuaoffice).{'\n'}
+              Distributed as Proprietary Freeware for end users under 360 CORP terms of service, with original open-source copyright notices strictly preserved.{'\n\n'}
               Third-party dependency notices and license text files are bundled in the application installation package under Resources/THIRD-PARTY-NOTICES.txt and Resources/LICENSES.chromium.html.
             </div>
           )}

@@ -9,6 +9,13 @@ Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaO
 
 ### Sửa triệt để lỗi màn hình trắng & Kiểm tra cập nhật trên menu
 
+- **[LEGAL] Chuẩn hóa bản quyền & Giấy phép trong Hộp thoại Giới thiệu (AboutModal)**:
+  - Khẳng định quyền sở hữu thương hiệu độc quyền của 360 CORP trên giao diện chính: VuaOffice được phân phối dưới dạng Phần mềm độc quyền miễn phí (Proprietary Freeware).
+  - Chuyển toàn bộ ghi công tác giả gốc (GenOffice / Mainfunc, Inc.) và các giấy phép bên thứ ba vào khu vực chi tiết của mục *Third-Party Notices*, tuân thủ tuyệt đối Điều 4(d) của Apache License 2.0.
+- **[IMPROVE] Khôi phục và nâng cấp tính năng sửa tiêu đề Tab (Inline Tab Title Rename)**:
+  - Cho phép người dùng chỉnh sửa tên tab nhanh chóng bằng cả hai cách: nhấp chuột vào tiêu đề tab đang mở (active) hoặc nhấp đúp chuột (double-click).
+  - Tự động bôi đen tên tệp bỏ qua phần mở rộng khi bắt đầu chỉnh sửa.
+  - Hỗ trợ đổi tên linh hoạt cho cả tài liệu đã lưu trên đĩa (tự động đổi tên tệp thực tế và đồng bộ Recent files) lẫn tài liệu mới tạo trong bộ nhớ chưa lưu.
 - **[FIX] Khắc phục lỗi màn hình trắng (blank screen) khi khởi động**: Sau đợt hợp nhất lớn từ upstream, các biến trạng thái (`confirmMissing`, `projectMode`, `DropToOpenOverlay`) bị thiếu khai báo trong component `Home`, khiến React ném `ReferenceError` và unmount toàn bộ giao diện. Đã bổ sung đầy đủ các biến trạng thái, bọc an toàn các API `aiOfficeProject` và khôi phục `DropToOpenOverlay`.
 - **[FIX] Sửa lỗi `checkForUpdatesManual is not defined` trên thanh menu**: Đồng bộ lệnh gọi kiểm tra bản cập nhật trên menu hệ điều hành và hộp thoại cài đặt sang `checkForUpdatesNow()`, kèm thông báo tiến trình và kết quả rõ ràng.
 - **[I18N] Hoàn tất 100% bản dịch tiếng Việt**: Bổ sung đầy đủ các khóa tiếng Việt bị thiếu trong toàn bộ 23 workspace (Docs Zotero, Sheets App/Dialogs, Slides App/Panes/Ribbon, PDF outline, Markdown và Shell).
