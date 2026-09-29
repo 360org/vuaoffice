@@ -375,7 +375,7 @@ import type { DiagnosticReportData } from '../shared/home-api'
 if (!app.isPackaged)
   app.setPath(
     'userData',
-    process.env.GENOFFICE_USER_DATA ?? join(app.getPath('appData'), 'GenOffice Dev'),
+    process.env.GENOFFICE_USER_DATA ?? join(app.getPath('appData'), 'VuaOffice Dev'),
   )
 
 /**
@@ -678,7 +678,7 @@ let cachedGithubStars: number | null = null
 async function fetchGithubStars(): Promise<number | null> {
   if (cachedGithubStars !== null) return cachedGithubStars
   try {
-    const response = await fetch('https://api.github.com/repos/genspark-ai/genoffice', {
+    const response = await fetch('https://api.github.com/repos/360org/vuaoffice', {
       headers: { Accept: 'application/vnd.github+json' },
       signal: AbortSignal.timeout(5000),
     })
@@ -993,6 +993,10 @@ const tMain = createI18n({
       'Tệp bị hỏng hoặc không phải là tệp PDF hợp lệ và không thể chuyển đổi.',
     dlgPickSaveDir: 'Chọn vị trí lưu mặc định',
     errSaveDirUnusable: 'Thư mục đã chọn không thể ghi và không thể dùng làm vị trí lưu mặc định',
+    menuTroubleshooting: 'Khắc phục sự cố',
+    menuDeveloperMode: 'Bật chế độ nhà phát triển',
+    menuDiagnosticReport: 'Tạo nhật ký và báo cáo chẩn đoán…',
+    menuCheckForUpdates: 'Kiểm tra cập nhật…',
   },
   ja: {
     dlgAddFolderRoot: 'フォルダーをホームに追加',
@@ -2858,105 +2862,6 @@ const tMain = createI18n({
     dlgPickSaveDir: '選擇預設儲存位置',
     errSaveDirUnusable: '所選資料夾無法寫入，無法作為預設儲存位置',
   },
-  vi: {
-    menuFile: 'Tệp',
-    menuSectionNew: 'Tạo mới',
-    menuNewDoc: 'AI Docs',
-    menuNewSheet: 'AI Sheets',
-    untitledSheet: 'Bảng tính không tên',
-    untitledDoc: 'Tài liệu không tên',
-    untitledDeck: 'Bản trình chiếu không tên',
-    untitledMarkdown: 'Tài liệu Markdown không tên',
-    untitledHtml: 'HTML không tên',
-    untitledPdf: 'Tài liệu PDF không tên',
-    menuNewSlide: 'AI Slides',
-    menuNewMarkdown: 'AI Markdown',
-    menuNewHtml: 'AI HTML',
-    menuNewPdf: 'AI PDF',
-    menuExportPdf: 'Xuất thành PDF…',
-    menuOpenInDocs: 'Chuyển thành tài liệu Docs và mở',
-    menuPrint: 'In…',
-    menuOpen: 'Mở…',
-    menuSave: 'Lưu',
-    menuSaveAs: 'Lưu thành…',
-    menuClose: 'Đóng',
-    menuEdit: 'Chỉnh sửa',
-    menuWindow: 'Cửa sổ',
-    menuHome: 'Trang chủ',
-    backToHome: 'Về trang chủ',
-    dlgOpenTitle: 'Mở tệp',
-    filterSupported: 'Tất cả tệp hỗ trợ',
-    filterWord: 'Tài liệu Word',
-    filterExcel: 'Bảng tính Excel',
-    filterPpt: 'Bản trình chiếu PowerPoint',
-    filterMarkdown: 'Tài liệu Markdown',
-    filterHtml: 'Tài liệu HTML',
-    filterPdf: 'Tài liệu PDF',
-    errBadArgs: 'Thông số không hợp lệ',
-    errBadName: 'Tên tệp không hợp lệ',
-    errMissing: 'Tệp không tồn tại',
-    errExists: 'Tệp cùng tên đã tồn tại',
-    errRenameFailed: 'Đổi tên thất bại',
-    errNewTabFailed: 'Tạo tài liệu mới thất bại',
-    errUnsupportedExt: 'Chưa hỗ trợ định dạng .{ext}',
-    copySuffix: 'bản sao',
-    menuHelp: 'Trợ giúp',
-    menuTroubleshooting: 'Khắc phục sự cố',
-    menuDeveloperMode: 'Bật chế độ nhà phát triển',
-    menuDiagnosticReport: 'Tạo nhật ký và báo cáo chẩn đoán…',
-    menuExportHtml: 'Xuất HTML…',
-    menuExportImages: 'Xuất hình ảnh…',
-    dlgAddFolderRoot: 'Thêm thư mục',
-    errFolderRootUnusable: 'Thư mục không thể sử dụng',
-    menuOpenInNewWindow: 'Mở trong cửa sổ mới',
-    menuCheckForUpdates: 'Kiểm tra cập nhật…',
-    thirdPartyNotices: 'Thông báo phần mềm bên thứ ba',
-    menuExportDocx: 'Xuất thành Word…',
-    btnCancel: 'Hủy',
-    pdfDocxFailedMsg: 'Xuất thành Word thất bại',
-    pdfDocxBusyMsg: 'Đang chuyển đổi, vui lòng đợi lượt xuất hiện tại hoàn tất.',
-    menuExportPptx: 'Xuất thành PPT…',
-    pdfPptxFailedMsg: 'Xuất thành PPT thất bại',
-    pdfPptxBusyMsg: 'Đang chuyển đổi, vui lòng đợi lượt xuất hiện tại hoàn tất.',
-    pdfPptxLocalScannedDetail:
-      'Chuyển đổi cục bộ đã xuất các trang dưới dạng hình ảnh trung thực, văn bản trong slide không thể chỉnh sửa.',
-    menuExportXlsx: 'Xuất thành Excel…',
-    pdfXlsxFailedMsg: 'Xuất thành Excel thất bại',
-    pdfXlsxBusyMsg: 'Đang chuyển đổi, vui lòng đợi lượt xuất hiện tại hoàn tất.',
-    pdfXlsxLocalScannedDetail:
-      'Trang quét không thể chuyển thành ô tính, đã thêm dòng chú thích trong trang tính tương ứng.',
-    pdfXlsxLocalSkippedMsg: 'Một số trang chưa được chuyển thành ô tính',
-    pdfXlsxLocalSkippedDetail:
-      'Trang {pages} không thể chuyển thành ô tính, đã thêm dòng chú thích trong trang tính tương ứng.',
-    pdfDocxLocalScannedMsg: 'Phát hiện tệp tài liệu quét',
-    pdfDocxLocalScannedDetail:
-      'Chuyển đổi cục bộ đã xuất các trang dưới dạng hình ảnh trung thực. Nếu cần văn bản chỉnh sửa được, vui lòng dùng chuyển đổi đám mây (hỗ trợ OCR).',
-    pdfDocxLocalDegradedMsg: 'Một số trang đã được xuất dưới dạng hình ảnh',
-    pdfDocxLocalDegradedDetail:
-      'Bố cục trang {pages} không thể tái cấu trúc chính xác, đã xuất toàn bộ trang dưới dạng hình ảnh trung thực.',
-    pdfDocxLocalOcrMsg: 'Trang quét đã được chuyển đổi thành văn bản có thể chỉnh sửa',
-    pdfDocxLocalOcrDetail:
-      'Trang {pages} là bản quét, đã được nhận dạng thành văn bản chỉnh sửa qua OCR cục bộ; khuyến nghị kiểm tra lại kết quả.',
-    pdfDocxLocalEncryptedDetail:
-      'Tệp PDF này đã được mã hóa, chưa cung cấp đúng mật khẩu nên không thể chuyển đổi.',
-    pdfDocxLocalUnsupportedEncDetail:
-      'Tệp này sử dụng mã hóa chứng chỉ hoặc phương thức mã hóa không được hỗ trợ cục bộ. Bạn có thể thử chuyển đổi đám mây.',
-    pdfPwdTitle: 'Nhập mật khẩu',
-    pdfPwdPrompt: 'Tệp PDF này đã được mã hóa. Vui lòng nhập mật khẩu để mở:',
-    pdfPwdRetryPrompt: 'Mật khẩu không chính xác, vui lòng thử lại.',
-    pdfPwdOk: 'Đồng ý',
-    pdfPwdVerifying: 'Đang xác thực mật khẩu…',
-    pdfPwdLabel: 'Mật khẩu',
-    pdfPwdPlaceholder: 'Nhập mật khẩu mở tệp',
-    pdfPwdShow: 'Hiện mật khẩu',
-    pdfPwdHide: 'Ẩn mật khẩu',
-    pdfDocxLocalCorruptDetail:
-      'Tệp bị lỗi hoặc không phải định dạng PDF hợp lệ, không thể chuyển đổi.',
-    dlgPickSaveDir: 'Chọn vị trí lưu mặc định',
-    errSaveDirUnusable:
-      'Thư mục đã chọn không có quyền ghi, không thể dùng làm vị trí lưu mặc định',
-    errPdfSaveAsFailed: 'Không thể lưu bản sao PDF',
-  },
 })
 
 const tm = (key: Parameters<typeof tMain>[1], params?: Parameters<typeof tMain>[2]) =>
@@ -3196,7 +3101,7 @@ function createShellWindow(): void {
     height: 900,
     minWidth: 720,
     minHeight: 550,
-    title: 'GenOffice',
+    title: 'VuaOffice',
     // vibrancy: editor modules punch translucent regions (e.g. the slides
     // thumbnail pane) through to the desktop
     ...(process.platform === 'darwin'
@@ -3737,7 +3642,7 @@ function newDocTab(): void {
 
 /** MCP: open a blank docs tab and return its webContents id, for the visible-editor bridge */
 function openBlankDocsTabForMcp(): number {
-  if (!tabManager) throw new Error('GenOffice is not ready')
+  if (!tabManager) throw new Error('VuaOffice is not ready')
   const tabId = tabManager.openDocsTab(undefined, { newBlank: true })
   const view = tabManager.docsTabs().find((t) => t.id === tabId)
   if (!view) throw new Error('the new document tab could not be opened')
@@ -3754,7 +3659,7 @@ function openBlankDocsTabForMcp(): number {
  * marking is skipped, the file name is the agent's business.
  */
 async function openBlankSheetsTabForMcp(): Promise<number> {
-  if (!tabManager) throw new Error('GenOffice is not ready')
+  if (!tabManager) throw new Error('VuaOffice is not ready')
   const filePath = uniquePathIn(defaultSaveDir(), `${tm('untitledSheet')}.xlsx`)
   await atomicWriteFile(filePath, await blankXlsxBuffer())
   const tabId = tabManager.openSheetsTab(filePath)
@@ -3825,7 +3730,7 @@ function abandonBlankTabForMcp(
 
 /** MCP: open a blank slides tab and return its webContents id, for the visible-deck bridge */
 function openBlankSlidesTabForMcp(): number {
-  if (!tabManager) throw new Error('GenOffice is not ready')
+  if (!tabManager) throw new Error('VuaOffice is not ready')
   const tabId = tabManager.openSlidesTab()
   const view = tabManager.slidesTabs().find((t) => t.id === tabId)
   if (!view) throw new Error('the new presentation tab could not be opened')
@@ -6045,7 +5950,7 @@ registerTabsIpc()
 setSessionPathResolver(resolveSheetsSessionPath)
 
 /** Dev-only pid marker for the takeover below; scoped to userData like the lock itself. */
-app.name = 'GenOffice'
+app.name = 'VuaOffice'
 const devPidFile = () => join(app.getPath('userData'), 'dev-instance.pid')
 
 /** Hidden-window exporters, one per editor module (HEADLESS_TARGETS says which formats each takes). */

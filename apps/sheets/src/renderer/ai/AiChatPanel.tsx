@@ -516,7 +516,7 @@ export function AiChatPanel({
       <header className="ai-panel-header">
         <span className="ai-panel-title">
           <GensparkMark size={22} />
-          Genspark
+          VuaOffice AI
         </span>
         <div className="ai-panel-header-actions">
           <AiPanelSideButton

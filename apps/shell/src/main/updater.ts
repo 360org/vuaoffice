@@ -390,21 +390,6 @@ const tUpd = createI18n({
     updCheckFailed: '無法檢查更新，請檢查網路後重試。',
     updOpenDownload: '前往下載頁面',
   },
-  vi: {
-    updTitle: 'Cập nhật phần mềm',
-    updHeadline: 'Đã có phiên bản mới',
-    updDesc: 'Bản cập nhật này bao gồm các cải tiến hiệu năng và sửa lỗi. Khuyến nghị cập nhật ngay.',
-    updDownload: 'Cập nhật ngay',
-    updLater: 'Nhắc tôi sau',
-    updInstall: 'Khởi động lại & Cài đặt',
-    updDownloading: 'Đang tải bản cập nhật…',
-    updFailed: 'Tải bản cập nhật thất bại. Vui lòng kiểm tra kết nối mạng và thử lại.',
-    updRetry: 'Thử lại',
-    updManual: 'Cập nhật tự động thất bại. Vui lòng tải phiên bản mới nhất từ trang tải xuống và cài đặt thủ công.',
-    updOpenDownload: 'Mở trang tải xuống',
-    updUpToDate: 'Bạn đang dùng phiên bản mới nhất ({version}).',
-    updCheckFailed: 'Không thể kiểm tra cập nhật. Vui lòng kiểm tra kết nối mạng và thử lại.',
-  },
 })
 
 const FIRST_CHECK_DELAY_MS = 15_000
@@ -416,7 +401,7 @@ const RECHECK_INTERVAL_MS = 4 * 60 * 60 * 1000
 // code-signing identity (Apple Team ID) change, which Squirrel.Mac rejects
 // on every retry while the error looks like a download failure to the user.
 const MANUAL_FALLBACK_AFTER = 2
-const DEFAULT_UPDATE_URL = 'https://github.com/genspark-ai/genoffice/releases/latest/download'
+const DEFAULT_UPDATE_URL = 'https://github.com/360org/vuaoffice/releases/latest/download'
 const DOWNLOAD_PAGE_URL = 'https://vuahethong.net/#download-desktop-app'
 
 /// Trusted HTTPS base URL baked into resources/app-update.yml. Manual download
@@ -811,7 +796,7 @@ export function checkForUpdatesManual(): void {
     dialog.showMessageBox(win as any, {
       type: 'info',
       title: tUpd(getUiLang(), 'updTitle'),
-      message: 'GenOffice (Development Mode)',
+      message: 'VuaOffice (Development Mode)',
       detail: `You are running in development mode (v${app.getVersion()}). Auto-update is only available in packaged release builds.`,
       buttons: ['OK'],
     }).catch(() => {})

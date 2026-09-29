@@ -426,6 +426,8 @@ export function FormatCellsDialog({
                     (deduped — the echoed family may appear in both groups) */}
                 <Dropdown
                   ariaLabel={t('dlgFcFont')}
+                  searchable={true}
+                  searchPlaceholder="Tìm kiếm phông chữ…"
                   value={draft.family}
                   options={[
                     { value: '', label: t('dlgFcUnchanged') },

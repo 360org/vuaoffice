@@ -5,6 +5,69 @@ Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaO
 
 ## [Chưa phát hành]
 
+## [1.0.51] - 2026-09-29
+
+### Chuẩn hóa bản quyền AboutModal, Sửa tiêu đề tab & Hợp nhất 73 commit Upstream
+
+- **[FEAT] Bổ sung tính năng tìm kiếm phông chữ thông minh (Searchable Font Selector)**:
+  - Cho phép người dùng gõ tìm kiếm phông chữ theo chuỗi con (substring) và hỗ trợ tiếng Việt không dấu (diacritic folding) ngay trong danh sách chọn phông chữ.
+  - Tích hợp thanh tìm kiếm cố định (sticky search) tự động lấy nét trong component Dropdown dùng chung (`packages/ui/src/dropdown.tsx`).
+  - Áp dụng trên toàn bộ các hộp thoại cấu hình phông chữ (`FontDialog` trong Docs, `FormatCellsDialog` trong Sheets) và thanh Ribbon chính.
+- **[REFACTOR] Tinh giản bản dịch i18n & Audit chuẩn hóa tính năng 360**:
+  - Đối chiếu toàn diện giữa 360 dev và upstream official: Loại bỏ toàn bộ các khối từ điển `vi` tự viết tay trùng lặp trong Docs, Sheets, Markdown để dùng trực tiếp các file shard chuẩn của upstream.
+  - Bảo toàn 100% các tính năng độc quyền của 360 CORP: Cổng AI Gateway (OmiRouter / Hermes / OpenRouter), VuaOffice Mail, kiểm định can thiệp tệp PDF (PDF Forensics), nhận dạng ký tự quang học Apple Vision OCR và đọc tệp Word cũ `.doc`.
+
+- **[LEGAL] Chuẩn hóa bản quyền & Giấy phép trong Hộp thoại Giới thiệu (AboutModal)**:
+  - Khẳng định quyền sở hữu thương hiệu độc quyền của 360 CORP trên giao diện chính: VuaOffice được phân phối dưới dạng Phần mềm độc quyền miễn phí (Proprietary Freeware).
+  - Chuyển toàn bộ ghi công tác giả gốc (GenOffice / Mainfunc, Inc.) và các giấy phép bên thứ ba vào khu vực chi tiết của mục *Third-Party Notices*, tuân thủ tuyệt đối Điều 4(d) của Apache License 2.0.
+- **[IMPROVE] Khôi phục và nâng cấp tính năng sửa tiêu đề Tab (Inline Tab Title Rename)**:
+  - Cho phép người dùng chỉnh sửa tên tab nhanh chóng bằng cả hai cách: nhấp chuột vào tiêu đề tab đang mở (active) hoặc nhấp đúp chuột (double-click).
+  - Tự động bôi đen tên tệp bỏ qua phần mở rộng khi bắt đầu chỉnh sửa.
+  - Hỗ trợ đổi tên linh hoạt cho cả tài liệu đã lưu trên đĩa (tự động đổi tên tệp thực tế và đồng bộ Recent files) lẫn tài liệu mới tạo trong bộ nhớ chưa lưu.
+- **[UPSTREAM] Hợp nhất 73 commit upstream từ `genspark-ai/genoffice`**:
+  - Tối ưu hóa bộ nhớ xử lý biểu đồ PPTX (giảm từ 2.3 GB xuống 30 MB khi duyệt cache).
+  - Ngăn ngừa tràn số danh sách La Mã / Alpha trong trình chiếu và kiểm tra an toàn log-axis tick generation.
+  - Tối ưu hóa lưu trữ tự động một tiến trình một lúc trong Sheets, khắc phục lỗi đóng băng do tranh chấp timer.
+  - Nâng cấp khả năng tương thích bảng tính XLSX và bộ chuyển đổi HTML sang DOCX.
+
+## [1.0.50] - 2026-09-28
+
+### Cô lập ranh giới Client Renderer Constants & Tối ưu hoá Windows Sidecar
+
+- **[FIX] Khắc phục triệt để lỗi rò rỉ module Node.js vào Client Renderer**:
+  - Tách biệt hoàn toàn hằng số `SKILL_NAME` thuần túy tại `shared/integrations-api.ts`, ngăn ngừa lỗi rò rỉ module `node:path`/`fs` làm gãy Vite/Rollup build.
+  - Thêm cổng kiểm tra ranh giới Renderer `tools/check-renderer-boundary.mjs` vào `brand:gate`.
+- **[BUILD] Tối ưu hóa đa tầng cho binary Windows xlsx-sidecar.exe**:
+  - Tự động tìm kiếm fallback candidates cho binary Rust `xlsx-sidecar.exe` trong electron-builder, hỗ trợ linh hoạt cả `x86_64-pc-windows-msvc` và `i686-pc-windows-msvc`.
+
+## [1.0.49] - 2026-09-28
+
+### Chuẩn hóa thư mục kỹ năng skills/vuaoffice & Biên dịch Windows Sidecar
+
+- **[BRAND] Chuẩn hóa thương hiệu thư mục skills/vuaoffice**:
+  - Chuyển đổi toàn diện kỹ năng tích hợp dòng lệnh từ `skills/genoffice` thành `skills/vuaoffice`, đồng bộ tên lệnh `/vuaoffice` trong Claude Code và Cursor.
+- **[BUILD] Khắc phục triệt để lỗi biên dịch Windows sidecar**:
+  - Tự động phân giải kiến trúc Rust toolchain (`x86_64` / `i686`) theo biến môi trường `XLSX_SIDECAR_TARGET`.
+
+## [1.0.48] - 2026-09-28
+
+### Tối ưu hóa tài nguyên Harfbuzz WASM & Chuẩn hóa đóng gói đa nền tảng
+
+- **[BUILD] Định vị tài nguyên Harfbuzz WASM**:
+  - Tối ưu hóa cơ chế định vị tài nguyên Harfbuzz WASM trong electron-builder, giải quyết triệt để lỗi thiếu file khi đóng gói.
+- **[RELEASE] Chuẩn hóa tên file cài đặt đa nền tảng**:
+  - Đảm bảo tên file artifact theo đúng quy chuẩn `RELEASE_PROTOCOL.md`.
+
+## [1.0.47] - 2026-09-28
+
+### Khắc phục màn hình trắng HTML & Hoàn thiện từ điển tiếng Việt
+
+- **[FIX] Khắc phục triệt để màn hình trắng module HTML**:
+  - Đóng gói đầy đủ tài nguyên HTML editor vào installer.
+- **[I18N] Đồng bộ 100% từ điển tiếng Việt**:
+  - Hoàn thiện bản dịch tiếng Việt cho toàn bộ 7 ứng dụng văn phòng.
+
+
 ## [1.0.46] - 2026-09-24
 
 ### Sửa triệt để lỗi màn hình trắng & Kiểm tra cập nhật trên menu

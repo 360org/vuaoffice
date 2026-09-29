@@ -175,12 +175,5 @@ export const strings = {
     ...aiStrings['zh-TW'],
     ...zoteroStrings['zh-TW'],
   },
-  vi: {
-    ...appStrings.vi,
-    ...ribbonStrings.vi,
-    ...tableStrings.vi,
-    ...editorStrings.vi,
-    ...aiStrings.vi,
-    ...zoteroStrings.vi,
-  },
+
 }

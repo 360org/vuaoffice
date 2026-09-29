@@ -25,5 +25,4 @@ export const strings = {
 
   vi: { ...appStrings.vi, ...dialogStrings.vi, ...aiStrings.vi },
   'zh-TW': { ...appStrings['zh-TW'], ...dialogStrings['zh-TW'], ...aiStrings['zh-TW'] },
-  vi: { ...appStrings.vi, ...dialogStrings.vi, ...aiStrings.vi },
 }

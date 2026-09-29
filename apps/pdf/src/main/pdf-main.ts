@@ -472,24 +472,6 @@ const tDlg = createI18n({
     btnDontSave: '不儲存',
     btnCancel: '取消',
   },
-  vi: {
-    dlgExportImages: 'Xuất hình ảnh ra thư mục',
-    dlgExtract: 'Trích xuất các trang thành PDF',
-    dlgInsert: 'Chọn PDF để nhập',
-    dlgSplit: 'Tách PDF vào thư mục',
-    dlgMerge: 'Chọn các tệp PDF để gộp',
-    dlgMergeSave: 'Lưu tệp PDF đã gộp thành',
-    dlgMergePages: 'Lưu các trang đã ghép thành',
-    dlgReplace: 'Chọn tệp PDF để thay thế',
-    dlgSplitPages: 'Lưu các trang đã chia nhỏ thành',
-    filterPdf: 'Tài liệu PDF',
-    dlgRedactCopy: 'Lưu bản sao che khuất thành',
-    closeUnsavedMsg: 'Tệp PDF này có các thay đổi chưa được lưu.',
-    closeUnsavedDetail: 'Bạn có muốn lưu trước khi đóng không?',
-    btnSave: 'Lưu',
-    btnDontSave: 'Không lưu',
-    btnCancel: 'Hủy',
-  },
 })
 
 /** A redaction copy must never be the same file through a symlink, `.`/`..`,
@@ -593,7 +575,7 @@ async function createStandaloneDocument(
   if (request.type === 'docx') {
     return {
       ok: false,
-      error: 'Creating DOCX files requires the GenOffice shell or Docs app.',
+      error: 'Creating DOCX files requires the VuaOffice shell or Docs app.',
     }
   }
   const title = sanitizeGeneratedDocumentTitle(request.title)
@@ -648,7 +630,7 @@ const saveAsTargetByWc = new Map<number, string>()
 /** Disk state at the last PDF read/write, scoped to the granted renderer view. */
 const pdfDiskStates = new Map<number, Map<string, DiskFileState>>()
 
-const EXTERNAL_PDF_MODIFIED_ERROR = 'pdf: file changed outside GenOffice'
+const EXTERNAL_PDF_MODIFIED_ERROR = 'pdf: file changed outside VuaOffice'
 const sha256Hex = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex')
 
 async function rememberPdfDiskState(wcId: number, filePath: string, bytes: Buffer): Promise<void> {

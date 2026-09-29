@@ -804,7 +804,7 @@ describe('detach / attach (Open in New Window, tear-off, dock)', () => {
       height: WINDOW_HEIGHT - TAB_STRIP_HEIGHT,
     })
     expect(manager.list().map((t) => [t.id, t.title, t.active])).toEqual([
-      ['home', 'GenOffice', false],
+      ['home', 'VuaOffice', false],
       [newId, 'deck.pptx', true],
       ['t1', 'a.docx', false],
       ['t2', 'b.docx', false],
@@ -819,12 +819,12 @@ describe('detach / attach (Open in New Window, tear-off, dock)', () => {
     const second = manager.detachTab(manager.openSheetsTab('/tmp/y.xlsx'))!
     const third = manager.detachTab(manager.openSheetsTab('/tmp/z.xlsx'))!
     manager.attachTab(first, 0)
-    expect(manager.list().map((t) => t.title)).toEqual(['GenOffice', 'x.xlsx', 'a.docx'])
+    expect(manager.list().map((t) => t.title)).toEqual(['VuaOffice', 'x.xlsx', 'a.docx'])
     manager.attachTab(second, -4)
-    expect(manager.list().map((t) => t.title)).toEqual(['GenOffice', 'y.xlsx', 'x.xlsx', 'a.docx'])
+    expect(manager.list().map((t) => t.title)).toEqual(['VuaOffice', 'y.xlsx', 'x.xlsx', 'a.docx'])
     manager.attachTab(third, 99)
     expect(manager.list().map((t) => t.title)).toEqual([
-      'GenOffice',
+      'VuaOffice',
       'y.xlsx',
       'x.xlsx',
       'a.docx',
@@ -838,7 +838,7 @@ describe('detach / attach (Open in New Window, tear-off, dock)', () => {
     manager.openDocsTab('/tmp/b.docx')
     manager.attachTab(record)
     expect(manager.list().map((t) => t.title)).toEqual([
-      'GenOffice',
+      'VuaOffice',
       'a.docx',
       'b.docx',
       'scan.pdf',

@@ -1232,4 +1232,18 @@ export const vi = {
   appFindTitle: 'Tìm & Chọn ⌘F',
   appReplace: 'Thay thế',
   appGoTo: 'Đi đến',
+
+  appStatAverage: 'Trung bình',
+  appStatCount: 'Đếm số lượng',
+  appStatNumericalCount: 'Đếm số',
+  appStatMin: 'Tối thiểu',
+  appStatMax: 'Tối đa',
+  appStatSum: 'Tổng',
+  appZoomLevel: 'Mức thu phóng',
+  appNormalViewTip: 'Chế độ xem bình thường',
+  appPageBreakPreviewTip: 'Xem trước dấu ngắt trang',
+  appFormatPainterTip: 'Sao chép định dạng — nhấp đúp để giữ cho đến khi nhấn Esc',
+  appFormatPainterLocked: 'Sao chép định dạng (đang khóa) — nhấp vào ô để áp dụng, nhấn Esc để thoát',
+  appInsertCells: 'Chèn ô…',
+  appDeleteCells: 'Xóa ô…',
 } satisfies Record<keyof typeof zh, string>

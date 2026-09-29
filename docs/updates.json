@@ -1,5 +1,32 @@
 [
   {
+    "version": "1.0.51",
+    "date": "29/09/2026",
+    "highlight": "Chuẩn hóa bản quyền 360 CORP, nâng cấp tìm kiếm font tiếng Việt, sửa tiêu đề tab và hợp nhất 73 commit upstream.",
+    "features": [
+      {
+        "title": "Chuẩn hóa bản quyền & Giấy phép pháp lý",
+        "desc": "Khẳng định bản quyền 360 CORP độc quyền tại màn hình chính hộp thoại Giới thiệu; tích hợp toàn diện thông báo tác giả gốc GenOffice và các bên thứ ba vào Third-Party Notices theo Điều 4(d) Apache License 2.0."
+      },
+      {
+        "title": "Khôi phục và nâng cấp sửa tiêu đề Tab",
+        "desc": "Cho phép sửa tiêu đề tab tiện lợi bằng cả nhấp chuột vào tab đang mở hoặc nhấp đúp; tự động lọc đuôi tệp; hỗ trợ đổi tên cả tệp đã lưu và tài liệu mới chưa lưu."
+      },
+      {
+        "title": "Hợp nhất 73 commit upstream mới nhất",
+        "desc": "Tối ưu hóa bộ nhớ xử lý biểu đồ PPTX, nâng cao độ tin cậy của bộ chuyển đổi DOCX, cải thiện bảng tính XLSX và cơ chế bảo vệ an toàn PDF."
+      },
+      {
+        "title": "Tìm kiếm phông chữ thông minh",
+        "desc": "Tích hợp tính năng tìm kiếm phông chữ theo chuỗi con và gập dấu tiếng Việt đa âm điệu trên toàn bộ Dropdown và thanh Ribbon."
+      },
+      {
+        "title": "Tinh giản bản dịch & Audit chuẩn hóa",
+        "desc": "Kế thừa 100% bản dịch tiếng Việt chuẩn từ upstream, loại bỏ từ điển trùng lặp và bảo toàn toàn bộ tính năng đặc thù 360 CORP."
+      }
+    ]
+  },
+  {
     "version": "1.0.50",
     "date": "28/09/2026",
     "highlight": "Khắc phục triệt để lỗi rò rỉ module Node.js vào client renderer bundle của shell và tối ưu hóa phân giải đa kiến trúc cho Windows sidecar.",

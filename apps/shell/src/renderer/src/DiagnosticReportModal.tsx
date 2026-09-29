@@ -26,9 +26,9 @@ const LOCAL_STRINGS: Record<string, Record<string, string>> = {
     online: 'Hoạt động',
     offline: 'Mất kết nối',
     exportFile: 'Xuất ra tệp (Export to file)',
-    sendToGenOffice: 'Gửi tới GenOffice',
+    sendToVuaOffice: 'Gửi tới VuaOffice',
     sending: 'Đang gửi báo cáo...',
-    sendSuccess: 'Đã gửi báo cáo thành công tới GenOffice Issues!',
+    sendSuccess: 'Đã gửi báo cáo thành công tới VuaOffice Issues!',
     viewIssue: 'Xem Issue',
     sendError: 'Không thể gửi trực tiếp, bạn có thể xuất file báo cáo.',
     close: 'Đóng',
@@ -54,9 +54,9 @@ const LOCAL_STRINGS: Record<string, Record<string, string>> = {
     online: 'Online',
     offline: 'Offline',
     exportFile: 'Export to file',
-    sendToGenOffice: 'Send to GenOffice',
+    sendToVuaOffice: 'Send to VuaOffice',
     sending: 'Submitting report...',
-    sendSuccess: 'Diagnostic report successfully submitted to GenOffice Issues!',
+    sendSuccess: 'Diagnostic report successfully submitted to VuaOffice Issues!',
     viewIssue: 'View Issue',
     sendError: 'Could not submit directly. You can export to a file.',
     close: 'Close',
@@ -80,9 +80,9 @@ const LOCAL_STRINGS: Record<string, Record<string, string>> = {
     online: '正常',
     offline: '异常',
     exportFile: '导出为文件',
-    sendToGenOffice: '发送到 GenOffice',
+    sendToVuaOffice: '发送到 VuaOffice',
     sending: '正在提交报告...',
-    sendSuccess: '报告已成功提交至 GenOffice Issues！',
+    sendSuccess: '报告已成功提交至 VuaOffice Issues！',
     viewIssue: '查看 Issue',
     sendError: '提交失败，您可以导出为本地文件。',
     close: '关闭',
@@ -147,7 +147,7 @@ export function DiagnosticReportModal({ onClose }: DiagnosticReportModalProps) {
     }
   }
 
-  const handleSendToGenOffice = async () => {
+  const handleSendToVuaOffice = async () => {
     if (!report || sending || !window.aiOffice.sendDiagnosticReport) return
     setSending(true)
     setSubmitResult(null)
@@ -680,7 +680,7 @@ export function DiagnosticReportModal({ onClose }: DiagnosticReportModalProps) {
             <button
               type="button"
               className="btn btn-primary"
-              onClick={handleSendToGenOffice}
+              onClick={handleSendToVuaOffice}
               disabled={loading || !report || sending}
               style={{
                 fontSize: '12.5px',
@@ -698,7 +698,7 @@ export function DiagnosticReportModal({ onClose }: DiagnosticReportModalProps) {
                   {loc.sending}
                 </>
               ) : (
-                loc.sendToGenOffice
+                loc.sendToVuaOffice
               )}
             </button>
           </div>

@@ -115,7 +115,7 @@ describe('resolveAiSettings', () => {
         defaults,
       )
       expect(resolved.providers.anthropic).toEqual(defaults.providers.anthropic)
-      expect(activeProvider(resolved)).toBe('genspark')
+      expect(activeProvider(resolved)).toBe('vuaairouter')
     }
   })
 

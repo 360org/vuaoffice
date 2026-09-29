@@ -264,6 +264,8 @@ export function FontDialog({ editor, onClose }: { editor: Editor; onClose: () =>
       <Dropdown
         value={value}
         ariaLabel={label}
+        searchable={true}
+        searchPlaceholder={t("appScFilter") || "Tìm kiếm phông chữ…"}
         options={[
           ...fontFamilies.map((f): DropdownOption => ({
             value: f,

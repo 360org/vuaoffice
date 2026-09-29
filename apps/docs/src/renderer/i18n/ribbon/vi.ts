@@ -185,7 +185,7 @@ export const vi = {
   ribbonReplaceTip: 'Find and replace text',
   ribbonSelectAll: 'Select All',
   ribbonSelectAllTip: 'Select the whole document',
-  ribbonAiAssistant: 'Genspark AI',
+  ribbonAiAssistant: 'VuaOffice AI',
   ribbonAiAssistantTip: 'Mở trợ lý AI',
     // Thiết kế bảng,
   ribbonRemoveTableStyleTip: 'Xóa kiểu bảng',

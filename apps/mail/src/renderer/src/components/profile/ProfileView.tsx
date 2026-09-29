@@ -247,7 +247,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             <span>Cài đặt & Hồ sơ</span>
           </div>
           <div className="settings-sidebar-subtitle">
-            Hệ thống quản trị thư điện tử GenOffice
+            Hệ thống quản trị thư điện tử VuaOffice
           </div>
         </div>
 
@@ -280,7 +280,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </div>
 
         <div className="settings-sidebar-footer">
-          <span>GenOffice Mail v{appVersion || '1.0.10'}</span>
+          <span>VuaOffice Mail v{appVersion || '1.0.10'}</span>
           <span style={{ color: 'var(--mail-brand-green)', fontWeight: 600 }}>● Trực tuyến</span>
         </div>
       </div>
@@ -698,7 +698,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 <div className="settings-card-header">
                   <div className="settings-card-title">
                     <IconSparkles size={16} color="var(--mail-primary-blue)" />
-                    <span>Trợ lý thông minh Genspark AI</span>
+                    <span>Trợ lý thông minh VuaOffice AI</span>
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

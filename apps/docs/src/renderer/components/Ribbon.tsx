@@ -1335,19 +1335,24 @@ function RibbonInner({
     setFontDraft(null)
     setFontHighlight(null)
   }
+  const foldStr = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim()
   const onFontTyped = (e: ChangeEvent<HTMLInputElement>) => {
     const input = e.currentTarget
     const typed = input.value
     const native = e.nativeEvent as InputEvent
-    const q = typed.trim().toLowerCase()
-    const match = q ? fontMenuItems.find((it) => it.name.toLowerCase().startsWith(q)) : undefined
+    const q = foldStr(typed)
+    const match = q
+      ? fontMenuItems.find((it) => foldStr(it.name).startsWith(q)) ??
+        fontMenuItems.find((it) => foldStr(it.name).includes(q))
+      : undefined
     // inline completion only on plain insertions, so Backspace shortens instead of re-completing
     if (
       match &&
       native.inputType === 'insertText' &&
       !native.isComposing &&
       match.name.length > typed.length &&
-      input.selectionStart === typed.length
+      input.selectionStart === typed.length &&
+      foldStr(match.name).startsWith(q)
     ) {
       input.value = match.name
       input.setSelectionRange(typed.length, match.name.length)
@@ -2959,7 +2964,7 @@ function RibbonInner({
                   <span className="rb-big-icon">
                     <GensparkMark size={26} />
                   </span>
-                  <span>Genspark AI</span>
+                  <span>VuaOffice AI</span>
                 </button>
                 <button
                   className="rb-big ai-entry"
@@ -3059,7 +3064,7 @@ function RibbonInner({
                   <span>{t('aiTidyBtn')}</span>
                 </button>
               </div>
-              <div className="ribbon-group-label">Genspark AI</div>
+              <div className="ribbon-group-label">VuaOffice AI</div>
             </div>
 
             <div className="ribbon-sep" />
@@ -3210,11 +3215,25 @@ function RibbonInner({
                     >
                       <IconCaret />
                     </button>
-                    {dropdown === 'fontFamily' && (
-                      <div data-rb-panel="" className="spacing-menu rb-font-family-menu">
-                        {(['b', 's'] as const).map((section) => {
-                          const items = fontMenuItems.filter((it) => it.section === section)
-                          if (items.length === 0) return null
+                    {dropdown === 'fontFamily' && (() => {
+                        const q = fontDraft ? foldStr(fontDraft) : ''
+                        const filtered = q
+                          ? fontMenuItems.filter((it) => foldStr(it.name).includes(q))
+                          : fontMenuItems
+                        if (filtered.length === 0) {
+                          return (
+                            <div data-rb-panel="" className="spacing-menu rb-font-family-menu">
+                              <div style={{ padding: '10px 14px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                                {t('appScNone') || 'Không tìm thấy phông chữ phù hợp'}
+                              </div>
+                            </div>
+                          )
+                        }
+                        return (
+                          <div data-rb-panel="" className="spacing-menu rb-font-family-menu">
+                            {(['b', 's'] as const).map((section) => {
+                              const items = filtered.filter((it) => it.section === section)
+                              if (items.length === 0) return null
                           return (
                             <div key={section}>
                               <div className="rb-menu-group-label">
@@ -3241,8 +3260,9 @@ function RibbonInner({
                             </div>
                           )
                         })}
-                      </div>
-                    )}
+                          </div>
+                        )
+                      })()}
                   </div>
                   <div className="rb-split-wrap" onPointerDown={markComboPress}>
                     <input

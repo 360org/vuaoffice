@@ -5,7 +5,7 @@ export const de = {
   aiEmptyBuildTitle: 'Lass die KI diese Arbeitsmappe für dich aufbauen',
   aiEmptyBuildBody:
     'Beschreibe die gewünschte Tabelle, Daten oder Diagramme — die KI erstellt sie direkt.',
-  aiGskLoginBtn: 'Bei Genspark anmelden',
+  aiGskLoginBtn: 'Bei VuaOffice anmelden',
   aiUndelivered: 'Nicht gesendet',
   aiRetry: 'Erneut versuchen',
   aiOpenAssistant: 'KI-Assistenten öffnen',
@@ -56,7 +56,7 @@ export const de = {
   aiLoggedInAs: 'Angemeldet: {email}',
   aiNotLoggedIn: 'Nicht angemeldet (KI-Funktionen erfordern ein Genspark-Konto)',
   aiWaitingBrowserLogin: 'Warten auf Anmeldung im Browser…',
-  aiLoginGenspark: 'Bei Genspark anmelden',
+  aiLoginGenspark: 'Bei VuaOffice anmelden',
   aiModel: 'Modell',
   aiCancel: 'Abbrechen',
   aiSave: 'Speichern',
