@@ -6001,6 +6001,7 @@ app.whenReady().then(async () => {
     pdf: join(PDF_OUT, 'renderer'),
     markdown: join(MARKDOWN_OUT, 'renderer'),
     html: join(HTML_OUT, 'renderer'),
+    mail: join(MAIL_OUT, 'renderer'),
   })
   if (headlessArgv.kind !== 'none') {
     await runHeadlessExportEntry(headlessArgv)

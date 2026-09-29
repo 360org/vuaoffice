@@ -27,7 +27,7 @@ export default defineConfig({
     plugins: [react()],
     resolve: { alias: localAlias },
     server: {
-      port: Number(process.env.MAIL_DEV_PORT) || 5178,
+      port: Number(process.env.MAIL_DEV_PORT) || 5179,
       strictPort: Boolean(process.env.MAIL_DEV_PORT),
     },
   },

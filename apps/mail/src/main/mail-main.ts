@@ -68,11 +68,11 @@ export function createMailView(): WebContentsView {
   view.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   view.webContents.on('will-navigate', (event) => event.preventDefault())
 
-  if (runtime.rendererUrl) {
-    void view.webContents.loadURL(runtime.rendererUrl)
-  } else if (runtime.rendererFile) {
-    void view.webContents.loadFile(runtime.rendererFile)
-  }
+  view.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+    console.error(`[MailView] Failed to load ${validatedURL}: ${errorDescription} (${errorCode})`)
+  })
+
+  void view.webContents.loadURL(rendererUrl(runtime.rendererUrl, 'mail'))
 
   return view
 }
