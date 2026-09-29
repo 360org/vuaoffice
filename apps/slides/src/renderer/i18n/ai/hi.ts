@@ -17,8 +17,8 @@ export const hi = {
   aiQcPageSkipped: 'पेज {n}: स्वचालित लेआउट जाँच छोड़ दी गई',
   aiQcStopped: 'लेआउट जाँच रोक दी गई',
   aiQcCapped: 'शेष {count} पेज नहीं जाँचे गए (प्रति रन सीमा)',
-  aiGskLoginBtn: 'VuaOffice में साइन इन करें',
-  aiPanelTitle: 'VuaOffice AI',
+  aiGskLoginBtn: 'Genspark में साइन इन करें',
+  aiPanelTitle: 'Genspark',
   aiOpenAssistant: 'AI सहायक खोलें',
   aiFactCheckBtn: 'AI तथ्य जाँच',
   aiFactCheckPrompt:

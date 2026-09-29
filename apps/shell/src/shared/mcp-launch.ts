@@ -22,7 +22,7 @@ export function mcpLaunch(cli: { status: string; launcherDir: string }): McpLaun
 
 function windowsAppLaunch(dir: string): McpLaunch {
   return {
-    command: `${dir}\\..\\..\\VuaOffice.exe`,
+    command: `${dir}\\..\\..\\GenOffice.exe`,
     args: [`${dir}\\vuaoffice.cjs`, 'mcp'],
     env: { ELECTRON_RUN_AS_NODE: '1' },
   }

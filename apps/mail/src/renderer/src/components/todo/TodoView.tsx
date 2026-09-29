@@ -23,7 +23,7 @@ export interface MailTask {
 const INITIAL_TASKS: MailTask[] = [
   {
     id: 'task_1',
-    title: 'Kiểm tra & duyệt bản phát hành VuaOffice Suite v0.6.6',
+    title: 'Kiểm tra & duyệt bản phát hành GenOffice Suite v0.6.6',
     dueDate: '2026-08-16',
     priority: 'high',
     isCompleted: false,
@@ -37,7 +37,7 @@ const INITIAL_TASKS: MailTask[] = [
     priority: 'normal',
     isCompleted: false,
     category: 'work',
-    notes: 'Tài liệu hướng dẫn PO & Khách hàng chuyển đổi dữ liệu từ Microsoft Outlook sang VuaOffice Mail.',
+    notes: 'Tài liệu hướng dẫn PO & Khách hàng chuyển đổi dữ liệu từ Microsoft Outlook sang GenOffice Mail.',
   },
   {
     id: 'task_3',
@@ -46,7 +46,7 @@ const INITIAL_TASKS: MailTask[] = [
     priority: 'normal',
     isCompleted: true,
     category: 'work',
-    notes: 'Đã hoàn thành cấu trúc dữ liệu và tích hợp vào AppRail của VuaOffice Mail.',
+    notes: 'Đã hoàn thành cấu trúc dữ liệu và tích hợp vào AppRail của GenOffice Mail.',
   },
   {
     id: 'task_4',
