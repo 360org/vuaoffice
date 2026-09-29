@@ -528,6 +528,12 @@ function stripTags(s: string): string {
 function decodeDuckUrl(href: string): string {
   // DuckDuckGo result links are often /l/?uddg=<encoded>
   const m = /[?&]uddg=([^&]+)/.exec(href)
-  if (m) return decodeURIComponent(m[1]!)
+  if (m) {
+    try {
+      return decodeURIComponent(m[1]!)
+    } catch {
+      return '' // a malformed escape is one dead link, not a failed search
+    }
+  }
   return href.startsWith('http') ? href : ''
 }

@@ -44,9 +44,13 @@ export function normalizeRecentQuery(
   raw: unknown,
 ): Required<Omit<RecentQuery, 'ext'>> & { ext?: string } {
   const query = (raw ?? {}) as RecentQuery
-  const offset = Number.isFinite(query.offset) ? Math.max(0, Math.floor(query.offset!)) : 0
-  const limit = Number.isFinite(query.limit)
-    ? Math.min(RECENT_PAGE_MAX, Math.max(0, Math.floor(query.limit!)))
+  // offset/limit cross the preload boundary, so an IPC caller may send "10" rather
+  // than 10; without coercion every page silently restarted at the first page.
+  const rawOffset = Number(query.offset)
+  const rawLimit = Number(query.limit)
+  const offset = Number.isFinite(rawOffset) ? Math.max(0, Math.floor(rawOffset)) : 0
+  const limit = Number.isFinite(rawLimit)
+    ? Math.min(RECENT_PAGE_MAX, Math.max(0, Math.floor(rawLimit)))
     : RECENT_PAGE_DEFAULT
   // Sidebar keys are bare extensions ("xlsx"), but IPC callers may send
   // ".xlsx", " XLSX ", or "..." — normalize so openable files cannot hide

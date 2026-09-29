@@ -310,6 +310,9 @@ export async function analyzeMediaTool(
     const viaGsk = async () => {
       const gate = gskGate(settings, options.notLoggedInError ?? GSK_NOT_LOGGED_IN_ERROR)
       if (gate) return gate
+      // gskAnalyzeMedia spreads the URLs straight into the CLI argv, so this route
+      // enforces the same item ceiling as the BYOK one instead of passing them on
+      assertMediaItemCount(mediaUrls.length, MEDIA_BUDGET.maxItems)
       return { text: await gskAnalyzeMedia({ mediaUrls, requirements }) }
     }
     if (!imageByok && !videoByok) return await viaGsk()

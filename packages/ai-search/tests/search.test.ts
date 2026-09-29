@@ -210,6 +210,20 @@ describe('DuckDuckGo fallback error surfacing', () => {
     expect(r.error).toBeUndefined()
   })
 
+  it('web: keeps the good results when one link has a malformed percent escape', async () => {
+    mockFetch(() => ({
+      ok: true,
+      text: [
+        '<a class="result__a" href="/l/?uddg=https%3A%2F%2Fgood.example">Good</a>',
+        '<a class="result__a" href="/l/?uddg=https%3A%2F%2Fbroken.example%2">Broken</a>',
+      ].join(''),
+    }))
+    const r = await webSearch('q', 3)
+    expect(r.method).toBe('duckduckgo')
+    expect(r.error).toBeUndefined()
+    expect(r.results).toEqual([{ title: 'Good', url: 'https://good.example', snippet: '' }])
+  })
+
   it('images: reports method error when the backend is unreachable', async () => {
     mockFetch(() => {
       throw new Error('network down')

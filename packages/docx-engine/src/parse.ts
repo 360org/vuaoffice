@@ -105,6 +105,7 @@ import {
   fieldLabel,
   fieldStackAfter,
   markInsideFieldCode,
+  tagAttr,
   tocLevelOf,
 } from './parse-fields'
 import {
@@ -975,7 +976,7 @@ async function buildBlock(
     }
   }
   const fieldPassthrough = (): Block => {
-    const pStyle = /<w:pStyle w:val="([^"]+)"/.exec(xml)?.[1]
+    const pStyle = tagAttr(xml, 'w:pStyle', 'w:val')
     const fieldDisplay = fieldDisplayOf(xml, ctx.styles)
     if (fieldDisplay?.kind === 'text') {
       const runs = fieldResultRuns(xml, ctx, fieldDisplay.left ?? '')
@@ -1015,7 +1016,7 @@ async function buildBlock(
   // them individually would corrupt the field, so they stay protected.
   // Word writes styleIds "TOC1".."TOC9"; Pages exports "TOC 1"/"TOC 2" (with
   // space); html2docx-style exports use opaque ids with the name "toc 1".
-  const tocStyleId = /<w:pStyle w:val="([^"]+)"/.exec(xml)?.[1]
+  const tocStyleId = tagAttr(xml, 'w:pStyle', 'w:val')
   if (tocStyleId && tocLevelOf(tocStyleId, ctx.styles) !== null) {
     return {
       ...base,

@@ -146,11 +146,13 @@ export const platformShortcuts: (text: string) => string = IS_MAC
 
 export type Params = Record<string, string | number>
 
-/** fill {name} placeholders; unknown placeholders are left as-is */
+/** fill {name} placeholders; unknown or nullish ones are left as-is */
 export function format(template: string, params?: Params): string {
   if (!params) return template
   return template.replace(/\{(\w+)\}/g, (match, name: string) =>
-    Object.hasOwn(params, name) ? String(params[name]) : match,
+    // hasOwn guards inherited properties; the nullish check keeps an explicitly
+    // undefined param from rendering as the literal text "undefined"
+    Object.hasOwn(params, name) && params[name] != null ? String(params[name]) : match,
   )
 }
 

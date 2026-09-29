@@ -123,13 +123,18 @@ function makeRuns(context, runs, images: any = {}) {
   return out
 }
 
+/** hard ceiling on the inset spacer, so a bogus geometry cannot balloon it */
+const MAX_INSET_SPACES = 1024
+
 function makeNodeRuns(context, node, images: any = {}) {
   const runs = makeRuns(context, node.runs, images)
   const insetPx = node.style?.borderLeftSpacePx || 0
   if (insetPx > 0) {
     const sample = node.runs.find((run) => run.text) || {}
-    const fontSizePx = sample.sizePx || 16
-    const count = Math.max(1, Math.ceil(insetPx / (fontSizePx * 0.65)))
+    // floor the size: a degenerate one is truthy, so the `|| 16` fallback never
+    // fires and a sub-pixel font put the repeat() count in the billions
+    const fontSizePx = Math.max(1, sample.sizePx || 16)
+    const count = Math.min(MAX_INSET_SPACES, Math.max(1, Math.ceil(insetPx / (fontSizePx * 0.65))))
     runs.unshift(
       new TextRun({
         text: '\u00A0'.repeat(count),
@@ -146,7 +151,7 @@ function makeNodeRuns(context, node, images: any = {}) {
 // content starts far right becomes a right-aligned stop at the margin
 // (dates), otherwise a left stop at the measured column position.
 function tabStopsFor(context, runs) {
-  const tabs = runs.filter((r) => r.text.includes('\t'))
+  const tabs = runs.filter((r) => r.text?.includes('\t'))
   if (!tabs.length) return []
   const stops = []
   const seen = new Set()

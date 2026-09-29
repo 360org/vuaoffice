@@ -253,6 +253,19 @@ async function anthropicTurn(
         'If this recurs on a large request (e.g. generating a whole document), ask for the output in several smaller parts.',
     )
   }
+  // A max_tokens stop can cut a tool_use block before its content_block_stop: emit
+  // the partial call as truncated rather than dropping it and answering "done".
+  for (const pending of pendingTools.values()) {
+    const { input, error } = parseToolInput(pending.json)
+    completedTools.push({
+      id: pending.id,
+      name: pending.name,
+      input,
+      inputError: error,
+      truncated: true,
+    })
+  }
+  pendingTools.clear()
   const lastTool = completedTools.at(-1)
   if (stopReason === 'max_tokens' && lastTool) lastTool.truncated = true
   for (const call of completedTools) cb.onToolCall(call)

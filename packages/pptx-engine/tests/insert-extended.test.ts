@@ -695,6 +695,28 @@ describe('setElementLink / getElementLink', () => {
     const group = grouped.slide.elements.find((e) => e.id === grouped.groupId) as GroupElement
     expect(group.children.some((c) => c.id === links[0]!.elementId)).toBe(true)
   })
+
+  it('getSlideLinks keeps a group own link when its header carries attributes', async () => {
+    const opened = await openPptx(fx('01_standard_business.pptx'))
+    const slide = opened.deck.slides[0]!
+    const a = addElement(slide, { kind: 'rect', offset: { ...OFF } })
+    const b = addElement(slide, { kind: 'ellipse', offset: { ...OFF, x: 5486400 } })
+    const grouped = groupElements(opened, 0, [a.id, b.id])!
+    const linked = setElementLink(opened, 0, grouped.groupId, {
+      kind: 'url',
+      url: 'https://group.dev',
+    })!
+    const group = linked.elements.find((e) => e.type === 'group') as GroupElement
+    // Producers may put attributes on the group's non-visual header
+    group.anchor.originalXml = group.anchor.originalXml.replace(
+      '<p:nvGrpSpPr>',
+      '<p:nvGrpSpPr foo="1">',
+    )
+
+    expect(getSlideLinks(opened, 0)).toEqual([
+      { elementId: group.id, target: { kind: 'url', url: 'https://group.dev' } },
+    ])
+  })
 })
 
 describe('applyHeaderFooter', () => {

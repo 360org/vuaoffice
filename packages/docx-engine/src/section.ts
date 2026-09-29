@@ -350,6 +350,18 @@ export function applyPageNumType(
   return insertBefore(xml, tag, PG_NUM_TYPE_FOLLOWERS)
 }
 
+/**
+ * Insert tag as the first child of a sectPr. A self-closing <w:sectPr/> is
+ * expanded to a pair first: the open-tag anchor matched that element whole, so
+ * the child was written after it, as a sibling inside w:body / w:pPr.
+ */
+export function injectIntoSectPr(xml: string, tag: string): string {
+  const m = /<w:sectPr(?:\s[^>]*?)?\/>|<w:sectPr(?:\s[^>]*?)?>/.exec(xml)
+  if (!m) return xml
+  const open = m[0].endsWith('/>') ? `${m[0].slice(0, -2)}>` : m[0]
+  return xml.replace(m[0], () => `${open}${tag}${m![0].endsWith('/>') ? '</w:sectPr>' : ''}`)
+}
+
 /** CT_SectPr children that follow pgNumType / titlePg, in schema order */
 const PG_NUM_TYPE_FOLLOWERS =
   /<w:(?:cols|formProt|vAlign|noEndnote|titlePg|textDirection|bidi|rtlGutter|docGrid|printerSettings)[\s/>]/
@@ -392,7 +404,7 @@ export function applySectionSettings(sectPrXml: string, settings: SectionSetting
   if (/<w:pgSz[^>]*\/?>/.test(xml)) {
     xml = xml.replace(/<w:pgSz[^>]*\/?>/, pgSz)
   } else {
-    xml = xml.replace(/(<w:sectPr[^>]*>)/, `$1${pgSz}`)
+    xml = injectIntoSectPr(xml, pgSz)
   }
   const replaceMarAttr = (tag: string, name: string, value: number): string => {
     if (new RegExp(`${name}="`).test(tag)) {
@@ -461,8 +473,8 @@ export function applySectionSettings(sectPrXml: string, settings: SectionSetting
   ) {
     // explicit unequal widths: rebuild the element (opt-in via colWidths) —
     // unless the document already carries exactly these values (round-trip)
-    const currentWidths = (colsMatch?.[0].match(/<w:col [^>]*w:w="\d+"[^>]*\/>/g) ?? []).map((t) =>
-      intAttr(t, 'w:w', 0),
+    const currentWidths = (colsMatch?.[0].match(/<w:col [^>]*w:w=["']\d+["'][^>]*>/g) ?? []).map(
+      (t) => intAttr(t, 'w:w', 0),
     )
     const unchanged =
       colsMatch !== null &&
@@ -529,7 +541,7 @@ export function applySectionStartType(
   if (type === 'nextPage') return xml
   const tag = `<w:type w:val="${type}"/>`
   if (/<w:pgSz/.test(xml)) xml = xml.replace(/(<w:pgSz)/, `${tag}$1`)
-  else xml = xml.replace(/(<w:sectPr[^>]*>)/, `$1${tag}`)
+  else xml = injectIntoSectPr(xml, tag)
   return xml
 }
 

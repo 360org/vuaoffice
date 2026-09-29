@@ -167,7 +167,7 @@ import {
 } from './docx-encryption'
 import { isExternallyModified, type DiskFileState } from './external-change'
 import { copyImageDisplaySize, validCopyImageDataUrl } from './copy-image-guard'
-import { printScaleOption, validPrintDim, validPrintScale } from './print-args'
+import { printScaleOption, validPrintGeometry } from './print-args'
 import { initDocsAutoUpdater } from './updater'
 import { registerZoteroIpc, teardownZoteroIpc } from './zotero-ipc'
 
@@ -442,6 +442,139 @@ const tMain = createI18n({
     menuHelp: 'Help',
     menuShortcuts: 'Keyboard Shortcuts',
     menuDocsHelp: 'GenOffice Docs Help',
+  },
+  vi: {
+    dlgOpenDoc: 'Mở tài liệu',
+    filterWord: 'Tài liệu Word',
+    dlgSaveAs: 'Lưu dưới dạng',
+    closeUnsavedMsg: 'Tài liệu này có những thay đổi chưa được lưu.',
+    closeUnsavedDetail: 'Bạn có muốn lưu các thay đổi trước khi đóng không?',
+    closeNoReplyMsg: 'Tài liệu không phản hồi và có thể có những thay đổi chưa được lưu.',
+    closeNoReplyDetail: 'Vẫn đóng? Các thay đổi chưa lưu sẽ bị mất.',
+    btnCloseAnyway: 'Vẫn đóng',
+    autosaveFoundTitle: 'Tìm thấy phiên bản khôi phục',
+    autosaveFoundBody:
+      'Có những thay đổi chưa được lưu từ phiên làm việc trước của bạn. Khôi phục phiên bản đã lưu tự động?',
+    autosaveRestore: 'Khôi phục',
+    autosaveDiscard: 'Bỏ qua',
+    btnDontSave: 'Không lưu',
+    btnCancel: 'Hủy',
+    extModifiedMsg: 'Tệp đã được sửa đổi bởi một chương trình khác.',
+    extModifiedDetail: 'Vẫn lưu và ghi đè các thay đổi trên ổ đĩa?',
+    btnOverwrite: 'Ghi đè',
+    dlgInsertImage: 'Chèn hình ảnh',
+    filterImages: 'Hình ảnh',
+    dlgAddAttachment: 'Thêm tệp đính kèm',
+    filterSupported: 'Các tệp được hỗ trợ',
+    filterAll: 'Tất cả các tệp',
+    dlgExportPdf: 'Xuất dưới dạng PDF',
+    dlgExportHtml: 'Xuất dưới dạng HTML',
+    dlgPickExportDir: 'Chọn thư mục xuất',
+    errUnsupportedExt: 'Tệp .{ext} không được hỗ trợ',
+    errNotFile: 'không phải là tệp',
+    errTooLarge: 'vượt quá giới hạn {mb}MB',
+    errImageTooLarge: 'hình ảnh vượt quá giới hạn 5MB',
+    errUnreadable: 'không thể đọc được',
+    errFileTooLarge: 'Tệp vượt quá giới hạn kích thước',
+    errParseFailed: 'Không thể phân tích tệp',
+    errImageNoText:
+      'Tệp đính kèm hình ảnh không có văn bản; hình ảnh được gửi cùng với tin nhắn của người dùng',
+    errNotImage: 'loại hình ảnh không được hỗ trợ',
+    errGskNotLoggedIn:
+      'Chưa đăng nhập vào Genspark: nhấp vào “Đăng nhập vào Genspark” bên dưới, đăng nhập, sau đó thử lại',
+    errNoApiKey: 'Chưa cấu hình khóa API cho {provider}',
+    errAiBusy: 'Dịch vụ AI hiện đang bận — vui lòng thử lại sau giây lát',
+    errNoModel: 'Chưa cấu hình tên mô hình',
+    menuFile: 'Tệp',
+    menuNewDoc: 'Tài liệu mới',
+    menuNewWindow: 'Cửa sổ mới',
+    menuOpen: 'Mở…',
+    menuOpenRecent: 'Mở gần đây',
+    menuNoRecent: 'Không có tài liệu gần đây',
+    menuClose: 'Đóng',
+    menuSave: 'Lưu',
+    menuSaveAs: 'Lưu dưới dạng…',
+    menuPageSetup: 'Thiết lập trang…',
+    menuExportPdf: 'Xuất dưới dạng PDF…',
+    menuExportHtml: 'Xuất dưới dạng HTML…',
+    menuExportImages: 'Xuất dưới dạng hình ảnh…',
+    menuPrint: 'In…',
+    menuEdit: 'Chỉnh sửa',
+    menuUndo: 'Hoàn tác',
+    menuRedo: 'Làm lại',
+    menuCut: 'Cắt',
+    menuCopy: 'Sao chép',
+    menuPaste: 'Dán',
+    menuPasteMatch: 'Dán và khớp kiểu định dạng',
+    menuFindReplace: 'Tìm kiếm và thay thế…',
+    menuGoTo: 'Đi tới…',
+    menuSelectAll: 'Chọn tất cả',
+    menuView: 'Xem',
+    menuZoom: 'Thu phóng',
+    menuZoomIn: 'Phóng to',
+    menuZoomOut: 'Thu nhỏ',
+    menuZoom100: 'Kích thước thực tế (100%)',
+    menuPageWidth: 'Chiều rộng trang',
+    menuWholePage: 'Toàn bộ trang',
+    menuAiSidebar: 'Thanh bên AI',
+    menuDarkMode: 'Chế độ tối',
+    menuFullscreen: 'Vào chế độ toàn màn hình',
+    menuInsert: 'Chèn',
+    menuInsertTable: 'Bảng…',
+    menuInsertImage: 'Hình ảnh…',
+    menuInsertPageBreak: 'Ngắt trang',
+    menuInsertLink: 'Siêu liên kết…',
+    menuInsertEquation: 'Phương trình…',
+    menuComment: 'Bình luận',
+    menuFormat: 'Định dạng',
+    menuBold: 'In đậm',
+    menuItalic: 'In nghiêng',
+    menuUnderline: 'Gạch chân',
+    menuAlign: 'Căn chỉnh',
+    menuAlignLeft: 'Căn trái',
+    menuAlignCenter: 'Căn giữa',
+    menuAlignRight: 'Căn phải',
+    menuAlignJustify: 'Căn đều',
+    menuFont: 'Phông chữ…',
+    menuParagraph: 'Đoạn văn…',
+    menuTools: 'Công cụ',
+    menuTable: 'Bảng',
+    menuTableInsert: 'Chèn',
+    menuTableInsertTable: 'Bảng…',
+    menuTableColsLeft: 'Chèn cột bên trái',
+    menuTableColsRight: 'Chèn cột bên phải',
+    menuTableRowsAbove: 'Chèn hàng phía trên',
+    menuTableRowsBelow: 'Chèn hàng phía dưới',
+    menuTableCells: 'Ô…',
+    menuTableDelete: 'Xóa',
+    menuTableDeleteTable: 'Bảng',
+    menuTableDeleteColumns: 'Cột',
+    menuTableDeleteRows: 'Hàng',
+    menuTableSelect: 'Chọn',
+    menuTableSelectCell: 'Ô',
+    menuTableSelectColumn: 'Cột',
+    menuTableSelectRow: 'Hàng',
+    menuTableSelectTable: 'Bảng',
+    menuTableMergeCells: 'Hợp nhất các ô',
+    menuTableSplitCells: 'Tách ô…',
+    menuTableSplitTable: 'Tách bảng',
+    menuTableAutoFit: 'Tự động điều chỉnh',
+    menuTableAutoFitContents: 'Tự động điều chỉnh theo nội dung',
+    menuTableAutoFitWindow: 'Tự động điều chỉnh theo cửa sổ',
+    menuTableFixedWidth: 'Chiều rộng cột cố định',
+    menuTableDistributeRows: 'Phân bố hàng đều nhau',
+    menuTableDistributeColumns: 'Phân bố cột đều nhau',
+    menuTableRepeatHeader: 'Lặp lại hàng tiêu đề',
+    menuTableGridlines: 'Xem đường lưới',
+    menuTableProperties: 'Thuộc tính bảng…',
+    menuWordCount: 'Đếm từ…',
+    menuAutoCorrect: 'Tùy chọn tự sửa lỗi…',
+    menuPreferences: 'Tùy chọn…',
+    menuAiProofread: 'Hiệu đính bằng AI',
+    menuWindow: 'Cửa sổ',
+    menuHelp: 'Trợ giúp',
+    menuShortcuts: 'Phím tắt bàn phím',
+    menuDocsHelp: 'Trợ giúp GenOffice Docs',
   },
   ja: {
     dlgOpenDoc: '文書を開く',
@@ -4202,6 +4335,9 @@ export function registerProjectIpc(): void {
 /** A4 at 96dpi, as the HTML app exports */
 const ALT_CHUNK_VIEWPORT = { width: 794, height: 1123, deviceScaleFactor: 2 }
 const ALT_CHUNK_HTML_MAX_CHARS = 64 * 1024 * 1024
+// An AI-generated page whose scripts never yield must not strand the hidden
+// conversion window; the slides export path uses the same shape.
+const ALT_CHUNK_TIMEOUT_MS = 120_000
 
 /** an encrypted save leaves no plain file to serve lazy pictures from: the
  *  renderer takes the materialized document back and leaves lazy mode */
@@ -4257,9 +4393,26 @@ export function registerDocsIpc(): void {
       // the BOM outranks a stale <meta charset> left in the decoded markup
       await writeFile(htmlPath, `\ufeff${html}`, 'utf8')
       driver = await ElectronBrowserDriver.create(ALT_CHUNK_VIEWPORT)
-      const { docx } = await convertHtmlToDocx({ url: pathToFileURL(htmlPath).href }, driver, {
+      // The markup is an unsanitised AI artifact: a script that never yields
+      // would otherwise keep executeJavaScript pending forever, and the
+      // finally below would never run (the hidden window and workDir leak for
+      // good). Race a watchdog and destroy the window on timeout, matching
+      // the slides export guard.
+      const conversion = convertHtmlToDocx({ url: pathToFileURL(htmlPath).href }, driver, {
         naturalTableWidth: true,
-      })
+      }).then(({ docx }) => docx)
+      let watchdog: ReturnType<typeof setTimeout> | undefined
+      const docx = await Promise.race([
+        conversion,
+        new Promise<null>((resolve) => {
+          watchdog = setTimeout(() => {
+            if (driver && !driver.isWindowDestroyed()) driver.destroyNow()
+            driver = null
+            console.warn('[docs] altChunk conversion timed out; window destroyed')
+            resolve(null)
+          }, ALT_CHUNK_TIMEOUT_MS)
+        }),
+      ]).finally(() => clearTimeout(watchdog))
       return docx
     } catch (err) {
       console.warn('[docs] altChunk conversion failed:', err)
@@ -4957,6 +5110,13 @@ export function registerDocsIpc(): void {
       outPath?: string,
       scale?: number,
     ) => {
+      // Renderer-supplied page geometry reaches Chromium printToPDF verbatim:
+      // reject non-finite/out-of-range sizes (0.1in..50in) and scales (0.1..5),
+      // same guard as docs:print-pdf-buffer (a malformed w:pgSz in a doc would
+      // otherwise hand Chromium a page thousands of inches wide).
+      if (!validPrintGeometry(pageWidthTwips, pageHeightTwips, scale)) {
+        return { ok: false, error: 'invalid page size or scale' }
+      }
       // renderer-supplied outPath is only honored when a save dialog authorized it before
       let filePath = outPath ?? null
       if (filePath && !canPdfWrite(event.sender.id, filePath)) {
@@ -5095,11 +5255,7 @@ export function registerDocsIpc(): void {
     async (event, pageWidthTwips: number, pageHeightTwips: number, scale?: number) => {
       // Renderer-supplied page geometry reaches Chromium printToPDF verbatim:
       // reject non-finite/out-of-range sizes (0.5in..50in) and scales (0.1..5).
-      if (
-        !validPrintDim(pageWidthTwips) ||
-        !validPrintDim(pageHeightTwips) ||
-        !validPrintScale(scale)
-      ) {
+      if (!validPrintGeometry(pageWidthTwips, pageHeightTwips, scale)) {
         return { ok: false, error: 'invalid page size or scale' }
       }
       try {

@@ -287,7 +287,7 @@ export function getSlideLinks(
       if (el.type === 'group') {
         // Restrict the group's own match to its nvGrpSpPr header so a child link
         // doesn't make the whole group clickable
-        const own = /<p:nvGrpSpPr>[\s\S]*?<\/p:nvGrpSpPr>/.exec(xml)?.[0] ?? ''
+        const own = /<p:nvGrpSpPr\b[^>]*>[\s\S]*?<\/p:nvGrpSpPr>/.exec(xml)?.[0] ?? ''
         const target = resolveLinkInXml(opened, slide, own)
         if (target) out.push({ elementId: el.id, target })
         // Child fragments are in document order, matching (grp as GroupElement).children

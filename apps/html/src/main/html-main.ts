@@ -140,6 +140,31 @@ const tDlg = createI18n({
     errImageNoText: 'Image attachments have no text; the image is sent along with the user message',
     errNotImage: 'not a supported image type',
   },
+  vi: {
+    dlgSaveTitle: 'Lưu tài liệu HTML',
+    filterHtml: 'Tài liệu HTML',
+    dlgPickImage: 'Chọn một hình ảnh',
+    filterImages: 'Hình ảnh',
+    untitledFile: 'Không có tiêu đề',
+    closeUnsavedMsg: 'Tài liệu này có những thay đổi chưa được lưu.',
+    closeUnsavedDetail: 'Bạn có muốn lưu các thay đổi trước khi đóng không?',
+    btnSave: 'Lưu',
+    btnDontSave: 'Không lưu',
+    btnCancel: 'Hủy',
+    dlgAddAttachment: 'Thêm tệp đính kèm',
+    filterSupported: 'Các tệp được hỗ trợ',
+    filterAll: 'Tất cả các tệp',
+    errUnsupportedExt: 'Tệp .{ext} không được hỗ trợ',
+    errNotFile: 'không phải là tệp',
+    errTooLarge: 'vượt quá giới hạn {mb}MB',
+    errImageTooLarge: 'hình ảnh vượt quá giới hạn 5MB',
+    errUnreadable: 'không thể đọc được',
+    errFileTooLarge: 'Tệp vượt quá giới hạn kích thước',
+    errParseFailed: 'Không thể phân tích tệp',
+    errImageNoText:
+      'Tệp đính kèm hình ảnh không có văn bản; hình ảnh được gửi cùng với tin nhắn của người dùng',
+    errNotImage: 'loại hình ảnh không được hỗ trợ',
+  },
   ja: {
     dlgSaveTitle: 'HTML ドキュメントを保存',
     filterHtml: 'HTML ドキュメント',
@@ -923,6 +948,9 @@ function closePresentViewsOf(ownerWcId: number): void {
 
 /** A4 at 96dpi; html2docx re-measures at the authored width itself when the page asks for more. */
 const HTML2DOCX_VIEWPORT = { width: 794, height: 1123, deviceScaleFactor: 2 }
+// A renderer that never yields must not strand the export: watchdog destroys
+// the hidden conversion window.
+const HTML_EXPORT_TIMEOUT_MS = 180_000
 
 /** Print the document in a hidden script-free window (sheets-style). Relative assets
  * resolve through html-asset:// against the document's folder, exactly as in the preview. */
@@ -1635,7 +1663,24 @@ function registerHtmlIpc(): void {
         const htmlPath = join(workDir, 'export.html')
         await writeFile(htmlPath, buildPreviewDocument(request.html, base), 'utf8')
         driver = await ElectronBrowserDriver.create(HTML2DOCX_VIEWPORT)
-        const { docx } = await convertHtmlToDocx({ url: pathToFileURL(htmlPath).href }, driver)
+        // AI-generated markup with a script that never yields keeps
+        // executeJavaScript pending forever, which would strand the hidden
+        // window and this handler; race a watchdog and destroy the window on
+        // timeout (same shape as the slides export guard).
+        const conversion = convertHtmlToDocx({ url: pathToFileURL(htmlPath).href }, driver).then(
+          ({ docx }) => docx,
+        )
+        let watchdog: ReturnType<typeof setTimeout> | undefined
+        const docx = await Promise.race([
+          conversion,
+          new Promise<Uint8Array>((_, reject) => {
+            watchdog = setTimeout(() => {
+              if (driver && !driver.isWindowDestroyed()) driver.destroyNow()
+              driver = null
+              reject(new Error('html export timed out'))
+            }, HTML_EXPORT_TIMEOUT_MS)
+          }),
+        ]).finally(() => clearTimeout(watchdog))
         await writeFile(picked.filePath, docx)
         openExportedDocx(picked.filePath)
         return { ok: true, path: picked.filePath }

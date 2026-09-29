@@ -117,6 +117,26 @@ describe('recent query ext normalization', () => {
     expect(page.entries.map((entry) => entry.path)).toEqual([bookPath])
   })
 
+  it('coerces string offset and limit from the IPC boundary instead of paging from one', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'shell-counts-'))
+    tempDirs.push(dir)
+    const paths = [0, 1, 2, 3].map((i) => {
+      const p = join(dir, `n${i}.md`)
+      writeFileSync(p, 'note')
+      return p
+    })
+
+    // RecentQuery crosses preload, so "2"/"2" is a legal page request; it used to
+    // fall back to offset 0 and hand back page one under a total advertising more.
+    const page = pageRecentPaths(paths, { offset: '2', limit: '2' } as never, new Set())
+    expect(page.entries.map((e) => e.path)).toEqual([paths[2], paths[3]])
+    expect(page.total).toBe(4)
+    expect(normalizeRecentQuery({ offset: '10' }).offset).toBe(10)
+    expect(normalizeRecentQuery({ limit: '5' }).limit).toBe(5)
+    // genuinely non-numeric input still falls back
+    expect(normalizeRecentQuery({ offset: 'abc' }).offset).toBe(0)
+  })
+
   it('shares the sheets/html families with the starred view (same helper)', () => {
     const dir = mkdtempSync(join(tmpdir(), 'shell-counts-'))
     tempDirs.push(dir)

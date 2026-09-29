@@ -58,6 +58,19 @@ function clampChatField(value: unknown, max: number): string {
   return typeof value === 'string' ? value.slice(0, max) : ''
 }
 
+// Providers hand tool input/output over as objects as often as text; a bare
+// .slice() threw and dropped the whole message.
+function toolFieldText(value: unknown): string {
+  if (typeof value === 'string') return value.slice(0, TOOL_FIELD_MAX_CHARS)
+  let text: string
+  try {
+    text = JSON.stringify(value) ?? String(value)
+  } catch {
+    text = String(value)
+  }
+  return text.slice(0, TOOL_FIELD_MAX_CHARS)
+}
+
 /**
  * Max stored characters for message text. A model that falls into a repetition
  * loop can emit megabytes in one turn; stored whole it would both bloat the
@@ -406,6 +419,15 @@ export class ProjectStore {
       updatedAt: now,
       files: [],
     }
+    // A project.json that is there but does not parse is corrupt, not absent —
+    // readProject reports both as null, so writing the fresh project over it
+    // would drop the file list for good. Keep the broken file for recovery.
+    const projectJson = this.projectJsonPath('default')
+    if (existsSync(projectJson)) {
+      const aside = `${projectJson}.corrupt-${Date.now()}`
+      console.warn(`[project-store] default project.json is unreadable, moved to ${aside}`)
+      renameSync(projectJson, aside)
+    }
     ensureDir(this.projectDir('default'))
     this.writeProject(data)
 
@@ -611,8 +633,8 @@ export class ProjectStore {
           ...t,
           name: clampChatField(t.name, TOOL_NAME_MAX_CHARS),
           summary: clampChatField(t.summary, TOOL_SUMMARY_MAX_CHARS),
-          ...(t.input !== undefined ? { input: t.input.slice(0, TOOL_FIELD_MAX_CHARS) } : {}),
-          ...(t.output !== undefined ? { output: t.output.slice(0, TOOL_FIELD_MAX_CHARS) } : {}),
+          ...(t.input !== undefined ? { input: toolFieldText(t.input) } : {}),
+          ...(t.output !== undefined ? { output: toolFieldText(t.output) } : {}),
         }))
       }
       if (msg.attachments !== undefined) {
@@ -959,7 +981,8 @@ export class ProjectStore {
    * Moves a file from its current project into a target project:
    * 1. Update fileMap
    * 2. Update the files lists in both project.json files
-   * 3. Move the corresponding chat's jsonl file to the new project directory
+   * 3. Relocate the corresponding chat's jsonl file to the new project directory
+   *    (merged into any transcript already there under the same chat id)
    */
   moveFileToProject(filePath: string, targetProjectId: string): void {
     this.ensureDefaultProject()
@@ -994,26 +1017,12 @@ export class ProjectStore {
     targetProj.updatedAt = nowIso()
     this.writeProject(targetProj)
 
-    // 4. Move the corresponding chat's JSONL (materialize buffered opening messages first)
+    // 4. Relocate the corresponding chat's JSONL. The same chat id can already exist in the
+    // target project, so go through renameOrMergeChat: it renumbers and appends instead of
+    // clobbering the target transcript, and migrates the seq counter (materializing buffered
+    // opening messages first).
     const chatId = this.chatIdForPath(filePath, fromProjectId)
-    this.flushPending(fromProjectId, chatId)
-    const srcChatPath = this.chatPath(fromProjectId, chatId)
-    const dstChatPath = this.chatPath(targetProjectId, chatId)
-    try {
-      if (existsSync(srcChatPath)) {
-        ensureDir(this.chatsDir(targetProjectId))
-        renameSync(srcChatPath, dstChatPath)
-      }
-    } catch (err) {
-      console.warn('[project-store] moveFileToProject chat rename failed:', err)
-    }
-
-    // 5. Migrate the seq counter cache
-    const oldKey = this.seqKey(fromProjectId, chatId)
-    const movedSeqKey = this.seqKey(targetProjectId, chatId)
-    const cur = this.seqCounters.get(oldKey)
-    this.seqCounters.delete(oldKey)
-    if (cur !== undefined) this.seqCounters.set(movedSeqKey, cur)
+    this.renameOrMergeChat(fromProjectId, chatId, targetProjectId, chatId)
   }
 
   /**

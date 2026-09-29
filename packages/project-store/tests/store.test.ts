@@ -862,6 +862,21 @@ describe('moveFileToProject', () => {
     expect(oldMsgs).toHaveLength(0)
   })
 
+  it('keeps the target transcript when the chat id already exists in the target project', () => {
+    const proj = store.createProject('Target Project 3b')
+    store.resolveProjectForFile('/docs/c2.docx')
+    const chatId = ProjectStore.chatIdForFile('/docs/c2.docx')
+    store.appendChatMessage('default', chatId, { role: 'user', text: 'moved message' })
+    store.appendChatMessage(proj.id, chatId, { role: 'assistant', text: 'target message' })
+
+    store.moveFileToProject('/docs/c2.docx', proj.id)
+
+    const msgs = store.loadChat(proj.id, chatId)
+    expect(msgs.map((m) => m.text)).toEqual(['target message', 'moved message'])
+    expect(msgs.map((m) => m.seq)).toEqual([0, 1])
+    expect(store.loadChat('default', chatId)).toHaveLength(0)
+  })
+
   it('moving to the same project does not throw', () => {
     store.resolveProjectForFile('/docs/d.docx')
     expect(() => store.moveFileToProject('/docs/d.docx', 'default')).not.toThrow()

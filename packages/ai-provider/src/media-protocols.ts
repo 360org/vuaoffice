@@ -10,7 +10,9 @@
  */
 
 import { aiFetch } from './fetch'
+import { endpointUrl } from './protocols/shared'
 import { httpBodyDetail } from './http-error'
+import { openAiContentText, readCappedResponseText } from './protocols/shared'
 import {
   DASHSCOPE_BASE_URL,
   GEMINI_MEDIA_BASE_URL,
@@ -133,7 +135,10 @@ function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
 }
 
 async function failFrom(label: string, resp: Response): Promise<never> {
-  const body = await readCappedErrorText(resp)
+  const body = await readCappedResponseText(resp, {
+    maxBytes: MAX_ERROR_BODY_BYTES,
+    onOverflow: 'truncate',
+  })
   throw new Error(`${label} ${resp.status}: ${httpBodyDetail(body)}`)
 }
 
@@ -152,38 +157,6 @@ const MAX_DOWNLOAD_BYTES = 50 * 1024 * 1024
  * characters), so it is capped hard: a vendor answering an error with a multi-megabyte
  * HTML page must not be buffered whole just to be truncated afterwards. */
 const MAX_ERROR_BODY_BYTES = 64 * 1024
-
-/**
- * Reads at most the first MAX_ERROR_BODY_BYTES of a failed response. A partial body still
- * yields whatever arrived, and reading never throws: the caller is already on its way to
- * reporting the status, and a body that cannot be read is not worth a second error.
- */
-async function readCappedErrorText(resp: Response): Promise<string> {
-  if (!resp.body) return ''
-  const reader = resp.body.getReader()
-  const decoder = new TextDecoder()
-  let text = ''
-  let bytes = 0
-  try {
-    for (;;) {
-      const { done, value } = await reader.read()
-      if (done) break
-      const room = MAX_ERROR_BODY_BYTES - bytes
-      if (value.byteLength >= room) {
-        text += decoder.decode(value.subarray(0, room), { stream: true })
-        break
-      }
-      bytes += value.byteLength
-      text += decoder.decode(value, { stream: true })
-    }
-    text += decoder.decode()
-  } catch {
-    /* truncated or aborted: report what arrived */
-  } finally {
-    await reader.cancel().catch(() => undefined)
-  }
-  return text
-}
 
 /** the body counted as it streams and dropped past the cap; a missing Content-Length is unknown, not zero */
 async function readCapped(resp: Response, label: string): Promise<Uint8Array> {
@@ -313,7 +286,7 @@ async function generateImageOpenAi(
     )
   }
   if (refs.length === 0 || style.edits === 'inline') {
-    const resp = await aiFetch(`${base}/images/generations`, {
+    const resp = await aiFetch(endpointUrl(base, '/images/generations'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...bearer(config) },
       body: JSON.stringify({
@@ -343,7 +316,7 @@ async function generateImageOpenAi(
       ref.name ?? `ref-${i}.${ext}`,
     )
   })
-  const resp = await aiFetch(`${base}/images/edits`, {
+  const resp = await aiFetch(endpointUrl(base, '/images/edits'), {
     method: 'POST',
     headers: bearer(config),
     body: form,
@@ -423,7 +396,7 @@ async function generateImageMinimax(
   const base = trimSlash(config.baseUrl || MINIMAX_BASE_URL)
   const ratio =
     input.aspectRatio && MINIMAX_RATIOS.has(input.aspectRatio) ? input.aspectRatio : undefined
-  const resp = await aiFetch(`${base}/image_generation`, {
+  const resp = await aiFetch(endpointUrl(base, '/image_generation'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...bearer(config) },
     body: JSON.stringify({
@@ -453,20 +426,6 @@ async function generateImageMinimax(
 
 // ── OpenAI-compatible chat understanding ───────────────────────────
 
-/** Flatten an OpenAI `content` field to text: gateways may answer with a string or an array of parts. */
-export function openAiContentText(content: unknown): string {
-  if (typeof content === 'string') return content
-  if (Array.isArray(content)) {
-    return content
-      .map((part) => {
-        const p = asRecord(part)
-        return typeof p.text === 'string' ? p.text : ''
-      })
-      .join('')
-  }
-  return ''
-}
-
 async function analyzeMediaOpenAi(
   provider: ByokMediaProviderId,
   config: AiMediaProviderConfig,
@@ -489,7 +448,7 @@ async function analyzeMediaOpenAi(
       )
     }
   }
-  const resp = await aiFetch(`${openAiBase(provider, config)}/chat/completions`, {
+  const resp = await aiFetch(endpointUrl(openAiBase(provider, config), '/chat/completions'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...bearer(config) },
     body: JSON.stringify({ model, messages: [{ role: 'user', content: parts }] }),
@@ -544,7 +503,7 @@ async function generateImageGemini(
   const aspectRatio =
     input.aspectRatio && GEMINI_ASPECT_RATIOS.has(input.aspectRatio) ? input.aspectRatio : undefined
   if (model.startsWith('imagen-')) {
-    const resp = await aiFetch(`${base}/models/${model}:predict`, {
+    const resp = await aiFetch(endpointUrl(base, `/models/${model}:predict`), {
       method: 'POST',
       headers: geminiHeaders(config),
       body: JSON.stringify({
@@ -561,7 +520,7 @@ async function generateImageGemini(
     }
     return fromBase64(first.bytesBase64Encoded, first.mimeType)
   }
-  const resp = await aiFetch(`${base}/models/${model}:generateContent`, {
+  const resp = await aiFetch(endpointUrl(base, `/models/${model}:generateContent`), {
     method: 'POST',
     headers: geminiHeaders(config),
     body: JSON.stringify({
@@ -644,7 +603,7 @@ async function geminiUploadFile(
       throw new Error('Media upload timed out while the file was processing')
     }
     await new Promise((r) => setTimeout(r, GEMINI_FILE_POLL_MS))
-    const poll = await aiFetch(`${base}/${String(file.name)}`, {
+    const poll = await aiFetch(endpointUrl(base, `/${String(file.name)}`), {
       headers: { 'x-goog-api-key': config.apiKey },
       signal,
     })
@@ -776,7 +735,7 @@ export async function testMediaProvider(
             headers: { 'x-goog-api-key': config.apiKey },
             signal: guard,
           })
-        : await aiFetch(`${openAiBase(provider, config)}/models`, {
+        : await aiFetch(endpointUrl(openAiBase(provider, config), '/models'), {
             headers: bearer(config),
             signal: guard,
           })
@@ -784,7 +743,10 @@ export async function testMediaProvider(
     // Vendors without a model-listing endpoint answer 404/405 to a valid
     // key, so those statuses still mean the credentials are usable.
     if (resp.status === 404 || resp.status === 405) return { ok: true }
-    const body = await readCappedErrorText(resp)
+    const body = await readCappedResponseText(resp, {
+      maxBytes: MAX_ERROR_BODY_BYTES,
+      onOverflow: 'truncate',
+    })
     const detail = httpBodyDetail(body)
     if (resp.status === 429) {
       return {

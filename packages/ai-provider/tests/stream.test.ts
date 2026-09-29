@@ -469,6 +469,22 @@ describe('streamForProvider: anthropic', () => {
     expect(toolCalls[0]!.inputError).toBeDefined()
   })
 
+  it('emits a tool call the stream cut off before content_block_stop (max_tokens)', async () => {
+    // no content_block_stop for the tool block: the token limit hit mid-arguments,
+    // so the call used to be dropped and the turn reported as an empty success
+    const body = sseStream([
+      'data: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"t1","name":"gen"}}',
+      'data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\\"html\\": \\"<p>very lo"}}',
+      'data: {"type":"message_delta","delta":{"stop_reason":"max_tokens"}}',
+    ])
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(okResponse(body)))
+    const { toolCalls, stopReasons, cb } = collector()
+    await streamForProvider('anthropic', { apiKey: 'k', model: 'm' }, 'sys', [], [], 100, cb)
+    expect(stopReasons).toEqual(['max_tokens'])
+    expect(toolCalls).toHaveLength(1)
+    expect(toolCalls[0]).toMatchObject({ id: 't1', name: 'gen', truncated: true })
+  })
+
   it('throws on a non-ok HTTP response', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('bad key', { status: 401 })))
     const { cb } = collector()

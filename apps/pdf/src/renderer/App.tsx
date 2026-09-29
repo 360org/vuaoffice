@@ -8,7 +8,11 @@ import type { PDFDocumentProxy } from 'pdfjs-dist'
 import workerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url'
 import { AiPanel, GensparkMark } from './ai/AiPanel'
 import { AiAskPopover, type AskAnchorRect } from './AiAskPopover'
-import { loadSavedAnnots } from './annotation-catalog'
+import {
+  createSavedAnnotCountsLoader,
+  loadSavedAnnots,
+  type SavedAnnotCounts,
+} from './annotation-catalog'
 import {
   OcrTextLayer,
   buildOcrPageData,
@@ -109,7 +113,13 @@ import {
 } from './color-runs'
 import type { CharStyle } from './color-runs'
 import { platformShortcuts } from '@genoffice/i18n'
-import { Dropdown, useDismissablePopover, useRibbonCollapse } from '@genoffice/ui'
+import {
+  Dropdown,
+  aiPanelInitiallyOpen,
+  rememberAiPanelOpen,
+  useDismissablePopover,
+  useRibbonCollapse,
+} from '@genoffice/ui'
 import { useI18n } from './i18n/locale'
 import { useAutosave } from './useAutosave'
 import type {
@@ -345,10 +355,10 @@ export default function App() {
   }
   // Persisted so a closed AI panel stays closed on next launch (docs/slides parity)
   const [aiCollapsed, setAiCollapsed] = useState(
-    () => localStorage.getItem('genoffice-pdf-show-ai') === '0',
+    () => !aiPanelInitiallyOpen('genoffice-pdf-show-ai'),
   )
   useEffect(() => {
-    localStorage.setItem('genoffice-pdf-show-ai', aiCollapsed ? '0' : '1')
+    rememberAiPanelOpen('genoffice-pdf-show-ai', !aiCollapsed)
   }, [aiCollapsed])
   /** One-shot prompt pushed by the ribbon AI buttons; the panel auto-runs it (docs preset pattern) */
   const [aiPreset, setAiPreset] = useState<{ text: string; nonce: number } | null>(null)
@@ -762,30 +772,41 @@ export default function App() {
   } | null>(null)
   /** Ask-AI popover opened from the markup bar; the anchor rect is captured at open */
   const [askPop, setAskPop] = useState<{ rect: AskAnchorRect; excerpt: string } | null>(null)
-  /** Whole-document saved-annotation counts per original page for the AI context
-      (scanned once per doc; kept per-page so deleted pages can be excluded) */
-  const [aiAnnotCounts, setAiAnnotCounts] = useState<{
-    threads: number[]
-    markups: number[]
+  /** Whole-document saved-annotation counts per original page for the AI context.
+      The scan starts on first AI use, not when the document opens. */
+  const [aiAnnotCounts, setAiAnnotCounts] = useState<SavedAnnotCounts | null>(null)
+  const aiAnnotCountsLoaderRef = useRef<{
+    doc: PDFDocumentProxy
+    controller: AbortController
+    load: () => Promise<SavedAnnotCounts>
   } | null>(null)
   useEffect(() => {
     setAiAnnotCounts(null)
-    if (!doc) return
-    let stale = false
-    void (async () => {
-      const threads: number[] = []
-      const markupCounts: number[] = []
-      for (let i = 0; i < doc.numPages && !stale; i++) {
-        const a = await loadSavedAnnots(doc, i)
-        threads.push(a.notes.filter((n) => n.inReplyTo === null).length)
-        markupCounts.push(a.markups.length)
-      }
-      if (!stale) setAiAnnotCounts({ threads, markups: markupCounts })
-    })()
+    aiAnnotCountsLoaderRef.current?.controller.abort()
+    aiAnnotCountsLoaderRef.current = null
     return () => {
-      stale = true
+      aiAnnotCountsLoaderRef.current?.controller.abort()
+      aiAnnotCountsLoaderRef.current = null
     }
   }, [doc])
+  const startAiAnnotCountScan = useCallback(() => {
+    if (!doc || aiAnnotCountsLoaderRef.current?.doc === doc) return
+    const controller = new AbortController()
+    const entry = {
+      doc,
+      controller,
+      load: createSavedAnnotCountsLoader(doc, loadSavedAnnots, controller.signal),
+    }
+    aiAnnotCountsLoaderRef.current = entry
+    void entry.load().then((counts) => {
+      if (aiAnnotCountsLoaderRef.current === entry) setAiAnnotCounts(counts)
+    })
+  }, [doc])
+  // the first AI turn should already know whether the file carries review
+  // feedback, so an open panel starts the scan before the user sends anything
+  useEffect(() => {
+    if (!aiCollapsed) startAiAnnotCountScan()
+  }, [aiCollapsed, startAiAnnotCountScan])
   const [selected, setSelected] = useState<AnnotSelection | null>(null)
   /** Transparency presets fold-out inside the image selection popup */
   const [opacityMenu, setOpacityMenu] = useState(false)
@@ -979,41 +1000,59 @@ export default function App() {
         setActiveFormWidgetId(null)
         formControlRefs.current.clear()
       }
-      const loaded = await getDocument({
+      const task = getDocument({
         data: bytes,
         password: passwordRef.current,
         ...DOC_OPTS,
-      }).promise
-      const metadata = await loaded.getMetadata()
-      const documentInfo = metadata.info as {
-        EncryptFilterName?: string | null
-        IsXFAPresent?: boolean
-        Title?: string
-        Author?: string
-        Subject?: string
-        Keywords?: string
-      }
-      setDocInfo({
-        title: documentInfo.Title ?? '',
-        author: documentInfo.Author ?? '',
-        subject: documentInfo.Subject ?? '',
-        keywords: documentInfo.Keywords ?? '',
       })
-      const formFeatures = documentFormFeatures(documentInfo, bytes)
-      setFormHasXfa(formFeatures.hasXfa)
-      setDocumentEncrypted(formFeatures.encrypted)
+      let loaded: PDFDocumentProxy
+      try {
+        loaded = await task.promise
+      } catch (err) {
+        // a failed open (wrong password, corrupt file) leaves the rejected task
+        // holding the file bytes and its worker: retire it before surfacing
+        void task.destroy()
+        throw err
+      }
       const all: PageSize[] = []
       const rots: number[] = []
       const origins: [number, number][] = []
       const userUnits: number[] = []
-      for (let i = 1; i <= loaded.numPages; i++) {
-        const page = await loaded.getPage(i)
-        // Unrotated size; display size is derived by geom from the total rotation
-        const vp = page.getViewport({ scale: 1, rotation: 0 })
-        all.push({ width: vp.width, height: vp.height })
-        rots.push(page.rotate ?? 0)
-        origins.push([page.view[0]!, page.view[1]!])
-        userUnits.push(page.userUnit ?? 1)
+      try {
+        const metadata = await loaded.getMetadata()
+        const documentInfo = metadata.info as {
+          EncryptFilterName?: string | null
+          IsXFAPresent?: boolean
+          Title?: string
+          Author?: string
+          Subject?: string
+          Keywords?: string
+        }
+        setDocInfo({
+          title: documentInfo.Title ?? '',
+          author: documentInfo.Author ?? '',
+          subject: documentInfo.Subject ?? '',
+          keywords: documentInfo.Keywords ?? '',
+        })
+        const formFeatures = documentFormFeatures(documentInfo, bytes)
+        setFormHasXfa(formFeatures.hasXfa)
+        setDocumentEncrypted(formFeatures.encrypted)
+        for (let i = 1; i <= loaded.numPages; i++) {
+          const page = await loaded.getPage(i)
+          // Unrotated size; display size is derived by geom from the total rotation
+          const vp = page.getViewport({ scale: 1, rotation: 0 })
+          all.push({ width: vp.width, height: vp.height })
+          rots.push(page.rotate ?? 0)
+          origins.push([page.view[0]!, page.view[1]!])
+          userUnits.push(page.userUnit ?? 1)
+        }
+      } catch (err) {
+        // getMetadata/page probing failed after the document resolved but before
+        // setDoc adopted it: destroy the half-open document (pdfjs-dist 6.x
+        // removed PDFDocumentProxy.destroy(); go through the loading task) and
+        // keep the previous document on screen, then surface the error
+        void loaded.loadingTask.destroy()
+        throw err
       }
       try {
         setFormCatalog(await buildFormCatalog(loaded))
@@ -3822,8 +3861,12 @@ export default function App() {
     } else {
       const paths = sig.paths.map((p) => {
         const out: number[] = []
-        for (let i = 0; i < p.length; i += 2) {
-          out.push(...viewToPdf(geom, left + p[i]! * k, top + p[i + 1]! * k))
+        // walk whole pairs only: a trailing odd or non-finite value would emit NaN
+        for (let i = 0; i + 1 < p.length; i += 2) {
+          const x = p[i]!
+          const y = p[i + 1]!
+          if (!Number.isFinite(x) || !Number.isFinite(y)) continue
+          out.push(...viewToPdf(geom, left + x * k, top + y * k))
         }
         return out
       })
@@ -5428,6 +5471,7 @@ export default function App() {
     // scan still running: "unknown" must not read as "none" — a run started right
     // after open would otherwise never hear the file carries review feedback
     if (!aiAnnotCounts) {
+      startAiAnnotCountScan()
       return 'Whether the file contains notes/markups has not been determined yet; use read_annotations to check when the user asks about review feedback.'
     }
     let savedThreads = 0

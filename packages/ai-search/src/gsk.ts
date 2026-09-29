@@ -170,33 +170,102 @@ export function gskChildEnv(base: NodeJS.ProcessEnv = process.env): NodeJS.Proce
 // ── Low-level execution ─────────────────────────────────────────────
 
 /**
+ * gsk failures can arrive as a full HTML error page (a gateway or CDN
+ * answering for an unavailable service) in the message or on stderr. That text
+ * otherwise lands verbatim in CLI output, logs and agent context, so distill
+ * it to one readable line: the HTTP status plus the page's visible text for an
+ * HTML page, the [ERROR] lines for gsk's own multi-line logs, a plain clip
+ * otherwise. Exported for tests.
+ */
+export function summarizeGskFailure(raw: unknown, fallback = 'unknown error'): string {
+  const text = (typeof raw === 'string' ? raw : raw == null ? '' : String(raw)).trim()
+  if (!text) return fallback
+  const isHtml = /<!doctype|<html[\s>]|<\/html>|<body[\s>]/i.test(text)
+  if (!isHtml) {
+    // gsk logs mix [INFO] progress chatter, [ERROR] failures and crash noise;
+    // prefer the [ERROR] lines, drop [INFO] ones, and keep it to one line
+    const lines = text
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean)
+    const errors = lines.filter((l) => /^\[ERROR\]/i.test(l))
+    const kept = errors.length ? errors : lines.filter((l) => !/^\[INFO\]/i.test(l))
+    const joined = (kept.length ? kept : lines).join(' ')
+    return joined.length > 300 ? `${joined.slice(0, 300)}…` : joined
+  }
+  const plain = text
+    .replace(/<head[\s\S]*?<\/head>/gi, ' ')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<form[\s\S]*?<\/form>/gi, ' ')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&(?:[a-z][a-z0-9]*|#\d+|#x[0-9a-f]+);/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/^HTTP\s+\d{3}\s*:?\s*/i, '')
+    .trim()
+  const head = /HTTP\s+(\d{3})/.exec(text)?.[1]
+  const label = head ? `HTTP ${head} (HTML error page)` : 'an HTML error page'
+  if (!plain) return label
+  return `${label}: ${plain.length > 200 ? `${plain.slice(0, 200)}…` : plain}`
+}
+
+/**
+ * The balanced `{...}` / `[...]` block that starts at `start`, or null when it
+ * never closes. String-aware, so braces and quotes inside string values do not
+ * change the depth, and a block ends at its own closer rather than at the end
+ * of the output (trailing log lines are left out).
+ */
+function jsonBlockAt(text: string, start: number): string | null {
+  let depth = 0
+  let inString = false
+  let escaped = false
+  for (let i = start; i < text.length; i++) {
+    const c = text[i]!
+    if (inString) {
+      if (escaped) escaped = false
+      else if (c === '\\') escaped = true
+      else if (c === '"') inString = false
+      continue
+    }
+    if (c === '"') inString = true
+    else if (c === '{' || c === '[') depth++
+    else if (c === '}' || c === ']') {
+      depth--
+      if (depth === 0) return text.slice(start, i + 1)
+    }
+  }
+  return null
+}
+
+/**
  * gsk output may have [INFO] log lines mixed in before or after the JSON;
- * scan for a line starting with { or [ and parse the longest valid JSON
- * block from there, shrinking past any trailing logs.
+ * find the first line that opens a JSON block and take that block, so a
+ * pretty-printed payload is located in one linear scan instead of by reparsing
+ * every line-bounded prefix.
  */
 export function parseGskOutput(stdout: string): unknown {
   const trimmed = stdout.trim()
   try {
     return JSON.parse(trimmed)
   } catch {
-    /* fall through to line-by-line scan */
+    /* fall through to the recovery scan */
   }
-  // Pretty-printed output puts inner elements on their own `{` lines, so the
-  // scan must start from the earliest candidate and take the longest parse.
-  const lines = trimmed.split('\n')
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]!.trim()
-    if (line.startsWith('{') || line.startsWith('[')) {
-      for (let j = lines.length; j > i; j--) {
+  let offset = 0
+  for (const line of trimmed.split('\n')) {
+    const opener = line.trimStart()[0]
+    if (opener === '{' || opener === '[') {
+      const block = jsonBlockAt(trimmed, offset + line.indexOf(opener))
+      if (block) {
         try {
-          return JSON.parse(lines.slice(i, j).join('\n'))
+          return JSON.parse(block)
         } catch {
-          continue
+          /* a log line that only looks like JSON; try the next opener */
         }
       }
     }
+    offset += line.length + 1
   }
-  throw new Error(`No JSON found in gsk output: ${stdout.slice(0, 300)}`)
+  throw new Error(`No JSON found in gsk output: ${summarizeGskFailure(stdout, '')}`)
 }
 
 function runGsk(args: string[], timeoutMs: number, signal?: AbortSignal): Promise<unknown> {
@@ -219,16 +288,26 @@ function runGsk(args: string[], timeoutMs: number, signal?: AbortSignal): Promis
       },
       (err, stdout, stderr) => {
         if (err) {
-          // gsk's real failure reason (auth/network/quota) is in stderr; append it to ease debugging
-          const errText = (stderr || '').toString().trim().slice(0, 500)
-          reject(errText ? new Error(`${err.message} | stderr: ${errText}`) : err)
+          // stderr carries gsk's real reason ([ERROR] lines, or a whole HTML
+          // page); err.message only repeats the command line, so use it alone
+          // when stderr has nothing
+          const stderrText = summarizeGskFailure(stderr, '')
+          reject(
+            new Error(
+              stderrText
+                ? `gsk failed: ${stderrText}`
+                : summarizeGskFailure((err as Error).message, 'gsk failed'),
+            ),
+          )
           return
         }
         try {
           const result = parseGskOutput(String(stdout))
           const rec = asRecord(result)
           if (rec.status && rec.status !== 'ok') {
-            reject(new Error(`gsk returned an error: ${rec.message ?? rec.status}`))
+            reject(
+              new Error(`gsk returned an error: ${summarizeGskFailure(rec.message ?? rec.status)}`),
+            )
             return
           }
           resolve(result)

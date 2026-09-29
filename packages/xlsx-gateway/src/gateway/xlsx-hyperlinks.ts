@@ -48,7 +48,9 @@ export function applyHyperlinkEdits(
   }
   const dropUnusedRel = (relId: string): void => {
     if (rels === null || relIdsInUse().has(relId)) return
-    const next = rels.replace(new RegExp(`<Relationship\\b[^>]*\\bId="${relId}"[^>]*/>`), '')
+    // Quote-agnostic like the id scan in xlsx-sheets.ts: a single-quoted
+    // Relationship must still be reclaimed, or its id leaks.
+    const next = rels.replace(new RegExp(`<Relationship\\b[^>]*\\bId=["']${relId}["'][^>]*/>`), '')
     if (next !== rels) {
       rels = next
       relsChanged = true

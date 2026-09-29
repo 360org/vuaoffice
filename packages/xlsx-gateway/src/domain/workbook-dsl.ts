@@ -47,11 +47,26 @@ const cellAddressSchema = z
   .string()
   .regex(/^[A-Z]{1,3}[1-9][0-9]{0,6}$/)
   .refine(withinGrid, 'Address is outside the worksheet grid (XFD1048576)')
-const cellRangeSchema = z.string().regex(/^[A-Z]{1,3}[1-9][0-9]{0,6}(:[A-Z]{1,3}[1-9][0-9]{0,6})?$/)
+const cellRangeSchema = z
+  .string()
+  .regex(/^[A-Z]{1,3}[1-9][0-9]{0,6}(:[A-Z]{1,3}[1-9][0-9]{0,6})?$/)
+  .refine(
+    (range) => range.split(':').every(withinGrid),
+    'Range is outside the worksheet grid (XFD1048576)',
+  )
 const columnLabelSchema = z
   .string()
   .regex(/^[A-Z]{1,3}$/)
   .refine(withinGridColumn, 'Column is past the last grid column (XFD)')
+/// 1-based first row of a row-axis span, capped at the last grid row: past it
+/// names no cell the file can hold.
+const rowStartSchema = z.number().int().min(1).max(MAX_GRID_ROWS)
+/// The field caps still admit a span overhanging the edge (row 1048576, count
+/// 5), so the span end is checked across both fields. Zod runs this only once
+/// row and count parse, so the arithmetic below never sees a bad value.
+const rowSpanFits = (span: { row: number; count: number }): boolean =>
+  span.row + span.count - 1 <= MAX_GRID_ROWS
+const ROW_SPAN_ERROR = `Rows must end at or before ${MAX_GRID_ROWS}.`
 const sheetNameSchema = z
   .string()
   .trim()
@@ -201,21 +216,25 @@ const convertToValuesSchema = z.object({
   range: cellRangeSchema,
 })
 
-const insertRowsSchema = z.object({
-  op: z.literal('insert_rows'),
-  sheetId: z.string().min(1),
-  /** 1-based; new rows are inserted before this row */
-  row: z.number().int().min(1).max(9999999),
-  count: z.number().int().min(1).max(500),
-})
+const insertRowsSchema = z
+  .object({
+    op: z.literal('insert_rows'),
+    sheetId: z.string().min(1),
+    /** 1-based; new rows are inserted before this row */
+    row: rowStartSchema,
+    count: z.number().int().min(1).max(500),
+  })
+  .refine(rowSpanFits, ROW_SPAN_ERROR)
 
-const deleteRowsSchema = z.object({
-  op: z.literal('delete_rows'),
-  sheetId: z.string().min(1),
-  /** 1-based first row to delete */
-  row: z.number().int().min(1).max(9999999),
-  count: z.number().int().min(1).max(500),
-})
+const deleteRowsSchema = z
+  .object({
+    op: z.literal('delete_rows'),
+    sheetId: z.string().min(1),
+    /** 1-based first row to delete */
+    row: rowStartSchema,
+    count: z.number().int().min(1).max(500),
+  })
+  .refine(rowSpanFits, ROW_SPAN_ERROR)
 
 const insertColsSchema = z.object({
   op: z.literal('insert_cols'),
@@ -538,14 +557,16 @@ const addPivotSchema = z.object({
     .optional(),
 })
 
-const setRowsHiddenSchema = z.object({
-  op: z.literal('set_rows_hidden'),
-  sheetId: z.string().min(1),
-  /** 1-based first row */
-  row: z.number().int().min(1).max(9999999),
-  count: z.number().int().min(1).max(10000).default(1),
-  hidden: z.boolean(),
-})
+const setRowsHiddenSchema = z
+  .object({
+    op: z.literal('set_rows_hidden'),
+    sheetId: z.string().min(1),
+    /** 1-based first row */
+    row: rowStartSchema,
+    count: z.number().int().min(1).max(10000).default(1),
+    hidden: z.boolean(),
+  })
+  .refine(rowSpanFits, ROW_SPAN_ERROR)
 
 const setColsHiddenSchema = z.object({
   op: z.literal('set_cols_hidden'),
@@ -871,15 +892,17 @@ const unmergeCellsSchema = z.object({
   range: cellRangeSchema,
 })
 
-const setRowHeightSchema = z.object({
-  op: z.literal('set_row_height'),
-  sheetId: z.string().min(1),
-  /** 1-based first row */
-  row: z.number().int().min(1).max(9999999),
-  count: z.number().int().min(1).max(500).default(1),
-  /** Excel points (2–409) */
-  heightPoints: z.number().min(2).max(409),
-})
+const setRowHeightSchema = z
+  .object({
+    op: z.literal('set_row_height'),
+    sheetId: z.string().min(1),
+    /** 1-based first row */
+    row: rowStartSchema,
+    count: z.number().int().min(1).max(500).default(1),
+    /** Excel points (2–409) */
+    heightPoints: z.number().min(2).max(409),
+  })
+  .refine(rowSpanFits, ROW_SPAN_ERROR)
 
 const setColWidthSchema = z.object({
   op: z.literal('set_col_width'),
@@ -1738,7 +1761,9 @@ export function expandToPrimitiveOps(
           sheetId: operation.sheetId,
           address: change.address,
           value: change.after,
-          expectedValue: change.before,
+          // Guards on the display text: the CAS compares the cell's `value`,
+          // so the raw `before` would fail the check on a formatted cell.
+          expectedValue: change.expectedValue,
         })
       }
     } else if (operation.op === 'add_pivot') {
