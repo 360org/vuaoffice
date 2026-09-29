@@ -22,6 +22,7 @@ const RENDERER_DIRS = [
   'apps/pdf/src/renderer',
   'apps/markdown/src/renderer',
   'apps/html/src/renderer',
+  'apps/mail/src/renderer',
 ];
 
 const FORBIDDEN_NODE_MODULES = [

@@ -60,7 +60,32 @@ system mode).
    canvas color table (e.g. `canvas-colors.ts`) keyed by the current theme —
    no inline hex in draw calls.
 
-## Build gotchas
+## Build gotchas & Chống Lỗi Màn Hình Trắng Sau Merge Upstream (mandatory)
+
+> ⚠️ **BÀI HỌC XƯƠNG MÁU — LỖI MÀN HÌNH TRẮNG (BLANK WHITE SCREEN)**:
+> Upstream `genspark-ai/genoffice` chỉ có 6 module (`docs`, `sheets`, `slides`, `pdf`, `markdown`, `html`).
+> VuaOffice có thêm module độc quyền **`mail`** (VuaOffice Mail) và các module mở rộng của 360 CORP.
+> Mỗi lần `git merge upstream/main`, Git sẽ âm thầm ghi đè và làm mất cấu hình của `mail` tại 6 điểm then chốt.
+> Cổng tự động `node tools/check-module-wiring.mjs` đã được tích hợp vào `npm run brand:gate` để chặn lỗi này.
+
+### 6 Điểm Đấu Nối Module Bắt Buộc Phải Giữ Nguyên:
+1. **`apps/shell/electron-builder.cjs`**: `extraResources` BẮT BUỘC có `{ from: '../mail/out', to: 'modules/mail' }`. Thiếu dòng này bộ cài packaged app không có file HTML giao diện -> trắng màn hình.
+2. **`apps/shell/src/main/index.ts`**: `installRendererProtocol` BẮT BUỘC có `mail: join(MAIL_OUT, 'renderer')`. Thiếu dòng này giao thức an toàn `genoffice-app://mail/` trả về 404 -> trắng màn hình.
+3. **`packages/electron-utils/src/renderer-scheme.ts`**: `RendererHost` BẮT BUỘC chứa `'mail'`.
+4. **`apps/mail/src/main/mail-main.ts`**: `createMailView()` BẮT BUỘC nạp qua `rendererUrl(runtime.rendererUrl, 'mail')`, không được dùng `loadFile()`.
+5. **`package.json`**: Script `"dev"` BẮT BUỘC có `npm run dev:renderer -w @genoffice/mail` (port 5179) trong `concurrently`.
+6. **`tools/build-stale-preloads.mjs`**: Mảng `APPS` BẮT BUỘC chứa `'mail'` để tự động build bundle preload.
+
+- App main-process code (`apps/*/src/main`) is compiled into the **shell**
+  build. After changing it, rebuild the shell or the change silently does not
+  run.
+- In dev mode, preload changes require a rebuild — a stale preload leaves the
+  renderer blank.
+- Workspace packages listed in an app's `dependencies` must also be added to
+  the `externalizeDepsPlugin` `exclude` list, or the packaged app crashes on
+  launch.
+- `useI18n()`'s `t` is not referentially stable; never put it in a hook
+  dependency array. Store the key and translate at render time.
 
 - App main-process code (`apps/*/src/main`) is compiled into the **shell**
   build. After changing it, rebuild the shell or the change silently does not

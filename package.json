@@ -40,7 +40,7 @@
     "brand:check": "node tools/check-brand.mjs",
     "audit:check": "node tools/check-audit-immutable.mjs",
     "check:boundary": "node tools/check-renderer-boundary.mjs",
-    "brand:gate": "npm run brand:selftest && npm run brand:status && npm run brand:check && npm run audit:check && npm run site:check && npm run check:boundary",
+    "brand:gate": "npm run brand:selftest && npm run brand:status && npm run brand:check && npm run audit:check && npm run site:check && npm run check:boundary && node tools/check-module-wiring.mjs",
     "upstream:setup": "node scripts/upstream-setup.js",
     "format": "node tools/format-changed.mjs --write",
     "format:check": "node tools/format-changed.mjs --check",

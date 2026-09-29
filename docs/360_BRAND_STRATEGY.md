@@ -251,9 +251,14 @@ git merge --no-ff upstream/main
 npm run whitelabel:apply
 
 # 5. CỔNG BẮT BUỘC — phải đạt TRƯỚC KHI PUSH (push mới là điểm không lùi được)
-npm run brand:gate          # selftest + status + check-brand + audit + site
+npm run brand:gate          # selftest + status + check-brand + audit + site + check:boundary + check-module-wiring
 npm run typecheck
 npm test
+
+# 5a. KIỂM TRA ĐẤU NỐI MODULE (CHỐNG LỖI MÀN HÌNH TRẮNG):
+# Upstream chỉ có 6 module (không có Mail). Phải chắc chắn 6 điểm đấu nối của Mail
+# (electron-builder, installRendererProtocol, renderer-scheme, build-stale-preloads, package.json dev, check-renderer-boundary)
+# không bị merge upstream làm mất. Lệnh `npm run brand:gate` đã tích hợp `check-module-wiring.mjs` để tự động kiểm tra.
 
 # 6. Chỉ khi cả ba cổng xanh mới `git push origin main`.
 #    Cổng đỏ → sửa tại chỗ hoặc `git merge --abort`, KHÔNG push rồi vá sau.
