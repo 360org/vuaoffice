@@ -693,7 +693,7 @@ export function initAutoUpdater(
       closeUpdateWindow()
     },
     onOpenDownload: () => {
-      void shell.openExternal(manualDownloadUrl ?? DOWNLOAD_PAGE_URL)
+      void shell.openExternal(DOWNLOAD_PAGE_URL)
     },
   }
 

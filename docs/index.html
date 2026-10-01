@@ -45,7 +45,7 @@
         "alternateName": ["360 Office Suite", "Vua Office", "VuaOffice AI"],
         "operatingSystem": "Windows 10, Windows 11, macOS 12+, Linux (Ubuntu, Debian, Fedora)",
         "applicationCategory": "BusinessApplication, OfficeApplication",
-        "softwareVersion": "1.0.51",
+        "softwareVersion": "1.0.52",
         "offers": {
           "@type": "Offer",
           "price": "0",
@@ -715,7 +715,7 @@
 
   <!-- Top Announcement Bar -->
   <div class="top-bar">
-    ⚡ <strong>VuaOffice <span id="top-bar-version">v1.0.51</span> đã ra mắt:</strong> Chuẩn hóa bản quyền 360 CORP, nâng cấp tìm kiếm font tiếng Việt, sửa tiêu đề tab và hợp nhất 73 commit upstream. <a href="#changelog">Khám phá tính năng mới &rarr;</a>
+    ⚡ <strong>VuaOffice <span id="top-bar-version">v1.0.52</span> đã ra mắt:</strong> Khắc phục triệt để lỗi chuyển hướng cập nhật về vuahethong.net, bổ sung cổng tự động 360 Feature Guard và quy chuẩn kiểm thử bắt buộc. <a href="#changelog">Khám phá tính năng mới &rarr;</a>
   </div>
 
   <!-- Header -->
@@ -1166,12 +1166,37 @@
       </div>
 
       <div class="timeline">
+        <!-- v1.0.52 -->
+        <div class="timeline-item">
+          <div class="timeline-header">
+            <span class="timeline-ver">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+              Phiên bản v1.0.52 (Mới nhất)
+            </span>
+            <span class="timeline-date">01/10/2026</span>
+          </div>
+          <ul>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Chuyển hướng tải thủ công về vuahethong.net:</strong> Sửa triệt để hàm mở tải thủ công trong hộp thoại cập nhật để luôn dẫn về trang chính thức https://vuahethong.net/#download-desktop-app thay vì liên kết tải raw nhị phân trên GitHub.</span>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Cổng kiểm định tự động 360 Feature Guard:</strong> Tích hợp công cụ check-360-features.mjs vào npm run brand:gate để tự động quét kiểm tra toàn diện 10 tính năng độc quyền của 360 CORP trước mỗi lần commit và phát hành.</span>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Bảng kiểm tra tính năng bắt buộc (Feature Checklist):</strong> Xuất bản quy chuẩn kiểm thử hồi quy docs/360_FEATURE_CHECKLIST.md và bắt buộc mọi tính năng mới phải được bổ sung vào danh mục kiểm thử trước khi đóng gói bộ cài.</span>
+            </li>
+          </ul>
+        </div>
+
         <!-- v1.0.51 -->
         <div class="timeline-item">
           <div class="timeline-header">
             <span class="timeline-ver">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-              Phiên bản v1.0.51 (Mới nhất)
+              Phiên bản v1.0.51
             </span>
             <span class="timeline-date">29/09/2026</span>
           </div>
@@ -1299,34 +1324,9 @@
           </ul>
         </div>
 
-        <!-- v1.0.46 -->
-        <div class="timeline-item">
-          <div class="timeline-header">
-            <span class="timeline-ver">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-              Phiên bản v1.0.46
-            </span>
-            <span class="timeline-date">Tháng 9/2026</span>
-          </div>
-          <ul>
-            <li>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-              <span><strong>Sửa lỗi màn hình trắng khi mở ứng dụng:</strong> Khắc phục lỗi biến trạng thái chưa được định nghĩa trong giao diện chính sau đợt hợp nhất mã nguồn, đảm bảo ứng dụng luôn hiển thị mượt mà ngay khi khởi động.</span>
-            </li>
-            <li>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-              <span><strong>Kiểm tra cập nhật thủ công ổn định:</strong> Đồng bộ hàm kiểm tra bản cập nhật mới trên thanh menu và phần cài đặt, cung cấp hộp thoại thông báo chi tiết và rõ ràng cho người dùng.</span>
-            </li>
-            <li>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-              <span><strong>Hoàn thiện hệ thống đa ngôn ngữ:</strong> Bổ sung đầy đủ 100% bản dịch tiếng Việt cho các phân hệ Docs, Sheets, Slides, PDF, Markdown và Shell.</span>
-            </li>
-          </ul>
-        </div>
-
         <div style="text-align: center; margin-top: 36px;">
           <a href="changelog.html" class="btn-main" style="display: inline-flex; padding: 12px 28px; font-size: 15px;">
-            Xem toàn bộ lịch sử cập nhật (22 phiên bản) →
+            Xem toàn bộ lịch sử cập nhật (23 phiên bản) →
           </a>
         </div>
       </div>

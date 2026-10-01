@@ -20,7 +20,6 @@
       "/Volumes/DATA/DEV/backend_base"
     ]
   },
-  "env": {
-    "CLAUDE_CODE_MAX_CONTEXT_TOKENS": "200000"
-  }
+  "env": {},
+  "allowedWorkspace": "/Volumes/DATA/DEV/vuaoffice"
 }

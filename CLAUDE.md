@@ -97,6 +97,17 @@ system mode).
   launch.
 - `useI18n()`'s `t` is not referentially stable; never put it in a hook
   dependency array. Store the key and translate at render time.
+
+## 360 Feature Guard & Mandatory Checklist (mandatory)
+
+> 📕 **Tài liệu kiểm tra bắt buộc: [`docs/360_FEATURE_CHECKLIST.md`](docs/360_FEATURE_CHECKLIST.md)**
+> Công cụ kiểm tra tự động: `tools/check-360-features.mjs` (tích hợp trong `npm run brand:gate`).
+
+Mỗi khi phát triển bất kỳ tính năng, module hoặc tùy biến mới nào của 360 CORP:
+1. **BẮT BUỘC cập nhật `docs/360_FEATURE_CHECKLIST.md`**: Ghi rõ tên tính năng, vị trí mã nguồn, điểm neo kỹ thuật và quy trình kiểm thử hành vi.
+2. **BẮT BUỘC thêm assertion vào `tools/check-360-features.mjs`**: Tự động hóa kiểm tra file, export, cấu hình hoặc logic then chốt của tính năng đó.
+3. **Cấm bypass cổng `npm run brand:gate`**: Mọi commit, merge upstream hoặc build release nếu thiếu kiểm thử tính năng 360 sẽ bị cổng tự động từ chối.
+
 ## 360 Brand & Whitelabel Rules (mandatory)
 
 > 📕 **Quy chế đầy đủ, bắt buộc đọc: [`docs/360_BRAND_STRATEGY.md`](docs/360_BRAND_STRATEGY.md)**

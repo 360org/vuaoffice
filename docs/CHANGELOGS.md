@@ -5,6 +5,19 @@ Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaO
 
 ## [Chưa phát hành]
 
+## [1.0.52] - 2026-10-01
+
+### Khắc phục chuyển hướng tải về vuahethong.net & Bổ sung cổng 360 Feature Guard
+
+- **[FIX] Khắc phục triệt để liên kết mở trang tải về thủ công khi cập nhật**:
+  - Sửa hàm `onOpenDownload` trong `apps/shell/src/main/updater.ts` để luôn gọi thẳng `DOWNLOAD_PAGE_URL` (`https://vuahethong.net/#download-desktop-app`), loại bỏ triệt để việc mở trực tiếp link file raw binary DMG/EXE trên GitHub.
+- **[FEAT] Bổ sung cổng kiểm định tự động 360 Feature Guard**:
+  - Tạo công cụ tự động `tools/check-360-features.mjs` kiểm tra sự nguyên vẹn của toàn bộ 10 nhóm tính năng độc quyền 360 CORP (Mail, AI Gateway, Bản quyền 360, Sửa tên Tab, Font tiếng Việt, Offline OCR, PDF Forensics, Cổng tải về, Song ánh Whitelabel, Trình sinh Changelog).
+  - Tích hợp trực tiếp vào script `npm run brand:gate` để chặn mọi hành vi merge đè hoặc làm thất lạc tính năng của 360.
+- **[DOCS] Xuất bản Bảng kiểm thử bắt buộc (Mandatory Feature Checklist)**:
+  - Soạn thảo tài liệu `docs/360_FEATURE_CHECKLIST.md` quy định 10 bước kiểm thử hành vi bắt buộc trước khi đóng gói và release phiên bản mới.
+  - Cập nhật quy chuẩn `CLAUDE.md` và AIaC memory: Mọi tính năng mới phát triển BẮT BUỘC phải bổ sung vào checklist và script kiểm tra tự động.
+
 ## [1.0.51] - 2026-09-29
 
 ### Chuẩn hóa bản quyền AboutModal, Sửa tiêu đề tab & Hợp nhất 73 commit Upstream

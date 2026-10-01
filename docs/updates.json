@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.0.52",
+    "date": "01/10/2026",
+    "highlight": "Khắc phục triệt để lỗi chuyển hướng cập nhật về vuahethong.net, bổ sung cổng tự động 360 Feature Guard và quy chuẩn kiểm thử bắt buộc.",
+    "features": [
+      {
+        "title": "Chuyển hướng tải thủ công về vuahethong.net",
+        "desc": "Sửa triệt để hàm mở tải thủ công trong hộp thoại cập nhật để luôn dẫn về trang chính thức https://vuahethong.net/#download-desktop-app thay vì liên kết tải raw nhị phân trên GitHub."
+      },
+      {
+        "title": "Cổng kiểm định tự động 360 Feature Guard",
+        "desc": "Tích hợp công cụ check-360-features.mjs vào npm run brand:gate để tự động quét kiểm tra toàn diện 10 tính năng độc quyền của 360 CORP trước mỗi lần commit và phát hành."
+      },
+      {
+        "title": "Bảng kiểm tra tính năng bắt buộc (Feature Checklist)",
+        "desc": "Xuất bản quy chuẩn kiểm thử hồi quy docs/360_FEATURE_CHECKLIST.md và bắt buộc mọi tính năng mới phải được bổ sung vào danh mục kiểm thử trước khi đóng gói bộ cài."
+      }
+    ]
+  },
+  {
     "version": "1.0.51",
     "date": "29/09/2026",
     "highlight": "Chuẩn hóa bản quyền 360 CORP, nâng cấp tìm kiếm font tiếng Việt, sửa tiêu đề tab và hợp nhất 73 commit upstream.",
