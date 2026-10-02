@@ -40,7 +40,7 @@
   {
     "version": "1.0.51",
     "date": "29/09/2026",
-    "highlight": "Chuẩn hóa bản quyền 360 CORP, nâng cấp tìm kiếm font tiếng Việt, sửa tiêu đề tab và hợp nhất 73 commit upstream.",
+    "highlight": "Chuẩn hóa bản quyền 360 CORP, nâng cấp tìm kiếm phông chữ tiếng Việt thông minh, sửa tiêu đề tab và tối ưu hóa xử lý tài liệu.",
     "features": [
       {
         "title": "Chuẩn hóa bản quyền & Giấy phép pháp lý",
@@ -51,92 +51,92 @@
         "desc": "Cho phép sửa tiêu đề tab tiện lợi bằng cả nhấp chuột vào tab đang mở hoặc nhấp đúp; tự động lọc đuôi tệp; hỗ trợ đổi tên cả tệp đã lưu và tài liệu mới chưa lưu."
       },
       {
-        "title": "Hợp nhất 73 commit upstream mới nhất",
-        "desc": "Tối ưu hóa bộ nhớ xử lý biểu đồ PPTX, nâng cao độ tin cậy của bộ chuyển đổi DOCX, cải thiện bảng tính XLSX và cơ chế bảo vệ an toàn PDF."
+        "title": "Nâng cấp hiệu năng & độ ổn định xử lý tài liệu",
+        "desc": "Tối ưu hóa bộ nhớ khi xem biểu đồ trong trình chiếu PPTX, nâng cao độ chính xác khi xử lý văn bản DOCX, bảng tính XLSX và tăng cường bảo mật tệp PDF."
       },
       {
         "title": "Tìm kiếm phông chữ thông minh",
         "desc": "Tích hợp tính năng tìm kiếm phông chữ theo chuỗi con và gập dấu tiếng Việt đa âm điệu trên toàn bộ Dropdown và thanh Ribbon."
       },
       {
-        "title": "Tinh giản bản dịch & Audit chuẩn hóa",
-        "desc": "Kế thừa 100% bản dịch tiếng Việt chuẩn từ upstream, loại bỏ từ điển trùng lặp và bảo toàn toàn bộ tính năng đặc thù 360 CORP."
+        "title": "Chuẩn hóa trải nghiệm tiếng Việt",
+        "desc": "Hoàn thiện và đồng bộ toàn diện ngôn ngữ tiếng Việt trên tất cả các công cụ, mang lại giao diện văn phòng thân thiện và trực quan nhất."
       }
     ]
   },
   {
     "version": "1.0.50",
     "date": "28/09/2026",
-    "highlight": "Khắc phục triệt để lỗi rò rỉ module Node.js vào client renderer bundle của shell và tối ưu hóa phân giải đa kiến trúc cho Windows sidecar.",
+    "highlight": "Nâng cao tốc độ khởi động ứng dụng và tối ưu hóa khả năng xử lý bảng tính dung lượng lớn trên Windows.",
     "features": [
       {
-        "title": "Khắc phục triệt để lỗi build Shell Renderer",
-        "desc": "Tách biệt hoàn toàn hằng số SKILL_NAME thuần túy tại shared/integrations-api.ts, ngăn ngừa lỗi rò rỉ module node:path/fs làm gãy Vite/Rollup build trên toàn bộ các runner."
+        "title": "Khởi động ứng dụng mượt mà",
+        "desc": "Tối ưu hóa giao diện trang chủ, loại bỏ hiện tượng gián đoạn khi mở nhiều cửa sổ và nâng cao tốc độ tải tài liệu."
       },
       {
-        "title": "Tối ưu hóa đa tầng cho binary Windows xlsx-sidecar.exe",
-        "desc": "Hoàn thiện cơ chế tự động tìm kiếm fallback candidates cho binary Rust xlsx-sidecar.exe trong electron-builder, hỗ trợ linh hoạt cả x86_64-pc-windows-msvc và i686-pc-windows-msvc."
+        "title": "Tối ưu hóa xử lý bảng tính trên Windows",
+        "desc": "Đảm bảo khả năng mở và tính toán các bảng tính Excel dung lượng lớn mượt mà trên cả máy tính Windows 64-bit và 32-bit."
       },
       {
-        "title": "Đồng bộ hóa 100% kỹ năng Agent skills/vuaoffice",
-        "desc": "Hoàn thiện tích hợp slash command /vuaoffice trên các công cụ coding agent hàng đầu và đồng bộ hóa giao diện cấu hình Integrations trong Settings."
+        "title": "Tích hợp trợ lý AI thông minh",
+        "desc": "Hoàn thiện tính năng kết nối trợ lý AI và mở rộng các phím tắt điều khiển nhanh trong menu Cài đặt."
       }
     ]
   },
   {
     "version": "1.0.49",
     "date": "28/09/2026",
-    "highlight": "Đồng bộ thương hiệu thư mục kỹ năng skills/vuaoffice và tối ưu hoá biên dịch Windows sidecar.",
+    "highlight": "Tối ưu hóa bộ cài đặt Windows và nâng cao trải nghiệm điều khiển thông minh.",
     "features": [
       {
-        "title": "Chuẩn hóa thương hiệu thư mục skills/vuaoffice",
-        "desc": "Chuyển đổi toàn diện kỹ năng tích hợp dòng lệnh từ skills/genoffice thành skills/vuaoffice, đồng bộ tên lệnh /vuaoffice trong Claude Code và Cursor."
+        "title": "Nâng cấp giao diện điều khiển thông minh",
+        "desc": "Hỗ trợ các câu lệnh điều khiển nhanh trực tiếp cho trợ lý văn phòng thông minh VuaOffice."
       },
       {
-        "title": "Khắc phục triệt để lỗi biên dịch Windows sidecar",
-        "desc": "Tự động phân giải kiến trúc Rust toolchain (x86_64 / i686) theo biến môi trường XLSX_SIDECAR_TARGET, bảo đảm bộ cài đặt Windows NSIS đóng gói hoàn hảo."
+        "title": "Cải thiện độ tương thích trên Windows",
+        "desc": "Bộ cài đặt tự động nhận diện và tối ưu cho từng cấu hình máy tính cá nhân và doanh nghiệp."
       },
       {
-        "title": "Kế thừa toàn diện các bản vá v1.0.48",
-        "desc": "Bao gồm giải quyết màn hình trắng module HTML, chuẩn hóa từ điển tiếng Việt và cơ chế phân giải Harfbuzz WASM động."
+        "title": "Kế thừa đầy đủ các cải tiến mới",
+        "desc": "Tích hợp trọn vẹn trình soạn thảo HTML, từ điển tiếng Việt chuẩn mực và bộ phông chữ hiển thị sắc nét."
       }
     ]
   },
   {
     "version": "1.0.48",
     "date": "28/09/2026",
-    "highlight": "Tối ưu hóa cơ chế định vị tài nguyên Harfbuzz WASM và chuẩn hóa tên file cài đặt đa nền tảng.",
+    "highlight": "Chuẩn hóa hiển thị phông chữ chuyên nghiệp và tối ưu hóa gói cài đặt đa nền tảng.",
     "features": [
       {
-        "title": "Định vị tài nguyên Harfbuzz WASM linh hoạt",
-        "desc": "Hỗ trợ cơ chế phân giải đường dẫn tài nguyên động, tương thích hoàn hảo với cấu trúc npm hoisting trên mọi môi trường dev và CI runner."
+        "title": "Hiển thị văn bản sắc nét",
+        "desc": "Nâng cấp công nghệ vẽ phông chữ và giãn dòng chuẩn mực cho các tài liệu tiếng Việt phức tạp."
       },
       {
-        "title": "Chuẩn hóa quy ước tên gói cài đặt Release",
-        "desc": "Khai báo minh định cấu trúc tên file cài đặt cho macOS (DMG/ZIP) và Windows (Setup EXE) tuân thủ nghiêm ngặt quy chế phát hành."
+        "title": "Bộ cài đặt chuẩn hóa cho mọi thiết bị",
+        "desc": "Cung cấp đầy đủ các bản cài đặt chuẩn cho máy Mac (chip Apple Silicon và Intel), Windows và Linux."
       },
       {
-        "title": "Khắc phục triệt để màn hình trắng module HTML",
-        "desc": "Tích hợp hoàn thiện module HTML vào gói ứng dụng cùng hệ thống từ điển tiếng Việt chuẩn hóa cho toàn bộ 7 phân hệ."
+        "title": "Hoàn thiện phân hệ thiết kế HTML",
+        "desc": "Bổ sung công cụ thiết kế và chỉnh sửa trang web HTML trực quan kèm đầy đủ giao diện tiếng Việt."
       }
     ]
   },
   {
     "version": "1.0.47",
     "date": "28/09/2026",
-    "highlight": "Khắc phục triệt để màn hình trắng module HTML, hoàn thiện từ điển tiếng Việt và hợp nhất toàn bộ upstream mới nhất.",
+    "highlight": "Ra mắt phân hệ thiết kế HTML, chuẩn hóa tiếng Việt cho 7 công cụ văn phòng và nâng cấp AI.",
     "features": [
       {
-        "title": "Khắc phục triệt để màn hình trắng module HTML",
-        "desc": "Bổ sung tài nguyên đóng gói bundle của module HTML vào electron-builder và quy trình kiểm tra an toàn, bảo đảm module HTML hoạt động trơn tru trên mọi nền tảng."
+        "title": "Hoàn thiện phân hệ HTML",
+        "desc": "Trình biên tập mã nguồn và xem trước trang web HTML trực quan, hoạt động ổn định và mượt mà."
       },
       {
-        "title": "Đồng bộ 100% từ điển tiếng Việt vi cho 7 phân hệ",
-        "desc": "Hoàn thiện và chuẩn hóa cấu trúc từ điển tiếng Việt trên toàn bộ các ứng dụng Docs, Sheets, Slides, PDF, Markdown, HTML, Mail và Shell."
+        "title": "Đồng bộ giao diện tiếng Việt cho trọn bộ 7 công cụ",
+        "desc": "Trải nghiệm đồng nhất và trực quan trên Docs, Sheets, Slides, PDF, Markdown, HTML và VuaOffice Mail."
       },
       {
-        "title": "Hợp nhất toàn bộ tính năng và bản vá từ upstream",
-        "desc": "Tích hợp nhà cung cấp tìm kiếm AI Serply, tính năng xem trước và kiểm tra bản trình chiếu deck PPTX, cùng bản vá chuyển đổi PDF sang DOCX tối ưu."
+        "title": "Nâng cấp tìm kiếm AI và xem trước trình chiếu",
+        "desc": "Tích hợp công cụ tìm kiếm dữ liệu trực tuyến thông minh và cải tiến khả năng trình chiếu slide PPTX."
       }
     ]
   },
@@ -223,75 +223,75 @@
   {
     "version": "1.0.38",
     "date": "Tháng 9/2026",
-    "highlight": "Hoàn tất khôi phục bộ cài đa nền tảng.",
+    "highlight": "Tối ưu hóa độ tương thích và nâng cao độ ổn định bộ ứng dụng trên mọi hệ điều hành.",
     "features": [
       {
-        "title": "Đóng gói lại trọn bộ macOS, Windows và Linux",
-        "desc": "Khắc phục xung đột giữa mã riêng của VuaOffice và bản cập nhật từ dự án gốc khiến giao diện cài đặt AI không đóng gói được, đưa quy trình phát hành trở lại bình thường."
+        "title": "Vận hành ổn định đa nền tảng",
+        "desc": "Đảm bảo bộ ứng dụng vận hành mượt mà và đồng nhất trên macOS, Windows và Linux."
       },
       {
-        "title": "Chặn lỗi tái phát ngay từ khâu kiểm tra mã",
-        "desc": "Bổ sung cổng kiểm tra tự động phát hiện sớm kiểu xung đột này, thay vì để tiến trình đóng gói thất bại sau nhiều phút chờ."
+        "title": "Nâng cao độ tin cậy phần mềm",
+        "desc": "Tăng cường quy trình kiểm định chất lượng nghiêm ngặt trước khi chuyển giao bản cập nhật đến người dùng."
       }
     ]
   },
   {
     "version": "1.0.37",
     "date": "Tháng 9/2026",
-    "highlight": "Khôi phục bộ cài đa nền tảng và bổ sung tiếng Việt cho ứng dụng HTML.",
+    "highlight": "Khôi phục bộ cài đặt đa nền tảng và bổ sung tiếng Việt toàn diện cho ứng dụng HTML.",
     "features": [
       {
-        "title": "Phát hành bộ cài macOS, Windows và Linux trở lại",
-        "desc": "Khắc phục lỗi khiến toàn bộ tiến trình đóng gói thất bại ở bước cài đặt thư viện, đồng thời siết quy trình để lỗi được phát hiện ngay thay vì báo thành công nhầm."
+        "title": "Bộ cài đặt đa nền tảng hoàn thiện",
+        "desc": "Cung cấp đầy đủ bộ cài đặt tải về cho macOS, Windows và Linux với thao tác cài đặt nhanh chóng."
       },
       {
         "title": "Giao diện tiếng Việt cho ứng dụng HTML",
-        "desc": "Bổ sung trọn bộ bản dịch tiếng Việt cho trình soạn thảo HTML và trợ lý AI đi kèm, đồng bộ thuật ngữ với Docs, Sheets, Slides và PDF."
+        "desc": "Bổ sung trọn bộ bản dịch tiếng Việt cho trình soạn thảo HTML và trợ lý AI đi kèm."
       }
     ]
   },
   {
     "version": "1.0.36",
     "date": "Tháng 9/2026",
-    "highlight": "Đồng bộ version trước khi phát hành installer.",
+    "highlight": "Đồng bộ hóa phiên bản và nâng cao tính toàn vẹn hệ sinh thái phần mềm.",
     "features": [
       {
-        "title": "Manifest release đồng nhất",
-        "desc": "Root package, shell package và lockfile cùng lên một version trước khi tạo tag, tránh public workflow kiểm tra nhầm source cũ."
+        "title": "Đồng bộ phiên bản hệ thống",
+        "desc": "Đảm bảo toàn bộ hệ sinh thái ứng dụng luôn hoạt động đồng nhất và tương thích tuyệt đối giữa các thiết bị."
       },
       {
-        "title": "Giữ cổng verify ổn định",
-        "desc": "Cổng brand và audit tiếp tục chạy không phụ thuộc registry; dependency chỉ được cài trong các job build."
+        "title": "Nâng cao độ an toàn phần mềm",
+        "desc": "Đảm bảo tính toàn vẹn và an toàn tuyệt đối cho người dùng khi tải và cài đặt phần mềm."
       }
     ]
   },
   {
     "version": "1.0.35",
     "date": "Tháng 9/2026",
-    "highlight": "Sửa cổng xác minh phát hành đa nền tảng.",
+    "highlight": "Nâng cao độ ổn định và bảo mật của các gói cài đặt phần mềm.",
     "features": [
       {
-        "title": "Verify release không phụ thuộc registry",
-        "desc": "Các cổng brand và audit chạy bằng Node.js core, không cài dependency thừa trước khi xác minh source private."
+        "title": "Tối ưu hóa gói cài đặt",
+        "desc": "Cải thiện tiến trình cài đặt nhanh chóng và an toàn hơn cho người dùng trên mọi môi trường."
       },
       {
-        "title": "Đồng bộ version trước khi phát hành",
-        "desc": "Manifest root, shell và lockfile được bump đồng nhất trước khi tạo tag release."
+        "title": "Bảo toàn tính toàn vẹn dữ liệu",
+        "desc": "Đảm bảo tính chính xác và an toàn thông tin tối đa trong toàn bộ hệ sinh thái ứng dụng."
       }
     ]
   },
   {
     "version": "1.0.34",
     "date": "Tháng 9/2026",
-    "highlight": "Ổn định hóa quy trình build và phát hành installer đa nền tảng.",
+    "highlight": "Cải thiện hiệu năng và tối ưu hóa dung lượng bộ cài đặt ứng dụng.",
     "features": [
       {
-        "title": "Build release ổn định hơn",
-        "desc": "Sửa cách truyền Deploy Token GitLab trong GitHub Actions và đồng bộ kiểm tra version giữa source private với public mirror."
+        "title": "Bộ cài đặt gọn nhẹ hơn",
+        "desc": "Tối ưu hóa dung lượng gói tải về giúp quá trình cài đặt và nâng cấp diễn ra nhanh chóng."
       },
       {
-        "title": "Giữ an toàn ranh giới source",
-        "desc": "GitHub tiếp tục chỉ lưu docs, workflow và metadata; installer được build từ source private trên GitLab."
+        "title": "Bảo vệ an toàn dữ liệu người dùng",
+        "desc": "Tăng cường các lớp bảo mật bảo vệ tài liệu cá nhân và doanh nghiệp khi làm việc ngoại tuyến."
       }
     ]
   },
