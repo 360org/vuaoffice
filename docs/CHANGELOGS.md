@@ -5,6 +5,18 @@ Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaO
 
 ## [Chưa phát hành]
 
+## [1.0.53] - 2026-10-02
+
+### Khắc phục xung đột Feed cập nhật macOS & Hoàn tất phát hành tự động
+
+- **[FIX] Khắc phục triệt để lỗi Publish GitHub Release trên CI/CD**:
+  - Sửa xung đột trùng tên tệp `latest-mac.yml` giữa artifact đơn lẻ (arm64, x64) và `merged-feed` trong `.github/workflows/release.yml`.
+  - Chỉ định đích danh danh sách file feed duy nhất (`merged-feed/latest-mac.yml`, `windows-x64/latest.yml`, `linux-x64/latest-linux.yml`) khi tải lên GitHub Release, tránh lỗi 404 update-a-release-asset.
+- **[UPDATE] Cập nhật Feed tự động cho App Desktop**:
+  - Bảo đảm tệp `latest-mac.yml` trên GitHub CDN phản ánh chính xác bản phát hành mới để người dùng bấm *Check for Updates* nhận diện ngay bản nâng cấp.
+- **[REVISE] Chuẩn hóa toàn bộ liên kết tải về**:
+  - Khóa chặt trang tải về thủ công về cổng chính thức `https://vuahethong.net/#download-desktop-app`.
+
 ## [1.0.52] - 2026-10-01
 
 ### Khắc phục chuyển hướng tải về vuahethong.net & Bổ sung cổng 360 Feature Guard

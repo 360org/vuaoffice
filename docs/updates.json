@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.0.53",
+    "date": "02/10/2026",
+    "highlight": "Khắc phục triệt để lỗi publish GitHub Release, bảo đảm feed tự động cập nhật và trang tải về vuahethong.net.",
+    "features": [
+      {
+        "title": "Sửa lỗi trùng lặp Feed cập nhật trên GitHub Actions",
+        "desc": "Loại bỏ xung đột file latest-mac.yml trùng tên giữa các kiến trúc macOS trong workflow release, giúp tự động xuất bản thành công bản phát hành lên GitHub."
+      },
+      {
+        "title": "Đảm bảo Feed cập nhật chính thức",
+        "desc": "Bảo đảm tệp cấu hình latest-mac.yml được cập nhật đầy đủ trên CDN để App Desktop nhận diện phiên bản mới ngay lập tức khi kiểm tra cập nhật."
+      },
+      {
+        "title": "Chuyển hướng tải thủ công về vuahethong.net",
+        "desc": "Khắc phục triệt để liên kết mở trang tải về trong hộp thoại cập nhật luôn dẫn về https://vuahethong.net/#download-desktop-app."
+      }
+    ]
+  },
+  {
     "version": "1.0.52",
     "date": "01/10/2026",
     "highlight": "Khắc phục triệt để lỗi chuyển hướng cập nhật về vuahethong.net, bổ sung cổng tự động 360 Feature Guard và quy chuẩn kiểm thử bắt buộc.",

@@ -372,6 +372,8 @@ jobs:
       - name: Merge multi-arch macOS update feed
         run: |
           node scripts/merge-mac-feed.js artifacts
+          # Xóa các file feed macOS đơn lẻ để chống lỗi trùng tên asset khi publish GitHub Release
+          rm -f artifacts/macos-arm64/latest-mac.yml artifacts/macos-x64/latest-mac.yml
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -382,7 +384,9 @@ jobs:
           generate_release_notes: true
           fail_on_unmatched_files: false
           files: |
-            artifacts/**/latest*.yml
+            artifacts/merged-feed/latest-mac.yml
+            artifacts/windows-x64/latest.yml
+            artifacts/linux-x64/latest-linux.yml
             artifacts/**/*.dmg
             artifacts/**/*.zip
             artifacts/**/*.exe
