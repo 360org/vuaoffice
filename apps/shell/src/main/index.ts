@@ -4754,6 +4754,8 @@ function registerTabsIpc(): void {
         else if (t.kind === 'docs') docsFileRenamed(t.webContents, oldPath, targetPath)
         else if (t.kind === 'sheets') sheetsFileRenamed(t.webContents, oldPath, targetPath)
         else if (t.kind === 'markdown') markdownFileRenamed(t.webContents, oldPath, targetPath)
+        else if (t.kind === 'html') htmlFileRenamed(t.webContents, oldPath, targetPath)
+        else if (t.kind === 'pdf') pdfFileRenamed(t.webContents, oldPath, targetPath)
       }
 
       return { ok: true, title: targetName }
