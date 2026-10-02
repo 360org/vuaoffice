@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.0.54",
+    "date": "02/10/2026",
+    "highlight": "Nâng cấp tính năng đổi tên tài liệu trực tiếp trên toàn bộ 6 định dạng và tối ưu hóa hệ thống cập nhật tự động.",
+    "features": [
+      {
+        "title": "Đổi tên tài liệu nhanh trên mọi định dạng",
+        "desc": "Cho phép nhấp chuột để đổi tên tài liệu trực tiếp trên thanh thẻ cho tất cả các loại tệp văn bản Docs, bảng tính Sheets, trình chiếu Slides, tài liệu PDF, Markdown và HTML, tự động lưu và đồng bộ tên tệp trên ổ đĩa."
+      },
+      {
+        "title": "Bảo toàn định dạng tệp thông minh",
+        "desc": "Tự động khóa phần mở rộng khi đổi tên nhanh, giúp người dùng chỉnh sửa tên văn bản thuận tiện mà không lo lỗi định dạng tệp."
+      },
+      {
+        "title": "Đồng bộ hoá cập nhật đa nền tảng",
+        "desc": "Bảo đảm quy trình kiểm tra và nâng cấp phiên bản tự động diễn ra mượt mà và chính xác trên mọi hệ điều hành macOS, Windows và Linux."
+      }
+    ]
+  },
+  {
     "version": "1.0.53",
     "date": "02/10/2026",
     "highlight": "Tối ưu hóa hệ thống cập nhật tự động, nâng cao độ ổn định khi nâng cấp phiên bản và hoàn thiện kênh tải về chính thức.",

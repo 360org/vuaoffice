@@ -5,6 +5,17 @@ Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaO
 
 ## [Chưa phát hành]
 
+## [1.0.54] - 2026-10-02
+
+### Đồng bộ hóa đổi tên tiêu đề cho toàn bộ định dạng tài liệu & Tối ưu hóa phát hành
+
+- **[FEAT] Mở rộng tính năng đổi tên tiêu đề thẻ tab cho toàn bộ 6 họ tài liệu**:
+  - Bổ sung thông báo `pdfFileRenamed` và `htmlFileRenamed` trong kênh IPC `tabs:rename` (`apps/shell/src/main/index.ts`).
+  - Hỗ trợ đổi tên trực tiếp trên TabBar cho Docs (.docx), Sheets (.xlsx), Slides (.pptx), PDF (.pdf), Markdown (.md) và HTML (.html).
+  - Tự động tách phần mở rộng và đồng bộ tên tệp trên đĩa, danh sách Recents, Stars và Project Store.
+- **[RELEASE] Tối ưu hóa kênh xuất bản đa nền tảng**:
+  - Đảm bảo gói cài đặt và tệp feed `latest*.yml` đồng bộ chính xác trên hệ thống CDN phát hành.
+
 ## [1.0.53] - 2026-10-02
 
 ### Khắc phục xung đột Feed cập nhật macOS & Hoàn tất phát hành tự động
