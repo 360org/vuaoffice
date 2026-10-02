@@ -16,12 +16,12 @@ import type { AiProviderId } from '../src/types'
 describe('defaultAiSettings', () => {
   it('gives every provider its default model and an empty key by default', () => {
     const settings = defaultAiSettings()
-    expect(settings.provider).toBe('vuaairouter')
+    expect(settings.provider).toBe('vuaaipro')
     for (const meta of AI_PROVIDERS) {
       expect(settings.providers[meta.id].apiKey).toBe('')
       expect(settings.providers[meta.id].model).toBe(meta.defaultModel)
     }
-    expect(settings.providers.vuaairouter).toMatchObject({
+    expect(settings.providers.vuaaipro).toMatchObject({
       baseUrl: 'https://ai-router.vuahethong.com/v1',
       model: 'vuaai-daily',
     })
@@ -115,7 +115,7 @@ describe('resolveAiSettings', () => {
         defaults,
       )
       expect(resolved.providers.anthropic).toEqual(defaults.providers.anthropic)
-      expect(activeProvider(resolved)).toBe('vuaairouter')
+      expect(activeProvider(resolved)).toBe('vuaaipro')
     }
   })
 
@@ -162,9 +162,9 @@ describe('resolveAiSettings', () => {
   it('migrates the legacy 9Router endpoint to the vuaofficerouter gateway', () => {
     const resolved = resolveAiSettings(
       {
-        provider: 'vuaairouter',
+        provider: 'vuaaipro',
         providers: {
-          vuaairouter: {
+          vuaaipro: {
             apiKey: 'stored-key',
             model: 'claude-3-5-sonnet',
             baseUrl: 'https://api.9router.com/v1',
@@ -173,7 +173,7 @@ describe('resolveAiSettings', () => {
       },
       defaultAiSettings(),
     )
-    expect(resolved.providers.vuaairouter).toEqual({
+    expect(resolved.providers.vuaaipro).toEqual({
       apiKey: 'stored-key',
       model: 'vuaai-daily',
       baseUrl: 'https://ai-router.vuahethong.com/v1',
@@ -330,10 +330,10 @@ describe('clampMaxOutputTokens', () => {
 describe('activeProvider', () => {
   it('honors a configured BYOK provider and falls back to default router otherwise', () => {
     const settings = defaultAiSettings()
-    expect(activeProvider(settings)).toBe('vuaairouter')
+    expect(activeProvider(settings)).toBe('vuaaipro')
 
     settings.provider = 'kimi'
-    expect(activeProvider(settings)).toBe('vuaairouter') // no key yet
+    expect(activeProvider(settings)).toBe('vuaaipro') // no key yet
     settings.providers.kimi.apiKey = 'sk-user'
     expect(activeProvider(settings)).toBe('kimi')
   })
@@ -342,9 +342,9 @@ describe('activeProvider', () => {
     const settings = defaultAiSettings()
     settings.provider = 'custom'
     settings.providers.custom.apiKey = 'k'
-    expect(activeProvider(settings)).toBe('vuaairouter')
+    expect(activeProvider(settings)).toBe('vuaaipro')
     settings.providers.custom.baseUrl = 'http://localhost:1234/v1'
-    expect(activeProvider(settings)).toBe('vuaairouter') // custom's default model is empty
+    expect(activeProvider(settings)).toBe('vuaaipro') // custom's default model is empty
     settings.providers.custom.model = 'my-model'
     expect(activeProvider(settings)).toBe('custom')
   })
@@ -377,10 +377,10 @@ describe('activeProvider', () => {
     const settings = defaultAiSettings()
     settings.provider = 'kimi'
     settings.providers.kimi.apiKey = '   '
-    expect(activeProvider(settings)).toBe('vuaairouter')
+    expect(activeProvider(settings)).toBe('vuaaipro')
     settings.providers.kimi.apiKey = 'sk-user'
     settings.providers.kimi.model = '  '
-    expect(activeProvider(settings)).toBe('vuaairouter')
+    expect(activeProvider(settings)).toBe('vuaaipro')
     settings.providers.kimi.model = 'kimi-k2'
     expect(activeProvider(settings)).toBe('kimi')
 
@@ -388,14 +388,14 @@ describe('activeProvider', () => {
     custom.provider = 'custom'
     custom.providers.custom.baseUrl = '   '
     custom.providers.custom.model = 'my-model'
-    expect(activeProvider(custom)).toBe('vuaairouter')
+    expect(activeProvider(custom)).toBe('vuaaipro')
   })
 
   it('falls back to genspark for unknown ids from a hand-edited settings file', () => {
 
     const settings = defaultAiSettings()
     settings.provider = 'nonsense' as AiProviderId
-    expect(activeProvider(settings)).toBe('vuaairouter')
+    expect(activeProvider(settings)).toBe('vuaaipro')
   })
 
   it('genspark never requires a key (injected from the gsk login at request time)', () => {

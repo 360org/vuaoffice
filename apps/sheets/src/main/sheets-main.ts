@@ -3572,7 +3572,7 @@ export function registerSheetsAiIpc(): void {
     if (provider === 'genspark' && config && !config.apiKey) {
       config = { ...config, apiKey: gskApiKey() }
     }
-    if (provider === 'vuaairouter' && config && !config.apiKey) {
+    if (provider === 'vuaaipro' && config && !config.apiKey) {
       config = { ...config, apiKey: 'vuaai-default-key' }
     }
     if (!config || (provider !== 'codex' && !config.apiKey)) {
@@ -3608,7 +3608,7 @@ export function registerSheetsAiIpc(): void {
     if (provider === 'genspark' && config && !config.apiKey) {
       config = { ...config, apiKey: gskApiKey() }
     }
-    if (provider === 'vuaairouter' && config && !config.apiKey) {
+    if (provider === 'vuaaipro' && config && !config.apiKey) {
       config = { ...config, apiKey: 'vuaai-default-key' }
     }
     const send = (chunk: AiStreamChunk) => {

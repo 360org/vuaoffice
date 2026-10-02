@@ -8,11 +8,11 @@
     "vendor": "360 CORP",
     "repoSlug": "360org/vuaoffice",
     "releasesUrl": "https://vuahethong.net/#download-desktop-app",
-    "defaultProvider": "vuaairouter",
+    "defaultProvider": "vuaaipro",
     "omirouterUrl": "https://api.omirouter.com/v1",
-    "vuaairouterLabel": "vuaairouter",
-    "vuaairouterUrl": "https://ai-router.vuahethong.com/v1",
-    "vuaairouterModel": "vuaai-daily"
+    "vuaaiproLabel": "vuaaipro",
+    "vuaaiproUrl": "https://ai-router.vuahethong.com/v1",
+    "vuaaiproModel": "vuaai-daily"
   },
 
   "upstream": {

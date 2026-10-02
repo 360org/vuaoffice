@@ -21,7 +21,7 @@ export type AiProviderId =
   | 'opencode-go'
   | 'custom'
   | 'omirouter'
-  | 'vuaairouter'
+  | 'vuaaipro'
   | 'hermes'
 
 /** Genspark account status (gsk login state; the sole auth source for AI features) */

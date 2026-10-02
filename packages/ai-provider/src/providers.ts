@@ -330,10 +330,10 @@ export const AI_PROVIDERS: AiProviderMeta[] = [
     needsBaseUrl: true,
   },
   {
-    id: 'vuaairouter',
+    id: 'vuaaipro',
     label: 'VuaAi Provider',
     models: ['claude-3-5-sonnet', 'gpt-4o', 'gemini-1.5-pro', 'deepseek-chat'],
-    defaultModel: 'vuaai-daily',
+    defaultModel: 'default_model',
     keyPlaceholder: 'sk-or-...',
     needsBaseUrl: true,
   },
@@ -350,10 +350,10 @@ export const AI_PROVIDERS: AiProviderMeta[] = [
 /** preset endpoints for providers whose baseUrl has a known default */
 const DEFAULT_BASE_URLS: Partial<Record<AiProviderId, string>> = {
   omirouter: 'https://api.omirouter.com/v1',
-  vuaairouter: 'https://ai-router.vuahethong.com/v1',
+  vuaaipro: 'https://ai-router.vuahethong.com/v1',
   hermes: 'https://hermes.vuahethong.com/v1',
 }
-const LEGACY_VUAAIROUTER_BASE_URL = 'https://api.9router.com/v1'
+const LEGACY_VUAAIPRO_BASE_URL = 'https://api.9router.com/v1'
 
 /**
  * Fresh settings with every provider's default model and an empty key,
@@ -374,7 +374,7 @@ export function defaultAiSettings(
     }
   }
   return {
-    provider: 'vuaairouter',
+    provider: 'vuaaipro',
     providers,
     gskToolsEnabled: true,
     media: defaultAiMediaSettings(),
@@ -392,7 +392,7 @@ export function cloudToolsEnabled(settings: Pick<AiSettings, 'gskToolsEnabled'>)
  * (api-key providers need a key and a model id; custom also needs a base URL).
  * Codex can auto-discover its executable. Anything else — including unknown
  * ids from a hand-edited
- * settings file — falls back to vuaairouter, so a half-filled setup degrades
+ * settings file — falls back to vuaaipro, so a half-filled setup degrades
  * to the signed-in default instead of silently disabling AI.
  */
 export function activeProvider(settings: AiSettings): AiProviderId {
@@ -400,18 +400,18 @@ export function activeProvider(settings: AiSettings): AiProviderId {
   if (provider === 'genspark') return 'genspark'
   const meta = AI_PROVIDERS.find((m) => m.id === provider)
   const config = settings.providers?.[provider]
-  if (!meta || !config) return 'vuaairouter'
+  if (!meta || !config) return 'vuaaipro'
   if (meta.needsCliPath) return provider
   // Trim-aware: in-memory settings bypass the trimConfigs applied to
   // persisted files, and a whitespace-only key/URL/model is a 401, not a config.
-  if (!config.model?.trim()) return 'vuaairouter'
+  if (!config.model?.trim()) return 'vuaaipro'
   if (meta.needsBaseUrl) {
     // Custom OpenAI-compatible endpoints (Ollama, LM Studio, vLLM) accept
     // anonymous requests: base URL + model suffice, the key stays optional.
-    if (!config.baseUrl?.trim()) return 'vuaairouter'
+    if (!config.baseUrl?.trim()) return 'vuaaipro'
     return provider
   }
-  if (!config.apiKey?.trim()) return 'vuaairouter'
+  if (!config.apiKey?.trim()) return 'vuaaipro'
 
   return provider
 }
@@ -535,11 +535,11 @@ export function resolveAiSettings(stored: unknown, defaults: AiSettings): AiSett
     return defaults
   }
   const providers = { ...defaults.providers, ...(storedProviders as any) }
-  if (providers.vuaairouter.baseUrl === LEGACY_VUAAIROUTER_BASE_URL) {
-    providers.vuaairouter = {
-      ...providers.vuaairouter,
-      baseUrl: DEFAULT_BASE_URLS.vuaairouter,
-      model: providers.vuaairouter.model === 'claude-3-5-sonnet' ? 'vuaai-daily' : providers.vuaairouter.model,
+  if (providers.vuaaipro.baseUrl === LEGACY_VUAAIPRO_BASE_URL) {
+    providers.vuaaipro = {
+      ...providers.vuaaipro,
+      baseUrl: DEFAULT_BASE_URLS.vuaaipro,
+      model: providers.vuaaipro.model === 'claude-3-5-sonnet' ? 'default_model' : providers.vuaaipro.model,
     }
   }
   return {

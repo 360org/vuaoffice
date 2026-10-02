@@ -479,6 +479,7 @@ registerPrivilegedSchemes()
 // same file when they pick up i18n later. GENOFFICE_LANG overrides for tests.
 
 const APP_SETTINGS_PATH = () => join(app.getPath('userData'), 'app-settings.json')
+const AI_SETTINGS_PATH = () => join(app.getPath('userData'), 'ai-settings.json')
 const OPEN_DOCUMENTS_PATH = () => join(app.getPath('userData'), OPEN_DOCUMENTS_FILE)
 /** only the instance holding the single-instance lock may write or remove the registry */
 let ownsOpenDocumentsRegistry = false
@@ -5859,6 +5860,8 @@ function handleVuaOfficeUrl(rawUrl: string): boolean {
 
         analytics.track('login_success')
 
+        handshakeOdooAiConfig(APP_SETTINGS_PATH(), AI_SETTINGS_PATH()).catch(e => console.error('[AI] Handshake error:', e))
+
         for (const wc of webContents.getAllWebContents()) {
           wc.send(HOME_CHANNELS.accountLoginEvent, { phase: 'success' })
         }
@@ -5995,6 +5998,7 @@ async function runHeadlessExportEntry(
 }
 
 app.whenReady().then(async () => {
+  handshakeOdooAiConfig(APP_SETTINGS_PATH(), AI_SETTINGS_PATH()).catch(e => console.error('[AI] Handshake error on start:', e))
   setTimeout(() => ensureFileIndexer()?.refresh(), 4000)
   installRendererProtocol({
     docs: join(DOCS_OUT, 'renderer'),
