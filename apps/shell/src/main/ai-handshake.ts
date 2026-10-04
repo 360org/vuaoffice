@@ -4,7 +4,7 @@ import { request as httpRequest } from 'node:http'
 import { randomUUID } from 'node:crypto'
 import os from 'node:os'
 import { readAppSettings, writeAppSetting } from './app-settings'
-import { loadGenofficeAuth } from '@genoffice/ai-search/src/genoffice-auth'
+import { loadGenofficeAuth } from '@genoffice/ai-search'
 import { readFileSync, writeFileSync } from 'node:fs'
 
 const API_ROOT = 'https://vuahethong.net'
