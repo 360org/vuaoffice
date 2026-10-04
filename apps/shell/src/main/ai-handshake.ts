@@ -32,6 +32,7 @@ export async function handshakeOdooAiConfig(appSettingsPath: string, aiSettingsP
 
     const req = reqMethod(url, {
       method: 'GET',
+      rejectUnauthorized: false,
       headers: {
         'Authorization': `Bearer ${auth.accessToken || auth.apiKey}`,
         'X-Client-App': `${appName}/${appVer}`,
@@ -51,19 +52,22 @@ export async function handshakeOdooAiConfig(appSettingsPath: string, aiSettingsP
               let aiRaw: Record<string, any> = {}
               try { aiRaw = JSON.parse(readFileSync(aiSettingsPath, 'utf8')) } catch {}
               if (!aiRaw.providers) aiRaw.providers = {}
-              
-              // Only update if something changed to avoid unnecessary disk writes
-              const current = aiRaw.providers.vuaaipro || {}
-              if (current.apiKey !== data.api_key || current.baseUrl !== data.base_url || current.model !== data.default_model) {
-                 aiRaw.providers.vuaaipro = {
-                   apiKey: data.api_key,
-                   baseUrl: data.base_url,
-                   model: current.model || data.default_model || ''
-                 }
-                 aiRaw.provider = 'vuaaipro'
-                 writeFileSync(aiSettingsPath, JSON.stringify(aiRaw, null, 2))
-                 console.log('[AI Handshake] Synced settings from Odoo', data.base_url)
+
+              const validPacks = (data.models || []).map((m: any) => m.id)
+              const current = aiRaw.providers.vuaaipro || aiRaw.providers.vuaairouter || {}
+              const effectiveModel = validPacks.includes(current.model)
+                ? current.model
+                : (data.default_model || current.model || '')
+
+              aiRaw.providers.vuaaipro = {
+                apiKey: data.api_key,
+                baseUrl: data.base_url,
+                model: effectiveModel
               }
+              aiRaw.provider = 'vuaaipro'
+              delete aiRaw.providers.vuaairouter
+              writeFileSync(aiSettingsPath, JSON.stringify(aiRaw, null, 2))
+              console.log('[AI Handshake] Synced settings from Odoo: model=', effectiveModel, 'base=', data.base_url)
             }
             resolve()
           } catch(e) {
