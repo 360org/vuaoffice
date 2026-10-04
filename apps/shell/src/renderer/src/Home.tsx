@@ -27,7 +27,6 @@ import { useDismissablePopover } from '@genoffice/ui'
 import { fileCountLabel, visiblePageCount } from './counts'
 import { useI18n } from './locale'
 import type { I18n, StringKey } from './locale'
-import { AiSettingsModal } from './AiSettingsModal'
 import { AboutModal } from './AboutModal'
 import { DiagnosticReportModal } from './DiagnosticReportModal'
 import { SettingsModal } from './SettingsModal'
@@ -1632,27 +1631,7 @@ function AccountEntry({
             )}
           </div>
           <div className="account-menu-divider" />
-          {loggedIn && (
-            <button
-              className="account-menu-item lang-row"
-              role="menuitem"
-              onClick={() => {
-                closeMenu()
-                onOpenAiSettings?.()
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path
-                  d="M6.5 1.5h3l.4 1.6a5.5 5.5 0 0 1 1.3.8l1.6-.6 1.5 2.6-1.2 1.1a5.7 5.7 0 0 1 0 1.6l1.2 1.1-1.5 2.6-1.6-.6a5.5 5.5 0 0 1-1.3.8l-.4 1.6h-3l-.4-1.6a5.5 5.5 0 0 1-1.3-.8l-1.6.6-1.5-2.6 1.2-1.1a5.7 5.7 0 0 1 0-1.6l-1.2-1.1 1.5-2.6 1.6.6a5.5 5.5 0 0 1 1.3-.8l.4-1.6z"
-                  stroke="currentColor"
-                  strokeWidth="1.2"
-                  strokeLinejoin="round"
-                />
-                <circle cx="8" cy="8" r="2.2" stroke="currentColor" strokeWidth="1.2" />
-              </svg>
-              <span className="lang-row-label">{t('settings')}</span>
-            </button>
-          )}
+          
           <button
             className="account-menu-item lang-row"
             role="menuitem"
@@ -4310,7 +4289,6 @@ export function Home() {
         {renderFolderPanel()}
         <AccountEntry
           onStatusChange={handleAccountStatus}
-          onOpenAiSettings={() => setShowAiSettings(true)}
           onOpenAbout={() => setShowAbout(true)}
           onFileSearchSettingsChange={() => setRerankSettingsTick((n) => n + 1)}
           openRequest={settingsRequest}
@@ -4364,12 +4342,7 @@ export function Home() {
         </div>
       )}
 
-      {showAiSettings && (
-        <AiSettingsModal
-          initialDevMode={isDevMode}
-          onClose={() => setShowAiSettings(false)}
-        />
-      )}
+      
       {showAbout && <AboutModal appVersion={appVersion} onClose={() => setShowAbout(false)} />}
       {showDiagnosticReport && (
         <DiagnosticReportModal onClose={() => setShowDiagnosticReport(false)} />
