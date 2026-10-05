@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.0.55",
+    "date": "05/10/2026",
+    "highlight": "Chuẩn hóa thương hiệu VuaAI Pro, Native Slide Engine, tự động kiểm tra trạng thái AI Pack và hợp nhất bản vá upstream mới nhất.",
+    "features": [
+      {
+        "title": "Nâng cấp trợ lý VuaAI Pro thông minh",
+        "desc": "Chuẩn hóa toàn diện nhận diện thương hiệu AI trên thanh công cụ và bảng điều khiển sang VuaAI Pro, kết nối trực tiếp cổng trí tuệ nhân tạo VuaAI Gateway với tốc độ phản hồi vượt trội."
+      },
+      {
+        "title": "Native Slide Engine mượt mà & ổn định",
+        "desc": "Chuyển hướng luồng tạo trang trình chiếu sang bộ dựng Native Slide Engine nội bộ của VuaHệThống, loại bỏ triệt để lỗi kết nối và giúp tạo slide nhanh chóng, bố cục sắc nét."
+      },
+      {
+        "title": "Đồng bộ & cảnh báo trạng thái AI Pack thời gian thực",
+        "desc": "Tích hợp biểu tượng làm mới hạn mức phẳng tinh tế cạnh tài khoản người dùng; tự động phát hiện và hướng dẫn xử lý một chạm khi thiết bị cần được phân bổ AI Pack trên vuahethong.net."
+      }
+    ]
+  },
+  {
     "version": "1.0.54",
     "date": "02/10/2026",
     "highlight": "Nâng cấp tính năng đổi tên tài liệu trực tiếp trên toàn bộ 6 định dạng và tối ưu hóa hệ thống cập nhật tự động.",

@@ -3,7 +3,7 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Chưa phát hành]
+## [1.0.55] - 2026-10-05
 
 ### [FIX] Ghi đè luồng tạo slide Genspark AI sang API VuaHệThống & Bảo vệ phân tách Token
 
