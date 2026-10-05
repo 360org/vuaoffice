@@ -897,7 +897,7 @@ export const workbookRangeResultSchema = z
     autoFilter: cellAreaSchema.nullable(),
     /// The autoFilter's live per-column criteria; sheet-wide, complete-only,
     /// empty when the filter has none (or the sheet has no filter).
-    autoFilterColumns: z.array(filterColumnStateSchema).max(1_000),
+    autoFilterColumns: z.array(filterColumnStateSchema).max(1_000).default([]),
     dataValidations: z
       .array(
         z

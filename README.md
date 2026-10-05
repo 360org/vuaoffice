@@ -1,252 +1,144 @@
-# VuaOffice (Bộ ứng dụng văn phòng AI 360 CORP)
+<div align="center">
 
-> **Tài liệu chính thức dành cho Dự án VuaOffice (360 CORP)**  
-> VuaOffice là bộ ứng dụng văn phòng tích hợp Trí tuệ nhân tạo (AI-Native Office Suite) dành cho macOS, Windows và Linux, được phát triển dựa trên dự án mã nguồn mở GenOffice theo Giấy phép Apache License 2.0.
+# 👑 VuaOffice
 
----
+### Bộ Ứng Dụng Văn Phòng AI-Native Thuần Việt — Thay Thế Hoàn Toàn Microsoft Office
 
-## 🚀 Giới thiệu VuaOffice
+[![Release](https://img.shields.io/github/v/release/360org/vuaoffice?color=0077cd&label=Phi%C3%AAn%20b%E1%BA%A3n)](https://github.com/360org/vuaoffice/releases/latest)
+[![License](https://img.shields.io/badge/Gi%E1%BA%A5y%20ph%C3%A9p-Apache%202.0-00ce2c)](LICENSE)
+[![Platform](https://img.shields.io/badge/N%E1%BB%81n%20t%E1%BA%A3ng-macOS%20%7C%20Windows%20%7C%20Linux-slate)](https://github.com/360org/vuaoffice/releases/latest)
+[![Website](https://img.shields.io/badge/Trang%20ch%E1%BB%A7-vuaoffice.com-0077cd)](https://vuaoffice.com)
 
-VuaOffice bao gồm các ứng dụng làm việc cốt lõi trên nền tảng Electron với kiến trúc chia sẻ chung tầng Engine:
+**VuaOffice** là bộ giải pháp văn phòng thế hệ mới do **360 CORP** phát triển, kết hợp hoàn hảo giữa trải nghiệm soạn thảo quen thuộc của Microsoft Office với sức mạnh Trí tuệ Nhân tạo (AI). Ứng dụng chạy mượt mà trên macOS, Windows và Linux, hoạt động ngoại tuyến an toàn và bảo mật tối đa cho cá nhân và doanh nghiệp.
 
-1. **VuaOffice Docs**: Trình soạn thảo văn bản `.docx` hỗ trợ AI patch theo đoạn, giữ nguyên bố cục ban đầu của tệp Word.
-2. **VuaOffice Sheets**: Trình quản lý bảng tính `.xlsx` mở rộng trên nhân Univer, tích hợp engine Rust sidecar (calamine + IronCalc), biểu đồ Konva, Pivot Table và Slicer.
-3. **VuaOffice Slides**: Trình trình chiếu `.pptx` hỗ trợ thiết kế slide, HarfBuzz text shaping và công cụ AI tạo nội dung.
-4. **VuaOffice PDF**: Trình xem & chỉnh sửa tệp `.pdf` hỗ trợ chú thích, biểu mẫu, chữ ký số, chỉnh sửa văn bản thực tế trong luồng trang giữ nguyên phông chữ gốc, chuyển đổi PDF sang Word/Excel/PowerPoint cục bộ (pdf2docx) và phân tích nội dung qua AI.
-5. **VuaOffice Markdown**: Trình soạn thảo định dạng `.md` khối Tiptap đồng bộ thời gian thực.
-6. **VuaOffice Shell**: Khung ứng dụng trung tâm quản lý tab, cài đặt tài khoản 360 CORP, AI Router và tự động cập nhật (Auto-Update).
-7. **VuaOffice Mail**: Trình quản lý Email & Lịch tích hợp AI (thay thế Microsoft Office 365 Outlook).
+[🌐 Khám phá Trang chủ](https://vuaoffice.com) · [📦 Tải về ngay](#-t%E1%BA%A3i-v%E1%BB%81-b%E1%BB%99-c%C3%A0i-%C4%91%E1%BA%B7t) · [✨ Tính năng nổi bật](#-t%C3%ADnh-n%C4%83ng-%C4%91%E1%BB%99t-ph%C3%A1) · [🤖 Dành cho Coding Agent](#-t%C3%ADch-h%E1%BB%A3p-ai-coding-agents--mcp-server)
+
+</div>
 
 ---
 
-## 📦 Tải về phiên bản mới nhất (Releases)
+## 📦 Tải về bộ cài đặt
 
-Tất cả các bản build phát hành được đóng gói và kiểm tra tự động qua GitHub Actions:
+Tất cả các bản phát hành được đóng gói tự động, bảo đảm tính toàn vẹn và chữ ký số an toàn:
 
-| Nền tảng                          | Yêu cầu hệ thống    | Tệp cài đặt                                                                                                         |
-| :-------------------------------- | :------------------ | :------------------------------------------------------------------------------------------------------------------ |
-| **macOS** (Apple Silicon `arm64`) | macOS 11+           | [VuaOffice-1.0.30-macOS-arm64.dmg](https://github.com/360org/vuaoffice/releases/latest) |
-| **macOS** (Intel `x64`)           | macOS 11+           | [VuaOffice-1.0.30-macOS-x64.dmg](https://github.com/360org/vuaoffice/releases/latest)     |
-| **Windows** (x64)                 | Windows 10 / 11     | [VuaOffice-1.0.30-Windows-x64-Setup.exe](https://github.com/360org/vuaoffice/releases/latest) |
-| **Linux** (Debian / Ubuntu)       | x86_64, glibc 2.34+ | [vuaoffice_1.0.30_amd64.deb](https://github.com/360org/vuaoffice/releases/latest) |
-| **Linux** (AppImage)              | x86_64, FUSE 2      | [VuaOffice-1.0.30.AppImage](https://github.com/360org/vuaoffice/releases/latest)   |
+| Hệ điều hành | Kiến trúc | Tải về trực tiếp | Gói bổ trợ |
+| :--- | :--- | :--- | :--- |
+| **macOS** | **Apple Silicon** (`M1/M2/M3/M4`) | [📥 Tải .DMG (Khuyên dùng)](https://github.com/360org/vuaoffice/releases/latest/download/VuaOffice-1.0.50-macOS-arm64.dmg) | [Bản nén .ZIP](https://github.com/360org/vuaoffice/releases/latest/download/VuaOffice-1.0.50-macOS-arm64.zip) |
+| **macOS** | **Intel** (`x86_64`) | [📥 Tải .DMG](https://github.com/360org/vuaoffice/releases/latest/download/VuaOffice-1.0.50-macOS-x64.dmg) | [Bản nén .ZIP](https://github.com/360org/vuaoffice/releases/latest/download/VuaOffice-1.0.50-macOS-x64.zip) |
+| **Windows** | **64-bit** (`x64`) | [📥 Tải .EXE Installer](https://github.com/360org/vuaoffice/releases/latest/download/VuaOffice-1.0.50-Windows-x64-Setup.exe) | Windows 10 / 11 |
+| **Windows** | **32-bit** (`ia32`) | [📥 Tải .EXE (Legacy)](https://github.com/360org/vuaoffice/releases/latest/download/VuaOffice-1.0.50-Windows-ia32-Setup.exe) | Máy cấu hình thấp |
+| **Linux** | **Ubuntu / Debian** (`amd64`) | [📥 Tải gói .DEB](https://github.com/360org/vuaoffice/releases/latest/download/vuaoffice_1.0.50_amd64.deb) | Ubuntu 20.04+, Debian |
+| **Linux** | **Mọi bản phân phối** (`x86_64`) | [📥 Tải .AppImage](https://github.com/360org/vuaoffice/releases/latest/download/VuaOffice-1.0.50.AppImage) | Chạy ngay không cần cài |
+
+> 💡 *Sếp có thể xem toàn bộ các phiên bản và nhật ký thay đổi tại [Trang Releases GitHub](https://github.com/360org/vuaoffice/releases).*
 
 ---
 
-## 🔄 Quy trình Đồng bộ & Xử lý Conflict khi Pull từ Official Upstream
+## 🏢 Trọn bộ 7 ứng dụng văn phòng tích hợp
 
-Để đảm bảo bộ ứng dụng **VuaOffice** luôn cập nhật các tính năng và bản sửa lỗi mới nhất từ dự án gốc (`genspark-ai/genoffice`) mà **KHÔNG BỊ ĐÈ** hoặc làm mất các tùy chỉnh thương hiệu & AI Provider của 360 CORP, nhà phát triển BẮT BUỘC tuân thủ quy trình sau:
+VuaOffice cung cấp không gian làm việc đồng nhất dưới một cửa sổ thông minh với đầy đủ 7 phân hệ thiết yếu:
 
-### 1. Cơ chế Thương hiệu 360 CORP (`scripts/360-brand.js`)
-
-Mọi cấu hình thương hiệu VuaOffice được lưu tập trung tại `360/brand-config.json`.
-
-- Lệnh áp dụng branding: `npm run brand:apply` (hoặc `npm run whitelabel:apply`)
-- Lệnh hoàn tác về codebase gốc: `npm run brand:restore` (hoặc `npm run whitelabel:restore`)
-- Lệnh kiểm tra trạng thái: `npm run brand:status` (hoặc `npm run whitelabel:status`)
-- Lệnh kiểm tra cổng: `npm run brand:gate`
-
-### 2. Các bước Pull & Merge không conflict
-
-Khi cần đồng bộ code mới nhất từ upstream:
-
-```bash
-# Bước 1: Khai báo upstream (nếu chưa có) và fetch code mới nhất
-npm run upstream:setup
-git fetch upstream main
-
-# Bước 2: Tạo nhánh sync riêng biệt và restore về chuỗi gốc upstream
-git checkout -b sync/upstream-YYYYMMDD
-npm run brand:restore
-
-# Bước 3: Tiến hành 3-way merge
-git merge upstream/main
-
-# Bước 4: Giải quyết xung đột và áp dụng lại nhận diện VuaOffice
-npm run brand:apply
-npm run brand:gate
-
-# Bước 5: Kiểm tra và hoàn tất merge vào main
-npm run typecheck
-git commit
+```
+VuaOffice Suite
+├── 📄 VuaOffice Docs      → Soạn thảo văn bản chuẩn Word (.docx), giữ nguyên cấu trúc và bố cục.
+├── 📊 VuaOffice Sheets    → Bảng tính chuẩn Excel (.xlsx), hỗ trợ Pivot Table, biểu đồ và engine tính toán Rust tốc độ cao.
+├── 📽️ VuaOffice Slides    → Thiết kế bài trình chiếu chuyên nghiệp (.pptx), hỗ trợ layout hiện đại và text-shaping cao cấp.
+├── 📑 VuaOffice PDF       → Chỉnh sửa trực tiếp văn bản trong file PDF gốc, nhận dạng chữ tiếng Việt OCR ngoại tuyến.
+├── 📝 VuaOffice Markdown  → Trình biên soạn Markdown trực quan, chia đôi màn hình, dàn bài thông minh và xuất đa định dạng.
+├── 🌐 VuaOffice HTML      → Soạn thảo và xem trước trang web, tài liệu HTML động kèm trợ lý AI thiết kế bố cục.
+└── ✉️ VuaOffice Mail      → Quản lý Hộp thư điện tử (IMAP/POP3) và Lịch làm việc bảo mật cao, thay thế hoàn hảo Outlook.
 ```
 
 ---
 
-## 🧠 Cấu hình AI Provider (OmiRouter / VuaAIRouter / Hermes / Custom)
+## ✨ Tính năng đột phá
 
-VuaOffice hỗ trợ kết nối trực tiếp đến các AI Gateway của 360 CORP hoặc nhà cung cấp tùy chỉnh mà không phụ thuộc vào tài khoản Genspark mặc định:
+### 1. Tương thích 100% định dạng Microsoft Office
+Mở, chỉnh sửa và lưu trực tiếp các tệp `.docx`, `.xlsx`, `.pptx` với cơ chế **bảo toàn nguyên vẹn byte (Byte-Preserving)**. Các phần nội dung không can thiệp sẽ được giữ nguyên tuyệt đối, không lo xô lệch font chữ, vỡ bảng hay sai định dạng khi trao đổi với người dùng Microsoft Office.
 
-- **VuaAIRouter AI**: AI Gateway mặc định với Base URL `https://ai-router.vuahethong.com/v1`
-- **OmiRouter AI**: Cấu hình với Base URL `https://api.omirouter.com/v1`
-- **Hermes Agent**: Cấu hình với Base URL `https://hermes.vuahethong.com/v1`
-- **Custom Provider**: Cho phép người dùng tự nhập OpenAI-compatible Endpoint & API Key tùy chọn ngay tại màn hình **AI Settings** trong menu tài khoản.
+### 2. Trợ lý Trí tuệ Nhân tạo (AI-Native) tích hợp sẵn
+Mỗi phân hệ đều tích hợp sẵn thanh công cụ AI thông minh:
+* **Docs & Markdown**: Tự động viết tiếp, tóm tắt báo cáo, sửa lỗi chính tả, dịch thuật đa ngôn ngữ và định dạng lại văn bản theo ngữ cảnh.
+* **Sheets**: Diễn giải dữ liệu bằng ngôn ngữ tự nhiên, tự động sinh công thức Excel phức tạp, gợi ý tạo biểu đồ trực quan.
+* **Slides**: Tạo cấu trúc bài thuyết trình, gợi ý nội dung từng trang trình chiếu và tối ưu hóa thông điệp.
+* **PDF OCR Ngoại tuyến**: Nhận dạng chữ viết tiếng Việt và tiếng Anh trên các trang quét (scan) hoàn toàn offline mà không cần kết nối mạng.
+
+### 3. Quyền riêng tư & Bảo mật dữ liệu tuyệt đối
+* **Soạn thảo Offline**: Mọi thao tác đọc, sửa, lưu tệp đều diễn ra 100% tại máy tính của người dùng. Tài liệu không bao giờ bị tải lên máy chủ ngoài ý muốn.
+* **Linh hoạt AI Provider (BYOK)**: Người dùng có thể tùy chọn kết nối cổng AI Gateway riêng của doanh nghiệp (360 CORP OmiRouter, OpenAI, Anthropic Claude, Google Gemini, DeepSeek, Ollama...) hoặc sử dụng kết nối mặc định.
+
+### 4. Giao diện thuần Việt & Trải nghiệm thân thiện
+* Giao diện người dùng được thiết kế chuẩn mực theo phong cách Flat Design hiện đại với hai tông màu công nghệ đặc trưng của 360 CORP: **Xanh dương Công nghệ (`#0077cd`)** và **Xanh lá Chuyển đổi số (`#00ce2c`)**.
+* Hỗ trợ đầy đủ chế độ Sáng (Light), Tối (Dark) và Tự động theo Hệ thống (System), bảo vệ thị lực khi làm việc ban đêm.
 
 ---
 
-## 🛠️ Hướng dẫn Phát triển Local (Development)
+## 🤖 Tích hợp AI Coding Agents & MCP Server
+
+VuaOffice là bộ ứng dụng văn phòng tiên phong hỗ trợ giao thức **Model Context Protocol (MCP)**, cho phép các trợ lý lập trình thông minh (như Claude Code, Cursor, Codex, Windsurf) trực tiếp đọc, trích xuất dữ liệu và tạo báo cáo văn phòng tự động.
+
+### 1. Kích hoạt Kỹ năng `/vuaoffice` trên Claude Code
+Sau khi cài đặt ứng dụng, Sếp có thể kích hoạt kỹ năng VuaOffice ngay trong terminal của Claude Code hoặc Cursor:
 
 ```bash
-# Cài đặt phụ thuộc
-npm install
+# Cài đặt hoặc cập nhật skill VuaOffice cho Coding Agent
+vuaoffice skill install
 
-# Tạo dữ liệu test .docx fixtures
-npm run fixtures
+# Sử dụng kỹ năng trong cuộc trò chuyện
+/vuaoffice "Tóm tắt tài liệu hợp đồng và trích xuất bảng báo giá ra file excel"
+```
 
-# Khởi chạy toàn bộ môi trường phát triển (Shell + 6 Sub-apps)
-npm run dev
-
-# Kiểm tra chất lượng và loại bỏ lỗi kiểu dữ liệu
-npm run typecheck
-npm run lint
-
-# Đóng gói bản cài đặt (Distribution)
-npm run dist:mac:arm64   # macOS Apple Silicon
-npm run dist:mac:x64     # macOS Intel
-npm run dist:win         # Windows x64
-npm run dist:linux       # Linux (.deb, .rpm, .AppImage)
+### 2. Kết nối MCP Server
+VuaOffice cung cấp sẵn máy chủ MCP nội bộ:
+```json
+{
+  "mcpServers": {
+    "vuaoffice": {
+      "command": "vuaoffice",
+      "args": ["mcp"]
+    }
+  }
+}
 ```
 
 ---
 
-## ⚖️ Giấy phép Bản quyền (License)
+## ❓ Câu hỏi thường gặp (FAQ)
 
-Dự án được phát hành theo Giấy phép **Apache License 2.0**. Xem chi tiết tại tệp [LICENSE](LICENSE).  
-Copyright (c) 360 CORP. Dựa trên dự án mã nguồn mở GenOffice (Copyright (c) Mainfunc, Inc.).
+<details>
+<summary><b>1. VuaOffice có miễn phí không?</b></summary>
+Có. VuaOffice được phát hành miễn phí cho người dùng cá nhân và doanh nghiệp. Người dùng có thể sử dụng trọn vẹn toàn bộ 7 ứng dụng văn phòng mà không bị giới hạn tính năng soạn thảo.
+</details>
 
-```bash
-# Cài đặt phụ thuộc
-npm install
+<details>
+<summary><b>2. Mở file của Microsoft Office có bị nhảy dòng hay mất định dạng không?</b></summary>
+Không. VuaOffice áp dụng kiến trúc phân tích hình học tài liệu và cơ chế bảo toàn byte. Các thành phần bảng biểu, chân trang, tiêu đề và phông chữ trong .docx, .xlsx, .pptx được hiển thị chuẩn xác và giữ nguyên khi lưu lại.
+</details>
 
-# Tạo dữ liệu test .docx fixtures
-npm run fixtures
+<details>
+<summary><b>3. Ứng dụng có thể hoạt động khi mất kết nối Internet không?</b></summary>
+Hoàn toàn được. Toàn bộ các tính năng mở, chỉnh sửa, lưu, in ấn, xuất PDF và nhận dạng chữ quét (OCR) đều hoạt động cục bộ 100% trên thiết bị của bạn. Chỉ các tính năng hỏi đáp Trợ lý AI nâng cao mới yêu cầu kết nối mạng.
+</details>
 
-# Kiểm tra TypeScript & Unit test
-npm run typecheck
-npm test
-
-# Chạy ứng dụng dev ở môi trường local
-npm run dev
-
-# Đóng gói sản phẩm cho macOS / Windows / Linux
-npm run dist:mac
-npm run dist:win
-npm run dist:linux
-```
+<details>
+<summary><b>4. VuaOffice có thu thập nội dung tài liệu của tôi không?</b></summary>
+Tuyệt đối không. Ứng dụng cam kết không bao giờ thu thập, đọc lén hay gửi nội dung tài liệu, tên file, đường dẫn tệp hay dữ liệu cá nhân của người dùng về máy chủ. Mọi dữ liệu của bạn thuộc về chính bạn.
+</details>
 
 ---
 
-## 📚 Cấu trúc Tài liệu Dự án (Documentation)
+## ⚖️ Bản quyền & Giấy phép (License & Attribution)
 
-Toàn bộ tài liệu kiến trúc, đặc tả và hướng dẫn kỹ thuật của VuaOffice được tổ chức tập trung trong thư mục [`docs/`](docs/):
-
-- **Tài liệu hệ thống cốt lõi**:
-  - [Ý tưởng & Định hướng (`IDEA.md`)](docs/IDEA.md)
-  - [Kiến trúc Tổng thể (`ARCH.md`)](docs/ARCH.md)
-  - [Đặc tả Kỹ thuật (`SPEC.md`)](docs/SPEC.md)
-  - [Yêu cầu Chức năng (`REQUIREMENTS.md`)](docs/REQUIREMENTS.md)
-  - [Hướng dẫn Triển khai & Build (`DEPLOY_GUIDE.md`)](docs/DEPLOY_GUIDE.md)
-  - [Nhật ký Phát triển (`CHANGELOGS.md`)](docs/CHANGELOGS.md)
-  - [Chính sách Bảo mật (`SECURITY.md`)](docs/SECURITY.md)
-  - [Hướng dẫn Đóng góp (`CONTRIBUTING.md`)](docs/CONTRIBUTING.md)
-  - [Cấu hình AI Agent (`AGENTS.md`)](docs/AGENTS.md)
-- **Tài liệu chi tiết theo từng Ứng dụng**:
-  - [VuaOffice Docs](docs/docs/architecture.md)
-  - [VuaOffice Sheets](docs/sheets/architecture.md)
-  - [VuaOffice Slides](docs/slides/architecture.md)
-  - [VuaOffice PDF](docs/pdf/architecture.md)
-  - [VuaOffice Markdown](docs/markdown/architecture.md)
-  - [VuaOffice Mail](docs/mail/architecture.md)
-  - [VuaOffice Shell](docs/shell/architecture.md)
+* **Phát triển & Sở hữu thương hiệu**: Bản quyền © 2026 **360 CORP**. Nhãn hiệu "VuaOffice", logo và nhận diện thương hiệu thuộc quyền sở hữu của 360 CORP.
+* **Mã nguồn nền tảng**: VuaOffice được phát triển dựa trên dự án mã nguồn mở GenOffice (bản quyền © 2026 Mainfunc, Inc.) và tuân thủ đầy đủ các điều khoản của **[Apache License 2.0](LICENSE)**.
+* **Thành phần bên thứ ba**: Dự án sử dụng và ghi nhận sự đóng góp của các thư viện mã nguồn mở uy tín: Electron, Univer, PDFium, PDF.js, Tiptap, ProseMirror, Konva, HarfBuzz, calamine, IronCalc và các phông chữ mở Liberation, Carlito, Noto Sans. Chi tiết xem tại Thông báo Bản quyền Bên thứ ba (`npm run notices`).
 
 ---
 
-## ⚖️ Bản quyền & Ghi nhận (Attribution & License)
+<div align="center">
 
-- **Mã nguồn**: VuaOffice là phần mềm được phát triển bởi 360 CORP, có tích hợp mã nguồn mở của các bên thứ ba (như: GenOffice tuân thủ theo [Apache License 2.0](LICENSE) và các thư viện mã nguồn mở khác), tuân thủ đầy đủ giấy phép mã nguồn mở của các bên này trong Third-Party Notices.
-- **Ghi nhận tác giả (Attribution Notice)**:
-  - **Derivative Work & Customizations**: Copyright 2026 360 CORP (VuaOffice).
-  - **Original Work**: Copyright 2026 Mainfunc, Inc. (GenOffice).
-- **Phát hành & Bản quyền**: Ứng dụng VuaOffice được phát hành dưới dạng Phần mềm độc quyền miễn phí (Proprietary Freeware) cho người dùng cuối. Nhãn hiệu "VuaOffice" và "360 CORP" thuộc sở hữu của 360 CORP. Nhãn hiệu "GenOffice" và "Genspark" thuộc sở hữu của Mainfunc, Inc.
-**Is GenOffice free?**
-Yes. GenOffice is free and open-source under the Apache-2.0 license — no
-trial, no paid tier for the apps themselves.
+**[Trang chủ VuaOffice](https://vuaoffice.com)** · **[Tài liệu Kỹ thuật](docs/)** · **[Trung tâm Hỗ trợ](https://vuahethong.net)**
 
-**Can GenOffice open Microsoft Word, Excel, and PowerPoint files?**
-Yes. GenOffice opens and saves native `.docx`, `.xlsx`, and `.pptx` files.
-Saving is byte-preserving: parts of the file you didn't touch are written
-back byte-for-byte, so documents keep working in Microsoft Office.
+*Đồng hành cùng Doanh nghiệp Việt Nam trong Kỷ nguyên Văn phòng Thông minh & Chuyển đổi số.*
 
-**Does GenOffice work offline?**
-Document editing is fully local — files never leave your machine to be
-opened, edited, or saved. The AI features (agents, search, image tools) need
-a network connection, with either a Genspark sign-in or your own model API
-key (BYOK).
-
-**Can GenOffice edit PDF files?**
-Yes — real PDF text and image editing that rewrites the page content stream
-with the original fonts preserved, not cover-up annotations.
-
-**Can GenOffice convert PDF to Word, Excel, or PowerPoint?**
-Yes — GenOffice converts PDFs into editable `.docx`, `.xlsx`, and `.pptx`
-files entirely on-device: PDFium character-level extraction plus
-geometry-based layout analysis, no cloud service, no upload. Scanned pages are
-covered too — on macOS and Windows the system OCR reads them, so they convert
-to editable text rather than a page image.
-
-**Can I use my own AI model or API key?**
-Yes. Besides the keyless Genspark sign-in, GenOffice supports bring your own
-key (BYOK) for Claude, OpenAI, Gemini, DeepSeek, Kimi, GLM, Qwen, Doubao,
-MiniMax, Grok, Mistral, and OpenRouter, plus any OpenAI-compatible endpoint
-— including local model servers.
-
-**Does GenOffice collect any data?**
-Official packaged builds send limited usage analytics by default, and you can
-disable reporting at any time under Settings → General. Analytics never sends
-document content, file names, file paths, account identity, or email addresses.
-See [GenOffice Privacy](PRIVACY.md) for the complete event and data disclosures.
-
-## Security
-
-See [SECURITY.md](SECURITY.md) for the process security posture (renderer
-sandboxing, IPC validation, external-link gating) and the threat models for
-AI-generated content.
-
-## Acknowledgements
-
-GenOffice would not be possible without these open-source projects:
-
-- [Electron](https://www.electronjs.org/) — the desktop runtime for every app.
-- [Univer](https://github.com/dream-num/univer) (Apache-2.0) — the spreadsheet
-  UI core that Sheets extends.
-- [PDFium](https://pdfium.googlesource.com/pdfium/) (BSD-3-Clause, bundled via
-  [@embedpdf/pdfium](https://github.com/embedpdf/embed-pdf-viewer)) — the
-  content-stream engine behind true PDF text and image editing.
-- [pdf.js](https://github.com/mozilla/pdf.js) (Apache-2.0) and
-  [pdf-lib](https://github.com/Hopding/pdf-lib) (MIT) — PDF rendering and
-  document assembly.
-- [Tiptap](https://tiptap.dev/) / [ProseMirror](https://prosemirror.net/) —
-  the block editors in Docs and Markdown.
-- [Konva](https://konvajs.org/) — canvas rendering for Slides and Sheets
-  charts.
-- [HarfBuzz](https://github.com/harfbuzz/harfbuzz) (wasm) — text-shaping
-  metrics for complex scripts.
-- [calamine](https://github.com/tafia/calamine) and
-  [IronCalc](https://github.com/ironcalc/IronCalc) — the read and calc layers
-  of the Rust xlsx sidecar.
-- Liberation, Carlito, Caladea, and Noto CJK fonts (OFL/Apache-2.0) — bundled
-  document fonts.
-
-## Third-party notices
-
-`npm run notices` regenerates the bundled third-party license summary
-(`tools/gen-third-party-notices.mjs`); all runtime dependencies are
-MIT/Apache-2.0/BSD-3-Clause/OFL, and the bundled fonts (Liberation, Carlito,
-Caladea, Noto CJK subsets) are OFL/Apache.
-
-## License
-
-VuaOffice is developed by 360 CORP, incorporating third-party open-source projects (such as: GenOffice developed by Mainfunc, Inc. under the [Apache License 2.0](LICENSE) and other open-source libraries), in full compliance with their respective open-source licenses detailed in Third-Party Notices. 360 CORP distributes packaged VuaOffice applications as Proprietary Freeware for end-users. Source code modifications and 360-specific features are © 2026 360 CORP.
-
-The GenOffice and Genspark names and logos are trademarks of Mainfunc, Inc.
-The VuaOffice names and logos are trademarks of 360 CORP.
+</div>

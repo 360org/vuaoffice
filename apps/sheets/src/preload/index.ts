@@ -1290,16 +1290,19 @@ function parseRangeResult(input: unknown): WorkbookRangeResult {
     return { row: link.row, column: link.column, target: link.target }
   })
   const conditionalRules = input.conditionalRules.map(parseConditionalRule)
+  const rawAutoFilterColumns = Array.isArray(input.autoFilterColumns)
+    ? input.autoFilterColumns
+    : []
   if (
     !Array.isArray(input.dataValidations) ||
     input.dataValidations.length > 20_000 ||
     (input.autoFilter !== null && !isRecord(input.autoFilter)) ||
-    !Array.isArray(input.autoFilterColumns) ||
-    input.autoFilterColumns.length > 1_000
+    rawAutoFilterColumns.length > 1_000
   ) {
     throw new Error('Invalid workbook range response.')
   }
-  const autoFilterColumns = input.autoFilterColumns.map(parseAutoFilterColumn)
+  // ponytail: fallback về mảng rỗng [] khi sidecar chưa kịp đồng bộ trường autoFilterColumns
+  const autoFilterColumns = rawAutoFilterColumns.map(parseAutoFilterColumn)
   const dataValidations = input.dataValidations.map((rule) => {
     if (
       !isRecord(rule) ||
