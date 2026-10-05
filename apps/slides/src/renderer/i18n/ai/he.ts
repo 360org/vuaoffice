@@ -18,7 +18,7 @@ export const he = {
   aiQcStopped: 'בדיקת הפריסה הופסקה',
   aiQcCapped: 'עוד {count} עמודים לא נבדקו (מגבלה לכל הרצה)',
   aiGskLoginBtn: 'התחבר ל-VuaOffice',
-  aiPanelTitle: 'VuaOffice AI',
+  aiPanelTitle: 'VuaAI Pro',
   aiOpenAssistant: 'פתיחת עוזר ה-AI',
   aiFactCheckBtn: 'בדיקת עובדות AI',
   aiFactCheckPrompt:

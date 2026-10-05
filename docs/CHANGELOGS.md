@@ -5,6 +5,32 @@ Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaO
 
 ## [Chưa phát hành]
 
+### [FIX] Ghi đè luồng tạo slide Genspark AI sang API VuaHệThống & Bảo vệ phân tách Token
+
+- **[SECURITY/AUTH] Tự động đăng xuất & Thông báo khi thiết bị bị thu hồi (Device Revoked)**:
+  - Tự động bắt mã lỗi `device_revoked` từ Odoo Gateway khi thiết bị bị thu hồi từ trang cá nhân `vuahethong.net`.
+  - Tự động xóa sạch token phiên làm việc cục bộ (`genofficeLogout`) và dọn sạch cấu hình AI trong `ai-settings.json`.
+  - Bật Modal cảnh báo lịch sự bằng tiếng Việt: "Thiết bị này đã bị thu hồi quyền truy cập từ trang quản lý vuahethong.net. Phiên đăng nhập đã kết thúc." kèm nút [ Đăng nhập lại ] để người dùng tái kích hoạt nhanh.
+  - Tích hợp kiểm tra tự động khi người dùng quay lại cửa sổ ứng dụng (`browser-window-focus`) và theo chu kỳ heartbeat ngầm.
+- **[BRAND] Chuẩn hóa định danh thương hiệu AI sang VuaAI Pro**:
+  - Đổi tên toàn bộ trợ lý AI trên thanh Ribbon, AI Panel và badge từ "VuaOffice AI" thành **"VuaAI Pro"**.
+  - Tên ứng dụng bộ văn phòng: **VuaOffice** (tên thực thi: `vuaoffice`).
+  - Tiêu đề bảng AI Panel trong tất cả các ứng dụng (Docs, Sheets, Slides, PDF, Markdown, HTML, Mail): **VuaAI Pro**.
+  - Định danh kỹ thuật tầng hệ thống và API Provider: **`vuaaipro`** (kết nối trực tiếp Gateway VuaAI).
+- **[UX/UI] Thông báo lỗi phân quyền AI Pack tiếng Việt tinh tế & Nút mở Vua Hệ Thống**:
+  - Tự động bắt lỗi HTTP 403 / `permission_denied` / `not allowed for this API key` từ AI Router Engine và dịch thành thông báo tiếng Việt lịch sự: "Thiết bị chưa được gán AI Pack hoặc gói đã bị thay đổi trên vuahethong.net. Vui lòng kiểm tra trên trang cá nhân."
+  - Hiển thị trực quan trong khung chat VuaOffice AI (Docs, Slides, Sheets) kèm nút bấm [ Mở Vua Hệ Thống ] với màu thương hiệu #0077cd để người dùng một chạm mở thẳng trang quản lý https://vuahethong.net/my/ai-provider.
+- **[FEAT] Nút Sync trạng thái AI Pack & Cảnh báo gán gói trong menu tài khoản**:
+  - Tích hợp biểu tượng Sync trạng thái AI Pack trực tiếp bên cạnh thông tin người dùng trong menu tài khoản (Shell Home).
+  - Tự động bắt tay (handshake) với Odoo vuahethong.net để kiểm tra thiết bị đã được phân bổ AI Pack hay chưa.
+  - Hiển thị chấm trạng thái xanh và tên gói khi đã gán; hiển thị cảnh báo màu cam và liên kết một chạm mở trang hồ sơ VuaHệThống AI (tab=packs) khi thiết bị chưa được phân bổ gói.
+- **[FIX] Phân tách định danh Token Genspark vs VuaHệThống**:
+  - Tách biệt kiểm tra tiền tố API key trong packages/ai-search/src/gsk.ts: chỉ nhận token bắt đầu bằng gsk- làm Genspark key, ngăn ngừa gửi token JWT của VuaHệThống (eyJ...) sang genspark.ai gây lỗi HTTP 401 Unauthorized.
+- **[OVERRIDE] Chuyển hướng luồng tạo slide Cloud sang VuaHệThống AI**:
+  - Tại apps/slides/src/renderer/ai/AiPanel.tsx: khi provider là vuaaipro, tự động ghi đè generatePageCloud và isCloudPageGenEnabled trỏ trực tiếp sang pipeline nội bộ (generatePageLocal). Toàn bộ slide được sinh bằng model AI định tuyến từ Odoo backend và dựng native qua @genoffice/pptx-engine trên thiết bị.
+- **[CI/CD] Nâng cấp cổng kiểm tra tính vẹn toàn 360 Feature Guard**:
+  - Cập nhật tools/check-360-features.mjs tương thích với định danh provider mới vuaaipro.
+
 ## [1.0.54] - 2026-10-02
 
 ### Đồng bộ hóa đổi tên tiêu đề cho toàn bộ định dạng tài liệu & Tối ưu hóa phát hành

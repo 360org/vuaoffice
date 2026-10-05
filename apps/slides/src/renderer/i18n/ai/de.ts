@@ -19,7 +19,7 @@ export const de = {
   aiQcStopped: 'Layoutprüfung gestoppt',
   aiQcCapped: '{count} weitere Seite(n) nicht geprüft (Limit pro Lauf)',
   aiGskLoginBtn: 'Bei VuaOffice anmelden',
-  aiPanelTitle: 'VuaOffice AI',
+  aiPanelTitle: 'VuaAI Pro',
   aiOpenAssistant: 'KI-Assistenten öffnen',
   aiFactCheckBtn: 'KI-Faktencheck',
   aiFactCheckPrompt:

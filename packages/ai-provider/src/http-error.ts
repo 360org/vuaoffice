@@ -5,7 +5,26 @@
  * a 403) — are replaced with a short readable note, since dumping raw markup
  * into the chat UI is useless to the user.
  */
-export function httpBodyDetail(body: string): string {
+
+export const VUA_AI_PACK_PERMISSION_ERROR =
+  'Thiết bị chưa được gán AI Pack hoặc gói đã bị thay đổi trên vuahethong.net. Vui lòng kiểm tra trên trang cá nhân.'
+
+export function isAiPackPermissionError(statusOrBody: number | string, maybeBody?: string): boolean {
+  const status = typeof statusOrBody === 'number' ? statusOrBody : 0
+  const text = typeof statusOrBody === 'string' ? statusOrBody : (maybeBody ?? '')
+  return (
+    status === 403 ||
+    text.includes('permission_denied') ||
+    text.includes('permission_error') ||
+    text.includes('not allowed for this API key') ||
+    text.includes('Thiết bị chưa được gán AI Pack')
+  )
+}
+
+export function httpBodyDetail(body: string, status?: number): string {
+  if (isAiPackPermissionError(status ?? 0, body)) {
+    return VUA_AI_PACK_PERMISSION_ERROR
+  }
   const head = body.trimStart().slice(0, 30).toLowerCase()
   const isHtml = ['<!doctype', '<html', '<head', '<body'].some((tag) => head.startsWith(tag))
   if (isHtml) {

@@ -18,7 +18,7 @@ export const ms = {
   aiQcStopped: 'Semakan susun atur dihentikan',
   aiQcCapped: '{count} halaman lagi tidak disemak (had setiap larian)',
   aiGskLoginBtn: 'Log masuk ke VuaOffice',
-  aiPanelTitle: 'VuaOffice AI',
+  aiPanelTitle: 'VuaAI Pro',
   aiOpenAssistant: 'Buka pembantu AI',
   aiFactCheckBtn: 'Semak Fakta AI',
   aiFactCheckPrompt:

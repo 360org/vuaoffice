@@ -1474,7 +1474,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {currentSection === 'privacy' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={sectionCardStyle}>
-                <div style={cardTitleStyle}>VuaOffice AI & Quyền riêng tư</div>
+                <div style={cardTitleStyle}>VuaAI Pro & Quyền riêng tư</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
                   <label style={checkboxRowStyle}>
                     <input
@@ -1482,7 +1482,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       checked={aiAutoSummarize}
                       onChange={(e) => setAiAutoSummarize(e.target.checked)}
                     />
-                    <span>Bật tính năng AI Tóm tắt thư thông minh (VuaOffice AI Summary)</span>
+                    <span>Bật tính năng AI Tóm tắt thư thông minh (VuaAI Pro Summary)</span>
                   </label>
                   <label style={checkboxRowStyle}>
                     <input

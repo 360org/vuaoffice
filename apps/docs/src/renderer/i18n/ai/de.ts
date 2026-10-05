@@ -9,7 +9,7 @@ export const de = {
   aiStarterContinue: 'Dort weiterschreiben, wo das Dokument aufhört',
   aiStarterFillTemplate: 'Platzhalter im Dokument finden und ausfüllen',
   aiGskLoginBtn: 'Bei VuaOffice anmelden',
-  aiPanelTitle: 'VuaOffice AI',
+  aiPanelTitle: 'VuaAI Pro',
   aiOpenAssistant: 'KI-Assistenten öffnen',
   aiSummarizeBtn: 'KI-Zusammenfassung',
   aiSummarizePrompt: 'Fasse den Hauptinhalt und die Kernpunkte dieses Dokuments zusammen',

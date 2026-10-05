@@ -18,7 +18,7 @@ export const nl = {
   aiQcStopped: 'Lay-outcontrole gestopt',
   aiQcCapped: 'Nog {count} pagina(’s) niet gecontroleerd (limiet per run)',
   aiGskLoginBtn: 'Aanmelden bij VuaOffice',
-  aiPanelTitle: 'VuaOffice AI',
+  aiPanelTitle: 'VuaAI Pro',
   aiOpenAssistant: 'AI-assistent openen',
   aiFactCheckBtn: 'AI-factcheck',
   aiFactCheckPrompt:

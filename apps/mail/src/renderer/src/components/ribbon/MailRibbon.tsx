@@ -414,26 +414,26 @@ export const MailRibbon: React.FC<MailRibbonProps> = ({
 
             <div className="ribbon-sep" />
 
-            {/* Nhóm 6: VuaOffice AI Suite */}
+            {/* Nhóm 6: VuaAI Pro Suite */}
             <div className="ribbon-group">
               <div className="ribbon-group-items">
                 <button
                   type="button"
                   className={`rb-big ai-entry ${aiOpen ? 'active' : ''}`}
                   onClick={onToggleAi}
-                  title="Mở bảng trợ lý VuaOffice AI"
+                  title="Mở bảng trợ lý VuaAI Pro"
                 >
                   <span className="rb-big-icon">
                     <GensparkMark size={24} />
                   </span>
-                  <span>VuaOffice AI</span>
+                  <span>VuaAI Pro</span>
                 </button>
                 <button
                   type="button"
                   className="rb-big ai-entry"
                   disabled={!hasSelectedEmail}
                   onClick={onAiAssist}
-                  title="Tóm tắt nội dung email bằng VuaOffice AI"
+                  title="Tóm tắt nội dung email bằng VuaAI Pro"
                 >
                   <span className="rb-big-icon">
                     <IconFileText size={22} />

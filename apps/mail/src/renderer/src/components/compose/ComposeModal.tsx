@@ -303,7 +303,7 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
               <IconSparkles size={14} color="var(--mail-primary-blue, #0077cd)" />
               <input
                 type="text"
-                placeholder="Yêu cầu VuaOffice AI viết nháp thư..."
+                placeholder="Yêu cầu VuaAI Pro viết nháp thư..."
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAiDraft()}

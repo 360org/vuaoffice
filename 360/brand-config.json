@@ -10,7 +10,7 @@
     "releasesUrl": "https://vuahethong.net/#download-desktop-app",
     "defaultProvider": "vuaaipro",
     "omirouterUrl": "https://api.omirouter.com/v1",
-    "vuaaiproLabel": "vuaaipro",
+    "vuaaiproLabel": "VuaAI Pro",
     "vuaaiproUrl": "https://ai-router.vuahethong.com/v1",
     "vuaaiproModel": "vuaai-daily"
   },
@@ -71,7 +71,7 @@
     },
     {
       "from": "Genspark AI",
-      "to": "VuaOffice AI",
+      "to": "VuaAI Pro",
       "reason": "Nhãn Ribbon, tiêu đề AI Panel, badge — CLAUDE.md quy tắc 6"
     },
     {
@@ -176,12 +176,12 @@
     },
     {
       "from": "aiPanelTitle: 'Genspark'",
-      "to": "aiPanelTitle: 'VuaOffice AI'",
+      "to": "aiPanelTitle: 'VuaAI Pro'",
       "reason": "Tiêu đề panel AI trong Docs và Slides i18n (19 ngôn ngữ)"
     },
     {
       "from": "Genspark\n        </span>",
-      "to": "VuaOffice AI\n        </span>",
+      "to": "VuaAI Pro\n        </span>",
       "reason": "Tiêu đề panel AI trực tiếp trong Sheets, PDF, Markdown"
     },
     {

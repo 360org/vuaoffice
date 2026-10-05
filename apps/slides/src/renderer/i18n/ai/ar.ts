@@ -18,7 +18,7 @@ export const ar = {
   aiQcStopped: 'تم إيقاف فحص التخطيط',
   aiQcCapped: '{count} صفحة أخرى لم تُفحص (حد لكل تشغيل)',
   aiGskLoginBtn: 'تسجيل الدخول إلى VuaOffice',
-  aiPanelTitle: 'VuaOffice AI',
+  aiPanelTitle: 'VuaAI Pro',
   aiOpenAssistant: 'فتح مساعد الذكاء الاصطناعي',
   aiFactCheckBtn: 'تدقيق حقائق AI',
   aiFactCheckPrompt:

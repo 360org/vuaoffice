@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process'
-import { chmodSync, copyFileSync, mkdirSync } from 'node:fs'
+import { chmodSync, copyFileSync, mkdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 
 const cargoArgs = [
@@ -31,6 +31,14 @@ if (process.platform === 'win32' && !target) {
 }
 
 if (process.platform === 'darwin' && !target) {
+  if (existsSync('native/xlsx-engine/target/release/xlsx-sidecar')) {
+    try {
+      execFileSync('which', ['cargo'], { stdio: 'ignore' });
+    } catch {
+      console.log('[sidecar] cargo not found, reusing existing universal binary at native/xlsx-engine/target/release/xlsx-sidecar');
+      process.exit(0);
+    }
+  }
   console.log('[sidecar] Building universal binary for macOS...')
   for (const appleTarget of ['x86_64-apple-darwin', 'aarch64-apple-darwin']) {
     execFileSync('cargo', [...cargoArgs, '--target', appleTarget], { stdio: 'inherit' })

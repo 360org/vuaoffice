@@ -698,7 +698,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 <div className="settings-card-header">
                   <div className="settings-card-title">
                     <IconSparkles size={16} color="var(--mail-primary-blue)" />
-                    <span>Trợ lý thông minh VuaOffice AI</span>
+                    <span>Trợ lý thông minh VuaAI Pro</span>
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

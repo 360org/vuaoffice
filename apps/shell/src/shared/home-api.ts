@@ -13,6 +13,18 @@ import type { UpdateChannel } from './update-api'
 import type { AiPanelPrefs } from '@genoffice/ui/ai-panel-prefs'
 
 /** UI language; kept self-contained here (mirrors Lang in @genoffice/i18n) */
+
+export interface AiHandshakeResult {
+  ok: boolean
+  hasPack: boolean
+  isRevoked?: boolean
+  model?: string
+  packName?: string
+  setupUrl?: string
+  error?: string
+  timestamp?: number
+}
+
 export type UiLanguage =
   | 'zh'
   | 'en'
@@ -298,6 +310,12 @@ export interface HomeApi {
   openGenTeam(): Promise<void>
   /** open the Genspark credit-usage page in the default browser */
   openCreditUsage(): Promise<void>
+  /** sync and check AI Pack assignment status from Odoo vuahethong.net */
+  syncAiConfig(): Promise<AiHandshakeResult>
+  /** get current cached AI Pack status */
+  getAiConfigStatus(): Promise<AiHandshakeResult | null>
+  /** open VuaHeThong AI profile or setup URL in browser */
+  openAiProfile(setupUrl?: string): Promise<void>
   /** open the public GitHub repository in the default browser */
   openGitHubRepo(): Promise<void>
   /** open the VuaOffice website in the default browser */
@@ -457,7 +475,8 @@ export interface AccountStatus {
 
 /** login flow progress pushed from main (gsk login CLI output) */
 export interface AccountLoginEvent {
-  phase: 'launched' | 'url' | 'success' | 'error'
+  phase: 'launched' | 'url' | 'success' | 'error' | 'revoked'
+  message?: string
   url?: string
   expiresInSec?: number
   /** 'network' | 'expired' | raw CLI error text */
@@ -606,6 +625,9 @@ export const HOME_CHANNELS = {
   cloudProjectsCached: 'home:cloud-projects-cached',
   openCloudProject: 'home:open-cloud-project',
   openCreditUsage: 'home:open-credit-usage',
+  syncAiConfig: 'home:sync-ai-config',
+  getAiConfigStatus: 'home:get-ai-config-status',
+  openAiProfile: 'home:open-ai-profile',
   getAiSettings: 'home:get-ai-settings',
   setAiSettings: 'home:set-ai-settings',
   getDeveloperMode: 'home:get-developer-mode',

@@ -15,9 +15,11 @@ const checks = [
     name: '2. Cấu hình AI Provider 360 Gateway / OmiRouter',
     test: () => {
       const brandCfg = JSON.parse(fs.readFileSync(path.join(ROOT, '360/brand-config.json'), 'utf8'));
+      const prov = brandCfg.brand?.defaultProvider;
+      const url = brandCfg.brand?.vuaaiproUrl || brandCfg.brand?.vuaairouterUrl;
       return brandCfg.brand?.vendor === '360 CORP' &&
-             brandCfg.brand?.defaultProvider === 'vuaairouter' &&
-             brandCfg.brand?.vuaairouterUrl?.includes('vuahethong.com');
+             (prov === 'vuaaipro' || prov === 'vuaairouter') &&
+             url?.includes('vuahethong.com');
     }
   },
   {

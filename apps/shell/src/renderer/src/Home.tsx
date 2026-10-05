@@ -9,6 +9,7 @@ import iconMd from './assets/file-md.svg'
 import iconHtml from './assets/file-html.svg'
 import type {
   AccountStatus,
+  AiHandshakeResult,
   CloudProjectKind,
   CloudProjectsSnapshot,
   FolderEntry,
@@ -1050,6 +1051,9 @@ function AccountEntry({
 }) {
   const { lang, setLang, t } = useI18n()
   const [status, setStatus] = useState<AccountStatus | null>(null)
+  const [aiStatus, setAiStatus] = useState<AiHandshakeResult | null>(null)
+  const [aiSyncing, setAiSyncing] = useState(false)
+  const [revokedNotice, setRevokedNotice] = useState<string | null>(null)
 
   useEffect(() => {
     onStatusChange?.(status)
@@ -1125,6 +1129,12 @@ function AccountEntry({
             setAuthUrl(null)
           }
         })
+      } else if (ev.phase === 'revoked') {
+        setStatus(null)
+        setAiStatus(null)
+        setWaiting(false)
+        setAuthUrl(null)
+        setRevokedNotice(ev.message || 'Thiết bị này đã bị thu hồi quyền truy cập từ trang quản lý vuahethong.net. Phiên đăng nhập đã kết thúc.')
       } else if (ev.phase === 'error') {
         setWaiting(false)
         setAuthUrl(null)
@@ -1317,6 +1327,31 @@ function AccountEntry({
     })
   }
 
+  const handleSyncAi = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (aiSyncing) return
+    setAiSyncing(true)
+    try {
+      const res = await window.aiOffice.syncAiConfig?.()
+      if (res?.isRevoked) {
+        setStatus(null)
+        setAiStatus(null)
+        setRevokedNotice(res.error || 'Thiết bị này đã bị thu hồi quyền truy cập từ trang quản lý vuahethong.net.')
+      } else if (res) {
+        setAiStatus(res)
+      }
+    } catch (err) {
+      console.error('[Account] AI Sync error:', err)
+    } finally {
+      setAiSyncing(false)
+    }
+  }
+
+  const handleOpenAiProfile = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    void window.aiOffice.openAiProfile?.(aiStatus?.setupUrl)
+  }
+
   const openLoginUrl = () => void window.aiOffice.openLoginUrl?.()
 
   const copyLoginUrl = () => {
@@ -1339,18 +1374,104 @@ function AccountEntry({
 
   return (
     <div className="account-entry">
+      {revokedNotice && (
+        <div className="account-revoked-modal-backdrop" onClick={() => setRevokedNotice(null)}>
+          <div className="account-revoked-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="account-revoked-icon-wrap">
+              <svg width="24" height="24" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <circle cx="8" cy="8" r="7" stroke="#dc2626" />
+                <path d="M8 4v5" stroke="#dc2626" strokeLinecap="round" />
+                <circle cx="8" cy="12" r="0.8" fill="#dc2626" />
+              </svg>
+            </div>
+            <div className="account-revoked-content">
+              <div className="account-revoked-title">Thiết bị đã bị thu hồi</div>
+              <div className="account-revoked-desc">{revokedNotice}</div>
+              <div className="account-revoked-actions">
+                <button
+                  className="account-revoked-relogin-btn"
+                  onClick={() => {
+                    setRevokedNotice(null)
+                    startLogin()
+                  }}
+                >
+                  Đăng nhập lại
+                </button>
+                <button
+                  className="account-revoked-close-btn"
+                  onClick={() => setRevokedNotice(null)}
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {menuOpen && (
         <div className="account-menu" role="menu">
           {loggedIn ? (
             <div className="account-menu-info">
-              {status?.name && (
-                <div className="account-menu-name" title={status.name}>
-                  {status.name}
+              <div className="account-menu-header-row">
+                <div className="account-menu-user-details">
+                  {status?.name && (
+                    <div className="account-menu-name" title={status.name}>
+                      {status.name}
+                    </div>
+                  )}
+                  <span className="account-menu-email" title={email}>
+                    {email || t('loggedIn')}
+                  </span>
                 </div>
-              )}
-              <span className="account-menu-email" title={email}>
-                {email || t('loggedIn')}
-              </span>
+                <div className="account-menu-ai-actions">
+                  <button
+                    className={'account-ai-sync-btn' + (aiSyncing ? ' spinning' : '')}
+                    onClick={handleSyncAi}
+                    title={
+                      aiSyncing
+                        ? 'Đang kiểm tra AI Pack từ vuahethong.net...'
+                        : aiStatus?.hasPack
+                          ? 'AI Pack: ' + (aiStatus.packName || aiStatus.model || 'Đã kích hoạt') + ' (Nhấn để đồng bộ lại)'
+                          : 'Kiểm tra trạng thái AI Pack từ vuahethong.net'
+                    }
+                    aria-label="Đồng bộ AI Pack"
+                  >
+                    <svg
+                      width="13"
+                      height="13"
+                      viewBox="0 0 512 512"
+                      fill="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path d="M440.65 12.57l4 82.77A247.16 247.16 0 0 0 255.83 8C134.73 8 33.91 94.92 12.29 209.82A12 12 0 0 0 24.09 224h49.05a12 12 0 0 0 11.65-9.28C101 142.92 172.23 88 255.83 88c69.8 0 131.11 36.18 166.44 91.29l-67.57-3.25a12 12 0 0 0-12.57 12l1.62 40a12 12 0 0 0 12 11.53l152.3-7.3a12 12 0 0 0 11.39-12.42l-7.3-152.3a12 12 0 0 0-12.57-11.41zM71.35 499.43l-4-82.77A247.16 247.16 0 0 0 256.17 504c121.1 0 221.92-86.92 243.54-201.82a12 12 0 0 0-11.8-14.18h-49.05a12 12 0 0 0-11.65 9.28C411 369.08 339.77 424 256.17 424c-69.8 0-131.11-36.18-166.44-91.29l67.57 3.25a12 12 0 0 0 12.57-12l-1.62-40a12 12 0 0 0-12-11.53l-152.3 7.3a12 12 0 0 0-11.39 12.42l7.3 152.3a12 12 0 0 0 12.57 11.41z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              {aiStatus && !aiStatus.hasPack ? (
+                <div
+                  className="account-ai-pack-alert danger"
+                  onClick={handleOpenAiProfile}
+                  title="Thiết bị chưa được gán AI Pack. Nhấn để mở hồ sơ AI trên vuahethong.net để kích hoạt."
+                >
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                    <path d="M8 1L1 14h14L8 1zm0 3l5.2 9H2.8L8 4zm-.8 3v3.2h1.6V7H7.2zm0 4.4v1.6h1.6v-1.6H7.2z" />
+                  </svg>
+                  <span className="account-ai-alert-text">Chưa gán AI Pack</span>
+                  <span className="account-ai-alert-link">Gán ngay &rarr;</span>
+                </div>
+              ) : aiStatus?.hasPack ? (
+                <div
+                  className="account-ai-pack-alert success"
+                  title={'AI Pack đang kích hoạt: ' + (aiStatus.packName || aiStatus.model)}
+                  onClick={handleOpenAiProfile}
+                >
+                  <span className="account-ai-active-dot" />
+                  <span className="account-ai-alert-text">
+                    AI: {aiStatus.packName || aiStatus.model}
+                  </span>
+                </div>
+              ) : null}
             </div>
           ) : (
             <>

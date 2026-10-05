@@ -88,7 +88,8 @@ function electronCompatArgs(): string[] {
 export function gskApiKey(): string {
   if (process.env.GSK_API_KEY) return process.env.GSK_API_KEY
   const own = genofficeApiKey()
-  if (own) return own
+  // VuaOffice: Only treat as Genspark key if it matches Genspark prefix, avoiding VuaHeThong JWTs
+  if (own && (own.startsWith('gsk-') || own.startsWith('gsk_'))) return own
   try {
     const configPath = join(homedir(), '.genspark-tool-cli', 'config.json')
     if (!existsSync(configPath)) return ''

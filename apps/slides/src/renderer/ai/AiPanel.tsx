@@ -1009,13 +1009,15 @@ export function AiPanel({
         })
       },
       isCloudPageGenEnabled: async () => {
+        const cur = settingsRef.current
+        // VuaOffice: When using vuaaipro (VuaHeThong AI), use the native local generation pipeline
+        if (cur.provider === 'vuaaipro') return false
         // Cloud page generation runs on Genspark's own slide model and spends
         // Genspark credits, so it is gated by the "Genspark cloud tools" toggle
         // plus the main-process account status only — the chat provider does not
         // gate it (search/media gate per capability, not per chat provider). A
         // free-plan or credits-exhausted account is covered by the mid-run
         // fallback to the local pipeline instead of disabling cloud up front.
-        const cur = settingsRef.current
         if (!cloudToolsEnabled(cur)) return false
         try {
           return !!(await window.slidesApi.cloudGenStatus())?.enabled
@@ -1101,6 +1103,11 @@ export function AiPanel({
       // Cloud single-page generation (gsk slide_generate): the cloud service owns HTML writing +
       // pptx conversion; the deck-level style/outline stay local.
       generatePageCloud: async (args) => {
+        const cur = settingsRef.current
+        // VuaOffice: Route cloud generation directly to VuaHeThong AI local pipeline
+        if (cur.provider === 'vuaaipro') {
+          return access.generatePageLocal!(args)
+        }
         try {
           const briefParts = [args.brief]
           if (args.layout) briefParts.push(`Layout intent: ${args.layout}`)
@@ -2189,7 +2196,24 @@ export function AiPanel({
               )}
               {entry.tools && entry.tools.length > 0 && <ToolChipList tools={entry.tools} />}
               {entry.error && (
-                <div className="ai-msg-error">{t('aiMsgError', { error: entry.error })}</div>
+                <div className="ai-msg-error">
+                  {entry.error.includes('Thiết bị chưa được gán AI Pack') || entry.error.includes('permission_denied') || entry.error.includes('403') ? (
+                    <div className="ai-pack-permission-card">
+                      <div className="ai-pack-permission-msg">
+                        Thiết bị chưa được gán AI Pack hoặc gói đã bị thay đổi trên vuahethong.net. Vui lòng kiểm tra trên trang cá nhân.
+                      </div>
+                      <button
+                        type="button"
+                        className="ai-open-vuahethong-btn"
+                        onClick={() => window.open('https://vuahethong.net/my/ai-provider', '_blank')}
+                      >
+                        Mở Vua Hệ Thống
+                      </button>
+                    </div>
+                  ) : (
+                    t('aiMsgError', { error: entry.error })
+                  )}
+                </div>
               )}
               {entry.loginRequired && (
                 <button className="ai-login-btn" onClick={() => void window.slidesApi.aiGskLogin()}>

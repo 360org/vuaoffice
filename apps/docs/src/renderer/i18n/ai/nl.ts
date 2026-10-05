@@ -9,7 +9,7 @@ export const nl = {
   aiStarterContinue: 'Schrijf verder waar het document ophoudt',
   aiStarterFillTemplate: 'Zoek en vul de tijdelijke aanduidingen in het document in',
   aiGskLoginBtn: 'Aanmelden bij VuaOffice',
-  aiPanelTitle: 'VuaOffice AI',
+  aiPanelTitle: 'VuaAI Pro',
   aiOpenAssistant: 'AI-assistent openen',
   aiSummarizeBtn: 'AI-samenvatting',
   aiSummarizePrompt: 'Vat de hoofdinhoud en kernpunten van dit document samen',

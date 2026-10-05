@@ -28,7 +28,7 @@ import {
 import type { MenuItemConstructorOptions, NativeImage, WebContents } from 'electron'
 import { atomicCopyFile, atomicWriteFile } from './atomic-write'
 import { tabStripOverlay } from './title-bar-overlay'
-import { handshakeOdooAiConfig } from './ai-handshake'
+import { handshakeOdooAiConfig, getAiHandshakeStatus } from './ai-handshake'
 import menuDocxIcon1x from './assets/menu-docx.png?asset'
 import menuDocxIcon2x from './assets/menu-docx@2x.png?asset'
 import menuXlsxIcon1x from './assets/menu-xlsx.png?asset'
@@ -4478,6 +4478,18 @@ function registerHomeIpc(): void {
     })
   })
 
+  ipcMain.handle(HOME_CHANNELS.syncAiConfig, async () => {
+    return await handshakeOdooAiConfig(APP_SETTINGS_PATH(), AI_SETTINGS_PATH());
+  })
+
+  ipcMain.handle(HOME_CHANNELS.getAiConfigStatus, () => {
+    return getAiHandshakeStatus();
+  })
+
+  ipcMain.handle(HOME_CHANNELS.openAiProfile, (_e, setupUrl) => {
+    void shell.openExternal(setupUrl || 'https://vuahethong.net/my/ai-provider?tab=packs');
+  })
+
   ipcMain.handle(HOME_CHANNELS.openCreditUsage, () => {
     shell.openExternal(CREDIT_USAGE_URL).catch(() => {
       // no browser handler available; nothing actionable for the user here
@@ -6000,6 +6012,20 @@ async function runHeadlessExportEntry(
 
 app.whenReady().then(async () => {
   handshakeOdooAiConfig(APP_SETTINGS_PATH(), AI_SETTINGS_PATH()).catch(e => console.error('[AI] Handshake error on start:', e))
+  
+  // Re-verify device authorization when user switches back to VuaOffice
+  app.on('browser-window-focus', () => {
+    if (loadGenofficeAuth()) {
+      handshakeOdooAiConfig(APP_SETTINGS_PATH(), AI_SETTINGS_PATH()).catch(() => {})
+    }
+  })
+
+  // Periodic heartbeat every 45s to detect remote revocation immediately
+  setInterval(() => {
+    if (loadGenofficeAuth()) {
+      handshakeOdooAiConfig(APP_SETTINGS_PATH(), AI_SETTINGS_PATH()).catch(() => {})
+    }
+  }, 45_000)
   setTimeout(() => ensureFileIndexer()?.refresh(), 4000)
   installRendererProtocol({
     docs: join(DOCS_OUT, 'renderer'),

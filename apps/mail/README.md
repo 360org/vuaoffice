@@ -8,7 +8,7 @@ Module Email Client phong cách **Microsoft Outlook** tích hợp trực tiếp 
 
 - 📬 **Outlook Fluent UI**: Bố cục 3 cột kinh điển (AppRail & Folder Tree, Message List phân loại Focused/Other, Reading & Viewer Pane).
 - ⚡ **Local SQLite Engine**: Lưu trữ toàn bộ dữ liệu email cục bộ với SQLite WAL Mode (`better-sqlite3`), hỗ trợ truy vấn siêu tốc và hàng đợi thao tác ngoại tuyến (Offline OpQueue).
-- 🧠 **VuaOffice AI Assistant**:
+- 🧠 **VuaAI Pro Assistant**:
   - Tóm tắt chuỗi hội thoại email (AI Thread Summary).
   - Soạn thảo và trau chuốt email thông minh (AI Compose Draft).
   - Trả lời nhanh chỉ với 1 cú nhấp chuột (Smart Reply).

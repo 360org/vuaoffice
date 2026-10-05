@@ -216,7 +216,7 @@ export function RibbonHomeTab({ rb }: { rb: RibbonTabCtx }) {
   }
   return (
     <>
-      <Group label="VuaOffice AI">
+      <Group label="VuaAI Pro">
         <button
           className={`rb-big ai-entry${aiOpen ? ' active' : ''}`}
           data-tip={t('aiOpenAssistant')}
@@ -225,7 +225,7 @@ export function RibbonHomeTab({ rb }: { rb: RibbonTabCtx }) {
           <span className="rb-big-icon">
             <GensparkMark size={26} />
           </span>
-          <span>VuaOffice AI</span>
+          <span>VuaAI Pro</span>
         </button>
         <button
           className="rb-big ai-entry"

@@ -1405,7 +1405,24 @@ export function AiPanel({
               )}
               {entry.tools && entry.tools.length > 0 && <ToolChipList tools={entry.tools} />}
               {entry.error && (
-                <div className="ai-msg-error">{t('aiErrorPrefix', { error: entry.error })}</div>
+                <div className="ai-msg-error">
+                  {entry.error.includes('Thiết bị chưa được gán AI Pack') || entry.error.includes('permission_denied') || entry.error.includes('403') ? (
+                    <div className="ai-pack-permission-card">
+                      <div className="ai-pack-permission-msg">
+                        Thiết bị chưa được gán AI Pack hoặc gói đã bị thay đổi trên vuahethong.net. Vui lòng kiểm tra trên trang cá nhân.
+                      </div>
+                      <button
+                        type="button"
+                        className="ai-open-vuahethong-btn"
+                        onClick={() => window.open('https://vuahethong.net/my/ai-provider', '_blank')}
+                      >
+                        Mở Vua Hệ Thống
+                      </button>
+                    </div>
+                  ) : (
+                    t('aiErrorPrefix', { error: entry.error })
+                  )}
+                </div>
               )}
               {entry.loginRequired && (
                 <button className="ai-login-btn" onClick={() => void window.desktop.aiGskLogin()}>

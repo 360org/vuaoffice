@@ -813,7 +813,7 @@ export const strings = {
     navStarred: 'Đã gắn sao',
     navCloud: 'Dự án Genspark',
     cloudSubtitle:
-      'Các dự án được tạo trên web với VuaOffice AI. Tiếp tục chỉnh sửa trên trình duyệt của bạn — nhấp vào bất kỳ dự án nào để mở.',
+      'Các dự án được tạo trên web với VuaAI Pro. Tiếp tục chỉnh sửa trên trình duyệt của bạn — nhấp vào bất kỳ dự án nào để mở.',
     cloudSearchPlaceholder: 'Tìm kiếm {n} dự án…',
     cloudNoResults: 'Không có dự án phù hợp.',
     cloudGroupThisWeek: 'Tuần này',
@@ -6248,7 +6248,7 @@ export const strings = {
     navStarred: 'Oblíbené',
     navCloud: 'Genspark Projects',
     cloudSubtitle:
-      'Projekty vytvořené na webu pomocí VuaOffice AI. Úpravy pokračují v prohlížeči — klikněte na projekt a otevřete ho.',
+      'Projekty vytvořené na webu pomocí VuaAI Pro. Úpravy pokračují v prohlížeči — klikněte na projekt a otevřete ho.',
     cloudSearchPlaceholder: 'Hledat mezi {n} projekty…',
     cloudNoResults: 'Žádné odpovídající projekty.',
     cloudGroupThisWeek: 'Tento týden',

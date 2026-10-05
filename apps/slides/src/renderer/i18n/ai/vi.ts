@@ -19,7 +19,7 @@ export const vi = {
   aiQcStopped: 'Đã dừng kiểm tra bố cục',
   aiQcCapped: 'Còn {count} trang chưa được kiểm tra (giới hạn mỗi lượt chạy)',
   aiGskLoginBtn: 'Đăng nhập VuaOffice',
-  aiPanelTitle: 'VuaOffice AI',
+  aiPanelTitle: 'VuaAI Pro',
   aiOpenAssistant: 'Mở trợ lý AI',
   aiFactCheckBtn: 'Kiểm tra tính xác thực bằng AI',
   aiFactCheckPrompt: 'Kiểm tra tính xác thực của bản trình chiếu: xác minh số liệu, ngày tháng, tên và nhận định, sau đó chỉ ra và sửa các lỗi',

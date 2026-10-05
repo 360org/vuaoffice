@@ -197,7 +197,7 @@ async function openAiCompatibleTurn(
   onBytes()
   if (!response.ok || !response.body) {
     throw new Error(
-      `HTTP ${response.status}: ${httpBodyDetail(await readCappedResponseText(response, onBytes))}`,
+      `HTTP ${response.status}: ${httpBodyDetail(await readCappedResponseText(response, onBytes), response.status)}`,
     )
   }
   const jsonBody = await jsonBodyInsteadOfSse(response, onBytes)

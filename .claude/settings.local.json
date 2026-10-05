@@ -3,14 +3,16 @@
     "allow": [
       "Bash(git branch *)",
       "Bash(gh pr *)",
-      "Bash(gh repo *)"
+      "Bash(gh repo *)",
+      "/Volumes/DATA/DEV/OmniRouter/**"
     ],
     "additionalDirectories": [
       "/Volumes/DATA/DEV/vuaoffice",
       "/Volumes/DATA/DEV/VuaMail",
       "/Volumes/DATA/DEV/aiac",
       "/Volumes/DATA/DEV/SKILL_SOURCES/deepseek-harness",
-      "/Volumes/DATA/DEV/backend_base"
+      "/Volumes/DATA/DEV/backend_base",
+      "/Volumes/DATA/DEV/OmniRouter"
     ],
     "allowedWorkspaces": [
       "/Volumes/DATA/DEV/vuaoffice",
@@ -21,5 +23,8 @@
     ]
   },
   "env": {},
-  "allowedWorkspace": "/Volumes/DATA/DEV/vuaoffice"
+  "allowedWorkspace": "/Volumes/DATA/DEV/vuaoffice",
+  "allowedWorkspaces": [
+    "/Volumes/DATA/DEV/OmniRouter"
+  ]
 }

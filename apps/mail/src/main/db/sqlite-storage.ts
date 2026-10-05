@@ -128,7 +128,7 @@ export class SQLiteMailStorage {
         id: 'msg_2',
         accountId,
         folderId: 'f_inbox',
-        senderName: 'VuaOffice AI Agent',
+        senderName: 'VuaAI Pro Agent',
         senderEmail: 'ai@vuahethong.com',
         recipientEmails: ['chau.le@360.org.vn'],
         subject: 'Báo cáo tổng kết tuần & Lịch họp rà soát tính năng mới',
@@ -269,7 +269,7 @@ export class SQLiteMailStorage {
               <li><strong>Local Engine</strong>: SQLite Storage siêu tốc, đồng bộ Op-Queue offline.</li>
               <li><strong>Giao diện Microsoft Outlook</strong>: Ribbon Fluent UI 3 cột chuẩn Microsoft 365.</li>
               <li><strong>Đa tài khoản & Cây thư mục</strong>: Hỗ trợ cây thư mục Accordion chuyển đổi tức thì.</li>
-              <li><strong>VuaOffice AI</strong>: Hỗ trợ tóm tắt chuỗi thư và soạn thảo phản hồi tự động thông minh.</li>
+              <li><strong>VuaAI Pro</strong>: Hỗ trợ tóm tắt chuỗi thư và soạn thảo phản hồi tự động thông minh.</li>
               <li><strong>To-Do, Calendar & People</strong>: Đồng bộ hóa toàn bộ công việc, lịch biểu và danh bạ đối tác.</li>
             </ul>
             <p>Trân trọng,<br/><strong>360 CORP Engineering Team</strong></p>
@@ -288,7 +288,7 @@ export class SQLiteMailStorage {
               <li><strong>Báo cáo tuần</strong>: File DOCX chi tiết tiến độ các module VuaOffice.</li>
               <li><strong>Kế hoạch triển khai VuaOffice Mail</strong>: File PDF lộ trình phát triển v0.7.0.</li>
             </ul>
-            <p>Sếp có thể nhấn nút <strong>"Tóm tắt email này với VuaOffice AI"</strong> hoặc chọn phản hồi nhanh bên dưới nhé.</p>
+            <p>Sếp có thể nhấn nút <strong>"Tóm tắt email này với VuaAI Pro"</strong> hoặc chọn phản hồi nhanh bên dưới nhé.</p>
           </div>
         `,
         plainText: 'Báo cáo tổng kết tuần & Lịch họp rà soát tính năng mới...',

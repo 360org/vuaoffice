@@ -406,6 +406,15 @@ const homeApi: HomeApi = {
   async openGenTeam() {
     await ipcRenderer.invoke(HOME_CHANNELS.openGenTeam)
   },
+  async syncAiConfig() {
+    return (await ipcRenderer.invoke(HOME_CHANNELS.syncAiConfig))
+  },
+  async getAiConfigStatus() {
+    return (await ipcRenderer.invoke(HOME_CHANNELS.getAiConfigStatus))
+  },
+  async openAiProfile(setupUrl) {
+    await ipcRenderer.invoke(HOME_CHANNELS.openAiProfile, setupUrl)
+  },
   async openCreditUsage() {
     await ipcRenderer.invoke(HOME_CHANNELS.openCreditUsage)
   },
