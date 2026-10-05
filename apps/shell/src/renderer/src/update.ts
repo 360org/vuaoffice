@@ -14,6 +14,7 @@ const progressText = el('progress-text')
 const percentText = el('percent')
 const action = el('action') as HTMLButtonElement
 const later = el('later') as HTMLButtonElement
+const manualLink = el('manual-link') as HTMLButtonElement
 
 let phase: UpdateUiState['phase'] = 'available'
 
@@ -29,6 +30,7 @@ function render(state: UpdateUiState): void {
   later.textContent = s.later
 
   desc.classList.toggle('error', state.phase === 'error' || state.phase === 'manual')
+  if (manualLink && state.phase !== 'error') manualLink.style.display = 'none'
 
   switch (state.phase) {
     case 'available':
@@ -58,6 +60,10 @@ function render(state: UpdateUiState): void {
       progress.style.display = 'none'
       action.style.display = ''
       action.textContent = s.retry
+      if (manualLink) {
+        manualLink.style.display = ''
+        manualLink.textContent = s.openDownload
+      }
       break
     case 'manual':
       desc.textContent = s.manualDesc
@@ -79,3 +85,5 @@ api.onState(render)
 void api.getState().then((state) => {
   if (state) render(state)
 })
+
+manualLink?.addEventListener('click', () => api.openDownload())
