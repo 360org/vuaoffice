@@ -421,19 +421,19 @@ export const MailRibbon: React.FC<MailRibbonProps> = ({
                   type="button"
                   className={`rb-big ai-entry ${aiOpen ? 'active' : ''}`}
                   onClick={onToggleAi}
-                  title="Mở bảng trợ lý VuaAI Pro"
+                  title="Mở bảng trợ lý Genspark AI"
                 >
                   <span className="rb-big-icon">
                     <GensparkMark size={24} />
                   </span>
-                  <span>VuaAI Pro</span>
+                  <span>Genspark AI</span>
                 </button>
                 <button
                   type="button"
                   className="rb-big ai-entry"
                   disabled={!hasSelectedEmail}
                   onClick={onAiAssist}
-                  title="Tóm tắt nội dung email bằng VuaAI Pro"
+                  title="Tóm tắt nội dung email bằng Genspark AI"
                 >
                   <span className="rb-big-icon">
                     <IconFileText size={22} />
