@@ -5,7 +5,15 @@ import {
   createKnowledgeBaseSkill,
   type KbFileInfo,
 } from '@genoffice/agent-core'
-import { AiComposer, AiTypingIndicator, createFileNav, Markdown } from '@genoffice/ui'
+import {
+  AiComposer,
+  AiTypingIndicator,
+  AiUsageChip,
+  addTokenUsage,
+  createFileNav,
+  Markdown,
+  type AiTokenUsageView,
+} from '@genoffice/ui'
 import type { AiSettings } from '@genoffice/ai-provider'
 import { useI18n } from './locale'
 import sendEnterOn from './assets/send-enter-on.png'
@@ -40,6 +48,8 @@ interface AskMessage {
   toolNotes: ToolNote[]
   streaming?: boolean
   isError?: boolean
+  /** tokens the provider billed for this answer, summed across its turns (absent when unreported) */
+  usage?: AiTokenUsageView
 }
 
 export function KbAskPanel({
@@ -49,7 +59,7 @@ export function KbAskPanel({
   onOpenPath: (path: string) => void
   onGoToRecents: () => void
 }): React.JSX.Element {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const [messages, setMessages] = useState<AskMessage[]>([])
   const [draft, setDraft] = useState('')
   const [busy, setBusy] = useState(false)
@@ -61,6 +71,10 @@ export function KbAskPanel({
   const scrollRef = useRef<HTMLDivElement>(null)
   /** bumped by Stop: an ask still refreshing the corpus must not start its run */
   const askSeqRef = useRef(0)
+  /** tokens billed so far in the in-flight answer (summed across turns) */
+  const runUsageRef = useRef<AiTokenUsageView | undefined>(undefined)
+  /** tokens billed across the panel's session (the composer chip) */
+  const [sessionUsage, setSessionUsage] = useState<AiTokenUsageView | undefined>(undefined)
 
   const refreshSettings = (): void => {
     void window.aiOffice
@@ -116,6 +130,11 @@ export function KbAskPanel({
             ],
           })),
         onDone: () => finishLast(),
+        onUsage: (usage) => {
+          runUsageRef.current = addTokenUsage(runUsageRef.current, usage)
+          setSessionUsage((prev) => addTokenUsage(prev, usage))
+          patchLast({ usage: runUsageRef.current })
+        },
         onError: (error) =>
           patchLast((last) => ({
             text: last.text || error,
@@ -159,6 +178,7 @@ export function KbAskPanel({
     setBusy(true)
     refreshSettings()
     const seq = ++askSeqRef.current
+    runUsageRef.current = undefined
     // freshly starred files are answerable this very turn
     try {
       const files = await window.aiOffice.kbList()
@@ -261,6 +281,11 @@ export function KbAskPanel({
             ) : m.streaming ? (
               <AiTypingIndicator label={t('askHintBusy')} />
             ) : null}
+            {m.role === 'assistant' && m.usage && (
+              <div className="ai-message-usage">
+                <AiUsageChip usage={m.usage} lang={lang} />
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -284,6 +309,9 @@ export function KbAskPanel({
         sendIconEnabled={<img src={sendEnterOn} alt="" aria-hidden />}
         sendIconDisabled={<img src={sendEnterOff} alt="" aria-hidden />}
         stopIcon={<img src={sendStop} alt="" aria-hidden />}
+        footerStart={
+          sessionUsage ? <AiUsageChip usage={sessionUsage} session lang={lang} /> : undefined
+        }
         onChange={setDraft}
         onSend={() => void ask()}
         onStop={() => {

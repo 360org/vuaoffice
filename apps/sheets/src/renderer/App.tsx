@@ -64,7 +64,12 @@ import { isNumericIdentifierText } from './cell-warning'
 import { consumePendingUndoCarry, undoStackDepth } from './undo-carry'
 import { createSaveGate, shouldRunSaveTick } from './save-scheduler'
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
-import { useAutoSavePref, type AiScopeQuoteData } from '@genoffice/ui'
+import {
+  useAutoSavePref,
+  addTokenUsage,
+  type AiTokenUsageView,
+  type AiScopeQuoteData,
+} from '@genoffice/ui'
 
 import {
   CellValueType,
@@ -1343,6 +1348,10 @@ export function App({
   const runToolsRef = useRef<
     Array<{ name: string; summary: string; isError?: boolean; input?: string; output?: string }>
   >([])
+  /** tokens billed so far in the in-flight run (summed across turns) */
+  const runUsageRef = useRef<AiTokenUsageView | undefined>(undefined)
+  /** tokens billed across the session (the composer chip) */
+  const [sessionUsage, setSessionUsage] = useState<AiTokenUsageView | undefined>(undefined)
   /** AI plans apply asynchronously after propose_operations returns. Run
    * completion waits for these before doing the run's single auto-save. */
   const aiApplyPromisesRef = useRef<Promise<boolean>[]>([])
@@ -1429,6 +1438,11 @@ export function App({
               ],
             }
           })
+        },
+        onUsage: (usage) => {
+          runUsageRef.current = addTokenUsage(runUsageRef.current, usage)
+          setSessionUsage((prev) => addTokenUsage(prev, usage))
+          patchLastAssistant((entry) => ({ ...entry, usage: runUsageRef.current }))
         },
         onDone: ({ text, cancelled, turnLimit, truncated }) => {
           // Prefer tool summaries when the model finished via tools with no prose
@@ -3370,6 +3384,7 @@ export function App({
     const instruction = (overrideInstruction ?? prompt).trim()
     if (!instruction || aiBusy) return
     runToolsRef.current = []
+    runUsageRef.current = undefined
     // The message consumes the composer attachments: they ride along (echoed on the
     // bubble, images multimodal, files via the files skill) and the composer clears.
     // Retry passes the failed message's original set instead.
@@ -5056,6 +5071,7 @@ export function App({
         onOpenWorkbook={() => void handleInspectWorkbook()}
         onDismissEmptyCsvNotice={() => setEmptyCsvNotice(false)}
         aiBusy={aiBusy}
+        {...(sessionUsage !== undefined ? { sessionUsage } : {})}
         chat={chat}
         historicChat={historicChat}
         attachments={attachments}
