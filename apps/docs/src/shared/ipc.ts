@@ -133,6 +133,7 @@ export type MenuCommand =
   | 'zoom-set'
   | 'zoom-page-width'
   | 'zoom-whole-page'
+  | 'zoom-multi-page'
   | 'toggle-ai'
   | 'toggle-dark'
   | 'insert-table'
@@ -189,6 +190,12 @@ export type MenuCommand =
   | 'shortcuts'
 
 export type UiTheme = 'light' | 'dark' | 'system'
+
+/**
+ * Document page theme preference (genoffice#1811): what the canvas/paper does relative
+ * to the UI theme. 'follow' keeps the previous single-theme behavior.
+ */
+export type DocTheme = 'follow' | 'light' | 'dark'
 
 /** shell-wide AutoSave default; updatedAt is 0 until the user has ever set it */
 export interface AutoSaveDefault {
@@ -304,6 +311,10 @@ export interface DesktopApi {
   getTheme(): Promise<UiTheme>
   /** theme switched from the shell home page */
   onThemeChanged(handler: (theme: UiTheme) => void): () => void
+  /** current document page theme preference (genoffice#1811, persisted by the shell in app-settings.json) */
+  getDocumentTheme(): Promise<DocTheme>
+  /** document page theme switched from the shell home page */
+  onDocumentThemeChanged(handler: (theme: DocTheme) => void): () => void
   /** shell-wide AutoSave default (see useAutoSavePref) */
   getAutoSaveDefault(): Promise<AutoSaveDefault>
   onAutoSaveDefaultChanged(handler: (value: AutoSaveDefault) => void): () => void
@@ -431,6 +442,10 @@ export interface DesktopApi {
   fontMetrics(family: string): Promise<FaceVerticalMetrics | null>
   getAiSettings(): Promise<AiSettings>
   setAiSettings(settings: AiSettings): Promise<void>
+  /** ai-settings.json was rewritten by any renderer; re-read it */
+  onAiSettingsChanged(handler: () => void): () => void
+  /** shell only: switch to Home and open Settings › AI Model (rejects in standalone) */
+  openAiModelSettings(): Promise<void>
   /** system print dialog for the current window; ok=false without error = canceled.
    *  scale: print scale inverting the preview's print zoom (print-zoom.ts) */
   print(scale?: number): Promise<{ ok: boolean; error?: string }>
@@ -534,10 +549,34 @@ export interface DesktopApi {
   readAttachment(path: string, offset: number, maxChars: number): Promise<AttachmentReadResult>
   /** read an image attachment as base64 for multimodal input (≤5MB) */
   readAttachmentImage(path: string): Promise<AttachmentImageResult>
+  /** the reader's starred files as the AI's knowledge base */
+  kbList(): Promise<
+    Array<{
+      path: string
+      folder: string
+      folderPath: string
+      name: string
+      ext: string
+      sizeBytes: number
+    }>
+  >
+  /** full-text search over the starred set; q capped like the home search box */
+  kbSearch(query: {
+    q: string
+    limit?: number
+  }): Promise<Array<{ path: string; name: string; ext: string; folder: string; snippet: string }>>
+  /** one page of a starred file's parsed text (path must be in kbList) */
+  kbRead(
+    path: string,
+    offset: number,
+  ): Promise<{ text: string; totalChars: number; offset: number }>
+
   /** absolute path of a File dropped onto the window (Electron webUtils) */
   getPathForFile(file: File): string
   /** View → New Tab: open another docs tab, optionally loading the same document */
   openNewTab(openPath?: string | null): Promise<void>
+  /** open any shell-routed document path (an AI answer's filenav citation) */
+  openSourcePath(path: string): Promise<void>
   /** all open docs tabs, for View → Switch Tab */
   listDocsTabs(): Promise<DocsTabInfo[]>
   focusDocsTab(id: string): Promise<void>

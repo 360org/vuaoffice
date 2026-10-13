@@ -86,13 +86,14 @@ import { pruneUnreferencedNumbering } from './numbering-actions'
 import { applySectPrRewrites, type SectPrRewrite } from './sectpr-rewrite'
 import { createSaveSerializer } from './save-until-persisted'
 import { checkMissingFonts, collectDocFonts } from './font-check'
-import { setDocFontTable } from './line-metrics'
+import { hangulSpaceWideningFor, setDocFontTable, setHangulSpaceWidening } from './line-metrics'
 import { adoptEmbeddedFonts } from './embedded-fonts'
 import { defaultEastAsiaFontFor } from './font-list'
 import { hasPrintableHeaderFooter } from './pagination'
 import { clearPrintZoom, setPrintZoom } from './print-zoom'
 import { showToast } from './components/toast-bus'
 import { buildStandaloneHtml } from './html-export'
+import { aiPanelInitiallyOpen } from '@genoffice/ui'
 
 /** An export waiting for the pagination preview to mount; resolve settles the caller's exportPdf promise. */
 export type PendingPdfExport = { outPath?: string; resolve: (ok: boolean) => void }
@@ -297,6 +298,7 @@ function applyDocLayoutSettings(editor: Editor, parsed: ParsedDocFull): void {
   editor.storage.cjkPunctShrink.hangPunct = parsed.compressPunctuation !== true
   editor.storage.cjkPunctShrink.legacyLayout = (parsed.compatibilityMode ?? 0) < 15
   editor.storage.cjkPunctShrink.docEastAsiaLang = parsed.docDefaults?.eastAsiaLang ?? null
+  setHangulSpaceWidening(hangulSpaceWideningFor(parsed))
   // Chromium only hyphenates under an explicit lang (the app shell is zh-CN);
   // scoped to autoHyphenation docs so CJK font fallback is untouched elsewhere
   const lang = parsed.autoHyphenation ? parsed.docDefaults?.lang : undefined
@@ -632,7 +634,8 @@ export async function newFile(ctx: FileActionContext): Promise<boolean | undefin
     ctx.onWriteProtectionLoaded(null)
     ctx.setCompareResult(null)
     ctx.dirtyRef.current = false
-    ctx.setShowAi(true)
+    // same rule as the first render, so the "open in new documents" setting holds for Cmd+N too
+    ctx.setShowAi(aiPanelInitiallyOpen('aidocs.showAi'))
     ctx.setStatus(t('appNewDocCreated'))
     return true
   } catch (err) {

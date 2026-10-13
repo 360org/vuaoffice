@@ -1,7 +1,18 @@
 import { ANTHROPIC_BASE_URL } from './protocols/anthropic'
 import { GEMINI_BASE_URL } from './protocols/gemini'
 import { AI_PROVIDERS, DEEPSEEK_V41_FLASH, GENSPARK_LLM_BASE_URLS } from './providers'
+import {
+  customProtocolBaseUrl,
+  normalizeCustomProfile,
+  resolveCustomProfile,
+} from './custom-profile'
+import { appendPath, normalizeBaseUrl, stripTrailingV1 } from './url-compose'
+import { modelHasFixedSampling, modelLacksVision } from './model-heuristics'
 import type { AiProviderConfig, AiProviderId, AiProviderMeta } from './types'
+
+/** The shipped model-family guesses live in ./model-heuristics; re-exported for callers. */
+export { normalizeBaseUrl } from './url-compose'
+export { modelEchoesReasoning, modelHasFixedSampling, modelLacksVision } from './model-heuristics'
 
 /** Wire protocols every provider maps onto, including the official Codex app-server bridge. */
 export type AiProtocol = 'anthropic' | 'gemini' | 'openai-compatible' | 'codex-app-server'
@@ -24,6 +35,16 @@ export interface ResolvedEndpoint {
   bodyExtras?: Record<string, unknown>
   /** id to put on the wire when the vendor spells the configured model differently */
   model?: string
+  /** the endpoint wants `reasoning_content` echoed back on assistant tool turns */
+  echoReasoning?: boolean
+  /** static headers the user's endpoint needs (tenant id, gateway routing key) */
+  headers?: Record<string, string>
+  /** stream idle budget override for this endpoint (slow local servers need minutes) */
+  idleTimeoutMs?: number
+  /** the configured model's declared output ceiling, honored over the global cap */
+  maxTokens?: number
+  /** images may be sent to this endpoint (custom: from the profile, else the heuristic) */
+  vision?: boolean
 }
 
 export interface ProviderAdapter {
@@ -36,68 +57,6 @@ export interface ProviderAdapter {
 function metaOf(id: AiProviderId): AiProviderMeta {
   return AI_PROVIDERS.find((m) => m.id === id)!
 }
-
-/**
- * Model families that fix sampling and reject a temperature field, on any
- * route — vendor API, the Genspark proxy, OpenRouter's vendor-prefixed ids,
- * or a mirror behind a custom base URL. Kimi K3 answers "only 1 is allowed";
- * OpenAI's GPT-5 and GPT-6 reasoning families reject any temperature other
- * than the default outright, and the o-series reasoning models (o1/o3/o4) likewise
- * only accept the default. Google's Gemini 3 docs strongly recommend keeping
- * the default temperature of 1.0 for the whole Gemini 3 family, since lower
- * values may cause looping or degraded reasoning, so our hard-coded 0.3
- * must not be sent there either.
- */
-export function modelHasFixedSampling(model: string): boolean {
-  return /(^|\/)(kimi-k3([^\w]|$)|gpt-[5-9]([^\w]|$)|gemini-3([^\w]|$)|o1(-mini|-preview)?([^\w]|$)|o3(-mini)?([^\w]|$)|o4-mini([^\w]|$))/i.test(
-    model,
-  )
-}
-
-/**
- * Model ids that reject image input even under a vision-capable provider.
- * DeepSeek V4 Pro and V4 Flash are text-only; V4.1 Flash and the -vision*
- * branches take images, so they fall through and receive screenshots.
- *
- * Ant's Ling line and Meituan's LongCat are the same shape: a text catalog
- * with one multimodal member. `Ling-3.0-flash-VL` and `LongCat-2.5-Preview`
- * (image understanding, per the 2026-09-25 LongCat change log) take images;
- * every other id on those two providers is text-only. A text-only id added to
- * either list has to be added here too — the provider flag alone would hand it
- * screenshots, which is what this function exists to prevent.
- */
-export function modelLacksVision(model: string): boolean {
-  // MiniMax-M2.7 remains text-only when MiniMax-M3 enables provider vision.
-  if (/(^|\/)minimax-m2\.7($|-)/i.test(model)) return true
-  return (
-    /(^|\/)deep-?seek-v4-(?:pro(?:$|-)|flash(?!-vision))/i.test(model) ||
-    /(^|\/)(?:ling-(?:3\.0-flash(?!-vl)|3\.0-tiny|2\.6-1t|2\.6-flash)|ring-2\.6-1t|longcat-2\.0(?:$|-))/i.test(
-      model,
-    )
-  )
-}
-
-/**
- * Interleaved-thinking families whose vendors want the reasoning echoed back
- * on assistant messages: MiniMax documents that stripping it degrades
- * multi-turn tool use, and DeepSeek V4 rejects tool turns without it. Gated
- * per model because other vendors may reject the unknown field. Hunyuan joins
- * them because hy4-preview ships deep thinking on by default, so its first
- * turn already carries `reasoning_content`.
- */
-export function modelEchoesReasoning(model: string): boolean {
-  return /(^|\/)(minimax-m|deep-?seek-(v4|flash)|hy-?[34]([^\w]|$))/i.test(model)
-}
-
-/**
- * DeepSeek V4 thinks by default, and once a request carries `tools` the API
- * rejects (400) every later turn whose assistant messages don't echo back the
- * `reasoning_content` it produced. Our OpenAI-compatible transcript has no
- * field to carry that, so the agent loop would die right after its first tool
- * call. Pin the models to non-thinking mode — what the retired deepseek-chat
- * alias did — until the transcript can round-trip reasoning.
- */
-const DEEPSEEK_NON_THINKING = { thinking: { type: 'disabled' } }
 
 /**
  * The direct API 400s on the versioned pool spelling we list (verified
@@ -118,52 +77,6 @@ const OPENCODE_GATEWAY_ROOTS = {
   zen: 'https://opencode.ai/zen',
   go: 'https://opencode.ai/zen/go',
 } as const
-
-/**
- * Stored provider settings are user data: a custom base URL must be a
- * bounded http(s) URL. Anything else (file:/javascript: schemes, megabyte
- * strings) would misroute gateway traffic or overflow request builders.
- *
- * A query string is kept — Azure-style bases pin `?api-version=…` and
- * gateways pin a version there — while the fragment is dropped (it is never
- * sent to the server, and leaving it on would truncate every composed
- * endpoint path). Embedded credentials are refused outright: they would end
- * up in request logs and error messages, and the api key field is the
- * supported place for them.
- */
-export function normalizeBaseUrl(raw: string | undefined, fallback: string): string {
-  const candidate = (raw ?? fallback).trim()
-  if (candidate === '' || candidate.length > 2048) {
-    throw new Error('Base URL must be a non-empty http(s) URL under 2048 characters')
-  }
-  let parsed: URL
-  try {
-    parsed = new URL(candidate)
-  } catch {
-    throw new Error('Base URL must be a valid http(s) URL')
-  }
-  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-    throw new Error('Base URL must use http or https')
-  }
-  if (parsed.username || parsed.password) {
-    throw new Error('Base URL must not embed credentials; put the key in the API key field')
-  }
-  parsed.hash = ''
-  return parsed.toString()
-}
-
-/** Strip trailing slashes and a trailing /v1 from the path (before any query) */
-function stripTrailingV1(base: string): string {
-  const q = base.indexOf('?')
-  const path = (q === -1 ? base : base.slice(0, q)).replace(/\/+$/, '').replace(/\/v1$/, '')
-  return q === -1 ? path : `${path}${base.slice(q)}`
-}
-
-/** Append a path segment before any query string so `?api-version=…` stays last */
-function appendPath(base: string, path: string): string {
-  const q = base.indexOf('?')
-  return q === -1 ? `${base}${path}` : `${base.slice(0, q)}${path}${base.slice(q)}`
-}
 
 function opencodeEndpoint(
   root: string,
@@ -246,10 +159,9 @@ export const AI_PROVIDER_ADAPTERS: Record<AiProviderId, ProviderAdapter> = {
     capabilities: { auth: 'api-key', vision: true },
     resolveEndpoint(config) {
       const wire = DEEPSEEK_WIRE_IDS[config.model]
+      // thinking stays on (vendor default); the transcript echoes reasoning_content for tool turns
       return {
-        ...fixedEndpoint('openai-compatible', 'https://api.deepseek.com/v1', {
-          bodyExtras: DEEPSEEK_NON_THINKING,
-        })(config),
+        ...fixedEndpoint('openai-compatible', 'https://api.deepseek.com/v1')(config),
         ...(wire ? { model: wire } : {}),
       }
     },
@@ -299,29 +211,19 @@ export const AI_PROVIDER_ADAPTERS: Record<AiProviderId, ProviderAdapter> = {
     // conservative: the chat models are documented for text first, so we do not
     // hand them screenshots until a model card says otherwise
     capabilities: { auth: 'api-key', vision: false },
-    // the mainland TokenHub host; the international one differs only by the
-    // `intl` label (tokenhub-intl.tencentcloudmaas.com), reachable by storing
-    // a base URL on this provider
-    resolveEndpoint: fixedEndpoint('openai-compatible', 'https://tokenhub.tencentmaas.com/v1'),
+    // mainland TokenHub host; the intl one (tokenhub-intl.tencentcloudmaas.com)
+    // is reachable by storing a base URL on this provider
+    resolveEndpoint: fixedEndpoint('openai-compatible', 'https://tokenhub.tencentcloudmaas.com/v1'),
   },
   ling: {
     meta: metaOf('ling'),
-    // Ling-3.0-flash-VL reads images, so the provider is vision-capable;
-    // modelLacksVision() keeps the five text-only ids off screenshots
     capabilities: { auth: 'api-key', vision: true },
-    // the base_url every official example uses (quickstart + OpenAI-compatible
-    // reference, read 2026-10-01); /v1/models on it answers 401
-    // sdk_token_not_found, so it is the live first-party host
     resolveEndpoint: fixedEndpoint('openai-compatible', 'https://api.ant-ling.com/v1'),
   },
   spark: {
     meta: metaOf('spark'),
     capabilities: { auth: 'api-key', vision: false },
-    // the MaaS base from section 1.1 of the product guide (read 2026-10-01):
-    // chat is POST https://maas-api.cn-huabei-1.xf-yun.com/v2/chat/completions,
-    // which is this base plus the path endpointUrl() appends, so the two
-    // compose back to the documented URL. The same host also serves
-    // /v1/responses and /anthropic/v1/messages; we speak chat-completions
+    // endpointUrl() appends chat/completions to this documented /v2 base
     resolveEndpoint: fixedEndpoint(
       'openai-compatible',
       'https://maas-api.cn-huabei-1.xf-yun.com/v2',
@@ -329,8 +231,6 @@ export const AI_PROVIDER_ADAPTERS: Record<AiProviderId, ProviderAdapter> = {
   },
   longcat: {
     meta: metaOf('longcat'),
-    // 2.5-Preview reads images (2026-09-25 change log); modelLacksVision()
-    // holds 2.0 back, which predates image understanding
     capabilities: { auth: 'api-key', vision: true },
     resolveEndpoint: fixedEndpoint('openai-compatible', 'https://api.longcat.chat/openai/v1'),
   },
@@ -372,6 +272,12 @@ export const AI_PROVIDER_ADAPTERS: Record<AiProviderId, ProviderAdapter> = {
     // one chat-completions endpoint for every model; the model id picks the lab
     resolveEndpoint: fixedEndpoint('openai-compatible', 'https://api.cheaperinference.com/v1'),
   },
+  atlascloud: {
+    meta: metaOf('atlascloud'),
+    capabilities: { auth: 'api-key', vision: true },
+    // one chat-completions endpoint for every lab; the namespaced model id picks it
+    resolveEndpoint: fixedEndpoint('openai-compatible', 'https://api.atlascloud.ai/v1'),
+  },
   'opencode-zen': {
     meta: metaOf('opencode-zen'),
     capabilities: { auth: 'api-key', vision: true },
@@ -396,10 +302,22 @@ export const AI_PROVIDER_ADAPTERS: Record<AiProviderId, ProviderAdapter> = {
     capabilities: { auth: 'api-key', vision: true },
     resolveEndpoint(config) {
       if (!config.baseUrl) throw new Error('A custom provider requires a Base URL')
+      const profile = normalizeCustomProfile(config.profile)
+      // Resolve against the id the user configured: an alias rewrites the wire
+      // value but must not hide the declaration that produced it.
+      const resolved = resolveCustomProfile(profile, config.model ?? '')
       return {
-        protocol: 'openai-compatible',
-        baseUrl: normalizeBaseUrl(config.baseUrl, ''),
-        ...(modelHasFixedSampling(config.model) ? { omitTemperature: true } : {}),
+        protocol: resolved.protocol,
+        baseUrl: customProtocolBaseUrl(resolved.protocol, config.baseUrl),
+        ...(resolved.omitTemperature ? { omitTemperature: true } : {}),
+        ...(resolved.useMaxCompletionTokens ? { useMaxCompletionTokens: true } : {}),
+        ...(resolved.echoReasoning !== undefined ? { echoReasoning: resolved.echoReasoning } : {}),
+        ...(resolved.bodyExtras ? { bodyExtras: resolved.bodyExtras } : {}),
+        ...(resolved.wireModel ? { model: resolved.wireModel } : {}),
+        ...(resolved.headers ? { headers: resolved.headers } : {}),
+        ...(resolved.idleTimeoutMs !== undefined ? { idleTimeoutMs: resolved.idleTimeoutMs } : {}),
+        ...(resolved.maxTokens !== undefined ? { maxTokens: resolved.maxTokens } : {}),
+        ...(resolved.vision !== undefined ? { vision: resolved.vision } : {}),
       }
     },
   },
@@ -425,4 +343,29 @@ export function getProviderAdapter(provider: AiProviderId): ProviderAdapter {
   const adapter = AI_PROVIDER_ADAPTERS[provider]
   if (!adapter) throw new Error(`Unknown provider: ${provider}`)
   return adapter
+}
+
+/**
+ * Whether images may be sent to the active provider's configured model.
+ *
+ * A custom endpoint answers from its declared profile when it carries one
+ * (the whole point: the user knows what their server takes, the shipped
+ * heuristics do not); otherwise the provider capability plus the text-only
+ * model list decide, exactly as before. Anything the registry rejects — an
+ * unknown provider id in a hand-edited file — is treated as text-only, the
+ * same conservative answer callers made before profiles existed.
+ */
+export function endpointSupportsVision(settings: {
+  provider: AiProviderId
+  providers?: Partial<Record<AiProviderId, AiProviderConfig>> | undefined
+}): boolean {
+  try {
+    const adapter = getProviderAdapter(settings.provider)
+    if (!adapter.capabilities.vision) return false
+    const config = settings.providers?.[settings.provider]
+    if (!config) return false
+    return adapter.resolveEndpoint(config).vision ?? !modelLacksVision(config.model)
+  } catch {
+    return false
+  }
 }

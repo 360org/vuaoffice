@@ -15,7 +15,12 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-function renderRibbon(sourceMode: boolean) {
+/**
+ * @param sourceMode the .txt/.json "this file is source text" flag from genoffice#1848
+ * @param sourceViewOpen this PR's markdown source view, kept a separate flag
+ *   because the two mean different things and can never both be on
+ */
+function renderRibbon(sourceMode: boolean, sourceViewOpen = false) {
   const editor = new Editor({
     extensions: buildExtensions({
       slashController: { onOpen() {}, onUpdate() {}, onKeyDown: () => false, onClose() {} },
@@ -50,6 +55,8 @@ function renderRibbon(sourceMode: boolean) {
         onToggleAi: vi.fn(),
         onAiPreset: vi.fn(),
         sourceMode,
+        sourceViewOpen,
+        onToggleSource: vi.fn(),
       }),
     )
   })
@@ -81,9 +88,16 @@ describe('Ribbon source mode', () => {
     const markdown = counts(renderRibbon(false))
     expect(markdown.styleDropdown).toBe(1)
     expect(source.styleDropdown).toBe(0)
-    expect(markdown.iconButtons).toBe(14)
-    // source mode keeps exactly one: the spellcheck toggle
-    expect(source.iconButtons).toBe(1)
+    // 14 block-formatting controls, plus this PR's withhold toggle, plus the
+    // markdown-only source-view toggle (absent for a .txt/.json, which has no
+    // use for it), plus the image-host button, which is not a formatting
+    // control and so renders in either mode, plus the paper-theme picker,
+    // which the source view benefits from just as much.
+    expect(markdown.iconButtons).toBe(18)
+    // source mode keeps exactly two: the spellcheck toggle (the withhold
+    // toggle gates the block editor's marks, which source mode does not carry)
+    // and the paper-theme picker (the paper exists in source view too)
+    expect(source.iconButtons).toBe(2)
   })
 
   it('keeps the actions that still apply to source text', () => {
@@ -93,9 +107,47 @@ describe('Ribbon source mode', () => {
     expect(container.querySelector('.autosave-toggle')).not.toBeNull()
   })
 
+  it('disables the block-formatting controls in the markdown source view', () => {
+    // A different situation from a .txt/.json, and so a different answer. Here
+    // the document is still live behind the pane — a keystroke in it is parsed
+    // straight back into the editor — so the controls are disabled rather than
+    // removed: they act on a selection the reader cannot see right now, and
+    // removing them would make the ribbon jump on every toggle.
+    const open = renderRibbon(false, true)
+    const plain = renderRibbon(false)
+    // Label-free on purpose: this suite renders in the default locale, so an
+    // aria-label lookup would be asserting on a translation. What matters is
+    // how many controls are live, and whether the ribbon lost any of them.
+    const disabledIn = (container: HTMLElement) =>
+      container.querySelectorAll('button.rb-btn:disabled').length
+    // Relative, not absolute: undo and redo are already disabled on a fresh
+    // document, so the claim is that opening the view quiets MORE of them.
+    expect(disabledIn(open)).toBeGreaterThan(disabledIn(plain))
+    // nothing was removed: the reader's ribbon does not jump on toggle, and
+    // the controls come back enabled when the view closes
+    expect(counts(open).iconButtons).toBe(counts(plain).iconButtons)
+  })
+
+  it('keeps Save As live in both modes and Find live only outside the source view', () => {
+    const quick = (container: HTMLElement) =>
+      Array.from(container.querySelectorAll<HTMLButtonElement>('.ribbon-tabs .qa-btn'))
+    const [, saveAsPlain, , , findPlain] = quick(renderRibbon(false))
+    const [, saveAsSource, , , findSource] = quick(renderRibbon(true))
+    const [, saveAsView, , , findView] = quick(renderRibbon(false, true))
+    expect(saveAsPlain!.disabled).toBe(false)
+    expect(saveAsSource!.disabled).toBe(false)
+    expect(saveAsView!.disabled).toBe(false)
+    expect(findPlain!.disabled).toBe(false)
+    expect(findSource!.disabled).toBe(false)
+    expect(findView!.disabled).toBe(true)
+  })
+
   it('shows the formatting controls again for a markdown file', () => {
     const { styleDropdown, iconButtons } = counts(renderRibbon(false))
     expect(styleDropdown).toBe(1)
-    expect(iconButtons).toBe(14)
+    // 18 here too: the source-view toggle is present here and absent above,
+    // the withhold toggle, the image-host button and the paper-theme picker
+    // are present in both
+    expect(iconButtons).toBe(18)
   })
 })

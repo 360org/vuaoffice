@@ -17,7 +17,6 @@ import {
   matrixBounds,
   modelCellValue,
   navigateToAnchor,
-  preloadEntireWorkbook,
   workbookStructureLocked,
   queueFormulaRecalc,
   queueSparklineInstall,
@@ -61,11 +60,21 @@ import {
   structuralDeleteFormulaErrorSync,
   type PlanContext,
 } from './plan-operations'
+import {
+  registerCellFontAliases,
+  untilCellFontsLoaded,
+  workbookFontFamilies,
+} from './cell-font-fallback'
 import { isNumericIdentifierText } from './cell-warning'
 import { consumePendingUndoCarry, undoStackDepth } from './undo-carry'
-import { shouldRunSaveTick } from './save-scheduler'
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { useAutoSavePref, type AiScopeQuoteData } from '@genoffice/ui'
+import { createSaveGate, shouldRunSaveTick } from './save-scheduler'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import {
+  useAutoSavePref,
+  addTokenUsage,
+  type AiTokenUsageView,
+  type AiScopeQuoteData,
+} from '@genoffice/ui'
 
 import {
   CellValueType,
@@ -118,6 +127,14 @@ import UniverPresetSheetsTableEnUS from '@univerjs/preset-sheets-table/locales/e
 import '@univerjs/preset-sheets-table/lib/index.css'
 import { greenTheme } from '@univerjs/themes'
 import { createUniver } from './create-univer'
+import { planFileTableRegistrations } from './file-tables'
+import {
+  createTableDefaultRange,
+  selectedTableEcho,
+  selectedTableEquals,
+  type SelectedTableRibbon,
+  type TableDesignContext,
+} from './table-design-actions'
 
 import {
   AgentLoop,
@@ -144,6 +161,8 @@ import {
 import { InMemoryWorkbookAdapter } from '@genoffice/xlsx-gateway/domain/in-memory-workbook'
 import { cfRuleUnsaveableReason, iconSetSaveable } from '@genoffice/xlsx-gateway/gateway/xlsx-cf'
 import { installLazyFindBridge } from './lazy-find'
+import { startFullLoad } from './full-load'
+import { opensInFormulaMode, workbookCellCounts } from './load-budget'
 import { installReplaceAutoSearch } from './replace-autosearch'
 import { FindReplacePanel } from './FindReplacePanel'
 import {
@@ -152,6 +171,14 @@ import {
   storeCrossHighlightPreference,
   type CrossHighlightHandle,
 } from './cross-highlight'
+import { installOutlineGutter, type OutlineGutterHandle } from './outline-gutter'
+import {
+  loadRowOutlines,
+  outlineSummarySettings,
+  showOutlineLevel,
+  toggleOutlineGroup,
+} from './outline-actions'
+import { moveOutlineEntries, shiftOutlineEntries } from './outline-model'
 import type { ApplyOutcome, ChangePlan } from '@genoffice/xlsx-gateway/domain/workbook.types'
 import { createElectronTransport } from './ai/transport'
 import {
@@ -204,7 +231,6 @@ import {
   EMPTY_CHART_EDITS,
   FILTER_COMMAND_PATTERN,
   FILTER_MUTATIONS,
-  FORMULA_MODE_MAX_CELLS,
   initialSnapshot,
   MERGE_MUTATIONS,
   MOVE_RANGE_COMMAND,
@@ -221,11 +247,11 @@ import {
   safeJsonInput,
   SET_FROZEN_MUTATION,
   SET_NUMFMT_MUTATION,
+  SET_RIGHT_TO_LEFT_MUTATION,
   TOGGLE_GRIDLINES_MUTATION,
   SET_ZOOM_OPERATION,
   SET_ZOOM_COMMAND,
   OPEN_FILTER_PANEL_OPERATION,
-  FULL_LOAD_MAX_CELLS,
   SET_RANGE_VALUES_MUTATION,
   SET_RANGE_VALUES_COMMAND,
   SHEET_LIFECYCLE_MUTATIONS,
@@ -233,6 +259,13 @@ import {
   STRUCTURAL_EDIT_COMMAND_PATTERN,
   STRUCTURE_LOCK_COMMANDS,
 } from './app-constants'
+import {
+  fullLoadGate,
+  largestRangeCells,
+  rangeHasStreamedFormulas,
+  reorderCommandRanges,
+  reorderGate,
+} from './reorder-gate'
 import {
   getActiveSheetInfo as getActiveSheetInfoImpl,
   readCells as readCellsImpl,
@@ -254,7 +287,9 @@ import {
   handleTimelineRange as handleTimelineRangeImpl,
   isSelectionInPivot as isSelectionInPivotImpl,
   pivotEditInitial as pivotEditInitialImpl,
+  pivotFieldMembers as pivotFieldMembersImpl,
   pivotFieldOptions as pivotFieldOptionsImpl,
+  pivotSelectionKey as pivotSelectionKeyImpl,
   type PivotActionContext,
   type PivotEditContext,
   type SlicerPickerState,
@@ -276,7 +311,6 @@ import {
   consolidateDefaultReference as consolidateDefaultReferenceImpl,
   goToReference as goToReferenceImpl,
   handleApplyAdvancedFilter as handleApplyAdvancedFilterImpl,
-  handleApplyFormula as handleApplyFormulaImpl,
   handleCreateConsolidate as handleCreateConsolidateImpl,
   handleCreateSubtotal as handleCreateSubtotalImpl,
   handleInsertSymbol as handleInsertSymbolImpl,
@@ -286,7 +320,10 @@ import {
 import { installTsvClipboardFix } from './clipboard-tsv'
 import { installFilteredCopyHook } from './filtered-copy'
 import { installFilterRangeOutlineSuppression } from './filter-range-outline'
+import { createSheetTabActions } from './sheet-tab-actions'
+import { installVeryHiddenSheetGuard } from './very-hidden-sheets'
 import { installFormulaBarAutosize } from './formula-bar-autosize'
+import { createFunctionArgumentsHost, installFxButtonHook } from './function-arguments-runtime'
 import {
   applyShowFormulasView,
   installFormulaTextInterceptor,
@@ -296,6 +333,7 @@ import { installCachedValueFallbackInterceptor } from './formula-cached-fallback
 import { readLiveFunctionInfos } from './function-catalog'
 import { installSupportedFunctionProbe } from './function-registry-probe'
 import { installCellFilenameFunction } from './cell-function'
+import { installRightToLeftCommand, refreshSheetRender, sheetIsRightToLeft } from './sheet-rtl-view'
 import { installFormulaLexerFix } from './formula-lexer-fix'
 import { installErrorValueAlignment } from './error-value-align'
 import { installFormulaNewlineDisplay } from './formula-newline-display'
@@ -303,9 +341,12 @@ import { installCfDisplayKeyCompare } from './cf-duplicate-key'
 import { installCfFormulaFold } from './cf-formula-fold'
 import { installSheetRenameFix } from './sheet-rename-fix'
 import { installArrowCollapse } from './arrow-collapse-fix'
+import { effectiveSheetProtection, installSheetProtectionGuard } from './sheet-protection'
+import type { SheetProtectionAllow } from '@genoffice/xlsx-gateway/gateway/xlsx-protection'
 import { installCtrlDragFill } from './ctrl-drag-fill'
 import { installContextSubmenuReopenFix } from './context-submenu-reopen-fix'
 import { installMenuInputEnter } from './menu-input-enter'
+import { installCellContextMenu } from './cell-context-menu'
 import { installClipboardAnchorTile } from './clipboard-anchor-tile'
 import { installSelectionWrapGuard } from './selection-wrap-fix'
 import { sharedFormulaResolverFor } from './shared-formula-journal'
@@ -315,6 +356,14 @@ import { installCfEmptySheetFastPath } from './cf-empty-fast-path'
 import { installMergeBorderFix } from './merge-border-fix'
 import { installThickBorderFix } from './thick-border-fix'
 import { installCenterContinuousRender } from './center-continuous'
+import { installExcelFilterButton } from './filter-button-excel-style'
+import {
+  extendLargeFilterRange,
+  installLargeFilterValues,
+  isLargeFilterSheet,
+  largeFilterAction,
+} from './large-filter'
+import { resetLargeFilter } from './large-filter-state'
 import { installForceStringMarkGate, installLongTextRender } from './long-text-render'
 import { installAutofitWrapBudget } from './autofit-wrap-budget'
 import { installAutofitLinePitch } from './autofit-line-pitch'
@@ -326,12 +375,19 @@ import { installRtlTextDirectionFix } from './rtl-text-fix'
 import { installRtlGridMirror } from './rtl-grid-mirror'
 import { installMultiRowAutofit } from './autofit-multi-row'
 import { registerExcelJumpNav } from './excel-jump-nav'
+import { registerEditorWordJump } from './editor-word-jump'
 import { registerExcelShortcuts } from './excel-shortcuts'
 import { InsertDeleteCellsDialog } from './InsertDeleteCellsDialog'
 import { runCellsChoice } from './insert-delete-cells'
 import type { CellsMode } from './insert-delete-cells'
 import { installFormatPainter } from './format-painter'
 import { installCopyMaterialize } from './copy-materialize'
+import {
+  applyPasteSpecial,
+  readPasteSpecialSource,
+  type PasteSpecialOptions,
+  type PasteSpecialSource,
+} from './paste-special'
 import { installStatusBarFileStats } from './statusbar-file-stats'
 import {
   installStatusBarStatsFilter,
@@ -345,6 +401,9 @@ import { applyUniverLocale, insertRowsBelowLocale, numberAsTextAlertLocale } fro
 import { installRuleDetail } from './univer-rule-detail'
 import { installActiveCellDataValidationChrome } from './data-validation-dropdown'
 import { installInvalidDataMarkerSuppression } from './data-validation-marker'
+import { installThreadedCommentAffordances, type ThreadHover } from './threaded-comment-marker'
+import { threadPane, threadStore } from './threaded-comments'
+import { ThreadHoverCard, ThreadedCommentsPane } from './ThreadedCommentsPane'
 import { installFormulaNullResultFix } from './formula-null-result'
 import { installNumberFormatFix } from './numfmt-fix'
 import { installIfsEmptySetFix } from './ifs-empty-set'
@@ -358,7 +417,8 @@ import {
   handleApplyHeaderFooter as handleApplyHeaderFooterImpl,
   handleExportPdf as handleExportPdfImpl,
   handlePageLayoutCommand as handlePageLayoutCommandImpl,
-  handlePrint as handlePrintImpl,
+  openPrintPreviewHost,
+  type PrintPreviewHost,
   type PageLayoutContext,
 } from './page-layout-actions'
 import { handleExportCsv as handleExportCsvImpl, type CsvExportContext } from './csv-export'
@@ -370,9 +430,19 @@ import {
   applyShapeEdit as applyShapeEditImpl,
   flushPendingChartDataSync,
   queueChartDataSync as queueChartDataSyncImpl,
+  queueChartRefResync,
   readChartVector as readChartVectorImpl,
   type VisualSyncContext,
 } from './visual-edit-sync'
+import {
+  frameChangeEdit,
+  handleVisualCommand,
+  liveVisual,
+  visualFrameInfo,
+  type VisualArrangeContext,
+  type VisualDialogKind,
+} from './visual-arrange-actions'
+import { VisualDialog, type SizeDialogResult } from './VisualDialogs'
 
 import {
   createEditJournal,
@@ -389,6 +459,7 @@ import {
   recordSetNumfmt,
   recordSetRangeValues,
   recordSheetHidden,
+  recordSheetTabColor,
   recordSheetDuplicate,
   recordSheetInsert,
   recordSheetOrderChange,
@@ -402,9 +473,10 @@ import { getLang, t, aiLangDirective } from './i18n/locale'
 import { planStillMatches } from './lazy-plan'
 import { lastSurvivingScreenLine, netAxisDelta, screenToFile } from './view-transform'
 import { selectionFormatEquals, toSelectionFormat, type SelectionFormat } from './selection-format'
-import { ExcelShell } from './ExcelShell'
+import { ExcelShell, type SelectedShapeRibbon } from './ExcelShell'
 import { RecoveryDialog } from './RecoveryDialog'
 import { ToastHost } from './toast'
+import { showToast } from './toast-bus'
 import { AdvancedFilterDialog, type AdvancedFilterColumn } from './AdvancedFilterDialog'
 import { EquationDialog } from './EquationDialog'
 import { IconsDialog } from './IconsDialog'
@@ -419,6 +491,7 @@ import {
   resetCalculationMode,
   setManualCalculation,
 } from './calc-options'
+import { applyFillSeries, fillSeriesContext } from './fill-series-apply'
 import { solveGoalSeek } from './goal-seek'
 import {
   awaitFormulaValues,
@@ -437,12 +510,15 @@ import {
   installWorkbookVisuals,
   isVisualDragActive,
   setChartDialogListener,
+  setVisualCommandListener,
   setVisualSelectionListener,
   subscribeChartElementSelection,
   type ChartDialogKind,
   type ChartEditData,
   type ChartVectorRead,
   type ShapeEditChanges,
+  isEditableFileVisual,
+  isEditableShape,
 } from './WorkbookVisuals'
 import { ChartFormatPane, SelectDataDialog } from './ChartPanels'
 import { handleSheetsControl, type ControlRequest } from './control'
@@ -488,6 +564,8 @@ export function App({
   const [univerHist, setUniverHist] = useState({ canUndo: false, canRedo: false })
   /// Set once Univer boots; mounts the app's Excel-style Find & Replace panel.
   const [findReplaceService, setFindReplaceService] = useState<IFindReplaceService | null>(null)
+  const [threadHover, setThreadHover] = useState<ThreadHover | null>(null)
+  const getRuntime = useCallback(() => univerRef.current, [])
   /// True while Univer's in-cell editor is open (AutoSave must not save-reload then).
   const editingCellRef = useRef(false)
   const visualDisposablesRef = useRef<{ dispose(): void }[]>([])
@@ -500,6 +578,7 @@ export function App({
   const [pageBreakPreviewSheets, setPageBreakPreviewSheets] = useState<ReadonlySet<string>>(
     new Set(),
   )
+  const [printHost, setPrintHost] = useState<PrintPreviewHost | null>(null)
   const pageBreakLayersRef = useRef<Map<string, { dispose(): void }[]>>(new Map())
   const pageBreakIdRef = useRef(0)
   /// App-level setting, Excel-style: not stored in the file, kept across
@@ -509,6 +588,7 @@ export function App({
   /// localStorage like the auto-save flag; off until the user opts in.
   const [crossHighlightVisible, setCrossHighlightVisible] = useState(loadCrossHighlightPreference)
   const crossHighlightRef = useRef<CrossHighlightHandle | null>(null)
+  const outlineGutterRef = useRef<OutlineGutterHandle | null>(null)
   const visualInstallTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const sparklineDisposablesRef = useRef<{ dispose(): void }[]>([])
   const sparklineTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -556,13 +636,7 @@ export function App({
   // Ref mirror for callbacks captured when an AI run starts
   const autoSaveRef = useRef(autoSave)
   autoSaveRef.current = autoSave
-  // One save at a time, shared by BOTH timers below: AutoSave ('save') and the
-  // crash-recovery copy ('recovery') used to carry independent in-flight flags,
-  // so with AutoSave on a dirty workbook could start both saves concurrently;
-  // the first finisher tears the workbook session down while the second is
-  // still reading, and the survivor reports "Unknown workbook session."
-  // (save failed) although the file was written.
-  const saveInFlightRef = useRef(false)
+  const saveGateRef = useRef(createSaveGate())
   // AutoSave tick (docs/slides parity): every 30 s and on window blur, flush
   // pending edits of the open workbook. The journal is read at tick time so
   // the interval stays stable; demo mode has no backing file and is skipped.
@@ -578,7 +652,7 @@ export function App({
       if (
         !state ||
         !shouldRunSaveTick({
-          saveInFlight: saveInFlightRef.current,
+          saveInFlight: saveGateRef.current.busy,
           hasWorkbook: true,
           journalEmpty: journalSize(state.editJournal) === 0,
           editingCell: editingCellRef.current,
@@ -590,10 +664,7 @@ export function App({
         })
       )
         return
-      saveInFlightRef.current = true
-      void handleSaveRef.current('save', true).finally(() => {
-        saveInFlightRef.current = false
-      })
+      void handleSaveRef.current('save', true)
     }
     const id = window.setInterval(tick, 30_000)
     window.addEventListener('blur', tick)
@@ -612,13 +683,11 @@ export function App({
       const state = lazyWorkbookRef.current
       // The in-cell editor's pending text is not in the journal yet, a
       // converted import has no original file to recover into, and a restored
-      // recovery session is backed by the recovery copy itself. Shares the
-      // in-flight gate with the AutoSave tick above so the two saves can
-      // never race (see save-scheduler.ts).
+      // recovery session is backed by the recovery copy itself.
       if (
         !state ||
         !shouldRunSaveTick({
-          saveInFlight: saveInFlightRef.current,
+          saveInFlight: saveGateRef.current.busy,
           hasWorkbook: true,
           journalEmpty: journalSize(state.editJournal) === 0,
           editingCell: editingCellRef.current,
@@ -630,10 +699,7 @@ export function App({
         })
       )
         return
-      saveInFlightRef.current = true
-      void handleSaveRef.current('recovery').finally(() => {
-        saveInFlightRef.current = false
-      })
+      void handleSaveRef.current('recovery')
     }
     const id = window.setInterval(tick, 30_000)
     return () => window.clearInterval(id)
@@ -648,8 +714,11 @@ export function App({
   /// cancelled, so instead of a silent no-op the user gets an explicit offer
   /// to fully load the workbook first.
   const [fullLoadPrompt, setFullLoadPrompt] = useState<'ask' | 'tooLarge' | null>(null)
-  const fullLoadRunning = useRef(false)
   const [message, setMessage] = useState(t('appReadyInitial'))
+  const sheetTabActions = useMemo(
+    () => createSheetTabActions({ univerRef, lazyWorkbookRef, notify: setMessage }),
+    [],
+  )
   const [openingWorkbook, setOpeningWorkbook] = useState(
     () =>
       queuedWorkbookAtBoot ||
@@ -713,6 +782,13 @@ export function App({
   /// The focused floating visual (chart/shape/image); charts surface a
   /// contextual Chart Design ribbon tab while selected.
   const [selectedVisual, setSelectedVisual] = useState<WorkbookVisualObject | null>(null)
+  const [visualDialog, setVisualDialog] = useState<{
+    kind: VisualDialogKind
+    visualId: string
+  } | null>(null)
+  const visualCommandRef = useRef<(command: string, visualId: string) => void>(() => undefined)
+  const [selectedTable, setSelectedTable] = useState<SelectedTableRibbon | null>(null)
+  const [tableCreatedSeq, setTableCreatedSeq] = useState(0)
   /// Chart panels (Select Data dialog / format task pane), opened from the
   /// ribbon or the chart context menu, keyed like chart edits.
   const [chartDialog, setChartDialog] = useState<{ kind: ChartDialogKind; editKey: string } | null>(
@@ -782,6 +858,7 @@ export function App({
   /// A3 editing of an existing pivot: context locked when the dialog opens, used
   /// on Apply.
   const pivotEditContextRef = useRef<PivotEditContext | null>(null)
+  const [pivotSelectionKey, setPivotSelectionKey] = useState<string | null>(null)
   const lazyPreviewRef = useRef<{
     sessionId: string
     sheetId: string
@@ -838,6 +915,17 @@ export function App({
     return { univerRef, lazyWorkbookRef, setMessage, setPendingEdits, setAdvancedFilterColumns }
   }
 
+  function tableDesignContext(): TableDesignContext {
+    return {
+      univerRef,
+      lazyWorkbookRef,
+      setMessage,
+      setPendingEdits,
+      refreshSelection: () => refreshSelectionFormatRef.current(),
+      onTableCreated: () => setTableCreatedSeq((seq) => seq + 1),
+    }
+  }
+
   function pageLayoutContext(): PageLayoutContext {
     return {
       univerRef,
@@ -888,7 +976,7 @@ export function App({
               if (state.flags.preloadComplete) return true
               const runtime = univerRef.current
               if (runtime && !state.flags.preloadRunning) {
-                void preloadEntireWorkbook(runtime, lazyWorkbookRef, setMessage)
+                void startFullLoad(runtime, lazyWorkbookRef, setMessage)
               }
               return false
             },
@@ -918,6 +1006,7 @@ export function App({
       lazyWorkbookRef,
       setMessage,
       openLazyWorkbook,
+      setPendingEdits,
       readCells: (addresses, sheetId) => readCellsImpl(readContext(), addresses, sheetId),
       stashViewRestore: (view) => {
         viewRestoreRef.current = view
@@ -936,6 +1025,21 @@ export function App({
       refreshDemoVisuals,
     }
   }
+
+  function visualArrangeContext(): VisualArrangeContext {
+    return {
+      univerRef,
+      lazyWorkbookRef,
+      shapeEditRef,
+      setMessage,
+      refreshLazyVisuals,
+      setPendingEdits,
+      openDialog: (kind, visualId) => setVisualDialog({ kind, visualId }),
+      resyncChart: (state, editKey) => queueChartRefResync(visualSyncContext(), state, editKey),
+    }
+  }
+  visualCommandRef.current = (command, visualId) =>
+    handleVisualCommand(visualArrangeContext(), command, visualId)
 
   function proposeOperations(
     operations: readonly WorkbookOperation[],
@@ -1034,9 +1138,11 @@ export function App({
       deselect: () => setSelectedVisual(null),
     })
     setChartDialogListener((editKey, dialog) => setChartDialog({ kind: dialog, editKey }))
+    setVisualCommandListener((command, visualId) => visualCommandRef.current(command, visualId))
     return () => {
       setVisualSelectionListener(null)
       setChartDialogListener(null)
+      setVisualCommandListener(null)
     }
   }, [])
 
@@ -1249,6 +1355,10 @@ export function App({
   const runToolsRef = useRef<
     Array<{ name: string; summary: string; isError?: boolean; input?: string; output?: string }>
   >([])
+  /** tokens billed so far in the in-flight run (summed across turns) */
+  const runUsageRef = useRef<AiTokenUsageView | undefined>(undefined)
+  /** tokens billed across the session (the composer chip) */
+  const [sessionUsage, setSessionUsage] = useState<AiTokenUsageView | undefined>(undefined)
   /** AI plans apply asynchronously after propose_operations returns. Run
    * completion waits for these before doing the run's single auto-save. */
   const aiApplyPromisesRef = useRef<Promise<boolean>[]>([])
@@ -1336,6 +1446,11 @@ export function App({
             }
           })
         },
+        onUsage: (usage) => {
+          runUsageRef.current = addTokenUsage(runUsageRef.current, usage)
+          setSessionUsage((prev) => addTokenUsage(prev, usage))
+          patchLastAssistant((entry) => ({ ...entry, usage: runUsageRef.current }))
+        },
         onDone: ({ text, cancelled, turnLimit, truncated }) => {
           // Prefer tool summaries when the model finished via tools with no prose
           // (agent-core fills history with COMPLETED_VIA_TOOLS_TEXT so follow-ups
@@ -1414,11 +1529,14 @@ export function App({
             return next
           })
           // Signed-out failures get an inline sign-in button; detected via
-          // gsk status rather than matching the localized error text
+          // gsk status rather than matching the localized error text — but only
+          // when Genspark is the provider: a BYOK user's error (e.g. their own
+          // provider's rate limit) must not advertise a Genspark sign-in (#1948)
           void window.desktopApi
             .aiGskStatus()
             .then((status) => {
               if (status.loggedIn) return
+              if ((aiSettingsRef.current?.provider ?? 'genspark') !== 'genspark') return
               setChat((previous) => {
                 const next = [...previous]
                 const last = next.at(-1)
@@ -1607,16 +1725,26 @@ export function App({
   }
 
   useEffect(() => {
-    void window.desktopApi.getAiSettings().then(setAiSettingsState)
+    const loadSettings = () => void window.desktopApi.getAiSettings().then(setAiSettingsState)
+    loadSettings()
+    return window.desktopApi.onAiSettingsChanged?.(loadSettings)
   }, [])
 
   useEffect(() => {
     // Univer paints the grid on canvas, so it can't follow the CSS tokens —
-    // mirror the <html data-theme> state into its official darkMode flag
+    // mirror the canvas state into its official darkMode flag: an explicit
+    // <html data-doc-theme> pin (genoffice#1811) wins, otherwise the <html data-theme>
+    // state as before
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)')
-    const isDarkTheme = () =>
-      document.documentElement.getAttribute('data-theme') === 'dark' ||
-      (!document.documentElement.hasAttribute('data-theme') && prefersDark.matches)
+    const isDarkTheme = () => {
+      const docAttr = document.documentElement.getAttribute('data-doc-theme')
+      if (docAttr === 'dark') return true
+      if (docAttr === 'light') return false
+      return (
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        (!document.documentElement.hasAttribute('data-theme') && prefersDark.matches)
+      )
+    }
     const runtime = createUniver({
       // green selection/highlight instead of Univer's default blue
       theme: greenTheme,
@@ -1675,6 +1803,7 @@ export function App({
     // must precede the first render: the filter render module registers at
     // lifecycle Rendered, and Excel draws no outline around a filtered range
     installFilterRangeOutlineSuppression(runtime)
+    installVeryHiddenSheetGuard(runtime, lazyWorkbookRef)
     loadSnapshotIntoUniver(runtime, initialSnapshot, 'new-workbook', 'Untitled')
     univerRef.current = runtime
     // The hidden spare can have a canvas/editor before Univer finishes booting.
@@ -1703,6 +1832,7 @@ export function App({
       crossHighlightRef.current?.refresh()
     }
     const offThemeChanged = window.desktopApi?.onThemeChanged?.(applyUniverDark)
+    const offDocThemeChanged = window.desktopApi?.onDocumentThemeChanged?.(applyUniverDark)
     prefersDark.addEventListener('change', applyUniverDark)
     // Undo/redo stack occupancy: the QAT buttons grey out when there is nothing to apply
     const undoRedoService = runtime.univer.__getInjector().get(IUndoRedoService)
@@ -1738,10 +1868,14 @@ export function App({
     // sheetView rightToLeft="1": mirror the grid geometry (column A on the
     // right, headers on the right) while keeping logical indices.
     installRtlGridMirror()
+    // Univer defines the right-to-left command/mutation pair but never
+    // registers it; without this the View tab's toggle would silently no-op.
+    installRightToLeftCommand(runtime)
     installRichTextBidiFix()
     // Excel's "Center Across Selection": center anchor text over its run of
     // blank same-format neighbors instead of folding it inside one cell.
     installCenterContinuousRender()
+    installExcelFilterButton()
     // Paragraph-sized plain text cells: draw only the slice that can reach the
     // clip box instead of shaping the whole string every frame.
     installLongTextRender()
@@ -1795,6 +1929,7 @@ export function App({
     const formulaTextDisposable = installFormulaTextInterceptor(runtime, lazyWorkbookRef)
     // The fx bar grows to fit a wrapped formula instead of clipping it.
     const formulaBarAutosizeDisposable = installFormulaBarAutosize(runtime)
+    const fxButtonDisposable = installFxButtonHook(runtime)
     // A file formula the engine re-computes into an error shows the file's
     // cached result instead; display-only.
     const cachedValueDisposable = installCachedValueFallbackInterceptor(runtime, lazyWorkbookRef)
@@ -1836,6 +1971,13 @@ export function App({
     // Arrows on a multi-cell selection collapse to the active cell first,
     // then move one step (Excel), instead of stepping past the range edge.
     const arrowCollapseDisposable = installArrowCollapse(runtime)
+    const sheetProtectionDisposable = installSheetProtectionGuard(runtime, {
+      getState: () => lazyWorkbookRef.current,
+      notify: (message) => {
+        setMessage(message)
+        showToast(message, 'error')
+      },
+    })
     const ctrlDragFillDisposable = installCtrlDragFill(runtime)
     // A context-menu submenu re-hovered within Univer's close delay stays
     // invisible; re-trigger its positioning (genoffice#337).
@@ -1843,6 +1985,7 @@ export function App({
     // Enter in a context-menu count box (insert N rows/columns, column
     // width) runs the row's action instead of only committing the number.
     installMenuInputEnter(runtime)
+    const cellContextMenuDisposable = installCellContextMenu(runtime)
     // Pasting into an anchor-shaped target (rows a multiple, columns
     // narrower than the copy — or vice versa) repeats like Excel.
     installClipboardAnchorTile(runtime)
@@ -1855,6 +1998,8 @@ export function App({
     // Ctrl/Cmd+Arrow data-edge jumps must stop at formula cells even when
     // their values are empty strings or not yet materialized (cache mode).
     registerExcelJumpNav(runtime)
+    // Ctrl+arrow (mac: Option) word jumps inside the cell editor / formula bar
+    registerEditorWordJump(runtime)
     // Excel-standard keys Univer doesn't ship: worksheet-tab switching,
     // Ctrl+Home/End, Home, whole row/column selection. The used-end hint
     // covers streamed workbooks whose cell matrix is a loaded window.
@@ -1903,6 +2048,17 @@ export function App({
     const dataValidationChromeDisposable = installActiveCellDataValidationChrome(runtime)
     // Excel shows no invalid-data marker until Circle Invalid Data is run.
     const dataValidationMarkerDisposable = installInvalidDataMarkerSuppression(runtime)
+    const threadedCommentDisposable = installThreadedCommentAffordances(runtime, {
+      theme: () => (isDarkTheme() ? 'dark' : 'light'),
+      onHover: setThreadHover,
+    })
+    threadStore.onChange = (sheetId) => {
+      const state = lazyWorkbookRef.current
+      if (!state) return
+      recordNoteChange(state.editJournal, sheetId)
+      setPendingEdits(journalSize(state.editJournal))
+    }
+    void window.desktopApi.getUserDisplayName?.().then((name) => threadStore.setAuthor(name))
     // Univer's own UI (rule-management panels, dialogs) follows the app
     // language instead of hard-coded English.
     void applyUniverLocale(runtime, getLang())
@@ -1926,6 +2082,17 @@ export function App({
     crossHighlightRef.current = installCrossHighlight(runtime, {
       theme: () => (isDarkTheme() ? 'dark' : 'light'),
     })
+    const gutterHost = document.querySelector<HTMLElement>('.workbook-area')
+    outlineGutterRef.current = gutterHost
+      ? installOutlineGutter({
+          runtime,
+          host: gutterHost,
+          state: () => lazyWorkbookRef.current,
+          onToggleGroup: (axis, group, collapsed) =>
+            toggleOutlineGroup(dataToolsContext(), axis, group, collapsed),
+          onLevel: (axis, level) => showOutlineLevel(dataToolsContext(), axis, level),
+        })
+      : null
     const scrollDisposable = runtime.univerAPI.addEvent(
       runtime.univerAPI.Event.Scroll,
       (params) => {
@@ -2124,6 +2291,7 @@ export function App({
           event.id !== MOVE_ROWS_MUTATION &&
           event.id !== SET_FROZEN_MUTATION &&
           event.id !== TOGGLE_GRIDLINES_MUTATION &&
+          event.id !== SET_RIGHT_TO_LEFT_MUTATION &&
           event.id !== SET_ZOOM_OPERATION &&
           event.id !== SET_ZOOM_COMMAND
         ) {
@@ -2159,6 +2327,7 @@ export function App({
             if (typeof id === 'string' && typeof name === 'string') {
               if (pendingCopySource !== undefined) {
                 recordSheetDuplicate(state.editJournal, id, name, pendingCopySource)
+                threadStore.copySheet(pendingCopySource, id)
                 if (
                   lazySheetMeta(state, pendingCopySource) &&
                   !(state.formulaMode && state.flags.preloadComplete)
@@ -2182,6 +2351,7 @@ export function App({
           } else if (event.id === 'sheet.mutation.remove-sheet') {
             if (typeof params.subUnitId === 'string') {
               recordSheetRemove(state.editJournal, params.subUnitId)
+              threadStore.removeSheet(params.subUnitId)
             }
           } else if (event.id === 'sheet.mutation.set-worksheet-order') {
             recordSheetOrderChange(state.editJournal)
@@ -2195,6 +2365,15 @@ export function App({
                 params.subUnitId,
                 hidden === true || hidden === 1,
                 originallyHidden,
+              )
+            }
+          } else if (event.id === 'sheet.mutation.set-tab-color') {
+            if (typeof params.subUnitId === 'string') {
+              recordSheetTabColor(
+                state.editJournal,
+                params.subUnitId,
+                (params as { color?: unknown }).color,
+                state.file.sheets.find((sheet) => sheet.id === params.subUnitId)?.tabColor,
               )
             }
           } else if (typeof params.subUnitId === 'string' && typeof params.name === 'string') {
@@ -2232,6 +2411,9 @@ export function App({
           const toRange = move?.toRange ?? matrixBounds(move?.to?.value)
           if (fromSheet && fromRange) journalRangeSnapshot(runtime, state, fromSheet, fromRange)
           if (toSheet && toRange) journalRangeSnapshot(runtime, state, toSheet, toRange)
+          if (fromSheet && fromRange && toSheet && toRange) {
+            threadStore.moveRange(fromSheet, fromRange, toSheet, toRange)
+          }
           // Moved cells feed charts too, same as value mutations.
           if (fromSheet && fromRange) queueChartDataSync(fromSheet, fromRange)
           if (toSheet && toRange) queueChartDataSync(toSheet, toRange)
@@ -2336,6 +2518,18 @@ export function App({
         }
         if (FILTER_MUTATIONS.has(event.id)) {
           recordFilterChange(state.editJournal, params.subUnitId)
+          if (
+            event.id === 'sheet.mutation.set-filter-range' &&
+            isLargeFilterSheet(state, params.subUnitId)
+          ) {
+            const worksheet = runtime.univerAPI
+              .getActiveWorkbook()
+              ?.getSheetBySheetId(params.subUnitId)
+            if (worksheet) extendLargeFilterRange(runtime, state, worksheet)
+          }
+          if (event.id === 'sheet.mutation.remove-filter') {
+            resetLargeFilter(state, params.subUnitId)
+          }
           setPendingEdits(journalSize(state.editJournal))
           return
         }
@@ -2378,6 +2572,25 @@ export function App({
             })
             setPendingEdits(journalSize(state.editJournal))
           }
+          return
+        }
+        if (event.id === SET_RIGHT_TO_LEFT_MUTATION) {
+          // Journaling from the mutation (not the ribbon handler) keeps the
+          // save in step with Univer's own undo/redo of the direction flip;
+          // the rebuild also re-runs the mirrored viewport anchors, which
+          // undo/redo dispatches without the command's render side effects.
+          const rtl = event.params as { subUnitId?: string; rightToLeft?: number } | undefined
+          if (
+            rtl?.subUnitId &&
+            rtl.rightToLeft !== undefined &&
+            !isSheetRemoved(state.editJournal, rtl.subUnitId)
+          ) {
+            recordPageSetup(state.editJournal, rtl.subUnitId, {
+              rightToLeft: rtl.rightToLeft === 1,
+            })
+            setPendingEdits(journalSize(state.editJournal))
+          }
+          refreshSheetRender(runtime)
           return
         }
         if (event.id === SET_ZOOM_OPERATION || event.id === SET_ZOOM_COMMAND) {
@@ -2436,12 +2649,62 @@ export function App({
               ?.getSheetBySheetId(structuralSheetId)
               ?.getSheetName() ??
             state.file.sheets.find((sheet) => sheet.id === structuralSheetId)?.name
+          // Undo of a filled insert (see below) must still cancel the insert:
+          // drop the fill op so the inverse remove meets the insert itself.
+          if (rowColumn && rowColumn.kind.startsWith('remove')) {
+            const ops = state.editJournal.structuralOps.get(structuralSheetId)
+            const fill = ops?.[ops.length - 1]
+            const insert = ops?.[ops.length - 2]
+            const rows = rowColumn.axis === 'row'
+            if (
+              fill &&
+              insert &&
+              'level' in fill &&
+              fill.kind === (rows ? 'set-rows-outline' : 'set-cols-outline') &&
+              'index' in insert &&
+              insert.kind === (rows ? 'insert-rows' : 'insert-cols') &&
+              insert.index === structuralOp.index &&
+              insert.count === structuralOp.count &&
+              fill.start === structuralOp.index &&
+              fill.end === structuralOp.index + structuralOp.count - 1
+            ) {
+              ops.pop()
+            }
+          }
           recordStructuralOp(
             state.editJournal,
             structuralSheetId,
             structuralOp,
             structuralSheetName,
           )
+          if (structuralOp.kind === 'move-rows') {
+            const outline = sheetOutline(state, structuralSheetId)
+            moveOutlineEntries(
+              outline.rows,
+              structuralOp.index,
+              structuralOp.count,
+              structuralOp.before,
+            )
+            outline.version += 1
+          }
+          if (rowColumn) {
+            const outline = sheetOutline(state, structuralSheetId)
+            const filled = shiftOutlineEntries(
+              rowColumn.axis === 'row' ? outline.rows : outline.cols,
+              structuralOp.index,
+              rowColumn.kind.startsWith('insert') ? structuralOp.count : -structuralOp.count,
+            )
+            if (filled > 0) {
+              recordStructuralOp(state.editJournal, structuralSheetId, {
+                kind: rowColumn.axis === 'row' ? 'set-rows-outline' : 'set-cols-outline',
+                start: structuralOp.index,
+                end: structuralOp.index + structuralOp.count - 1,
+                level: filled,
+              })
+            }
+            outline.version += 1
+          }
+          threadStore.applyStructuralOp(structuralSheetId, structuralOp)
           // File visuals shift on-screen too (the save shifts the file's own
           // anchors and c:f refs independently); keeping the in-memory copy in
           // the new space keeps the preview and the live data sync honest.
@@ -2713,27 +2976,70 @@ export function App({
             event.cancel = true
             // A silent footer note read as "filtering is broken" — raise an
             // explicit offer to fully load instead.
-            if (fullLoadRunning.current || state.formulaMode) {
-              // formula-mode workbooks preload automatically at open — the
-              // gate only holds during that brief window
-              setMessage(t('appFullLoadRunning'))
-            } else {
-              const totalCells = state.file.sheets.reduce(
-                (sum, sheet) => sum + sheet.rowCount * sheet.columnCount,
-                0,
+            // Formula-mode workbooks preload automatically at open — the gate
+            // only holds during that brief window. Any other running
+            // preload (Load all, Print / PDF export) shows the same notice.
+            const verdict = fullLoadGate({
+              formulaMode: state.formulaMode,
+              preloadRunning: state.flags.preloadRunning,
+              cellCounts: workbookCellCounts(state.file.sheets),
+            })
+            if (verdict === 'workbookTooLarge' && subUnitId !== undefined) {
+              // Past the budget the filter runs on column projections read
+              // from the file (large-filter.ts); the panel opens as usual.
+              installLargeFilterValues(runtime, lazyWorkbookRef, isLargeFilterSheet, (loading) =>
+                setMessage(t(loading ? 'appLargeFilterLoading' : 'appReadyInitial')),
               )
-              setFullLoadPrompt(totalCells > FULL_LOAD_MAX_CELLS ? 'tooLarge' : 'ask')
+              const worksheet = runtime.univerAPI.getActiveWorkbook()?.getSheetBySheetId(subUnitId)
+              const action = worksheet ? largeFilterAction(event.id, event.params, worksheet) : null
+              if (!action) {
+                event.cancel = false
+                return
+              }
+              event.cancel = true
+              setMessage(t('appLargeFilterApplying'))
+              void action(runtime, state)
+                .then(() => {
+                  setPendingEdits(journalSize(state.editJournal))
+                  setMessage(t('appReadyInitial'))
+                })
+                .catch((error: unknown) => setMessage(String(error)))
+              return
             }
+            if (verdict === 'loading') setMessage(t('appFullLoadRunning'))
+            else setFullLoadPrompt(verdict === 'offerFullLoad' ? 'ask' : 'tooLarge')
             return
           }
-          // Sorting and range moves read/rewrite model content: partially
-          // streamed data would silently produce wrong results, and in
-          // value mode a rewrite would detach formula cells from their
-          // sidecar-held formulas — those stay gated on formula mode.
-          if (!isFilter && !isAddedSheet && (!state.formulaMode || !state.flags.preloadComplete)) {
-            event.cancel = true
-            setMessage(t('appNeedFullLoadSort'))
-            return
+          if (!isFilter) {
+            // move-rows journals as a structural op, not a cell snapshot
+            const ranges =
+              event.id === MOVE_ROWS_COMMAND
+                ? []
+                : reorderCommandRanges(
+                    event.id,
+                    event.params,
+                    runtime.univerAPI.getActiveWorkbook()?.getActiveRange()?.getRange(),
+                    subUnitId === undefined ? null : lazySheetScreenExtent(state, subUnitId),
+                  )
+            const verdict = reorderGate({
+              formulaMode: state.formulaMode,
+              preloadComplete: state.flags.preloadComplete,
+              preloadRunning: state.flags.preloadRunning,
+              isAddedSheet,
+              cellCounts: workbookCellCounts(state.file.sheets),
+              rangeCells: largestRangeCells(ranges),
+              rangeHasStreamedFormulas: () =>
+                subUnitId !== undefined && rangeHasStreamedFormulas(state, subUnitId, ranges),
+            })
+            if (verdict !== 'allow') {
+              event.cancel = true
+              if (verdict === 'loading') setMessage(t('appFullLoadRunning'))
+              else if (verdict === 'offerFullLoad') setFullLoadPrompt('ask')
+              else if (verdict === 'workbookTooLarge') setFullLoadPrompt('tooLarge')
+              else if (verdict === 'valueModeFormulas') setMessage(t('appSortValueModeFormulas'))
+              else setMessage(t('appSortRangeTooLarge'))
+              return
+            }
           }
           if (
             (event.id === MOVE_RANGE_COMMAND ||
@@ -3007,6 +3313,7 @@ export function App({
       unsubscribeMenu()
       unsubscribeCloseSave()
       offThemeChanged?.()
+      offDocThemeChanged?.()
       undoRedoSub.unsubscribe()
       findRevealDispose()
       gridGrowthDispose()
@@ -3018,6 +3325,7 @@ export function App({
       formulaViewDisposable.dispose()
       formulaTextDisposable.dispose()
       formulaBarAutosizeDisposable.dispose()
+      fxButtonDisposable.dispose()
       cachedValueDisposable.dispose()
       formulaNewlineDisposable.dispose()
       functionProbeDisposable.dispose()
@@ -3031,9 +3339,11 @@ export function App({
       sheetRenameFixDisposable.dispose()
       selectionWrapGuardDisposable.dispose()
       arrowCollapseDisposable.dispose()
+      sheetProtectionDisposable.dispose()
       ctrlDragFillDisposable.dispose()
       contextSubmenuReopenDisposable.dispose()
       multiRowAutofitDisposable.dispose()
+      cellContextMenuDisposable.dispose()
       formatPainterDisposable.dispose()
       cfFormulaFoldDisposable.dispose()
       cfDisplayKeyDisposable.dispose()
@@ -3044,12 +3354,16 @@ export function App({
       statusBarStatsFilterRef.current = null
       dataValidationChromeDisposable.dispose()
       dataValidationMarkerDisposable.dispose()
+      threadedCommentDisposable.dispose()
+      threadStore.onChange = null
       ruleDetailDisposable()
       lazyFindDisposable.dispose()
       replaceAutoSearchDisposable.dispose()
       setFindReplaceService(null)
       crossHighlightRef.current?.dispose()
       crossHighlightRef.current = null
+      outlineGutterRef.current?.dispose()
+      outlineGutterRef.current = null
       scrollDisposable.dispose()
       zoomDisposable.dispose()
       editStartDisposable.dispose()
@@ -3100,6 +3414,7 @@ export function App({
     const instruction = (overrideInstruction ?? prompt).trim()
     if (!instruction || aiBusy) return
     runToolsRef.current = []
+    runUsageRef.current = undefined
     // The message consumes the composer attachments: they ride along (echoed on the
     // bubble, images multimodal, files via the files skill) and the composer clears.
     // Retry passes the failed message's original set instead.
@@ -3675,17 +3990,49 @@ export function App({
       setPendingEdits,
       visualContext,
       dataToolsContext,
+      tableDesignContext,
+      visualArrangeContext,
       pivotContext,
       handlePageLayoutCommand: (rest) => handlePageLayoutCommandImpl(pageLayoutContext(), rest),
       handleExportPdf: () => handleExportPdfImpl(pageLayoutContext()),
     }
   }
 
+  const functionArgumentsHost = useMemo(
+    () =>
+      createFunctionArgumentsHost(
+        () => univerRef.current,
+        () => t('appWorkbookNotReady'),
+      ),
+    [],
+  )
   const isCellEditing = useCallback((): boolean => {
     const workbook = univerRef.current?.univerAPI.getActiveWorkbook() as
       { isCellEditing?(): boolean } | null | undefined
     return workbook?.isCellEditing?.() === true
   }, [])
+
+  async function readPasteSpecialSourceFromRuntime(): Promise<PasteSpecialSource> {
+    const runtime = univerRef.current
+    return runtime ? readPasteSpecialSource(runtime) : { kind: 'none' }
+  }
+
+  async function handlePasteSpecial(
+    source: PasteSpecialSource,
+    options: PasteSpecialOptions,
+  ): Promise<string | null> {
+    const runtime = univerRef.current
+    if (!runtime) return t('dlgPasteSpecialNothing')
+    const result = await applyPasteSpecial(runtime, source, options)
+    if (result.ok) return null
+    return t(
+      result.reason === 'out-of-bounds'
+        ? 'dlgPasteSpecialOutOfBounds'
+        : result.reason === 'no-selection'
+          ? 'dlgPasteSpecialNoSelection'
+          : 'dlgPasteSpecialNothing',
+    )
+  }
 
   function handleRibbonCommand(command: string): void {
     if (command === 'watch-window') {
@@ -3866,11 +4213,18 @@ export function App({
     }
     if (!range) {
       setSelectionFormat(null)
+      setSelectedTable(null)
       setActiveCellA1('')
+      setPivotSelectionKey(null)
       clearAiScope()
       return
     }
     setActiveCellA1(`${columnLetter(range.getColumn())}${range.getRow() + 1}`)
+    setPivotSelectionKey(pivotSelectionKeyImpl(pivotContext()))
+    const tableEcho = selectedTableEcho(tableDesignContext())
+    setSelectedTable((previous) =>
+      selectedTableEquals(previous, tableEcho) ? previous : tableEcho,
+    )
     refreshAiScope(range)
     let pattern: string
     try {
@@ -3901,6 +4255,7 @@ export function App({
     opts?: { continueChat?: boolean; onInitialRangeLoaded?: () => void },
   ): Promise<boolean> {
     if (!(await commitActiveEditor())) return false
+    await untilCellFontsLoaded(registerCellFontAliases(workbookFontFamilies(opened)))
     if (opts?.continueChat) chatContinuesRef.current = true
     const selected: WorkbookFile = {
       ...opened,
@@ -3910,10 +4265,7 @@ export function App({
           : visual,
       ),
     }
-    const gridCellCount = selected.sheets.reduce(
-      (sum, sheet) => sum + sheet.rowCount * sheet.columnCount,
-      0,
-    )
+    const cellCounts = workbookCellCounts(selected.sheets)
     setWorkbookFile(selected)
     // Calculation mode is workbook state: the next file starts automatic,
     // in the engine and in the menu alike.
@@ -3962,11 +4314,13 @@ export function App({
       showFormulaSheets: new Set(
         selected.sheets.filter((sheet) => sheet.showFormulas).map((sheet) => sheet.id),
       ),
-      formulaMode: gridCellCount <= FORMULA_MODE_MAX_CELLS,
+      formulaMode: opensInFormulaMode(cellCounts),
       editJournal: createEditJournal(),
       flags: { preloadComplete: false, preloadRunning: false },
       closure: { status: 'idle', pinned: new Map() },
       formulaText: new Map(),
+      formulaTextTruncated: new Set(),
+      sharedFormulaGroups: new Map(),
       cachedFormulaValues: new Map(),
       pivotDefinitions: new Map(),
       hiddenFileRows: new Map(),
@@ -3976,7 +4330,7 @@ export function App({
         timer: null,
         generation: 0,
         failures: 0,
-        engineOverBudget: recalcOverBudgetAtOpen(selected.fileBytes, gridCellCount),
+        engineOverBudget: recalcOverBudgetAtOpen(selected.fileBytes, cellCounts.gridCells),
         formulaCells: new Map(),
         overlay: new Map(),
         follow: new Map(),
@@ -3999,6 +4353,7 @@ export function App({
       }
     }
     lazyWorkbookRef.current = state
+    void loadRowOutlines(state, lazyWorkbookRef)
     // Pivot definitions load eagerly so refresh (a synchronous apply step)
     // never waits on IPC. Best effort: a failed parse just disables refresh.
     for (const sheet of selected.sheets) {
@@ -4039,6 +4394,21 @@ export function App({
       ;(window as unknown as Record<string, unknown>).__genofficeDebug = {
         univerAPI: univerRef.current?.univerAPI,
         findReplaceService: univerRef.current?.univer.__getInjector().get(IFindReplaceService),
+        // ground truth for typing-into-the-adopted-spare failures: the
+        // shortcut gate is these context bits plus the focused unit, and a
+        // null focusedUnit is exactly the state where character keys die
+        // while Enter/arrows keep working
+        focusContext: () => {
+          const injector = univerRef.current?.univer.__getInjector()
+          const active = document.activeElement as HTMLElement | null
+          return {
+            focusedUnitId:
+              injector?.get(IUniverInstanceService).getFocusedUnit()?.getUnitId() ?? null,
+            activeWorkbookId: univerRef.current?.univerAPI.getActiveWorkbook()?.getId() ?? null,
+            activeUComp: active?.dataset?.uComp ?? null,
+            docHasFocus: document.hasFocus(),
+          }
+        },
       }
     }
     setRevision(0)
@@ -4054,6 +4424,8 @@ export function App({
     disposeVisuals(visualDisposablesRef.current)
     loadWorkbookSkeleton(univerRef.current, selected)
     applyWorkbookNotes(univerRef.current, selected)
+    threadStore.load(selected)
+    threadPane.close()
     applyDefinedNames(univerRef.current, selected, state)
     const runtime = univerRef.current
     if (runtime) {
@@ -4063,58 +4435,51 @@ export function App({
           opts?.onInitialRangeLoaded?.()
           return
         }
-        // Register existing file tables so Univer renders filter dropdowns
-        // and banding. This is visual-only (the journal is empty for file
-        // tables), so failures are swallowed — the data is still usable.
+        // Register existing file tables under their displayName so Univer
+        // renders filter dropdowns and resolves structured references. The
+        // journal stays empty for file tables, so failures are swallowed —
+        // the data is still usable.
         const tableInstalls: Promise<unknown>[] = []
-        for (const sheet of selected.sheets) {
-          if (sheet.tables.length === 0) continue
-          const ws = workbook.getSheetBySheetId(sheet.id)
+        const sessionNames = state.editJournal.tableAdds.map((table) => table.name)
+        for (const entry of planFileTableRegistrations(selected.sheets, sessionNames)) {
+          const ws = workbook.getSheetBySheetId(entry.sheetId)
           if (!ws) continue
-          for (let index = 0; index < sheet.tables.length; index += 1) {
-            const table = sheet.tables[index]!
-            // Univer's table header is not optional yet: registering a
-            // headerless table injects synthesized "Column N" labels over the
-            // first data row, so skip it (banding still paints).
-            if (table.headerRowCount === 0) continue
-            const tableId = `file-table-${sheet.id}-${index}`
-            const tableName = `Table${index + 1}_${sheet.id.slice(0, 6)}`
-            try {
-              // File column names must reach Univer, or empty header cells
-              // fall back to its locale template ("Column 1" with a space)
-              // where Excel shows the table part's names ("Column1").
-              const columnOptions = table.columns?.length
-                ? {
-                    columns: table.columns.map((name, columnIndex) => ({
-                      id: `${tableId}-col-${columnIndex}`,
-                      displayName: name,
-                    })),
-                  }
-                : undefined
-              const added = ws.addTable(
-                tableName,
-                table.range,
-                tableId,
-                columnOptions as never,
-              ) as unknown
-              // Univer paints its own lavender default table theme over the
-              // cells; file tables carry Excel's real banding in the cell
-              // fills (applyTableBanding), so mute the theme to plain.
-              tableInstalls.push(
-                Promise.resolve(added)
-                  .then(() =>
-                    (
-                      ws as unknown as {
-                        addTableTheme(id: string, theme: { name: string }): unknown
-                      }
-                    ).addTableTheme(tableId, { name: `plain-${tableId}` }),
-                  )
-                  // Theme muting is cosmetic; the table itself is registered.
-                  .catch(() => undefined),
-              )
-            } catch {
-              // Best-effort: skip if Univer rejects (e.g. overlapping ranges)
-            }
+          const { tableId, tableName } = entry
+          try {
+            // File column names must reach Univer, or empty header cells
+            // fall back to its locale template ("Column 1" with a space)
+            // where Excel shows the table part's names ("Column1").
+            const columnOptions = entry.columns
+              ? {
+                  columns: entry.columns.map((name, columnIndex) => ({
+                    id: `${tableId}-col-${columnIndex}`,
+                    displayName: name,
+                  })),
+                }
+              : undefined
+            const added = ws.addTable(
+              tableName,
+              entry.range,
+              tableId,
+              columnOptions as never,
+            ) as unknown
+            // Univer paints its own lavender default table theme over the
+            // cells; file tables carry Excel's real banding in the cell
+            // fills (applyTableBanding), so mute the theme to plain.
+            tableInstalls.push(
+              Promise.resolve(added)
+                .then(() =>
+                  (
+                    ws as unknown as {
+                      addTableTheme(id: string, theme: { name: string }): unknown
+                    }
+                  ).addTableTheme(tableId, { name: `plain-${tableId}` }),
+                )
+                // Theme muting is cosmetic; the table itself is registered.
+                .catch(() => undefined),
+            )
+          } catch {
+            // Best-effort: skip if Univer rejects (e.g. overlapping ranges)
           }
         }
         // Post-save reopen: swap the load-time decoration's undo entries
@@ -4186,7 +4551,7 @@ export function App({
           },
         )
         if (state.formulaMode) {
-          void preloadEntireWorkbook(runtime, lazyWorkbookRef, setMessage)
+          void startFullLoad(runtime, lazyWorkbookRef, setMessage)
         } else {
           // Deferred so first paint and initial streaming win the sidecar.
           setTimeout(() => {
@@ -4203,9 +4568,17 @@ export function App({
   // A workbook loaded into an already-mounted view (the prewarmed spare) can
   // leave document focus on a node Univer no longer reads keys from; hand it
   // back to the cell editor unless chrome (AI composer, dialogs) holds it.
-  function focusSheetGrid(): void {
+  // Runs from finishOpening, in the same tick that clears openingWorkbook: the
+  // <main inert> that guarded the load is still in the DOM until React commits,
+  // and an inert subtree refuses focus. The shell also hands webContents focus
+  // to an adopted spare asynchronously, so the document may not have focus yet.
+  function focusSheetGrid(framesLeft = 10): void {
     const runtime = univerRef.current
-    if (!runtime || !document.hasFocus()) return
+    if (!runtime) return
+    if (!document.hasFocus()) {
+      window.addEventListener('focus', () => focusSheetGrid(), { once: true })
+      return
+    }
     const active = document.activeElement
     const chromeHoldsFocus =
       active !== null &&
@@ -4213,7 +4586,13 @@ export function App({
       active.isConnected &&
       !active.closest('#univer-container')
     if (chromeHoldsFocus) return
+    const editor = document.querySelector<HTMLElement>('#univer-container [contenteditable="true"]')
+    if (editor?.closest('[inert]') && framesLeft > 0) {
+      requestAnimationFrame(() => focusSheetGrid(framesLeft - 1))
+      return
+    }
     runtime.univer.__getInjector().get(ILayoutService).focus()
+    if (editor && document.activeElement !== editor) editor.focus()
   }
 
   async function handleInspectWorkbook(): Promise<void> {
@@ -4253,8 +4632,14 @@ export function App({
     quiet = false,
     explicitTarget?: { path: string; overwrite: boolean },
   ): Promise<SaveOutcome> {
-    if (!(await commitActiveEditor())) return { ok: false }
-    return handleSaveImpl(saveContext(), mode, quiet, explicitTarget)
+    // Manual and AI saves take the same gate as the timers: a recovery copy
+    // written beside a real save would outlive it as a phantom Restore prompt.
+    const gate = saveGateRef.current
+    if (mode === 'recovery' && gate.busy) return { ok: false }
+    return gate.run(async () => {
+      if (!(await commitActiveEditor())) return { ok: false }
+      return handleSaveImpl(saveContext(), mode, quiet, explicitTarget)
+    })
   }
   closeSaveRef.current = async () => {
     if (!(await commitActiveEditor())) {
@@ -4290,7 +4675,7 @@ export function App({
     if (action === 'open') {
       void handleInspectWorkbook()
     } else if (action === 'print') {
-      void handlePrintImpl(pageLayoutContext())
+      void openPrintPreviewHost(pageLayoutContext()).then(setPrintHost)
     } else if (action === 'export-pdf') {
       void handleExportPdfImpl(pageLayoutContext())
     } else if (action === 'export-csv') {
@@ -4512,6 +4897,23 @@ export function App({
     }
   })()
 
+  // Shape Format echo: the selected shape's paint with pending edits applied.
+  const selectedShape = ((): SelectedShapeRibbon | null => {
+    if (!selectedVisual || selectedVisual.kind !== 'shape') return null
+    const state = lazyWorkbookRef.current
+    if (!state) return null
+    const live = [...state.file.visuals, ...state.editJournal.visualAdds].find(
+      (candidate) => candidate.id === selectedVisual.id,
+    )
+    if (!live || !(isEditableShape(live) || isEditableFileVisual(live))) return null
+    const edit = state.editJournal.visualEdits.get(live.id)
+    if (edit?.remove) return null
+    return {
+      fillColor: edit?.fillColor ?? live.fillColor,
+      lineColor: edit?.lineColor ?? live.lineColor,
+    }
+  })()
+
   const activePageLayout = (() => {
     const worksheet = univerRef.current?.univerAPI.getActiveWorkbook()?.getActiveSheet()
     const journalState = worksheet
@@ -4526,12 +4928,21 @@ export function App({
         (worksheet
           ? worksheet.getSheet().getConfig().rowHeader.hidden !== BooleanNumber.TRUE
           : true),
+      rightToLeft: journalState.rightToLeft ?? (worksheet ? sheetIsRightToLeft(worksheet) : false),
       pageBreakPreview: worksheet ? pageBreakPreviewSheets.has(worksheet.getSheetId()) : false,
     }
   })()
 
   // Chart panels resolve their chart live (pending edits applied), so every
   // control reflects the state the next save would write.
+  const visualDialogTarget = (() => {
+    if (!visualDialog) return null
+    const state = lazyWorkbookRef.current
+    return state
+      ? liveVisual(state, visualDialog.visualId)
+      : ((adapterRef.current.findVisual(visualDialog.visualId) as WorkbookVisualObject | null) ??
+          null)
+  })()
   const chartDialogTarget = (() => {
     if (!chartDialog) return null
     const state = lazyWorkbookRef.current
@@ -4602,12 +5013,10 @@ export function App({
                   onClick={() => {
                     setFullLoadPrompt(null)
                     const runtime = univerRef.current
-                    if (!runtime || fullLoadRunning.current) return
-                    fullLoadRunning.current = true
+                    if (!runtime) return
                     setMessage(t('appFullLoadRunning'))
-                    void preloadEntireWorkbook(runtime, lazyWorkbookRef, setMessage).finally(() => {
-                      fullLoadRunning.current = false
-                    })
+                    // Joins a load that is already running (e.g. from Print).
+                    void startFullLoad(runtime, lazyWorkbookRef, setMessage)
                   }}
                 >
                   {t('appFullLoadStart')}
@@ -4616,6 +5025,36 @@ export function App({
             </div>
           </div>
         </div>
+      )}
+      {visualDialog && visualDialogTarget && (
+        <VisualDialog
+          kind={visualDialog.kind}
+          visual={visualDialogTarget}
+          frame={
+            lazyWorkbookRef.current
+              ? visualFrameInfo(lazyWorkbookRef.current, visualDialogTarget.id)
+              : null
+          }
+          onApply={(changes) => {
+            const state = lazyWorkbookRef.current
+            const runtime = univerRef.current
+            if (visualDialog.kind === 'size') {
+              const { size, editAs } = changes as SizeDialogResult
+              const edit =
+                size && state && runtime
+                  ? frameChangeEdit(state, runtime, visualDialogTarget, size)
+                  : null
+              if (!edit && !editAs) return
+              shapeEditRef.current(visualDialogTarget.id, {
+                ...edit,
+                ...(editAs ? { editAs } : {}),
+              })
+              return
+            }
+            shapeEditRef.current(visualDialogTarget.id, changes as ShapeEditChanges)
+          }}
+          onClose={() => setVisualDialog(null)}
+        />
       )}
       {chartDialog && chartDialogTarget && chartDialog.kind === 'format' && (
         <ChartFormatPane
@@ -4642,12 +5081,21 @@ export function App({
         preview={preview}
         sheetHasContent={sheetHasContent}
         pageLayout={activePageLayout}
+        printHost={printHost}
+        onClosePrint={() => setPrintHost(null)}
         calcManual={calcManual}
         onGoalSeek={(setCell, toValue, byCell) => {
           const runtime = univerRef.current
           if (!runtime) return Promise.reject(new Error(t('appWorkbookNotReady')))
           return solveGoalSeek(runtime, { setCell, toValue, byCell })
         }}
+        onFillSeries={(options) => {
+          const runtime = univerRef.current
+          return runtime ? applyFillSeries(runtime, options, t) : t('appWorkbookNotReady')
+        }}
+        onGetFillSeriesContext={() =>
+          fillSeriesContext(univerRef.current, lazyWorkbookRef.current?.file.date1904 === true)
+        }
         selectionFormat={selectionFormat}
         formatPainterActive={formatPainterActive}
         statusMessage={openingWorkbook ? t('appOpeningWorkbook') : message}
@@ -4655,6 +5103,7 @@ export function App({
         onOpenWorkbook={() => void handleInspectWorkbook()}
         onDismissEmptyCsvNotice={() => setEmptyCsvNotice(false)}
         aiBusy={aiBusy}
+        {...(sessionUsage !== undefined ? { sessionUsage } : {})}
         chat={chat}
         historicChat={historicChat}
         attachments={attachments}
@@ -4693,8 +5142,24 @@ export function App({
         autoSave={autoSave}
         onAutoSaveChange={setAutoSave}
         selectedChart={selectedChart}
+        selectedShape={selectedShape}
+        selectedVisualKind={
+          selectedVisual?.kind === 'image' || selectedVisual?.kind === 'shape'
+            ? selectedVisual.kind
+            : null
+        }
+        selectedTable={selectedTable}
+        outlineSummary={outlineSummarySettings(
+          lazyWorkbookRef.current,
+          univerRef.current?.univerAPI.getActiveWorkbook()?.getActiveSheet()?.getSheetId(),
+        )}
+        tableCreatedSeq={tableCreatedSeq}
+        onGetCreateTableRange={() => createTableDefaultRange(tableDesignContext())}
         onGetSortColumns={sortColumnOptions}
         onGetSheetProtection={sheetProtectionEcho}
+        onProtectSheet={protectActiveSheet}
+        onUnprotectSheet={unprotectActiveSheet}
+        sheetTabActions={sheetTabActions}
         onGetWorkbookProtection={workbookProtectionEcho}
         formulaBarVisible={formulaBarVisible}
         crossHighlightVisible={crossHighlightVisible}
@@ -4704,9 +5169,11 @@ export function App({
         onDefinedNameAction={handleDefinedNameAction}
         onGetPivotFields={(sourceRange) => pivotFieldOptionsImpl(pivotContext(), sourceRange)}
         onGetSourceRange={() => getSourceRangeImpl(pivotContext())}
-        onCreatePivot={(config) => handleCreatePivotImpl(pivotContext(), config)}
+        onCreatePivot={(request) => handleCreatePivotImpl(pivotContext(), request)}
         onGetPivotEditSeed={() => pivotEditInitialImpl(pivotContext())}
         onEditPivot={(config) => handleEditPivotApplyImpl(pivotContext(), config)}
+        onGetPivotFieldMembers={(fieldIndex) => pivotFieldMembersImpl(pivotContext(), fieldIndex)}
+        pivotSelectionKey={pivotSelectionKey}
         onRefreshPivot={() => handleRefreshPivotImpl(pivotContext())}
         onIsSelectionInPivot={() => isSelectionInPivotImpl(pivotContext())}
         onGetActiveCell={() => activeCellLabelImpl(dataToolsContext())}
@@ -4714,7 +5181,9 @@ export function App({
         activeCellA1={activeCellA1}
         onGoToReference={(ref) => goToReferenceImpl(dataToolsContext(), ref)}
         onListDefinedNames={() => listDefinedNamesImpl(dataToolsContext())}
-        onApplyFormula={(formula) => handleApplyFormulaImpl(dataToolsContext(), formula)}
+        onReadPasteSpecialSource={readPasteSpecialSourceFromRuntime}
+        onPasteSpecial={handlePasteSpecial}
+        functionArguments={functionArgumentsHost}
         onListFunctions={() => {
           const runtime = univerRef.current
           return runtime ? readLiveFunctionInfos(runtime) : []
@@ -4729,6 +5198,8 @@ export function App({
           {t('appOpeningWorkbook')}
         </div>
       )}
+      <ThreadedCommentsPane getRuntime={getRuntime} />
+      <ThreadHoverCard hover={threadHover} />
       {findReplaceService && (
         <FindReplacePanel
           service={findReplaceService}
@@ -4922,15 +5393,43 @@ export function App({
 
   /// Effective protection of the active sheet: journal override, else file
   /// state; null while unknown (still indexing) or in the demo workbook.
-  function sheetProtectionEcho(): boolean | null {
+  function sheetProtectionEcho(): { protected: boolean; hasPassword: boolean } | null {
     const state = lazyWorkbookRef.current
     const sheetId = univerRef.current?.univerAPI.getActiveWorkbook()?.getActiveSheet()?.getSheetId()
     if (!state || !sheetId) return null
-    const journaled = state.editJournal.sheetProtection.get(sheetId)
-    if (journaled !== undefined) return journaled
-    const file = state.sheetProtections.get(sheetId)
-    if (file) return file.protected
-    return state.editJournal.sheets.added.has(sheetId) ? false : null
+    const info = effectiveSheetProtection(state, sheetId)
+    return info ? { protected: info.protected, hasPassword: info.hasPassword } : null
+  }
+
+  async function protectActiveSheet(request: {
+    password: string | null
+    allow: SheetProtectionAllow
+  }): Promise<string | null> {
+    const sheetId = univerRef.current?.univerAPI.getActiveWorkbook()?.getActiveSheet()?.getSheetId()
+    if (!sheetId) return t('appProtectionNeedsFile')
+    const outcome = await runUiOps(
+      [
+        {
+          op: 'protect_sheet',
+          sheetId,
+          protected: true,
+          allow: request.allow,
+          ...(request.password ? { password: request.password } : {}),
+        },
+      ],
+      t('appProtectionWillWrite'),
+    )
+    return outcome.ok ? null : (outcome.reason ?? t('appApplyTxFailed'))
+  }
+
+  async function unprotectActiveSheet(password: string): Promise<string | null> {
+    const sheetId = univerRef.current?.univerAPI.getActiveWorkbook()?.getActiveSheet()?.getSheetId()
+    if (!sheetId) return t('appProtectionNeedsFile')
+    const outcome = await runUiOps(
+      [{ op: 'protect_sheet', sheetId, protected: false, password }],
+      t('appProtectionWillRemove'),
+    )
+    return outcome.ok ? null : (outcome.reason ?? t('appApplyTxFailed'))
   }
 
   function workbookProtectionEcho(): boolean | null {

@@ -28,6 +28,9 @@ export interface BlockBox {
    *  lineBoxes offsets); the engine turns the page there and the text before
    *  stays on the current page like Word */
   innerBreaks?: number[]
+  /** a page-break-before paragraph lives inside a cell: the row data must exist
+   *  even when the table fits its page, or the instruction is invisible */
+  hasCellBreak?: boolean
   /** zero-height break carrier (floating-textbox anchor): the break survives a blank page */
   breakForce?: boolean
   /** block contains a column break (w:br type=column): force a column change after it (new page on last column) */
@@ -50,6 +53,8 @@ export interface BlockBox {
    *  wrapped text beside it carries the vertical extent, so it consumes no
    *  column height itself (block boxes in normal flow stack ignoring floats) */
   floated?: boolean
+  /** float lifted above the flow position into the previous anchor's band (syncAnchorBands) */
+  lifted?: boolean
   /** w:tblpPr table (floated or currently flowed by the engine, see floatFlowed) */
   floatTable?: true
   /** floating table the engine renders in normal flow because one of its rows
@@ -105,7 +110,7 @@ export interface BlockBox {
   lineBoxes?: LineBox[]
   /** space before (px), from line-metrics output */
   spaceBeforePx?: number
-  /** first block only: leading space-before folded into height (top moved to 0) */
+  /** leading space-before folded into height (top moved up by it) */
   leadFoldPx?: number
   /** space after (px), from line-metrics output */
   spaceAfterPx?: number
@@ -151,6 +156,8 @@ export interface BlockBox {
 
   /** table block under Word 2013+ layout rules (see BlockMeta.modernTableHeaders) */
   modernTableHeaders?: boolean
+  /** table block whose cell paragraphs run without widow/orphan control */
+  cellWidowOff?: true
 }
 
 /**
@@ -170,6 +177,10 @@ export interface TableRowBox {
   /** in-row safe cut points (relative to row top, px, ascending): spanning all cells without splitting any text line/image.
    *  Word allows in-row page breaks by default; without cut points or with cantSplit the row is atomic */
   cutYs?: number[]
+  /** forced in-row cut points (relative to row top, px, ascending): page breaks the
+   *  author instructed inside a cell (a page-break-before paragraph) — they turn the
+   *  page at their position regardless of what fits, unlike the content-line cutYs */
+  forcedCuts?: number[]
   /** bottom of the lowest content band (text/image rects) relative to row top (px, 0 = empty row):
    *  lets pagination clip declared-height fill below the content instead of pushing pages */
   contentBottom?: number
@@ -577,6 +588,8 @@ export interface BlockMeta {
    *  remaining space (or would stay alone at the page bottom) pushes the table to a fresh page, and
    *  widow/orphan control applies inside split cells */
   modernTableHeaders?: boolean
+  /** table block: the document default turns widow/orphan control off and no cell paragraph turns it back on */
+  cellWidowOff?: true
   /** page-bottom height reserved for footnote refs inside the block (px): merged into the block height (consumes page capacity like Word's note area) */
   footnoteExtraPx?: number
   /** per-reference reservation heights in run order (matched to the block's

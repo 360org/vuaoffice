@@ -22,6 +22,7 @@ export {
   IconRedo,
   IconCopy,
   IconSearch,
+  IconEyeOff,
   IconSpellcheck,
 } from '../../../../docs/src/renderer/components/icons'
 
@@ -70,6 +71,17 @@ export function IconHr(props: IconProps) {
     <Svg {...props}>
       <path d="M2 8h12" />
       <path d="M4.5 4.2h7M4.5 11.8h7" opacity="0.45" />
+    </Svg>
+  )
+}
+
+/* raw-text lines with a caret — reads as "the text itself", and stays clear of
+ * the chevron pair IconInlineCode already uses for inline-code formatting */
+export function IconSourceCode(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M2.2 3.4h11.6M2.2 6.6h7.2M2.2 9.8h11.6M2.2 13h5.4" opacity="0.55" />
+      <path d="M12.4 9.4v3.2" strokeWidth="1.4" />
     </Svg>
   )
 }
@@ -182,6 +194,29 @@ export function IconQuoteMark(props: IconProps) {
     <Svg {...props}>
       <path d="M3 4.5v7" />
       <path d="M6.4 5h6.8M6.4 8h6.8M6.4 11h4.4" />
+    </Svg>
+  )
+}
+
+/** cloud with an up arrow: the image host (pasted pictures upload here first) */
+export function IconCloudUpload(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4.4 11.2a3 3 0 0 1 .4-5.9 3.6 3.6 0 0 1 7 0 3 3 0 0 1 .2 5.9" />
+      <path d="M8 7.6v5" />
+      <path d="M6.2 9.4 8 7.6l1.8 1.8" />
+    </Svg>
+  )
+}
+
+export function IconPalette(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M8 1.8A6.2 6.2 0 0 0 1.8 8c0 3.4 2.8 5.4 5.2 5.4 1.2 0 1.9-.7 1.9-1.6 0-.8-.6-1.2-.6-2 0-.9.7-1.6 1.7-1.6h1.4c2 0 3.8-1.5 3.8-3.6C14.2 3 11.4 1.8 8 1.8Z" />
+      <circle cx="4.6" cy="6.4" r="0.45" fill="currentColor" stroke="none" />
+      <circle cx="7.4" cy="4.4" r="0.45" fill="currentColor" stroke="none" />
+      <circle cx="10.6" cy="4.8" r="0.45" fill="currentColor" stroke="none" />
+      <circle cx="4.9" cy="9.6" r="0.45" fill="currentColor" stroke="none" />
     </Svg>
   )
 }

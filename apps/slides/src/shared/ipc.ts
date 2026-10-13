@@ -11,6 +11,8 @@ import type { AiPanelPrefs } from '@genoffice/ui'
 import type { RenderSlide } from '@genoffice/pptx-render'
 import type { CustGeomPathCmd, SlideComment, SectionInfo } from '@genoffice/pptx-engine'
 import type { FontSizeStep } from '@genoffice/pptx-ops/font-size'
+// the font catalog's shape is the store's to declare, not a copy kept in step by hand
+import type { CatalogEntry as FontCatalogEntry } from '@genoffice/electron-utils/font-store'
 import type { LayoutSkeleton } from '../renderer/ai/layout-skeleton'
 import type {
   AiSettings,
@@ -1305,15 +1307,13 @@ export interface SlidesApi {
   >
   /** Single-face sfnt bytes for one private face (null = gone/unreadable) */
   privateFontData: (id: string) => Promise<ArrayBuffer | null>
-  /** Curated downloadable (OFL) font catalog with per-family install state */
-  fontCatalog: () => Promise<
-    Array<{
-      family: string
-      script: 'latin' | 'ja' | 'ko' | 'sc' | 'tc'
-      installed: boolean
-      downloading: boolean
-    }>
-  >
+  /**
+   * Curated downloadable (OFL) font catalog with per-family install state and
+   * what each family would cost. Typed from the store that produces it rather
+   * than restated here: `ipcMain.handle` is untyped, so a drifted copy of this
+   * shape passes typecheck and fails at the point of use.
+   */
+  fontCatalog: () => Promise<FontCatalogEntry[]>
   /** Download a catalog family into the user font store; layouts refresh via deck-changed */
   fontDownload: (family: string) => Promise<{ ok: boolean; error?: string }>
   /** File picker → install local font files into the user font store */
@@ -1387,6 +1387,8 @@ export interface SlidesApi {
   editTransform: (op: EditTransformOp) => Promise<RenderSlide | null>
   /** Multi-selection nudge/rotate: every item commits like editTransform, all in one undo step */
   editTransformMulti: (op: EditTransformMultiOp) => Promise<RenderSlide | null>
+  /** Escape during a previewed resize: drop the gesture's preview frames and its undo snapshot */
+  cancelTransformPreview: (op: { slideIndex: number }) => Promise<RenderSlide | null>
   /** Connector endpoint drag: reposition ends and attach/detach shape anchors (stCxn/endCxn) */
   editConnectorEndpoints: (op: EditConnectorEndpointsOp) => Promise<RenderSlide | null>
   /** Batch position update (align/distribute); all items share one undo step */
@@ -1704,6 +1706,10 @@ export interface SlidesApi {
   onRenamed: (handler: (newPath: string) => void) => () => void
   getAiSettings: () => Promise<AiSettings>
   setAiSettings: (settings: AiSettings) => Promise<void>
+  /** ai-settings.json was rewritten by any renderer; re-read it */
+  onAiSettingsChanged: (handler: () => void) => () => void
+  /** shell only: switch to Home and open Settings › AI Model (rejects in standalone) */
+  openAiModelSettings: () => Promise<void>
   aiStream: (request: AiStreamRequest) => Promise<void>
   aiStreamCancel: (requestId: string) => Promise<void>
   /** Genspark account status (gsk login state); with withEmail also fetches the email (needs a network request, slower) */

@@ -1612,12 +1612,14 @@ export function registerSlidesIpc(): void {
     let pushed = false
     if (op.preview) {
       if (!session.transformPreview) {
+        session.previewRedo = session.redoStack
         pushHistory(session)
         pushed = true
         session.transformPreview = true
       }
     } else if (session.transformPreview) {
       session.transformPreview = false
+      session.previewRedo = undefined
     } else {
       pushHistory(session)
       pushed = true
@@ -1633,10 +1635,29 @@ export function registerSlidesIpc(): void {
       // flag would make later frames skip pushHistory and cost the commit its undo step.
       if (pushed) {
         session.undoStack.pop()
-        if (op.preview) session.transformPreview = false
+        if (op.preview) {
+          session.transformPreview = false
+          if (session.previewRedo) session.redoStack = session.previewRedo
+          session.previewRedo = undefined
+        }
       }
       return null
     }
+    return rebuildSlide(session, op.slideIndex)
+  })
+
+  // Escape mid-resize: the preview frames live in the model and their undo snapshot is the
+  // pre-gesture state, so restoring that snapshot and dropping it leaves no trace of the gesture
+  ipcMain.handle('slides:cancel-transform-preview', (e, op: { slideIndex: number }) => {
+    const session = sessions.get(e.sender.id)
+    if (!session || !session.transformPreview) return null
+    session.transformPreview = false
+    const snap = session.undoStack.pop()
+    if (snap) restoreSnapshot(session, snap)
+    if (session.previewRedo) session.redoStack = session.previewRedo
+    session.previewRedo = undefined
+    scheduleHistoryNotify(session)
+    scheduleDeckBroadcast(session)
     return rebuildSlide(session, op.slideIndex)
   })
 
@@ -1756,20 +1777,22 @@ export function registerSlidesIpc(): void {
 
   ipcMain.handle('slides:cloud-gen-status', () => ({ enabled: cloudSlideEnabled() }))
 
-  // In-flight cloud generations of this window. Stop in the AI panel aborts
-  // every one of them — generation is sequential per panel, so a global-for-
-  // this-window cancel cannot hit an unrelated request.
-  const cloudPageAborts = new Set<AbortController>()
+  // In-flight cloud generations keyed by the requesting window: stop in one
+  // panel aborts all of that window's pages (a deck batch shares one stop
+  // signal) and none of another window's
+  const cloudPageAborts = new Map<number, Set<AbortController>>()
 
-  ipcMain.handle('slides:cloud-page-cancel', () => {
-    for (const c of cloudPageAborts) c.abort()
-    cloudPageAborts.clear()
+  ipcMain.handle('slides:cloud-page-cancel', (e) => {
+    const aborts = cloudPageAborts.get(e.sender.id)
+    if (!aborts) return
+    for (const c of aborts) c.abort()
+    cloudPageAborts.delete(e.sender.id)
   })
 
   ipcMain.handle(
     'slides:cloud-page-generate',
     async (
-      _e,
+      e,
       op: {
         brief: string
         title?: string
@@ -1790,7 +1813,9 @@ export function registerSlidesIpc(): void {
         // Stop must reach the cloud request: without this the generation keeps
         // running (and billing) after the user pressed stop
         const abort = new AbortController()
-        cloudPageAborts.add(abort)
+        const windowAborts = cloudPageAborts.get(e.sender.id) ?? new Set<AbortController>()
+        windowAborts.add(abort)
+        cloudPageAborts.set(e.sender.id, windowAborts)
         let bytes: Uint8Array
         let model: string
         try {
@@ -1806,7 +1831,8 @@ export function registerSlidesIpc(): void {
             signal: abort.signal,
           }))
         } finally {
-          cloudPageAborts.delete(abort)
+          windowAborts.delete(abort)
+          if (windowAborts.size === 0) cloudPageAborts.delete(e.sender.id)
         }
         console.log(
           `[cloud-slide] page generated: tier=${tier} model=${model} bytes=${bytes.length} ms=${Date.now() - started}`,

@@ -10,7 +10,9 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { copyFile, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { refreshCsvDigest } from './csv-digest'
 import { createServer } from 'node:http'
+import { userInfo } from 'node:os'
 import { basename, dirname, isAbsolute, join } from 'node:path'
 
 import {
@@ -25,6 +27,7 @@ import {
   session as electronSession,
   shell,
   systemPreferences,
+  webContents,
   WebContentsView,
 } from 'electron'
 import type {
@@ -36,6 +39,7 @@ import type {
 } from 'electron'
 import { z } from 'zod'
 import {
+  abortOnDestroyed,
   appMenuLabels,
   buildPrintableHtml,
   configuredDefaultSaveDir,
@@ -71,6 +75,7 @@ import {
   resolveAiSettings,
   setAiUserAgent,
   setRescueFetch,
+  resolveProfileCredential,
   streamForProvider,
   type AiProviderId,
   type AiSettings,
@@ -85,6 +90,9 @@ import {
   sheetCsvToXlsxBuffer,
 } from '@genoffice/xlsx-gateway/gateway/csv-import'
 import {
+  ensureGenofficeLogin,
+  noteGskCallFailure,
+  setGenofficeLoginOpener,
   gskApiKey,
   gskLoginInfo,
   hasGskAuth,
@@ -116,7 +124,10 @@ import {
   aiStreamRequestSchema,
   workbookFileSchema,
   workbookFormulaCellsRequestSchema,
+  workbookRowOutlineResultSchema,
   workbookFormulaCellsResultSchema,
+  workbookFindCellsRequestSchema,
+  workbookFindCellsResultSchema,
   workbookRecalcRequestSchema,
   workbookRecalcResultSchema,
   workbookMediaRequestSchema,
@@ -131,6 +142,7 @@ import {
   workbookCreateDocumentRequestSchema,
   workbookExportCsvRequestSchema,
   workbookExportPdfRequestSchema,
+  printerInfoSchema,
   workbookRangeRequestSchema,
   workbookRangeResultSchema,
   workbookSaveEditsAbortSchema,
@@ -1548,7 +1560,7 @@ export function configureSheetsRuntime(config: SheetsRuntimeConfig): void {
  * not report the write itself as failed — the file is already persisted. */
 function openGeneratedFile(path: string): void {
   // Headless export must stay silent: no tab, no file-manager window
-  // (same guard as markdown-main's openExportedPdf, #1815).
+  // (same guard as markdown-main's openExportedPdf, genoffice#1815).
   if (isHeadlessMode()) return
   try {
     if (runtime.openGeneratedPath?.(path)) return
@@ -2564,6 +2576,15 @@ export function registerSheetsIpc(): void {
   if (coreIpcRegistered) return
   coreIpcRegistered = true
 
+  ipcMain.handle(IPC_CHANNELS.userDisplayName, (event): string => {
+    sessionFor(event)
+    try {
+      return userInfo().username
+    } catch {
+      return ''
+    }
+  })
+
   // Registered here (not in registerSheetsAiIpc, skipped in shell mode):
   // slides' ai:generate-image only exists once a slides view opens, so sheets
   // owns its channel the way pdf does.
@@ -2838,6 +2859,22 @@ export function registerSheetsIpc(): void {
     return workbookFormulaCellsResultSchema.parse(result)
   })
 
+  ipcMain.handle(IPC_CHANNELS.findWorkbookCells, async (event, input: unknown) => {
+    const entry = sessionFor(event)
+    const request = workbookFindCellsRequestSchema.parse(input)
+    if (!entry.sessions.has(request.sessionId)) throw new Error('Unknown workbook session.')
+    const result = await entry.client.findCells(request)
+    return workbookFindCellsResultSchema.parse(result)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.readWorkbookRowOutline, async (event, input: unknown) => {
+    const entry = sessionFor(event)
+    const request = workbookFormulaCellsRequestSchema.parse(input)
+    if (!entry.sessions.has(request.sessionId)) throw new Error('Unknown workbook session.')
+    const result = await entry.client.readRowOutline(request)
+    return workbookRowOutlineResultSchema.parse(result)
+  })
+
   // IronCalc recalculation: sheet ids resolve through the session's file
   // sheet names, so the renderer never sees paths and sheets added this
   // session (no file part) fail closed before reaching the engine.
@@ -3050,6 +3087,17 @@ export function registerSheetsIpc(): void {
     return printWorkbook(event, workbookExportPdfRequestSchema.parse(input))
   })
 
+  ipcMain.handle(IPC_CHANNELS.listPrinters, async (event) => {
+    sessionFor(event)
+    const printers = await event.sender.getPrintersAsync()
+    return printers.map((printer) =>
+      printerInfoSchema.parse({
+        name: printer.name,
+        displayName: printer.displayName || printer.name,
+      }),
+    )
+  })
+
   ipcMain.handle(IPC_CHANNELS.exportCsv, async (event, input: unknown) => {
     const entry = sessionFor(event)
     const request = workbookExportCsvRequestSchema.parse(input)
@@ -3097,17 +3145,10 @@ export function registerSheetsIpc(): void {
       Buffer.from(request.content, 'utf8'),
     ])
     await atomicWriteFile(targetPath, csvBytes)
-    // An export can land on a CSV session's own source file — refresh that
-    // session's guard digest so its next Save doesn't mistake this write for
-    // an external change.
+    // An export can land on a CSV session's own source file; refresh the
+    // digest so the next Save does not read this write as an external change.
     const writtenSha = await sha256File(targetPath).catch(() => undefined)
-    if (writtenSha !== undefined) {
-      for (const [sessionId, session] of entry.sessions) {
-        if (session.csvSourcePath === targetPath) {
-          entry.sessions.set(sessionId, { ...session, csvSourceSha: writtenSha })
-        }
-      }
-    }
+    if (writtenSha !== undefined) refreshCsvDigest(entry.sessions, targetPath, writtenSha)
     return { canceled: false, path: targetPath }
   })
 
@@ -3616,6 +3657,9 @@ export function registerSheetsAiIpc(): void {
     },
   )
 
+  // a 401 on the gsk key opens the device-code login once (genoffice-auth recovery)
+  setGenofficeLoginOpener((url) => void shell.openExternal(url))
+
   ipcMain.handle(IPC_CHANNELS.aiGskLogin, () => {
     void shell.openExternal(
       'https://vuahethong.net/vuaoffice/auth?redirect_uri=vuaoffice://auth/callback',
@@ -3626,6 +3670,8 @@ export function registerSheetsAiIpc(): void {
     sessionFor(event)
     const settings = aiSettingsInputSchema.parse(input)
     writeJsonAtomic(SETTINGS_PATH(), settings)
+    for (const wc of webContents.getAllWebContents())
+      if (!wc.isDestroyed()) wc.send(IPC_CHANNELS.aiSettingsChanged)
   })
 
   ipcMain.handle(IPC_CHANNELS.aiChat, async (event, input: unknown) => {
@@ -3633,12 +3679,17 @@ export function registerSheetsAiIpc(): void {
     const request = aiChatRequestSchema.parse(input)
     const provider = request.settings.provider as AiProviderId
     let config = request.settings.providers[provider]
+    // set only when the gsk key was injected: a 401 then means that key expired
+    let gskKey = ''
     if (provider === 'genspark' && config && !config.apiKey) {
-      config = { ...config, apiKey: gskApiKey() }
+      gskKey = gskApiKey()
+      config = { ...config, apiKey: gskKey }
     }
     if (provider === 'vuaaipro' && config && !config.apiKey) {
       config = { ...config, apiKey: 'vuaai-default-key' }
     }
+    // a custom endpoint may name an environment variable instead of storing a key
+    config = config ? resolveProfileCredential(config) : config
     if (!config || (provider !== 'codex' && !config.apiKey)) {
       return {
         ok: false,
@@ -3653,8 +3704,10 @@ export function registerSheetsAiIpc(): void {
       if (!result.ok && isAiOverloadedError(result.error)) {
         return { ok: false, error: tm('errAiBusy') }
       }
+      if (!result.ok) noteGskCallFailure(gskKey, result.error)
       return result
     } catch (err) {
+      noteGskCallFailure(gskKey, err)
       return { ok: false, error: isAiOverloadedError(err) ? tm('errAiBusy') : String(err) }
     }
   })
@@ -3669,12 +3722,17 @@ export function registerSheetsAiIpc(): void {
     let config = request.settings.providers[provider]
     // Genspark's key never enters the settings file; it is read from the gsk
     // login state per request
+    // set only when the gsk key was injected: a 401 then means that key expired
+    let gskKey = ''
     if (provider === 'genspark' && config && !config.apiKey) {
-      config = { ...config, apiKey: gskApiKey() }
+      gskKey = gskApiKey()
+      config = { ...config, apiKey: gskKey }
     }
     if (provider === 'vuaaipro' && config && !config.apiKey) {
       config = { ...config, apiKey: 'vuaai-default-key' }
     }
+    // a custom endpoint may name an environment variable instead of storing a key
+    config = config ? resolveProfileCredential(config) : config
     const send = (chunk: AiStreamChunk) => {
       if (!event.sender.isDestroyed()) event.sender.send(IPC_CHANNELS.aiStreamChunk, chunk)
     }
@@ -3692,6 +3750,7 @@ export function registerSheetsAiIpc(): void {
     }
     const controller = new AbortController()
     entry.aiStreams.set(requestId, controller)
+    const unwatchSender = abortOnDestroyed(event.sender, controller)
     // wire-activity keepalive: lets the renderer's silence watchdog tell a slow turn from a dead one
     let lastPing = 0
     const ping = () => {
@@ -3712,6 +3771,7 @@ export function registerSheetsAiIpc(): void {
         onStopReason: (reason) => {
           stopReason = reason
         },
+        onUsage: (usage) => send({ requestId, type: 'usage', usage }),
       })
       // sheets tsconfig sets exactOptionalPropertyTypes: an explicit
       // `stopReason: undefined` is not assignable to AiStreamChunk, so only
@@ -3725,6 +3785,8 @@ export function registerSheetsAiIpc(): void {
       if (controller.signal.aborted) {
         send({ requestId, type: 'done' })
       } else {
+        // an expired/revoked key drops to signed-out so the inline sign-in button shows
+        noteGskCallFailure(gskKey, err)
         send({
           requestId,
           type: 'error',
@@ -3741,6 +3803,7 @@ export function registerSheetsAiIpc(): void {
         })
       }
     } finally {
+      unwatchSender()
       entry.aiStreams.delete(requestId)
     }
   })
@@ -3959,6 +4022,7 @@ async function writeWorkbookTo(
   const renames: { sheetName: string; newName: string }[] = []
   const removals: string[] = []
   const hiddenChanges: { sheetName: string; hidden: boolean }[] = []
+  const tabColorStates: { sheetName: string; color: string | null }[] = []
   let orderChanged = false
   for (const op of request.sheetOps) {
     if (op.kind === 'add-sheet') {
@@ -3983,6 +4047,8 @@ async function writeWorkbookTo(
     if (op.kind === 'rename-sheet') renames.push({ sheetName, newName: op.newName })
     else if (op.kind === 'set-sheet-hidden') {
       hiddenChanges.push({ sheetName, hidden: op.hidden })
+    } else if (op.kind === 'set-sheet-tab-color') {
+      tabColorStates.push({ sheetName, color: op.color })
     } else removals.push(sheetName)
   }
   const renameByOriginal = new Map(renames.map((rename) => [rename.sheetName, rename.newName]))
@@ -3992,7 +4058,7 @@ async function writeWorkbookTo(
     return sheetName
   }
   let sheetPlan: SheetEditPlan | undefined
-  if (request.sheetOps.length > 0) {
+  if (request.sheetOps.some((op) => op.kind !== 'set-sheet-tab-color')) {
     sheetPlan = {
       renames,
       additions: [...addedSheetNames].map(([sheetId, name]) => ({
@@ -4041,6 +4107,12 @@ async function writeWorkbookTo(
         level: op.level,
         ...(op.collapsed === undefined ? {} : { collapsed: op.collapsed }),
       })
+    } else if ('summaryBelow' in op) {
+      sheetOps.push({
+        kind: op.kind,
+        summaryBelow: op.summaryBelow,
+        summaryRight: op.summaryRight,
+      })
     } else if ('hidden' in op) {
       sheetOps.push({ kind: op.kind, start: op.start, end: op.end, hidden: op.hidden })
     } else if ('style' in op) {
@@ -4081,9 +4153,9 @@ async function writeWorkbookTo(
     sheetName: resolveSheetName(state.sheetId),
     rules: state.rules,
   }))
-  const sheetProtections = request.sheetProtections.map((state) => ({
-    sheetName: resolveSheetName(state.sheetId),
-    protected: state.protected,
+  const sheetProtections = request.sheetProtections.map(({ sheetId, ...state }) => ({
+    sheetName: resolveSheetName(sheetId),
+    ...state,
   }))
   const protectedRangeStates = request.protectedRangeStates.map((state) => ({
     sheetName: resolveSheetName(state.sheetId),
@@ -4111,6 +4183,18 @@ async function writeWorkbookTo(
     columnNames: table.columnNames,
     style: table.style,
     bandedRows: table.bandedRows,
+    options: {
+      headerRow: table.headerRow,
+      totalsRow: table.totalsRow,
+      firstColumn: table.firstColumn,
+      lastColumn: table.lastColumn,
+      bandedColumns: table.bandedColumns,
+      filterButton: table.filterButton,
+    },
+  }))
+  const tableEdits = (request.tableEdits ?? []).map(({ sheetId, ...edit }) => ({
+    ...edit,
+    sheetName: resolveSheetName(sheetId),
   }))
   const pivotAdditions = request.pivotAdditions.map((pivot) => ({
     sheetName: resolveSheetName(pivot.sheetId),
@@ -4122,6 +4206,8 @@ async function writeWorkbookTo(
     rowFieldIndices: pivot.rowFieldIndices,
     columnFieldIndex: pivot.columnFieldIndex,
     pageFieldIndices: pivot.pageFieldIndices,
+    pageLevelItems: pivot.pageLevelItems,
+    pageItems: pivot.pageItems,
     rowItems: pivot.rowItems,
     rowLevelItems: pivot.rowLevelItems,
     rowLines: pivot.rowLines,
@@ -4174,6 +4260,7 @@ async function writeWorkbookTo(
     cfStates,
     dvStates,
     sheetProtections,
+    tabColorStates,
     definedNamesState: request.definedNamesState,
     themeState: request.themeState,
     workbookProtectionState: request.workbookProtectionState,
@@ -4182,6 +4269,7 @@ async function writeWorkbookTo(
     pageSetupStates,
     noteStates,
     tableAdditions,
+    tableEdits,
     pivotAdditions,
     sparklineAdditions,
     formulaValues,

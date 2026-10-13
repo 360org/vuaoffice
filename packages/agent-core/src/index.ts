@@ -4,20 +4,25 @@ export type {
   AgentStreamCallbacks,
   AgentStreamHandle,
   AgentStreamRequest,
+  AgentTokenUsage,
   AgentToolCall,
   AgentToolDef,
   AgentToolResult,
   AgentTransport,
+  MindMapTreeNode,
   ToolDisplay,
   ToolExecution,
 } from './types'
 export { composeSkills } from './skill'
+export { createKnowledgeBaseSkill, formatKbSize } from './knowledge-base-skill'
+export type { KnowledgeBaseDeps, KbFileInfo, KbSearchHit, KbReadPage } from './knowledge-base-skill'
 export type { AgentSkill, ExecutedToolCall } from './skill'
 export {
   AgentLoop,
   COMPLETED_VIA_TOOLS_TEXT,
   DEFAULT_MAX_TURNS,
   TOOL_ABORTED_OUTPUT,
+  coerceArgumentFields,
   invalidArgumentFields,
   missingRequiredFields,
   runtimePreamble,

@@ -6,7 +6,8 @@
  * page-layout view), everything lands in the saved file.
  */
 import { isMetafileMime, metafileToDataUrl } from '@genoffice/docx-engine/metafile'
-import type { WorkbookExportPdfRequest } from '../shared/desktop-api'
+import type { PrinterInfo, WorkbookExportPdfRequest } from '../shared/desktop-api'
+import type { FWorksheet } from '@univerjs/sheets/facade'
 import type { WorkbookOperation } from '@genoffice/xlsx-gateway/domain/workbook-dsl'
 import type { ApplyOutcome } from '@genoffice/xlsx-gateway/domain/workbook.types'
 
@@ -23,15 +24,21 @@ import type { HeaderFooterResult } from './HeaderFooterDialog'
 import { t } from './i18n/locale'
 import { effectivePageBreaks } from './page-break-preview'
 import { COLOR_SCHEMES, FONT_SCHEMES, rethemeStyles, THEME_PRESETS } from './themes'
+import { startFullLoad } from './full-load'
+import { fitsFullLoad, workbookCellCounts } from './load-budget'
 import { loadVisibleRange } from './univer-sync'
 import {
-  buildSheetPrintPayload,
+  layoutSheetPrint,
+  PrintError,
+  printRequest,
   type HeaderFooterPictureImage,
   type PrintWorksheet,
+  type SheetPrintDocument,
 } from './print-html'
 import {
   clampTitleRows,
   resolveEffectivePageSetup,
+  type EffectivePageSetup,
   type HeaderFooterPictureSlot,
 } from './print-settings'
 import { settleVisualNodes, snapshotPrintVisuals } from './print-visuals'
@@ -173,6 +180,18 @@ export function handlePageLayoutCommand(ctx: PageLayoutContext, rest: string): v
         key === 'fit-width'
           ? t('appFitWidthNote', { value: fitValue })
           : t('appFitHeightNote', { value: fitValue }),
+      )
+      return
+    }
+    case 'fit': {
+      const [width, height] = value.split(',').map(Number)
+      if (!Number.isInteger(width) || !Number.isInteger(height)) return
+      if (width === undefined || height === undefined || width < 0 || height < 0) return
+      record(
+        { fitToWidth: width, fitToHeight: height, fitToPage: width > 0 || height > 0 },
+        t('appFitWidthNote', {
+          value: width === 0 ? t('appFitAutomatic') : t('appFitPages', { count: width }),
+        }),
       )
       return
     }
@@ -352,26 +371,21 @@ export function handleApplyHeaderFooter(
   return null
 }
 
-/// The active sheet laid out as print HTML with its Page Layout settings, or
-/// null (after a status message) when the workbook is not ready for it.
-async function activeSheetPrintPayload(
+/// One sheet laid out as print pages with its Page Layout settings, the
+/// dialog's unsaved overrides on top; `selection` prints that range instead
+/// of the print area.
+async function sheetPrintDocument(
   ctx: PageLayoutContext,
-  messages: { readonly notLoaded: string; readonly preparing: string },
-): Promise<WorkbookExportPdfRequest | null> {
-  const runtime = ctx.univerRef.current
-  const worksheet = runtime?.univerAPI.getActiveWorkbook()?.getActiveSheet()
-  if (!runtime || !worksheet) {
-    ctx.setMessage(t('appActiveSheetUnavailable'))
-    return null
-  }
-  const state = ctx.lazyWorkbookRef.current
-  if (state && !state.flags.preloadComplete) {
-    ctx.setMessage(messages.notLoaded)
-    return null
-  }
-  ctx.setMessage(messages.preparing)
+  state: LazyWorkbookState | null,
+  worksheet: FWorksheet,
+  overrides: PageSetupJournalState,
+  selection: string | null,
+  now: Date,
+  /// Only the active sheet has installed float DOM to snapshot.
+  withVisuals: boolean,
+): Promise<SheetPrintDocument> {
   const sheetId = worksheet.getSheetId()
-  const journal = state?.editJournal.pageSetup.get(sheetId) ?? {}
+  const journal = { ...(state?.editJournal.pageSetup.get(sheetId) ?? {}), ...overrides }
   const fileSetup = state?.sheetFilePageSetups.get(sheetId) ?? null
   const fileSheet = state?.file.sheets.find((sheet) => sheet.id === sheetId)
   const setup = resolveEffectivePageSetup(
@@ -387,15 +401,240 @@ async function activeSheetPrintPayload(
   const pictures = state
     ? await loadHeaderFooterPictures(state.file.sessionId, setup.headerFooterPictures)
     : new Map<string, HeaderFooterPictureImage>()
-  const frames = await settledVisualFrames(ctx, state, sheetId)
-  return buildSheetPrintPayload(
+  const frames = withVisuals ? await settledVisualFrames(ctx, state, sheetId) : []
+  return layoutSheetPrint(
     worksheet as unknown as PrintWorksheet,
     setup,
-    `${baseName}.pdf`,
+    baseName,
     worksheet.getSheetName(),
     pictures,
     snapshotPrintVisuals(document, frames),
+    { breaks: state ? effectivePageBreaks(state, sheetId) : null, selection, now },
   )
+}
+
+export type PrintRange = 'active' | 'workbook' | 'selection'
+
+export interface PrintJob {
+  readonly documents: readonly SheetPrintDocument[]
+  readonly fileName: string
+  readonly pageCount: number
+}
+
+export interface PrintOutputSettings {
+  readonly deviceName: string | null
+  readonly copies: number
+  readonly collate: boolean
+  /// 1-based inclusive job page range; null prints every page.
+  readonly pages: { readonly from: number; readonly to: number } | null
+}
+
+/// What the Print dialog needs from the App; built fresh per open.
+export interface PrintPreviewHost {
+  readonly setup: EffectivePageSetup
+  readonly marginsPreset: 'normal' | 'wide' | 'narrow' | 'custom'
+  readonly hasSelection: boolean
+  readonly sheetCount: number
+  buildJob(range: PrintRange, overrides: PageSetupJournalState): Promise<PrintJob>
+  listPrinters(): Promise<PrinterInfo[]>
+  /// Resolve with the status message to show.
+  print(job: PrintJob, output: PrintOutputSettings): Promise<string>
+  exportPdf(job: PrintJob, pages: PrintOutputSettings['pages']): Promise<string>
+  /// Persists one dialog setting as a Page Layout command (`orientation:landscape`).
+  applySetting(rest: string): void
+  setMessage(message: string): void
+}
+
+/// null (after a status message) when the workbook is not ready to print.
+export function createPrintPreviewHost(ctx: PageLayoutContext): PrintPreviewHost | null {
+  const runtime = ctx.univerRef.current
+  const workbook = runtime?.univerAPI.getActiveWorkbook()
+  const worksheet = workbook?.getActiveSheet()
+  if (!runtime || !workbook || !worksheet) {
+    ctx.setMessage(t('appActiveSheetUnavailable'))
+    return null
+  }
+  const state = ctx.lazyWorkbookRef.current
+  if (state && !state.flags.preloadComplete) {
+    ctx.setMessage(t('appPrintNeedsFullLoad'))
+    return null
+  }
+  const sheetId = worksheet.getSheetId()
+  const journal = state?.editJournal.pageSetup.get(sheetId) ?? {}
+  const fileSetup = state?.sheetFilePageSetups.get(sheetId) ?? null
+  const fileSheet = state?.file.sheets.find((sheet) => sheet.id === sheetId)
+  const setup = resolveEffectivePageSetup(
+    journal,
+    fileSetup,
+    {
+      ...(fileSheet?.printArea === undefined ? {} : { printArea: fileSheet.printArea }),
+      ...(fileSheet?.printTitles === undefined ? {} : { printTitles: fileSheet.printTitles }),
+    },
+    state?.editJournal.structuralOps.get(sheetId) ?? [],
+  )
+  const activeRange = workbook.getActiveRange()
+  const hasSelection =
+    activeRange !== null && (activeRange.getWidth() > 1 || activeRange.getHeight() > 1)
+  const selectionA1 = (): string | null => {
+    const range = workbook.getActiveRange()
+    if (!range) return null
+    const startColumn = range.getColumn()
+    const startRow = range.getRow()
+    return (
+      `${columnLabel(startColumn)}${startRow + 1}` +
+      `:${columnLabel(startColumn + range.getWidth() - 1)}${startRow + range.getHeight()}`
+    )
+  }
+  const printableSheets = () =>
+    workbook
+      .getSheets()
+      .filter(
+        (sheet) =>
+          !sheet.isSheetHidden() &&
+          !(state && isSheetRemoved(state.editJournal, sheet.getSheetId())),
+      )
+  const baseName = (state?.file.name ?? 'Book1').replace(/\.[^.]+$/, '')
+  const include = (pages: PrintOutputSettings['pages']) =>
+    pages === null ? undefined : (page: number) => page >= pages.from && page <= pages.to
+  return {
+    setup,
+    marginsPreset: journal.margins ?? (fileSetup?.margins === undefined ? 'normal' : 'custom'),
+    hasSelection,
+    sheetCount: printableSheets().length,
+    async buildJob(range, overrides) {
+      const now = new Date()
+      const sheets = range === 'workbook' ? printableSheets() : [worksheet]
+      const documents: SheetPrintDocument[] = []
+      for (const sheet of sheets) {
+        const isActive = sheet.getSheetId() === sheetId
+        documents.push(
+          await sheetPrintDocument(
+            ctx,
+            state,
+            sheet,
+            isActive ? overrides : {},
+            range === 'selection' ? selectionA1() : null,
+            now,
+            isActive,
+          ),
+        )
+      }
+      const pageCount = documents.reduce((sum, document) => sum + document.pages.length, 0)
+      if (pageCount === 0) throw new PrintError(t('appPrintNothing'))
+      return { documents, fileName: `${baseName}.pdf`, pageCount }
+    },
+    listPrinters: () => window.desktopApi.listPrinters(),
+    async print(job, output) {
+      const request = printRequest(job.documents, job.fileName, include(output.pages))
+      const result = await window.desktopApi.printWorkbook({
+        ...request,
+        ...(output.deviceName === null ? {} : { deviceName: output.deviceName }),
+        copies: output.copies,
+        collate: output.collate,
+      })
+      if (result.ok) return t('appPrintSent')
+      return result.error === undefined ? t('appPrintCanceled') : t('appPrintFailed')
+    },
+    async exportPdf(job, pages) {
+      const result = await window.desktopApi.exportPdf(
+        printRequest(job.documents, job.fileName, include(pages)),
+      )
+      return result.canceled ? t('appPdfCanceled') : t('appPdfExported', { path: result.path })
+    },
+    applySetting: (rest) => handlePageLayoutCommand(ctx, rest),
+    setMessage: ctx.setMessage,
+  }
+}
+
+const FULL_LOAD_TIMEOUT_MS = 180_000
+
+/// Print and PDF export lay out every cell, so a streamed workbook is fully
+/// loaded first (the same load as the Load-all prompt, joined if one already
+/// runs) instead of refusing and leaving the user to wait and retry. `notLoaded`
+/// is the status shown while it runs. False (after a status message) when the
+/// workbook is too large to load, the load failed or timed out, or the user
+/// switched workbooks meanwhile.
+async function loadWorkbookForPrint(
+  ctx: PageLayoutContext,
+  state: LazyWorkbookState,
+  messages: { readonly notLoaded: string; readonly failed: string },
+): Promise<boolean> {
+  if (state.flags.preloadComplete) return true
+  if (!fitsFullLoad(workbookCellCounts(state.file.sheets))) {
+    ctx.setMessage(t('appPrintWorkbookTooLarge'))
+    return false
+  }
+  const runtime = ctx.univerRef.current
+  if (!runtime) {
+    ctx.setMessage(messages.failed)
+    return false
+  }
+  ctx.setMessage(messages.notLoaded)
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<'timeout'>((resolve) => {
+    timer = setTimeout(() => resolve('timeout'), FULL_LOAD_TIMEOUT_MS)
+  })
+  const settled = startFullLoad(runtime, ctx.lazyWorkbookRef, ctx.setMessage).then(
+    () => 'settled' as const,
+    () => 'failed' as const,
+  )
+  const outcome = await Promise.race([settled, timeout]).finally(() => clearTimeout(timer))
+  // The workbook was replaced: whatever replaced it owns the status line.
+  if (ctx.lazyWorkbookRef.current !== state) return false
+  if (outcome !== 'settled' || !state.flags.preloadComplete) {
+    ctx.setMessage(messages.failed)
+    return false
+  }
+  return true
+}
+
+/// File → Print: loads a streamed workbook first, then opens the Print
+/// dialog's host; null (after a status message) when it cannot be opened.
+export async function openPrintPreviewHost(
+  ctx: PageLayoutContext,
+): Promise<PrintPreviewHost | null> {
+  const state = ctx.lazyWorkbookRef.current
+  if (state && !state.flags.preloadComplete) {
+    if (!ctx.univerRef.current?.univerAPI.getActiveWorkbook()?.getActiveSheet()) {
+      ctx.setMessage(t('appActiveSheetUnavailable'))
+      return null
+    }
+    const loaded = await loadWorkbookForPrint(ctx, state, {
+      notLoaded: t('appPrintNeedsFullLoad'),
+      failed: t('appPrintFailed'),
+    })
+    if (!loaded) return null
+  }
+  return createPrintPreviewHost(ctx)
+}
+
+/// The active sheet laid out as print HTML with its Page Layout settings, or
+/// null (after a status message) when the workbook is not ready for it.
+async function activeSheetPrintPayload(
+  ctx: PageLayoutContext,
+  messages: { readonly notLoaded: string; readonly preparing: string; readonly failed: string },
+): Promise<WorkbookExportPdfRequest | null> {
+  const activeSheet = () => ctx.univerRef.current?.univerAPI.getActiveWorkbook()?.getActiveSheet()
+  if (!activeSheet()) {
+    ctx.setMessage(t('appActiveSheetUnavailable'))
+    return null
+  }
+  const state = ctx.lazyWorkbookRef.current
+  if (state && !(await loadWorkbookForPrint(ctx, state, messages))) return null
+
+  // The load awaited: take the sheet again, it may have changed meanwhile.
+  const worksheet = activeSheet()
+  if (!worksheet) {
+    ctx.setMessage(t('appActiveSheetUnavailable'))
+    return null
+  }
+  if (ctx.lazyWorkbookRef.current !== state) return null
+
+  ctx.setMessage(messages.preparing)
+  const sheetId = worksheet.getSheetId()
+  const document = await sheetPrintDocument(ctx, state, worksheet, {}, null, new Date(), true)
+  if (ctx.lazyWorkbookRef.current !== state || activeSheet()?.getSheetId() !== sheetId) return null
+  return printRequest([document], `${document.fileName}.pdf`)
 }
 
 /// Lays the active sheet out as HTML with its Page Layout settings and asks
@@ -407,6 +646,7 @@ export async function handleExportPdf(ctx: PageLayoutContext, outPath?: string):
     const payload = await activeSheetPrintPayload(ctx, {
       notLoaded: t('appPdfNeedsFullLoad'),
       preparing: t('appPdfRendering'),
+      failed: t('appPdfExportFailed'),
     })
     if (!payload) return false
     const result = await window.desktopApi.exportPdf({
@@ -419,25 +659,6 @@ export async function handleExportPdf(ctx: PageLayoutContext, outPath?: string):
     return !result.canceled
   } catch (error: unknown) {
     ctx.setMessage(error instanceof Error ? error.message : t('appPdfExportFailed'))
-    return false
-  }
-}
-
-/// File → Print: the same layout, handed to the system print dialog.
-export async function handlePrint(ctx: PageLayoutContext): Promise<boolean> {
-  try {
-    const payload = await activeSheetPrintPayload(ctx, {
-      notLoaded: t('appPrintNeedsFullLoad'),
-      preparing: t('appPrintPreparing'),
-    })
-    if (!payload) return false
-    const result = await window.desktopApi.printWorkbook(payload)
-    if (result.ok) ctx.setMessage(t('appPrintSent'))
-    else ctx.setMessage(result.error === undefined ? t('appPrintCanceled') : t('appPrintFailed'))
-    return result.ok
-  } catch (error: unknown) {
-    // layout errors (empty print area, oversized sheet, bad titles) name the cause
-    ctx.setMessage(error instanceof Error ? error.message : t('appPrintFailed'))
     return false
   }
 }

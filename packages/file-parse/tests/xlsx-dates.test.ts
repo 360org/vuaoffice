@@ -53,6 +53,40 @@ describe('classifyFormatCode', () => {
     expect(classifyFormatCode('[Red]0.0;[Blue]-0.0')).toBeNull()
     expect(classifyFormatCode('0.00E+00')).toBeNull()
   })
+
+  it.each(['"time; "hh:mm', 'hh:mm"; time"', '_;hh:mm', '*;hh:mm'])(
+    'keeps time tokens after a literal semicolon in %s',
+    (code) => {
+      expect(classifyFormatCode(code)).toMatchObject({ date: false, time: true })
+    },
+  )
+
+  it('keeps date and time tokens across an escaped semicolon', () => {
+    expect(classifyFormatCode('yyyy-mm-dd\\;hh:mm')).toMatchObject({ date: true, time: true })
+  })
+
+  it('does not classify quoted text as date tokens when it contains semicolons', () => {
+    expect(classifyFormatCode('"USD; net"0.00;yyyy-mm-dd')).toBeNull()
+    expect(classifyFormatCode('0.00"; days"')).toBeNull()
+  })
+
+  it('still stops at an unescaped section separator', () => {
+    expect(classifyFormatCode('0.00;yyyy-mm-dd')).toBeNull()
+    expect(classifyFormatCode('hh:mm;yyyy-mm-dd')).toMatchObject({ date: false, time: true })
+    expect(classifyFormatCode('\\";yyyy-mm-dd')).toBeNull()
+  })
+
+  it.each(['\\"', '_"', '*"'])(
+    'keeps a literal quote from exposing quoted date letters after %s',
+    (quote) => {
+      expect(classifyFormatCode(`0.00${quote} "days"`)).toBeNull()
+    },
+  )
+
+  it('keeps time tokens between escaped literal quotes', () => {
+    expect(classifyFormatCode('\\"hh:mm\\"')).toMatchObject({ date: false, time: true })
+    expect(classifyFormatCode('\\"[h]:mm\\"')).toMatchObject({ elapsed: true, time: true })
+  })
 })
 
 describe('builtinDateFormat', () => {
@@ -105,6 +139,9 @@ describe('formatSerial', () => {
     expect(secs).toMatchObject({ elapsed: true, elapsedUnit: 's' })
     expect(formatSerial(0.0625, secs, false)).toBe('5400')
     expect(formatSerial(1.5, classifyFormatCode('[h]:mm:ss')!, false)).toBe('36:00:00')
+    expect(formatSerial(1.5, classifyFormatCode('[h]:mm')!, false)).toBe('36:00')
+    expect(formatSerial(1.5, classifyFormatCode('[h]')!, false)).toBe('36')
+    expect(formatSerial(1.5, classifyFormatCode('[hh]:mm')!, false)).toBe('36:00')
   })
 })
 
@@ -137,6 +174,44 @@ describe('xlsxToText date cells', () => {
     )
     return zip.generateAsync({ type: 'uint8array' })
   }
+
+  it('extracts cells whose number formats contain literal semicolons', async () => {
+    const bytes = await workbook({
+      numFmts:
+        '<numFmt numFmtId="164" formatCode="&quot;time; &quot;hh:mm"/>' +
+        '<numFmt numFmtId="165" formatCode="&quot;USD; net&quot;0.00"/>' +
+        '<numFmt numFmtId="166" formatCode="yyyy-mm-dd\\;hh:mm"/>',
+      xfs: '<xf numFmtId="164"/><xf numFmtId="165"/><xf numFmtId="166"/>',
+      sheetXml:
+        '<row r="1">' +
+        '<c r="A1" s="0"><v>45292.5</v></c>' +
+        '<c r="B1" s="1"><v>100</v></c>' +
+        '<c r="C1" s="2"><v>45292.5</v></c>' +
+        '</row>',
+    })
+    expect(await xlsxToText(bytes)).toContain('12:00 | 100 | 2024-01-01 12:00')
+  })
+
+  it('extracts numeric and time cells with literal quotes without changing the workbook', async () => {
+    const bytes = await workbook({
+      numFmts:
+        '<numFmt numFmtId="164" formatCode="0.00\\&quot; &quot;days&quot;"/>' +
+        '<numFmt numFmtId="165" formatCode="0.00_&quot; &quot;days&quot;"/>' +
+        '<numFmt numFmtId="166" formatCode="0.00*&quot; &quot;days&quot;"/>' +
+        '<numFmt numFmtId="167" formatCode="\\&quot;hh:mm\\&quot;"/>',
+      xfs: '<xf numFmtId="164"/><xf numFmtId="165"/><xf numFmtId="166"/>' + '<xf numFmtId="167"/>',
+      sheetXml:
+        '<row r="1">' +
+        '<c r="A1" s="0"><v>100</v></c>' +
+        '<c r="B1" s="1"><v>100</v></c>' +
+        '<c r="C1" s="2"><v>100</v></c>' +
+        '<c r="D1" s="3"><v>0.5</v></c>' +
+        '</row>',
+    })
+    const original = bytes.slice()
+    expect(await xlsxToText(bytes)).toContain('100 | 100 | 100 | 12:00')
+    expect(bytes).toEqual(original)
+  })
 
   it('renders date-styled serials as ISO dates and leaves other numbers alone', async () => {
     const bytes = await workbook({

@@ -4,7 +4,7 @@
  * to avoid renderer CORS), search tools, and the slides-only ai:* channels
  * (image generation, media analysis, style templates).
  */
-import { app, ipcMain, nativeImage, net, shell } from 'electron'
+import { app, ipcMain, nativeImage, net, shell, webContents } from 'electron'
 import {
   appendFileSync,
   existsSync,
@@ -27,6 +27,7 @@ import {
   sanitizeAiSettings,
   setAiUserAgent,
   setRescueFetch,
+  resolveProfileCredential,
   streamForProvider,
   type AiSettings,
   type AiStreamChunk,
@@ -36,6 +37,7 @@ import {
 } from '@genoffice/ai-provider'
 import { shutdownCodexAppServers } from '@genoffice/ai-provider/codex-app-server'
 import {
+  abortOnDestroyed,
   MAX_REMOTE_IMAGE_BYTES,
   fetchRemoteImage,
   readBodyCapped,
@@ -44,6 +46,9 @@ import {
 import {
   webSearchTool,
   imageSearchTool,
+  ensureGenofficeLogin,
+  noteGskCallFailure,
+  setGenofficeLoginOpener,
   gskApiKey,
   generateImageTool,
   analyzeMediaTool,
@@ -52,6 +57,7 @@ import {
   hasGskAuth,
 } from '@genoffice/ai-search'
 import { addPicture, editPictureSrcRect, replacePictureBytes } from '@genoffice/pptx-engine'
+import { rasterImageExt } from './media-mime'
 import { matchesElementRef } from '@genoffice/pptx-engine/identity'
 import { coverCropFractions } from '@genoffice/pipelines/slides'
 import type { AiRunFailure } from '../shared/ipc'
@@ -137,6 +143,9 @@ export function registerAiIpc(): void {
     },
   )
 
+  // a 401 on the gsk key opens the device-code login once (genoffice-auth recovery)
+  setGenofficeLoginOpener((url) => void shell.openExternal(url))
+
   ipcMain.handle('ai:gsk-login', () => {
     void shell.openExternal('https://vuahethong.net/vuaoffice/auth?redirect_uri=vuaoffice://auth/callback')
   })
@@ -151,6 +160,8 @@ export function registerAiIpc(): void {
       return
     }
     writeJsonAtomic(AI_SETTINGS_PATH(), sanitized)
+    for (const wc of webContents.getAllWebContents())
+      if (!wc.isDestroyed()) wc.send('ai:settings-changed')
   })
 
   ipcMain.handle('ai:log-run-failure', (_event, entry: AiRunFailure) => {
@@ -176,12 +187,17 @@ export function registerAiIpc(): void {
     const provider = settings.provider
     let config = settings.providers?.[provider]
     // The genspark key never enters the settings file; it is fetched from the gsk login state per request
+    // set only when the gsk key was injected: a 401 then means that key expired
+    let gskKey = ''
     if (provider === 'genspark' && config && !config.apiKey) {
-      config = { ...config, apiKey: gskApiKey() }
+      gskKey = gskApiKey()
+      config = { ...config, apiKey: gskKey }
     }
     if (provider === 'vuaaipro' && config && !config.apiKey) {
       config = { ...config, apiKey: 'vuaai-default-key' }
     }
+    // a custom endpoint may name an environment variable instead of storing a key
+    config = config ? resolveProfileCredential(config) : config
     const send = (chunk: AiStreamChunk) => {
       if (!event.sender.isDestroyed()) event.sender.send('ai:stream-chunk', chunk)
     }
@@ -199,6 +215,7 @@ export function registerAiIpc(): void {
     }
     const controller = new AbortController()
     activeAiStreams.set(requestId, controller)
+    const unwatchSender = abortOnDestroyed(event.sender, controller)
     // wire-activity keepalive: lets the renderer's silence watchdog tell a slow turn from a dead one
     let lastPing = 0
     const ping = () => {
@@ -219,6 +236,7 @@ export function registerAiIpc(): void {
         onStopReason: (reason) => {
           stopReason = reason
         },
+        onUsage: (usage) => send({ requestId, type: 'usage', usage }),
       })
       send(
         stopReason === undefined
@@ -229,6 +247,8 @@ export function registerAiIpc(): void {
       if (controller.signal.aborted) {
         send({ requestId, type: 'done' })
       } else {
+        // an expired/revoked key drops to signed-out so the inline sign-in button shows
+        noteGskCallFailure(gskKey, err)
         const msg = err instanceof Error ? err.message : String(err)
         console.error(`[ai-stream] ${requestId} (${provider}/${config.model}) failed:`, msg)
         send({
@@ -247,6 +267,7 @@ export function registerAiIpc(): void {
         })
       }
     } finally {
+      unwatchSender()
       activeAiStreams.delete(requestId)
     }
   })
@@ -392,8 +413,11 @@ export function registerSlidesOnlyAiIpc(): void {
           const resp = await fetchRemoteImage(String(op.url))
           if (!resp || !resp.ok) return null
           buf = Buffer.from(await readBodyCapped(resp, MAX_REMOTE_IMAGE_BYTES))
-          const ct = resp.headers.get('content-type') ?? ''
-          ext = ct.includes('png') ? 'png' : ct.includes('gif') ? 'gif' : 'jpg'
+          // magic bytes decide: a header-informed extension would happily store
+          // an HTML error page (or an attacker "image") as a .jpg in the deck
+          const kind = rasterImageExt(buf)
+          if (!kind) return null
+          ext = kind
         }
         const baseWidthPx = session.opened.deck.size.cx / EMU_PER_PX_96
         const scale = op.fitWidthPx / baseWidthPx
@@ -465,8 +489,9 @@ export function registerSlidesOnlyAiIpc(): void {
           const resp = await fetchRemoteImage(String(op.url))
           if (!resp || !resp.ok) return null
           buf = Buffer.from(await readBodyCapped(resp, MAX_REMOTE_IMAGE_BYTES))
-          const ct = resp.headers.get('content-type') ?? ''
-          ext = ct.includes('png') ? 'png' : ct.includes('gif') ? 'gif' : 'jpg'
+          const kind = rasterImageExt(buf)
+          if (!kind) return null
+          ext = kind
         }
         pushHistory(session)
         const ok = replacePictureBytes(

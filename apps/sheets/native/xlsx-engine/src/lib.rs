@@ -15,6 +15,8 @@ use zip::ZipArchive;
 
 pub mod archive;
 pub mod convert;
+pub mod find;
+pub mod protocol;
 pub mod recalc;
 mod richdata;
 mod shared_formulas;
@@ -150,6 +152,38 @@ impl Drop for CacheDirectory {
     }
 }
 
+/// Whether this build can run work on background threads. WebAssembly
+/// without threads (wasm32-wasip1, a browser without cross-origin isolation)
+/// and the `single-thread` feature run the same work inline: a sheet is
+/// indexed completely the first time it is read, and a recalc answers before
+/// the next request is read.
+pub const THREADS: bool = !cfg!(any(
+    feature = "single-thread",
+    all(target_family = "wasm", not(target_feature = "atomics"))
+));
+
+/// `std::env::temp_dir` panics on WASI, which has no notion of one: there the
+/// host maps a directory and names it in `TMPDIR` (`/tmp` when unset).
+fn temp_dir() -> PathBuf {
+    if cfg!(target_os = "wasi") {
+        std::env::var_os("TMPDIR").map_or_else(|| PathBuf::from("/tmp"), PathBuf::from)
+    } else {
+        std::env::temp_dir()
+    }
+}
+
+/// `Path::canonicalize`, which WASI does not support: there the host hands over absolute
+/// paths in a sandbox without symlinks or a working directory, so the path is already
+/// canonical and only has to exist.
+pub(crate) fn canonicalize(path: &Path) -> std::io::Result<PathBuf> {
+    if cfg!(target_os = "wasi") {
+        fs::metadata(path)?;
+        Ok(path.to_path_buf())
+    } else {
+        path.canonicalize()
+    }
+}
+
 /// Creates the cache directory an open needs. This is the one boundary where
 /// the open touches the filesystem, so it is the one abort that happens after
 /// the directory exists: returning here drops the guard, which reclaims it,
@@ -158,7 +192,7 @@ fn create_cache_directory(
     session_id: &str,
     cancelled: &AtomicBool,
 ) -> Result<CacheDirectory, SidecarError> {
-    let path = std::env::temp_dir().join(format!("genspark-ai-excel-{session_id}"));
+    let path = temp_dir().join(format!("genspark-ai-excel-{session_id}"));
     let directory = CacheDirectory::create(path)?;
     if cancelled.load(Ordering::Acquire) {
         return Err(SidecarError::cancelled());
@@ -204,7 +238,7 @@ impl WorkbookSessions {
         if cancelled.load(Ordering::Acquire) {
             return Err(SidecarError::cancelled());
         }
-        let canonical_path = path.canonicalize()?;
+        let canonical_path = canonicalize(path)?;
         let file = File::open(&canonical_path)?;
         let mut archive = ZipArchive::new(file)?;
         archive::validate_entries(&mut archive)?;
@@ -237,6 +271,7 @@ impl WorkbookSessions {
         let mut runtimes = Vec::with_capacity(declarations.len());
         let mut visual_sources = Vec::with_capacity(declarations.len());
         let mut sheet_names = Vec::with_capacity(declarations.len());
+        let mut stored_cell_budget = STORED_CELL_COUNT_BUDGET;
 
         for declaration in declarations {
             // One poll per worksheet rather than between reads: a
@@ -255,7 +290,12 @@ impl WorkbookSessions {
                 })?;
             let worksheet_path = normalize_worksheet_path(target)?;
             let source_xml_bytes = zip_entry(&mut archive, &worksheet_path)?.size();
-            let dimensions = read_sheet_dimensions(&mut archive, &worksheet_path, &color_context)?;
+            let dimensions = read_sheet_dimensions(
+                &mut archive,
+                &worksheet_path,
+                &color_context,
+                &mut stored_cell_budget,
+            )?;
             let tables = read_sheet_tables(
                 &mut archive,
                 &worksheet_path,
@@ -264,7 +304,7 @@ impl WorkbookSessions {
             )?;
             let comments = visuals::read_comments(&mut archive, &worksheet_path)?
                 .into_iter()
-                .filter_map(|(reference, author, text)| {
+                .filter_map(|(reference, author, text, thread)| {
                     let anchor = reference.split(':').next().unwrap_or(&reference);
                     let (row, column) = parse_address(&anchor.replace('$', "")).ok()?;
                     Some(CommentInfo {
@@ -272,6 +312,7 @@ impl WorkbookSessions {
                         column,
                         author,
                         text,
+                        thread,
                     })
                 })
                 .collect();
@@ -333,6 +374,10 @@ impl WorkbookSessions {
                 row_count,
                 column_count,
                 source_xml_bytes,
+                stored_cell_count: dimensions.stored_cell_count,
+                value_cell_count: dimensions.value_cell_count,
+                value_row_count: dimensions.value_extent.map(|(rows, _)| rows),
+                value_column_count: dimensions.value_extent.map(|(_, columns)| columns),
                 column_widths: dimensions.column_widths,
                 default_row_height: dimensions.default_row_height,
                 default_row_height_fixed: dimensions.default_row_height_fixed,
@@ -340,12 +385,17 @@ impl WorkbookSessions {
                 base_column_width: dimensions.base_column_width,
                 freeze: dimensions.freeze,
                 hidden: declaration.hidden,
+                very_hidden: declaration.very_hidden,
                 tab_color: dimensions.tab_color,
                 show_grid_lines: dimensions.show_grid_lines,
                 show_formulas: dimensions.show_formulas,
                 show_row_col_headers: dimensions.show_row_col_headers,
                 right_to_left: dimensions.right_to_left,
                 zoom_scale: dimensions.zoom_scale,
+                outline_level_row: dimensions.outline_level_row,
+                outline_level_col: dimensions.outline_level_col,
+                outline_summary_below: dimensions.outline_summary_below,
+                outline_summary_right: dimensions.outline_summary_right,
                 tables,
                 comments,
                 pivot_ranges,
@@ -480,6 +530,24 @@ impl WorkbookSessions {
         session.read_formula_cells(sheet_index)
     }
 
+    pub fn read_row_outline(
+        &mut self,
+        session_id: &str,
+        sheet_id: &str,
+    ) -> Result<RowOutlineResult, SidecarError> {
+        let session = self
+            .sessions
+            .get_mut(session_id)
+            .ok_or_else(|| SidecarError::InvalidRequest("Unknown workbook session.".into()))?;
+        let sheet_index = session
+            .sheets
+            .iter()
+            .position(|sheet| sheet.id == sheet_id)
+            .ok_or_else(|| SidecarError::InvalidRequest("Unknown worksheet.".into()))?;
+        session.ensure_parser(sheet_index)?;
+        session.read_row_outline(sheet_index)
+    }
+
     pub fn close(&mut self, session_id: &str) -> Result<(), SidecarError> {
         let session = self
             .sessions
@@ -577,7 +645,7 @@ impl WorkbookSession {
 
     fn ensure_parser(&mut self, sheet_index: usize) -> Result<(), SidecarError> {
         let runtime = &mut self.runtimes[sheet_index];
-        if runtime.handle.is_some() {
+        if runtime.started {
             return Ok(());
         }
         let path = self.path.clone();
@@ -597,31 +665,38 @@ impl WorkbookSession {
                 .collect(),
         );
         let cancelled = Arc::clone(&self.cancelled);
-        let handle = thread::Builder::new()
-            .name(format!("xlsx-index-{sheet_index}"))
-            .spawn(move || {
-                let result = index_worksheet(
-                    &path,
-                    &worksheet_path,
-                    sheet_index,
-                    &cache_directory,
-                    &shared_strings,
-                    &styled_xfs,
-                    &color_context,
-                    &rich_image_cells,
-                    &state,
-                    &cancelled,
-                );
-                let (lock, condition) = &*state;
-                if let Ok(mut index) = lock.lock() {
-                    match result {
-                        Ok(()) => index.complete = true,
-                        Err(error) => index.error = Some(error.to_string()),
-                    }
-                    condition.notify_all();
+        let index = move || {
+            let result = index_worksheet(
+                &path,
+                &worksheet_path,
+                sheet_index,
+                &cache_directory,
+                &shared_strings,
+                &styled_xfs,
+                &color_context,
+                &rich_image_cells,
+                &state,
+                &cancelled,
+            );
+            let (lock, condition) = &*state;
+            if let Ok(mut index) = lock.lock() {
+                match result {
+                    Ok(()) => index.complete = true,
+                    Err(error) => index.error = Some(error.to_string()),
                 }
-            })?;
-        runtime.handle = Some(handle);
+                condition.notify_all();
+            }
+        };
+        if THREADS {
+            runtime.handle = Some(
+                thread::Builder::new()
+                    .name(format!("xlsx-index-{sheet_index}"))
+                    .spawn(index)?,
+            );
+        } else {
+            index();
+        }
+        runtime.started = true;
         Ok(())
     }
 
@@ -703,7 +778,7 @@ impl WorkbookSession {
             Vec::new()
         };
         let sheet_protection = if indexing_complete {
-            index.sheet_protection
+            index.sheet_protection.clone()
         } else {
             None
         };
@@ -791,8 +866,30 @@ impl WorkbookSession {
         }
         Ok(FormulaCellsResult {
             cells: index.formula_cells.clone(),
+            // A truncated list is unusable anyway; the groups alone could
+            // exceed the response cap.
+            shared_groups: if index.formula_truncated {
+                Vec::new()
+            } else {
+                index.shared_formula_groups.clone()
+            },
             indexing_complete: index.complete,
             truncated: index.formula_truncated,
+        })
+    }
+
+    fn read_row_outline(&self, sheet_index: usize) -> Result<RowOutlineResult, SidecarError> {
+        let runtime = &self.runtimes[sheet_index];
+        let (lock, _) = &*runtime.state;
+        let index = lock
+            .lock()
+            .map_err(|_| SidecarError::Io("Worksheet index lock was poisoned.".into()))?;
+        if let Some(error) = &index.error {
+            return Err(SidecarError::Workbook(error.clone()));
+        }
+        Ok(RowOutlineResult {
+            rows: index.outline_rows.clone(),
+            indexing_complete: index.complete,
         })
     }
 
@@ -817,6 +914,8 @@ impl WorkbookSession {
 struct SheetRuntime {
     worksheet_path: String,
     state: Arc<(Mutex<SheetIndex>, Condvar)>,
+    /// Indexing has begun, on a thread or inline.
+    started: bool,
     handle: Option<JoinHandle<()>>,
 }
 
@@ -825,6 +924,7 @@ impl SheetRuntime {
         Self {
             worksheet_path,
             state: Arc::new((Mutex::new(SheetIndex::default()), Condvar::new())),
+            started: false,
             handle: None,
         }
     }
@@ -848,8 +948,12 @@ struct SheetIndex {
     protected_ranges: Vec<ProtectedRangeInfo>,
     page_setup: Option<PagePrintInfo>,
     /// Formula cells collected while indexing, capped at MAX_FORMULA_CELLS.
+    /// Shared-formula followers are not counted: they live in
+    /// `shared_formula_groups`, published once indexing completes.
     formula_cells: Vec<CellRecord>,
     formula_truncated: bool,
+    shared_formula_groups: Vec<SharedFormulaGroup>,
+    outline_rows: Vec<RowOutlineEntry>,
 }
 
 #[derive(Debug)]
@@ -858,4 +962,5 @@ struct SheetDeclaration {
     sheet_id: String,
     relationship_id: String,
     hidden: bool,
+    very_hidden: bool,
 }

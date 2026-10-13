@@ -41,10 +41,11 @@
   --timeline-user-text: #5a6170;
   /* lift for the active segment in gray-track tab pills */
   --shadow-pill: 0 1px 2px rgb(0 0 0 / 8%);
+  --shadow-composer: 0 6px 30px rgb(0 0 0 / 8%);
 
   /* genoffice-logo.svg is pure black-and-white; dark themes flip it to 1 */
   --logo-invert: 0;
-
+  --shadow-composer: 0 1px 3px rgb(0 0 0 / 5%);
   color-scheme: light;
 }
 
@@ -86,8 +87,9 @@
   --timeline-user-bg: #2a2a3a;
   --timeline-user-text: #b0b0c0;
   --shadow-pill: 0 1px 2px rgb(0 0 0 / 40%);
+  --shadow-composer: 0 6px 30px rgb(0 0 0 / 30%);
   --logo-invert: 1;
-
+  --shadow-composer: 0 1px 3px rgb(0 0 0 / 25%);
   color-scheme: dark;
 }
 
@@ -127,7 +129,9 @@
     --timeline-user-bg: #2a2a3a;
     --timeline-user-text: #b0b0c0;
     --shadow-pill: 0 1px 2px rgb(0 0 0 / 40%);
+    --shadow-composer: 0 6px 30px rgb(0 0 0 / 30%);
     --logo-invert: 1;
+    --shadow-composer: 0 1px 3px rgb(0 0 0 / 25%);
     color-scheme: dark;
   }
 }
@@ -821,6 +825,70 @@ body.vib .home {
   color: var(--text);
   font-weight: 600;
   box-shadow: var(--shadow-pill);
+}
+
+/* the type pills and the Starred view's group pills stack in one column so
+   both segmented controls read as separate tracks */
+.toolbar-filters {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+/* group list inside the move-to-group modal (visual language of .picker-tree) */
+.group-picker-list {
+  margin: 14px 0 0;
+  padding: 4px;
+  list-style: none;
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+}
+
+.group-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 30px;
+  padding: 3px 8px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.group-picker-row:hover {
+  background: var(--bg-hover);
+}
+
+.group-picker-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* new-group name input + confirm button */
+.group-picker-new {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.group-picker-new .folder-rename-input {
+  flex: 1;
+  min-width: 0;
+  border-color: var(--border);
+}
+
+.group-picker-new .folder-rename-input:focus {
+  border-color: var(--accent);
 }
 
 .empty {
@@ -2455,6 +2523,7 @@ body.vib .home {
 }
 
 
+
 .account-menu-header-row {
   display: flex;
   align-items: flex-start;
@@ -2679,3 +2748,4 @@ body.vib .home {
   from { opacity: 0; transform: scale(0.96); }
   to { opacity: 1; transform: scale(1); }
 }
+

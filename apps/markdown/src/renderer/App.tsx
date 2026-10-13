@@ -30,6 +30,7 @@ import {
   type DocEnvelope,
 } from './markdown/docText'
 import { buildSourceMap, spliceMarkdown, type SourceMap } from './markdown/sourceSplice'
+import { applySourceText } from './markdown/sourceView'
 import { isSourceMode, textModeForPath, type TextMode } from '../shared/text-mode'
 import { renameAction } from '../shared/rename-mode'
 import { readSourceText, writeSourceText, type SourceTextFormat } from '../shared/source-text'
@@ -41,7 +42,11 @@ import { buildSlashItems } from './editor/slashCommand'
 import type { SlashController, SlashMenuState } from './editor/slashCommand'
 import { dirOf, setImageBaseDir, VIEW_IMAGE_EVENT } from './editor/localImage'
 import { Ribbon } from './components/Ribbon'
+import type { MarkdownTheme } from '../shared/markdown-theme'
+import { ImageHostDialog } from './components/ImageHostDialog'
+import { RedactMenu } from './components/RedactMenu'
 import { OutlinePane } from './components/OutlinePane'
+import { SourcePane } from './components/SourcePane'
 import { SlashMenu, type SlashMenuHandle } from './components/SlashMenu'
 import { ToastHost } from './components/toast'
 import { showToast } from './components/toast-bus'
@@ -65,6 +70,7 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'failed'
 const MIN_ZOOM = 50
 const MAX_ZOOM = 200
 const ZOOM_STEP = 10
+const SOURCE_APPLY_DEBOUNCE_MS = 150
 
 const EMPTY_ENVELOPE: DocEnvelope = {
   frontmatter: '',
@@ -138,6 +144,9 @@ export default function App() {
   const sourceTextRef = useRef('')
   const sourceFormatRef = useRef<SourceTextFormat>({ bom: false, eol: '\n', trailingNewline: true })
   const sourceMode = isSourceMode(textMode)
+  // bumped on every CodeMirror doc change so the ribbon's undo/redo state re-renders
+  const [sourceRev, setSourceRev] = useState(0)
+
   const [dirty, setDirty] = useState(false)
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const exportingImagesRef = useRef(false)
@@ -162,8 +171,34 @@ export default function App() {
   const [outlineWidth, setOutlineWidth] = useState(
     () => Number(localStorage.getItem('mdapp.outlineWidth')) || undefined,
   )
+  const [sourceViewOpen, setSourceViewOpen] = useState(false)
+  const [sourceText, setSourceText] = useState('')
+  const sourceViewOpenRef = useRef(false)
+  const pendingSourceRef = useRef<string | null>(null)
+  const sourceApplyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const syncSourceFromEditorRef = useRef<() => void>(() => {})
   const [spellcheck, setSpellcheck] = useState(
     () => localStorage.getItem('mdapp.spellcheck') !== '0',
+  )
+  // paper theme (markdown-themes.css scopes the palette on data-markdown-theme)
+  const [mdTheme, setMdTheme] = useState<MarkdownTheme>('default')
+  useEffect(() => {
+    window.markdownApi
+      .getMarkdownTheme?.()
+      .then(setMdTheme)
+      .catch(() => {})
+  }, [])
+  const pickMarkdownTheme = (theme: MarkdownTheme): void => {
+    setMdTheme(theme)
+    // the boot path sets this once; live picks re-scope it here
+    if (theme === 'default') document.documentElement.removeAttribute('data-markdown-theme')
+    else document.documentElement.setAttribute('data-markdown-theme', theme)
+    window.markdownApi.setMarkdownTheme(theme).catch(() => {})
+  }
+  // off by default: it takes over the editor's right-click menu, and a reader
+  // should opt into that rather than discover it
+  const [redactEnabled, setRedactEnabled] = useState(
+    () => localStorage.getItem('mdapp.redact') === '1',
   )
   const [viewImage, setViewImage] = useState<string | null>(null)
   useEffect(() => {
@@ -214,6 +249,8 @@ export default function App() {
     window.markdownApi.setDirty(true)
   }, [])
 
+  const [imageHostOpen, setImageHostOpen] = useState(false)
+
   const insertImage = useCallback(() => {
     void (async () => {
       const relPath = await window.markdownApi.pickImage()
@@ -245,6 +282,7 @@ export default function App() {
     onUpdate: ({ editor: updated, transaction }) => {
       if (!transaction.getMeta('uiOnly')) markDirty()
       setOutlineItems(collectOutline(updated))
+      syncSourceFromEditorRef.current()
     },
   })
   editorRef.current = editor
@@ -277,6 +315,10 @@ export default function App() {
     (path: string, raw: string) => {
       const mode = textModeForPath(path)
       setTextMode(mode)
+      if (sourceApplyTimerRef.current) clearTimeout(sourceApplyTimerRef.current)
+      sourceApplyTimerRef.current = null
+      pendingSourceRef.current = null
+      setSourceViewOpen(false)
       if (isSourceMode(mode)) {
         // source files keep their own bytes; the block editor never sees them
         const { text, format } = readSourceText(raw)
@@ -396,10 +438,97 @@ export default function App() {
     }
   }, [])
 
+  /** The exact text a save would write right now; null before the document is ready. */
+  const currentFileText = useCallback((): string | null => {
+    const current = editorRef.current
+    if (!current || statusRef.current !== 'ready') return null
+    return serializeMarkdown(
+      envelopeRef.current,
+      current.state.doc,
+      () => bodyMarkdown(current),
+      originalSourceRef.current,
+    )
+  }, [])
+
+  const openSource = useCallback(() => {
+    const text = currentFileText()
+    if (text === null) return
+    setSourceText(text)
+    // the Find panel drives a selection in the canvas the user can no longer see
+    setShowFind(false)
+    setSourceViewOpen(true)
+  }, [currentFileText])
+
+  /** Push the pane's pending text into the editor now (the keystroke path is debounced). */
+  const flushSource = useCallback(() => {
+    if (sourceApplyTimerRef.current) clearTimeout(sourceApplyTimerRef.current)
+    sourceApplyTimerRef.current = null
+    const text = pendingSourceRef.current
+    if (text === null) return
+    pendingSourceRef.current = null
+    const current = editorRef.current
+    if (!current || statusRef.current !== 'ready') return
+    const hadFrontmatter = envelopeRef.current.frontmatter !== ''
+    const applied = applySourceText(current, text)
+    envelopeRef.current = applied.envelope
+    sourceMapRef.current = applied.sourceMap
+    const inner = frontmatterInner(applied.envelope.frontmatter)
+    setFmText(inner)
+    // surface a frontmatter block that just appeared, but leave a panel the
+    // user closed on purpose closed
+    if (inner && !hadFrontmatter) setFmOpen(true)
+  }, [])
+
+  const closeSource = useCallback(() => {
+    flushSource()
+    setSourceViewOpen(false)
+  }, [flushSource])
+
+  const toggleSource = useCallback(() => {
+    if (sourceViewOpenRef.current) closeSource()
+    else openSource()
+  }, [closeSource, openSource])
+
+  // A keystroke is re-parsed into the editor rather than saved, so save,
+  // autosave, the AI tools and the outline keep reading one document. The
+  // re-parse is debounced; the pane itself updates immediately.
+  const onSourceChange = useCallback(
+    (text: string) => {
+      setSourceText(text)
+      pendingSourceRef.current = text
+      markDirty()
+      if (sourceApplyTimerRef.current) clearTimeout(sourceApplyTimerRef.current)
+      sourceApplyTimerRef.current = setTimeout(flushSource, SOURCE_APPLY_DEBOUNCE_MS)
+    },
+    [flushSource, markDirty],
+  )
+
+  const onSourceFocusChange = useCallback(() => {
+    flushSource()
+    const text = currentFileText()
+    if (text !== null) setSourceText(text)
+  }, [currentFileText, flushSource])
+
+  // An AI run or external reload landing while the pane is open must show up
+  // there; while the textarea is focused the user's own half-typed text wins.
+  syncSourceFromEditorRef.current = () => {
+    if (!sourceViewOpenRef.current || pendingSourceRef.current !== null) return
+    if (document.activeElement?.classList.contains('source-textarea')) return
+    const text = currentFileText()
+    if (text !== null) setSourceText(text)
+  }
+
+  useEffect(() => {
+    sourceViewOpenRef.current = sourceViewOpen
+  }, [sourceViewOpen])
+
+  useEffect(() => () => clearTimeout(sourceApplyTimerRef.current ?? undefined), [])
+
   /** Serialize and write to disk; false when canceled/failed (caller keeps the tab open) */
   const doSave = useCallback(
     async (mode: SaveMode, suggestedName?: string): Promise<boolean> => {
       if (sourceMode) return doSaveSource(mode)
+      flushSource()
       const current = editorRef.current
       if (!current || statusRef.current !== 'ready' || savingRef.current) return false
       savingRef.current = true
@@ -485,7 +614,7 @@ export default function App() {
         savingRef.current = false
       }
     },
-    [sourceMode, doSaveSource],
+    [flushSource, sourceMode, doSaveSource],
   )
 
   /** `outPath` (headless export only) skips the save dialog; resolves true when a file was written. */
@@ -601,6 +730,24 @@ export default function App() {
    * live page would drag the ribbon/panels along, and Electron has no built-in
    * preview to crop them out.
    */
+  const sourceHistory = useMemo(
+    () => ({
+      canUndo: sourceRef.current?.canUndo() ?? false,
+      canRedo: sourceRef.current?.canRedo() ?? false,
+      undo: () => {
+        sourceRef.current?.undo()
+        sourceRef.current?.focus()
+      },
+      redo: () => {
+        sourceRef.current?.redo()
+        sourceRef.current?.focus()
+      },
+    }),
+    // sourceRev is the change signal; the ref itself is stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sourceRev, sourceMode],
+  )
+
   const printingRef = useRef(false)
   const printDoc = useCallback(async () => {
     const current = editorRef.current
@@ -608,8 +755,15 @@ export default function App() {
     printingRef.current = true
     const title =
       (filePathRef.current
-        ? filePathRef.current.replace(/^.*[/\\]/, '').replace(/\.(md|markdown)$/i, '')
+        ? filePathRef.current.replace(/^.*[/\\]/, '').replace(/\.(md|markdown|txt|json)$/i, '')
         : deriveAutoFileName(current)) || 'Untitled'
+    let printRoot: HTMLElement = current.view.dom
+    if (sourceMode) {
+      printRoot = document.createElement('div')
+      const pre = document.createElement('pre')
+      pre.textContent = sourceTextRef.current
+      printRoot.appendChild(pre)
+    }
     const frame = document.createElement('iframe')
     frame.style.position = 'fixed'
     frame.style.right = '100%'
@@ -620,7 +774,7 @@ export default function App() {
     try {
       await new Promise<void>((resolve) => {
         frame.onload = () => resolve()
-        frame.srcdoc = buildPrintHtml(current.view.dom, title)
+        frame.srcdoc = buildPrintHtml(printRoot, title)
         document.body.appendChild(frame)
       })
       const fdoc = frame.contentDocument
@@ -642,7 +796,7 @@ export default function App() {
       frame.remove()
       printingRef.current = false
     }
-  }, [])
+  }, [sourceMode])
 
   useEffect(() => {
     const offExport = window.markdownApi.onExportRequest((format) => void runExport(format))
@@ -748,9 +902,14 @@ export default function App() {
         event.preventDefault()
         openFind(false)
       } else if (key === 'h' && !event.shiftKey) {
-        // Word's replace shortcut; macOS Cmd+H is the system hide role and never reaches here
+        // Word's replace shortcut: Ctrl+H on Windows/Linux, Control+H on macOS —
+        // its ⌘H belongs to the system Hide role, so the menu keeps that key
         event.preventDefault()
         openFind(true)
+      } else if (key === 'e' && !event.shiftKey) {
+        // Obsidian's edit/preview toggle: the source view
+        event.preventDefault()
+        toggleSource()
       } else if (key === '=' || key === '+') {
         event.preventDefault()
         zoomIn()
@@ -770,7 +929,7 @@ export default function App() {
       offRenamed()
       window.removeEventListener('keydown', onKeyDown, true)
     }
-  }, [doSave, printDoc, zoomIn, zoomOut, openFind, loadFromPath, t])
+  }, [doSave, printDoc, zoomIn, zoomOut, openFind, toggleSource, loadFromPath, t])
 
   // Chromium reports trackpad pinch as ctrl+wheel. Also support Cmd/Ctrl+scroll
   // while the pointer is over the document canvas.
@@ -945,20 +1104,31 @@ export default function App() {
         autoSave={autoSave}
         onToggleAutoSave={setAutoSave}
         imageEnabled={Boolean(filePath)}
+        mdTheme={mdTheme}
+        onMarkdownTheme={pickMarkdownTheme}
         onInsertImage={insertImage}
+        onImageHost={() => setImageHostOpen(true)}
         frontmatterOpen={fmOpen}
         onToggleFrontmatter={() => setFmOpen((v) => !v)}
+        sourceViewOpen={sourceViewOpen}
+        onToggleSource={toggleSource}
         outlineOpen={outlineOpen}
         onToggleOutline={() => setOutlineOpen((v) => !v)}
         hasOutline={outlineItems.length > 0}
         spellcheck={spellcheck}
         onToggleSpellcheck={() => setSpellcheck((v) => !v)}
         sourceMode={sourceMode}
+        sourceHistory={sourceMode ? sourceHistory : undefined}
         aiOpen={aiOpen}
         onToggleAi={() => setAiOpen((v) => !v)}
         onAiPreset={(text) => {
           setAiOpen(true)
           setAiPreset((prev) => ({ text, nonce: (prev?.nonce ?? 0) + 1 }))
+        }}
+        redactEnabled={redactEnabled}
+        onToggleRedact={(on) => {
+          setRedactEnabled(on)
+          localStorage.setItem('mdapp.redact', on ? '1' : '0')
         }}
       />
       {status === 'loading' && <div className="center-note">{t('loading')}</div>}
@@ -1007,6 +1177,12 @@ export default function App() {
               focusRequest={findFocus}
             />
           )}
+          {/* Two different things, three branches. A .txt/.json has no block
+              document behind it at all, so its source text replaces the canvas
+              outright. The markdown source view is a different case: there the
+              editor still owns a live ProseMirror view, and unmounting
+              EditorContent tears it down, so the canvas stays mounted and only
+              hidden while SourcePane sits beside it. */}
           {sourceMode ? (
             <div className="source-editor">
               <PlainTextEditor
@@ -1016,17 +1192,30 @@ export default function App() {
                 spellcheck={spellcheck}
                 onChange={(text) => {
                   sourceTextRef.current = text
+                  setSourceRev((n) => n + 1)
                   markDirty()
                 }}
               />
             </div>
           ) : (
-            <div className="editor-scroll" ref={scrollRef}>
-              <div className="doc-page" style={{ zoom: zoom / 100 }}>
-                {fmOpen && <FrontmatterPanel value={fmText} onChange={onFrontmatterChange} />}
-                <EditorContent editor={editor} />
+            <>
+              <div
+                className={`editor-scroll${sourceViewOpen ? ' source-off' : ''}`}
+                ref={scrollRef}
+              >
+                <div className="doc-page" style={{ zoom: zoom / 100 }}>
+                  {fmOpen && <FrontmatterPanel value={fmText} onChange={onFrontmatterChange} />}
+                  <EditorContent editor={editor} />
+                </div>
               </div>
-            </div>
+              {sourceViewOpen && (
+                <SourcePane
+                  value={sourceText}
+                  onChange={onSourceChange}
+                  onFocusChange={onSourceFocusChange}
+                />
+              )}
+            </>
           )}
           <footer className="status-bar">
             <div className="status-left">
@@ -1077,7 +1266,11 @@ export default function App() {
       {!sourceMode && (
         <SlashMenu ref={slashMenuRef} state={slashState} onDismiss={() => setSlashState(null)} />
       )}
+      <RedactMenu editor={editor} enabled={redactEnabled} />
       <ToastHost />
+      {imageHostOpen && (
+        <ImageHostDialog onClose={() => setImageHostOpen(false)} onSaved={() => {}} />
+      )}
       {viewImage && (
         <ImageViewer
           src={viewImage}

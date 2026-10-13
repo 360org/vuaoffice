@@ -10,7 +10,8 @@ import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { sanitizeAiSettings, validCliPath } from '../src/ai-settings-guard'
+import { sanitizeAiSettings, sanitizeCliPath, validCliPath } from '../src/ai-settings-guard'
+import { normalizeBaseUrl } from '../src/registry'
 
 const tempDirs: string[] = []
 
@@ -125,10 +126,10 @@ describe('sanitizeAiSettings', () => {
     expect(sanitized!.providers.doubao.cliPath).toBe('codex')
   })
 
-  it('keeps non-ASCII home paths (reviewer case: /Users/王/bin/codex)', () => {
+  it('keeps non-ASCII home paths (reviewer case: /Users/\u738b/bin/codex)', () => {
     // the old ASCII-only [\w./:\\ -] class dropped these, silently losing the
     // saved Codex CLI path on the next settings save
-    const dir = mkdtempSync(join(tmpdir(), '王-genoffice-ai-guard-'))
+    const dir = mkdtempSync(join(tmpdir(), '\u738b-genoffice-ai-guard-'))
     tempDirs.push(dir)
     const cliPath = join(dir, 'bin', 'codex')
     mkdirSync(join(dir, 'bin'), { recursive: true })
@@ -174,6 +175,10 @@ describe('sanitizeAiSettings', () => {
     // stored expanded: spawn() does not expand tilde and resolveCodexCliPath()
     // would treat the raw `~/…` value as a relative command name
     expect(sanitized!.providers.codex.cliPath).toBe(join(home, 'bin', 'codex'))
+    // the codex-models probe spawns this value directly, so it needs the same form
+    expect(sanitizeCliPath(' ~/bin/codex ')).toBe(join(home, 'bin', 'codex'))
+    expect(sanitizeCliPath('~/bin/missing')).toBeUndefined()
+    expect(sanitizeCliPath('codex')).toBe('codex')
   })
 
   it('coerces scalar fields and drops non-conforming optional ones', () => {
@@ -193,6 +198,127 @@ describe('sanitizeAiSettings', () => {
     expect(sanitized!.media).toEqual({ provider: 'genspark' })
     expect(sanitized!.search).toBeUndefined()
   })
+
+  it('drops a media provider baseUrl that fails the chat-provider URL gate', () => {
+    const sanitized = sanitizeAiSettings({
+      ...baseSettings(),
+      media: {
+        imageProvider: 'openai',
+        providers: {
+          openai: {
+            apiKey: 'k',
+            imageModel: '',
+            analysisModel: '',
+            baseUrl: 'https://u:p@evil.test/v1',
+          },
+          custom: {
+            apiKey: 'k',
+            imageModel: '',
+            analysisModel: '',
+            baseUrl: 'https://mirror.test/v1/',
+          },
+          gemini: { apiKey: 'k', imageModel: '', analysisModel: '', baseUrl: 'file:///etc/passwd' },
+        },
+      },
+    })
+    const providers = sanitized!.media!.providers as Record<string, { baseUrl?: string }>
+    expect(providers.openai.baseUrl).toBeUndefined()
+    expect(providers.custom.baseUrl).toBe(normalizeBaseUrl('https://mirror.test/v1/', ''))
+    expect(providers.gemini.baseUrl).toBeUndefined()
+  })
+})
+
+describe('sanitizeAiSettings: custom endpoint profiles', () => {
+  const withProfile = (profile: unknown) => ({
+    provider: 'custom',
+    providers: {
+      custom: {
+        apiKey: 'sk-test',
+        model: 'glm-4.6',
+        baseUrl: 'https://gw.example.com/v1',
+        profile,
+      },
+    },
+  })
+
+  const withEndpoints = (entry: Record<string, unknown>) => ({
+    provider: 'custom',
+    providers: {
+      custom: { apiKey: 'sk-test', model: 'glm-4.6', baseUrl: 'https://gw.example.com/v1' },
+    },
+    customEndpoint: 'ep-1',
+    customEndpoints: [{ id: 'ep-1', name: 'gateway', ...entry }],
+  })
+
+  it('keeps a well-formed nested slot profile verbatim', () => {
+    const profile = {
+      api: 'anthropic',
+      apiKeyEnv: 'GW_API_KEY',
+      headers: { 'X-Tenant': 'office' },
+      idleTimeoutMs: 300000,
+      compat: { omitTemperature: true, vision: false },
+      bodyExtras: { chat_template_kwargs: { thinking: false } },
+      modelProfiles: [{ id: 'glm-4.6', alias: 'glm-4.6-air', vision: true, maxTokens: 8192 }],
+    }
+    const sanitized = sanitizeAiSettings(withProfile(profile))
+    expect(sanitized!.providers.custom!.profile).toEqual(profile)
+  })
+
+  it('keeps a flat endpoint profile from the customEndpoints list', () => {
+    const sanitized = sanitizeAiSettings(
+      withEndpoints({
+        baseUrl: 'https://gw.example.com/v1',
+        apiKey: 'sk-test',
+        model: 'glm-4.6',
+        api: 'gemini',
+        headers: { 'X-Tenant': 'office' },
+      }),
+    )
+    const entry = sanitized!.customEndpoints![0]!
+    expect(entry.api).toBe('gemini')
+    expect(entry.headers).toEqual({ 'X-Tenant': 'office' })
+    expect(entry.name).toBe('gateway')
+  })
+
+  it('drops a profile that is not an object, and an unknown protocol inside it', () => {
+    expect(sanitizeAiSettings(withProfile('anthropic'))!.providers.custom!.profile).toBeUndefined()
+    const out = sanitizeAiSettings(withProfile({ api: 'ollama-native', idleTimeoutMs: 1000 }))
+    expect(out!.providers.custom!.profile).toEqual({ idleTimeoutMs: 1000 })
+  })
+
+  it('rejects header injection and malformed header names', () => {
+    const crlf = sanitizeAiSettings(withProfile({ headers: { 'X-Evil': 'a\r\nX-Forged: 1' } }))
+    expect(crlf!.providers.custom!.profile?.headers).toBeUndefined()
+    const badName = sanitizeAiSettings(withProfile({ headers: { 'bad name': 'v' } }))
+    expect(badName!.providers.custom!.profile?.headers).toBeUndefined()
+  })
+
+  it('caps header count, drops oversized bodyExtras and non-boolean compat', () => {
+    const many = Object.fromEntries(Array.from({ length: 40 }, (_, i) => [`X-K${i}`, 'v']))
+    const out = sanitizeAiSettings(
+      withProfile({
+        headers: many,
+        bodyExtras: { blob: 'x'.repeat(70_000) },
+        compat: { omitTemperature: 'yes', echoReasoning: true },
+      }),
+    )
+    const profile = out!.providers.custom!.profile!
+    expect(Object.keys(profile.headers!)).toHaveLength(16)
+    expect(profile.bodyExtras).toBeUndefined()
+    expect(profile.compat).toEqual({ echoReasoning: true })
+  })
+
+  it('bounds the idle timeout and model profile entries', () => {
+    const out = sanitizeAiSettings(
+      withProfile({
+        idleTimeoutMs: 5,
+        modelProfiles: [{ id: 'm', maxTokens: 0.5 }, { alias: 'no-id' }, 'junk'],
+      }),
+    )
+    const profile = out!.providers.custom!.profile!
+    expect(profile.idleTimeoutMs).toBe(5)
+    expect(profile.modelProfiles).toEqual([{ id: 'm' }])
+  })
 })
 
 describe('validCliPath', () => {
@@ -206,8 +332,8 @@ describe('validCliPath', () => {
   it('accepts any characters in existing paths, including Unicode and spaces', () => {
     const dir = mkdtempSync(join(tmpdir(), 'genoffice-ai-guard-'))
     tempDirs.push(dir)
-    const unicode = join(dir, '工具', 'codex')
-    mkdirSync(join(dir, '工具'), { recursive: true })
+    const unicode = join(dir, '\u5de5\u5177', 'codex')
+    mkdirSync(join(dir, '\u5de5\u5177'), { recursive: true })
     writeFileSync(unicode, '#!/bin/sh\n')
     const spaces = join(dir, 'App Support', 'codex.exe')
     mkdirSync(join(dir, 'App Support'), { recursive: true })

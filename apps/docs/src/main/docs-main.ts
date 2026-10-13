@@ -6,6 +6,7 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  renameSync,
   statSync,
   unlinkSync,
   writeFileSync,
@@ -39,6 +40,7 @@ import {
   webContents,
 } from 'electron'
 import {
+  abortOnDestroyed,
   appMenuLabels,
   buildPrintableHtml,
   configuredDefaultSaveDir,
@@ -96,9 +98,10 @@ import {
   resolveAiSettings,
   maxOutputTokensOf,
   sanitizeAiSettings,
-  validCliPath,
+  sanitizeCliPath,
   setAiUserAgent,
   setRescueFetch,
+  resolveProfileCredential,
   streamForProvider,
   type AiChatRequest,
   type AiSettings,
@@ -110,6 +113,9 @@ import {
 import { listCodexModels, shutdownCodexAppServers } from '@genoffice/ai-provider/codex-app-server'
 import { listCustomModelsForIpc } from '@genoffice/ai-provider/custom-models'
 import {
+  ensureGenofficeLogin,
+  noteGskCallFailure,
+  setGenofficeLoginOpener,
   gskApiKey,
   generateImageTool,
   testSearchProvider,
@@ -171,6 +177,16 @@ import {
 import { isExternallyModified, type DiskFileState } from './external-change'
 import { copyImageDisplaySize, validCopyImageDataUrl } from './copy-image-guard'
 import { printScaleOption, validPrintGeometry } from './print-args'
+import {
+  assignStarredGroup,
+  dropStarredItems,
+  readStarredItems,
+  renameStarredItem,
+  starredGroupMap,
+  starredGroupNames,
+  toggleStarredItem,
+  writeStarredItems,
+} from './starred-files'
 import { initDocsAutoUpdater } from './updater'
 import { registerZoteroIpc, teardownZoteroIpc } from './zotero-ipc'
 
@@ -254,6 +270,7 @@ const tMain = createI18n({
     menuZoom100: '实际大小 (100%)',
     menuPageWidth: '页宽',
     menuWholePage: '整页',
+    menuMultiPage: '多页',
     menuAiSidebar: 'AI 侧栏',
     menuDarkMode: '深色模式',
     menuFullscreen: '进入全屏',
@@ -312,7 +329,6 @@ const tMain = createI18n({
     menuWindow: '窗口',
     menuHelp: '帮助',
     menuShortcuts: '键盘快捷键',
-    menuDocsHelp: 'GenOffice Docs 帮助',
   },
   en: {
     dlgOpenDoc: 'Open Document',
@@ -386,6 +402,7 @@ const tMain = createI18n({
     menuZoom100: 'Actual Size (100%)',
     menuPageWidth: 'Page Width',
     menuWholePage: 'Whole Page',
+    menuMultiPage: 'Multiple Pages',
     menuAiSidebar: 'AI Sidebar',
     menuDarkMode: 'Dark Mode',
     menuFullscreen: 'Enter Full Screen',
@@ -444,7 +461,6 @@ const tMain = createI18n({
     menuWindow: 'Window',
     menuHelp: 'Help',
     menuShortcuts: 'Keyboard Shortcuts',
-    menuDocsHelp: 'GenOffice Docs Help',
   },
   vi: {
     dlgOpenDoc: 'Mở tài liệu',
@@ -519,6 +535,7 @@ const tMain = createI18n({
     menuZoom100: 'Kích thước thực tế (100%)',
     menuPageWidth: 'Chiều rộng trang',
     menuWholePage: 'Toàn bộ trang',
+    menuMultiPage: 'Nhiều trang',
     menuAiSidebar: 'Thanh bên AI',
     menuDarkMode: 'Chế độ tối',
     menuFullscreen: 'Vào chế độ toàn màn hình',
@@ -577,7 +594,6 @@ const tMain = createI18n({
     menuWindow: 'Cửa sổ',
     menuHelp: 'Trợ giúp',
     menuShortcuts: 'Phím tắt bàn phím',
-    menuDocsHelp: 'Trợ giúp GenOffice Docs',
   },
   ja: {
     dlgOpenDoc: '文書を開く',
@@ -651,6 +667,7 @@ const tMain = createI18n({
     menuZoom100: '実際のサイズ (100%)',
     menuPageWidth: 'ページ幅',
     menuWholePage: 'ページ全体',
+    menuMultiPage: '複数ページ',
     menuAiSidebar: 'AI サイドバー',
     menuDarkMode: 'ダークモード',
     menuFullscreen: 'フルスクリーンにする',
@@ -709,7 +726,6 @@ const tMain = createI18n({
     menuWindow: 'ウィンドウ',
     menuHelp: 'ヘルプ',
     menuShortcuts: 'キーボードショートカット',
-    menuDocsHelp: 'GenOffice Docs ヘルプ',
   },
   ko: {
     dlgOpenDoc: '문서 열기',
@@ -784,6 +800,7 @@ const tMain = createI18n({
     menuZoom100: '실제 크기(100%)',
     menuPageWidth: '페이지 너비',
     menuWholePage: '전체 페이지',
+    menuMultiPage: '여러 페이지',
     menuAiSidebar: 'AI 사이드바',
     menuDarkMode: '다크 모드',
     menuFullscreen: '전체 화면 시작',
@@ -842,7 +859,6 @@ const tMain = createI18n({
     menuWindow: '창',
     menuHelp: '도움말',
     menuShortcuts: '키보드 바로 가기',
-    menuDocsHelp: 'GenOffice Docs 도움말',
   },
   fr: {
     dlgOpenDoc: 'Ouvrir un document',
@@ -918,6 +934,7 @@ const tMain = createI18n({
     menuZoom100: 'Taille réelle (100 %)',
     menuPageWidth: 'Largeur de page',
     menuWholePage: 'Page entière',
+    menuMultiPage: 'Plusieurs pages',
     menuAiSidebar: 'Volet IA',
     menuDarkMode: 'Mode sombre',
     menuFullscreen: 'Activer le mode plein écran',
@@ -976,7 +993,6 @@ const tMain = createI18n({
     menuWindow: 'Fenêtre',
     menuHelp: 'Aide',
     menuShortcuts: 'Raccourcis clavier',
-    menuDocsHelp: 'Aide GenOffice Docs',
   },
   de: {
     dlgOpenDoc: 'Dokument öffnen',
@@ -1052,6 +1068,7 @@ const tMain = createI18n({
     menuZoom100: 'Originalgröße (100 %)',
     menuPageWidth: 'Seitenbreite',
     menuWholePage: 'Ganze Seite',
+    menuMultiPage: 'Mehrere Seiten',
     menuAiSidebar: 'KI-Seitenleiste',
     menuDarkMode: 'Dunkelmodus',
     menuFullscreen: 'Vollbild ein',
@@ -1110,7 +1127,6 @@ const tMain = createI18n({
     menuWindow: 'Fenster',
     menuHelp: 'Hilfe',
     menuShortcuts: 'Tastenkombinationen',
-    menuDocsHelp: 'GenOffice Docs-Hilfe',
   },
   es: {
     dlgOpenDoc: 'Abrir documento',
@@ -1186,6 +1202,7 @@ const tMain = createI18n({
     menuZoom100: 'Tamaño real (100 %)',
     menuPageWidth: 'Ancho de página',
     menuWholePage: 'Página completa',
+    menuMultiPage: 'Varias páginas',
     menuAiSidebar: 'Barra lateral de IA',
     menuDarkMode: 'Modo oscuro',
     menuFullscreen: 'Usar pantalla completa',
@@ -1244,7 +1261,6 @@ const tMain = createI18n({
     menuWindow: 'Ventana',
     menuHelp: 'Ayuda',
     menuShortcuts: 'Atajos de teclado',
-    menuDocsHelp: 'Ayuda de GenOffice Docs',
   },
   th: {
     dlgOpenDoc: 'เปิดเอกสาร',
@@ -1318,6 +1334,7 @@ const tMain = createI18n({
     menuZoom100: 'ขนาดจริง (100%)',
     menuPageWidth: 'ความกว้างของหน้า',
     menuWholePage: 'ทั้งหน้า',
+    menuMultiPage: 'หลายหน้า',
     menuAiSidebar: 'แถบข้าง AI',
     menuDarkMode: 'โหมดมืด',
     menuFullscreen: 'เข้าสู่โหมดเต็มหน้าจอ',
@@ -1376,7 +1393,6 @@ const tMain = createI18n({
     menuWindow: 'หน้าต่าง',
     menuHelp: 'วิธีใช้',
     menuShortcuts: 'แป้นพิมพ์ลัด',
-    menuDocsHelp: 'วิธีใช้ GenOffice Docs',
   },
   id: {
     dlgOpenDoc: 'Buka Dokumen',
@@ -1451,6 +1467,7 @@ const tMain = createI18n({
     menuZoom100: 'Ukuran Sebenarnya (100%)',
     menuPageWidth: 'Lebar Halaman',
     menuWholePage: 'Seluruh Halaman',
+    menuMultiPage: 'Beberapa halaman',
     menuAiSidebar: 'Bilah Samping AI',
     menuDarkMode: 'Mode Gelap',
     menuFullscreen: 'Masuk Layar Penuh',
@@ -1509,7 +1526,6 @@ const tMain = createI18n({
     menuWindow: 'Jendela',
     menuHelp: 'Bantuan',
     menuShortcuts: 'Pintasan Papan Ketik',
-    menuDocsHelp: 'Bantuan GenOffice Docs',
   },
   ru: {
     dlgOpenDoc: 'Открыть документ',
@@ -1584,6 +1600,7 @@ const tMain = createI18n({
     menuZoom100: 'Фактический размер (100%)',
     menuPageWidth: 'По ширине страницы',
     menuWholePage: 'Страница целиком',
+    menuMultiPage: 'Несколько страниц',
     menuAiSidebar: 'Боковая панель ИИ',
     menuDarkMode: 'Темный режим',
     menuFullscreen: 'Перейти в полноэкранный режим',
@@ -1642,7 +1659,6 @@ const tMain = createI18n({
     menuWindow: 'Окно',
     menuHelp: 'Справка',
     menuShortcuts: 'Сочетания клавиш',
-    menuDocsHelp: 'Справка GenOffice Docs',
   },
   ar: {
     dlgOpenDoc: 'فتح مستند',
@@ -1717,6 +1733,7 @@ const tMain = createI18n({
     menuZoom100: 'الحجم الفعلي (100%)',
     menuPageWidth: 'عرض الصفحة',
     menuWholePage: 'صفحة كاملة',
+    menuMultiPage: 'صفحات متعددة',
     menuAiSidebar: 'الشريط الجانبي للذكاء الاصطناعي',
     menuDarkMode: 'الوضع الداكن',
     menuFullscreen: 'الدخول إلى ملء الشاشة',
@@ -1775,7 +1792,6 @@ const tMain = createI18n({
     menuWindow: 'نافذة',
     menuHelp: 'تعليمات',
     menuShortcuts: 'اختصارات لوحة المفاتيح',
-    menuDocsHelp: 'تعليمات GenOffice Docs',
   },
   pt: {
     dlgOpenDoc: 'Abrir Documento',
@@ -1850,6 +1866,7 @@ const tMain = createI18n({
     menuZoom100: 'Tamanho Real (100%)',
     menuPageWidth: 'Largura da Página',
     menuWholePage: 'Página Inteira',
+    menuMultiPage: 'Várias páginas',
     menuAiSidebar: 'Barra Lateral de IA',
     menuDarkMode: 'Modo Escuro',
     menuFullscreen: 'Entrar em Tela Cheia',
@@ -1908,7 +1925,6 @@ const tMain = createI18n({
     menuWindow: 'Janela',
     menuHelp: 'Ajuda',
     menuShortcuts: 'Atalhos de Teclado',
-    menuDocsHelp: 'Ajuda do GenOffice Docs',
   },
   it: {
     dlgOpenDoc: 'Apri documento',
@@ -1983,6 +1999,7 @@ const tMain = createI18n({
     menuZoom100: 'Dimensioni effettive (100%)',
     menuPageWidth: 'Larghezza pagina',
     menuWholePage: 'Pagina intera',
+    menuMultiPage: 'Più pagine',
     menuAiSidebar: 'Barra laterale IA',
     menuDarkMode: 'Modalità scura',
     menuFullscreen: 'Attiva schermo intero',
@@ -2041,7 +2058,6 @@ const tMain = createI18n({
     menuWindow: 'Finestra',
     menuHelp: 'Aiuto',
     menuShortcuts: 'Scelte rapide da tastiera',
-    menuDocsHelp: 'Guida di GenOffice Docs',
   },
   pl: {
     dlgOpenDoc: 'Otwórz dokument',
@@ -2116,6 +2132,7 @@ const tMain = createI18n({
     menuZoom100: 'Rzeczywisty rozmiar (100%)',
     menuPageWidth: 'Szerokość strony',
     menuWholePage: 'Cała strona',
+    menuMultiPage: 'Wiele stron',
     menuAiSidebar: 'Pasek boczny AI',
     menuDarkMode: 'Tryb ciemny',
     menuFullscreen: 'Przejdź do pełnego ekranu',
@@ -2174,7 +2191,6 @@ const tMain = createI18n({
     menuWindow: 'Okno',
     menuHelp: 'Pomoc',
     menuShortcuts: 'Skróty klawiaturowe',
-    menuDocsHelp: 'Pomoc GenOffice Docs',
   },
   cs: {
     dlgOpenDoc: 'Otevřít dokument',
@@ -2249,6 +2265,7 @@ const tMain = createI18n({
     menuZoom100: 'Skutečná velikost (100 %)',
     menuPageWidth: 'Šířka stránky',
     menuWholePage: 'Celá stránka',
+    menuMultiPage: 'Více stránek',
     menuAiSidebar: 'Boční panel AI',
     menuDarkMode: 'Tmavý režim',
     menuFullscreen: 'Přejít na celou obrazovku',
@@ -2307,7 +2324,6 @@ const tMain = createI18n({
     menuWindow: 'Okno',
     menuHelp: 'Nápověda',
     menuShortcuts: 'Klávesové zkratky',
-    menuDocsHelp: 'Nápověda GenOffice Docs',
   },
   nl: {
     dlgOpenDoc: 'Document openen',
@@ -2382,6 +2398,7 @@ const tMain = createI18n({
     menuZoom100: 'Ware grootte (100%)',
     menuPageWidth: 'Paginabreedte',
     menuWholePage: 'Hele pagina',
+    menuMultiPage: "Meerdere pagina's",
     menuAiSidebar: 'AI-zijbalk',
     menuDarkMode: 'Donkere modus',
     menuFullscreen: 'Schermvullende weergave',
@@ -2440,7 +2457,6 @@ const tMain = createI18n({
     menuWindow: 'Venster',
     menuHelp: 'Help',
     menuShortcuts: 'Sneltoetsen',
-    menuDocsHelp: 'GenOffice Docs Help',
   },
   ms: {
     dlgOpenDoc: 'Buka Dokumen',
@@ -2515,6 +2531,7 @@ const tMain = createI18n({
     menuZoom100: 'Saiz Sebenar (100%)',
     menuPageWidth: 'Lebar Halaman',
     menuWholePage: 'Seluruh Halaman',
+    menuMultiPage: 'Beberapa halaman',
     menuAiSidebar: 'Bar Sisi AI',
     menuDarkMode: 'Mod Gelap',
     menuFullscreen: 'Masuk Skrin Penuh',
@@ -2573,7 +2590,6 @@ const tMain = createI18n({
     menuWindow: 'Tetingkap',
     menuHelp: 'Bantuan',
     menuShortcuts: 'Pintasan Papan Kekunci',
-    menuDocsHelp: 'Bantuan GenOffice Docs',
   },
   he: {
     dlgOpenDoc: 'פתיחת מסמך',
@@ -2646,6 +2662,7 @@ const tMain = createI18n({
     menuZoom100: 'גודל אמיתי (100%)',
     menuPageWidth: 'רוחב עמוד',
     menuWholePage: 'עמוד שלם',
+    menuMultiPage: 'עמודים מרובים',
     menuAiSidebar: 'סרגל צד AI',
     menuDarkMode: 'מצב כהה',
     menuFullscreen: 'מעבר למסך מלא',
@@ -2704,7 +2721,6 @@ const tMain = createI18n({
     menuWindow: 'חלון',
     menuHelp: 'עזרה',
     menuShortcuts: 'קיצורי מקלדת',
-    menuDocsHelp: 'עזרה של GenOffice Docs',
   },
   hi: {
     dlgOpenDoc: 'दस्तावेज़ खोलें',
@@ -2779,6 +2795,7 @@ const tMain = createI18n({
     menuZoom100: 'वास्तविक आकार (100%)',
     menuPageWidth: 'पृष्ठ चौड़ाई',
     menuWholePage: 'पूरा पृष्ठ',
+    menuMultiPage: 'एकाधिक पृष्ठ',
     menuAiSidebar: 'AI साइडबार',
     menuDarkMode: 'डार्क मोड',
     menuFullscreen: 'पूर्ण स्क्रीन में जाएँ',
@@ -2837,7 +2854,6 @@ const tMain = createI18n({
     menuWindow: 'विंडो',
     menuHelp: 'सहायता',
     menuShortcuts: 'कीबोर्ड शॉर्टकट',
-    menuDocsHelp: 'GenOffice Docs सहायता',
   },
   'zh-TW': {
     dlgOpenDoc: '開啟文件',
@@ -2909,6 +2925,7 @@ const tMain = createI18n({
     menuZoom100: '實際大小 (100%)',
     menuPageWidth: '頁面寬度',
     menuWholePage: '整頁',
+    menuMultiPage: '多頁',
     menuAiSidebar: 'AI 側邊欄',
     menuDarkMode: '深色模式',
     menuFullscreen: '進入全螢幕',
@@ -2967,7 +2984,6 @@ const tMain = createI18n({
     menuWindow: '視窗',
     menuHelp: '說明',
     menuShortcuts: '鍵盤快速鍵',
-    menuDocsHelp: 'GenOffice Docs 說明',
   },
 })
 const tm = (key: Parameters<typeof tMain>[1], params?: Parameters<typeof tMain>[2]) =>
@@ -3190,6 +3206,7 @@ export function docsFileRenamed(wc: WebContents, oldPath: string, newPath: strin
   // keep the save allowlist in sync so docs:save accepts the renamed path
   docWritablePaths.get(wc.id)?.delete(oldPath)
   allowDocWrite(wc.id, newPath)
+  rememberOpenDoc(wc.id, newPath)
   const states = docDiskStates.get(wc.id)
   const recorded = states?.get(oldPath)
   if (states && recorded) {
@@ -3210,17 +3227,14 @@ export function replaceRecentFile(oldPath: string, newPath: string): void {
     RECENT_PATH(),
     recent.map((p) => (p === oldPath ? newPath : p)),
   )
-  const starred = readJson<string[]>(STARRED_PATH(), [])
-  if (starred.includes(oldPath)) {
-    writeJsonAtomic(
-      STARRED_PATH(),
-      starred.map((p) => (p === oldPath ? newPath : p)),
-    )
-  }
+  const renamed = renameStarredItem(readStarredItems(STARRED_PATH()), oldPath, newPath)
+  if (renamed) writeStarredItems(STARRED_PATH(), renamed)
   buildDocsMenu()
 }
 
 // ---- starred files (home screen favorites) ----
+// the store lives in starred-files.ts (pure, unit-tested); legacy flat
+// string[] files migrate to the versioned shape on the first write
 
 const STARRED_PATH = () => userDataPath('starred.json')
 
@@ -3228,25 +3242,37 @@ const STARRED_PATH = () => userDataPath('starred.json')
  *  unavailable starred file must keep its star and its Starred-view row —
  *  filtering here also desynced the star state shown on recents rows (r158) */
 export function readStarredFiles(): string[] {
-  return readJson<string[]>(STARRED_PATH(), [])
+  return readStarredItems(STARRED_PATH()).map((item) => item.path)
 }
 
 export function toggleStarredFile(filePath: string): void {
-  const starred = readJson<string[]>(STARRED_PATH(), [])
-  const next = starred.includes(filePath)
-    ? starred.filter((p) => p !== filePath)
-    : [...starred, filePath]
-  writeJsonAtomic(STARRED_PATH(), next)
+  writeStarredItems(STARRED_PATH(), toggleStarredItem(readStarredItems(STARRED_PATH()), filePath))
 }
 
-/** Bulk unstar (in-app delete, or removing an unavailable entry from the
- *  recents list): the star must not outlive the row it pointed at (r158) */
+/** Bulk unstar (in-app delete, bulk unfollow from the Starred view, or
+ *  removing an unavailable entry from the recents list): the star must not
+ *  outlive the row it pointed at (r158) */
 export function removeStarredFiles(filePaths: string[]): void {
-  const drop = new Set(filePaths)
-  if (drop.size === 0) return
-  const starred = readJson<string[]>(STARRED_PATH(), [])
-  const next = starred.filter((p) => !drop.has(p))
-  if (next.length !== starred.length) writeJsonAtomic(STARRED_PATH(), next)
+  const next = dropStarredItems(readStarredItems(STARRED_PATH()), filePaths)
+  if (next) writeStarredItems(STARRED_PATH(), next)
+}
+
+/** put each starred path into `group` (null = back to ungrouped). Groups have
+ *  no separate list: a group exists while an entry carries its name, so
+ *  creating one is assigning its first file and emptying one is implicit. */
+export function setStarredGroup(filePaths: string[], group: string | null): void {
+  const next = assignStarredGroup(readStarredItems(STARRED_PATH()), filePaths, group)
+  if (next) writeStarredItems(STARRED_PATH(), next)
+}
+
+/** group names that currently have at least one starred file, first-seen order */
+export function readStarredGroups(): string[] {
+  return starredGroupNames(readStarredItems(STARRED_PATH()))
+}
+
+/** starred path → its group (ungrouped paths absent); feeds the home IPC entries */
+export function readStarredGroupMap(): Map<string, string> {
+  return starredGroupMap(readStarredItems(STARRED_PATH()))
 }
 
 // ---- original archive (pass-through base: original file archived by content hash) ----
@@ -3302,24 +3328,13 @@ const docWritablePaths = new Map<number, Set<string>>()
 const pdfWritablePaths = new Map<number, Set<string>>()
 const tornDownWcIds = new Set<number>()
 
-/**
- * The document each renderer currently has open (set on open and on every
- * save, so a first-save/save-as keeps it current). Only the local-media
- * allowlist reads it: a tool call naming a file next to the open document is
- * the legitimate local-path case for analyze_media / generate_image. Absent for
- * an untitled document.
- */
+// per renderer, kept current on open/save/save-as/rename; only the local-media allowlist reads it
 const openDocByWc = new Map<number, string>()
 
 function rememberOpenDoc(wcId: number, filePath: string): void {
   openDocByWc.set(wcId, filePath)
 }
 
-/**
- * Local media roots for a renderer: the open document's directory plus the
- * directory docs stages pasted images in. A tool call may read a media file
- * from either, and nothing else.
- */
 function docsMediaRoots(wcId: number): string[] {
   return documentMediaRoots(openDocByWc.get(wcId), join(app.getPath('temp'), 'genoffice-pasted'))
 }
@@ -3775,6 +3790,13 @@ const SETTINGS_PATH = () => userDataPath('ai-settings.json')
 
 const activeAiStreams = new Map<string, AbortController>()
 
+/** every renderer (tabs, home) re-reads ai-settings.json — the composer chip and
+ *  the settings page edit the same file from different windows */
+function broadcastAiSettingsChanged(): void {
+  for (const wc of webContents.getAllWebContents())
+    if (!wc.isDestroyed()) wc.send('ai:settings-changed')
+}
+
 /**
  * AI settings + chat/stream proxy handlers. Split out so the shell can
  * register them exactly once for all window types (docs, sheets, home) —
@@ -3810,6 +3832,9 @@ export function registerAiIpc(): void {
     },
   )
 
+  // a 401 on the gsk key opens the device-code login once (genoffice-auth recovery)
+  setGenofficeLoginOpener((url) => void shell.openExternal(url))
+
   ipcMain.handle('ai:gsk-login', () => {
     void shell.openExternal(
       'https://vuahethong.net/vuaoffice/auth?redirect_uri=vuaoffice://auth/callback',
@@ -3826,12 +3851,13 @@ export function registerAiIpc(): void {
       return
     }
     writeJsonAtomic(SETTINGS_PATH(), sanitized)
+    broadcastAiSettingsChanged()
   })
 
   ipcMain.handle('ai:codex-models', async (_event, cliPath: unknown) => {
     // the probe spawns the path directly, so it gets the same metacharacter and
     // existence check as the stored setting (anything else: auto-detect)
-    return listCodexModels(validCliPath(cliPath) ? cliPath.trim() : undefined)
+    return listCodexModels(sanitizeCliPath(cliPath))
   })
 
   ipcMain.handle('ai:custom-models', (_event, input: unknown) => listCustomModelsForIpc(input))
@@ -3855,12 +3881,17 @@ export function registerAiIpc(): void {
     const provider = settings.provider
     let config = settings.providers?.[provider]
     // the genspark key never enters the settings file; requests take it from the gsk login state
+    // set only when the gsk key was injected: a 401 then means that key expired
+    let gskKey = ''
     if (provider === 'genspark' && config && !config.apiKey) {
-      config = { ...config, apiKey: gskApiKey() }
+      gskKey = gskApiKey()
+      config = { ...config, apiKey: gskKey }
     }
     if (provider === 'vuaaipro' && config && !config.apiKey) {
       config = { ...config, apiKey: 'vuaai-default-key' }
     }
+    // a custom endpoint may name an environment variable instead of storing a key
+    config = config ? resolveProfileCredential(config) : config
     const send = (chunk: AiStreamChunk) => {
       if (!event.sender.isDestroyed()) event.sender.send('ai:stream-chunk', chunk)
     }
@@ -3878,6 +3909,7 @@ export function registerAiIpc(): void {
     }
     const controller = new AbortController()
     activeAiStreams.set(requestId, controller)
+    const unwatchSender = abortOnDestroyed(event.sender, controller)
     // wire-activity keepalive: lets the renderer's silence watchdog tell a slow turn from a dead one
     let lastPing = 0
     const ping = () => {
@@ -3898,12 +3930,15 @@ export function registerAiIpc(): void {
         onStopReason: (reason) => {
           stopReason = reason
         },
+        onUsage: (usage) => send({ requestId, type: 'usage', usage }),
       })
       send({ requestId, type: 'done', stopReason })
     } catch (err) {
       if (controller.signal.aborted) {
         send({ requestId, type: 'done' })
       } else {
+        // an expired/revoked key drops to signed-out so the inline sign-in button shows
+        noteGskCallFailure(gskKey, err)
         send({
           requestId,
           type: 'error',
@@ -3920,6 +3955,7 @@ export function registerAiIpc(): void {
         })
       }
     } finally {
+      unwatchSender()
       activeAiStreams.delete(requestId)
     }
   })
@@ -4046,12 +4082,17 @@ export function registerAiIpc(): void {
     const { system, user } = request
     const provider = settings.provider
     let config = settings.providers?.[provider]
+    // set only when the gsk key was injected: a 401 then means that key expired
+    let gskKey = ''
     if (provider === 'genspark' && config && !config.apiKey) {
-      config = { ...config, apiKey: gskApiKey() }
+      gskKey = gskApiKey()
+      config = { ...config, apiKey: gskKey }
     }
     if (provider === 'vuaaipro' && config && !config.apiKey) {
       config = { ...config, apiKey: 'vuaai-default-key' }
     }
+    // a custom endpoint may name an environment variable instead of storing a key
+    config = config ? resolveProfileCredential(config) : config
     if (!config || (provider !== 'codex' && !config.apiKey)) {
       return {
         ok: false,
@@ -4066,8 +4107,10 @@ export function registerAiIpc(): void {
       if (!result.ok && isAiOverloadedError(result.error)) {
         return { ok: false, error: tm('errAiBusy') }
       }
+      if (!result.ok) noteGskCallFailure(gskKey, result.error)
       return result
     } catch (err) {
+      noteGskCallFailure(gskKey, err)
       return { ok: false, error: isAiOverloadedError(err) ? tm('errAiBusy') : String(err) }
     }
   })
@@ -4716,6 +4759,7 @@ export function registerDocsIpc(): void {
         await atomicWriteFile(result.filePath, bytes)
         if (tornDownWcIds.has(event.sender.id)) return { ok: false }
         allowDocWrite(event.sender.id, result.filePath)
+        rememberOpenDoc(event.sender.id, result.filePath)
         await rememberDiskState(event.sender.id, result.filePath, sha256Hex(bytes))
         pointLazyMediaAt(
           hashes,
@@ -4762,6 +4806,7 @@ export function registerDocsIpc(): void {
         return { ok: false }
       }
       allowDocWrite(event.sender.id, filePath)
+      rememberOpenDoc(event.sender.id, filePath)
       await rememberDiskState(event.sender.id, filePath, sha256Hex(bytes))
       pointLazyMediaAt(
         hashes,
@@ -5547,6 +5592,7 @@ export function buildDocsMenu(): void {
             })),
             { label: tm('menuPageWidth'), click: () => sendCommand('zoom-page-width') },
             { label: tm('menuWholePage'), click: () => sendCommand('zoom-whole-page') },
+            { label: tm('menuMultiPage'), click: () => sendCommand('zoom-multi-page') },
           ],
         },
         { type: 'separator' },
@@ -5725,8 +5771,6 @@ export function buildDocsMenu(): void {
           accelerator: 'CmdOrCtrl+/',
           click: () => sendCommand('shortcuts'),
         },
-        { type: 'separator' },
-        { label: tm('menuDocsHelp'), enabled: false },
         { type: 'separator' },
         checkUpdatesMenuItem(appMenuLabels(getUiLang())),
         aboutMenuItem(appMenuLabels(getUiLang())),
@@ -6097,7 +6141,24 @@ export function startDocsStandalone(): void {
   // AI_OFFICE_USER_DATA: E2E/screenshot runs isolate userData (and the
   // single-instance lock) so parallel automation sessions don't evict each other
   if (process.env.AI_OFFICE_USER_DATA) app.setPath('userData', process.env.AI_OFFICE_USER_DATA)
-  else if (isDev) app.setPath('userData', join(app.getPath('appData'), 'GenOffice Docs Dev'))
+  else if (isDev) {
+    // "GenOffice Docs Dev" carried a space, against the XDG one-token
+    // convention (genoffice#1817); move the old profile once, as the shell does.
+    const appData = app.getPath('appData')
+    const devDir = join(appData, 'GenOffice-Docs-Dev')
+    const oldDevDir = join(appData, 'GenOffice Docs Dev')
+    let userData = devDir
+    if (existsSync(oldDevDir) && !existsSync(devDir)) {
+      try {
+        renameSync(oldDevDir, devDir)
+      } catch {
+        // another dev instance holds the directory: keep using the old one so
+        // the profile is not lost and the move is retried on the next launch
+        userData = oldDevDir
+      }
+    }
+    app.setPath('userData', userData)
+  }
 
   const hasSingleInstanceLock = app.requestSingleInstanceLock()
   if (!hasSingleInstanceLock) {

@@ -27,6 +27,7 @@ import {
   sectionCharSpaceSpecs,
   docCharSpacePt,
   sectionColGeom,
+  sectionColumns,
   computePageSlices,
   computeSectionedSlices,
   computeSectionedSlicesF2,
@@ -1245,6 +1246,33 @@ describe('computeSectionedSlicesF2 — line-level pagination', () => {
     expect(slices.length).toBe(1)
   })
 
+  it('consecutive zero-height pageBreakBefore carriers (floating anchor paragraphs) each own a page', () => {
+    const blocks = [
+      block(0, 100),
+      block(100, 0, { breakBefore: true }),
+      block(100, 0, { breakBefore: true }),
+      block(100, 0, { breakBefore: true }),
+    ]
+    const slices = computeSectionedSlicesF2(blocks, geoms1, 100)
+    expect(slices.length).toBe(4)
+  })
+
+  it('a next-page section after a zero-height pageBreakBefore carrier still starts its own page', () => {
+    const geoms = [
+      { contentHeight: 200, forceBreak: false },
+      { contentHeight: 200, forceBreak: true },
+    ]
+    // the carrier keeps its virtual slot; the section's first block shares the collapsed top
+    const blocks = [
+      block(0, 100, { section: 0 }),
+      block(100.05, 0, { breakBefore: true, section: 0 }),
+      block(100, 50, { section: 1 }),
+    ]
+    const slices = computeSectionedSlicesF2(blocks, geoms, 150)
+    expect(slices.map((s) => s.section)).toEqual([0, 0, 1])
+    expect(slices.length).toBe(3)
+  })
+
   it('a pending w:br plus a leading w:br are two page turns with a blank sheet between (tdf#154478)', () => {
     const blocks = [
       { ...block(0, 100), breakAfter: true },
@@ -1746,6 +1774,27 @@ describe('computeSectionedSlicesF2 — table row-level page breaks', () => {
     expect(slices.length).toBe(2)
   })
 
+  it('a single-cell row that fits still turns the page at its authored break', () => {
+    // page 200; the 100px row fits whole, but a page-break-before paragraph
+    // sits at 60: Word starts a new page there. Single-cell rows carry no cell
+    // boxes, so the break rides in cutYs and the segment path must honour it
+    const rows: TableRowBox[] = [
+      { height: 100, contentBottom: 100, cutYs: [60], forcedCuts: [60] },
+      { height: 30 },
+    ]
+    const b = makeTableBlock(0, rows)
+    const slices = computeSectionedSlicesF2([b], [{ contentHeight: 200, forceBreak: false }], 130)
+    expect(slices.length).toBe(2)
+    expect(slices[0].end).toBe(60)
+    // the same row without the break stays on one page
+    const plain = computeSectionedSlicesF2(
+      [makeTableBlock(0, [{ height: 100, contentBottom: 100, cutYs: [60] }, { height: 30 }])],
+      [{ contentHeight: 200, forceBreak: false }],
+      130,
+    )
+    expect(plain.length).toBe(1)
+  })
+
   it('empty table does not crash', () => {
     const b = makeTableBlock(0, [])
     expect(() => computeSectionedSlicesF2([b], geoms1, 0)).not.toThrow()
@@ -1978,6 +2027,25 @@ describe('computeSectionedSlicesF2 — table row-level page breaks', () => {
       [150, 230],
     ]
     expect(chain([{ height: 20, keepNext: true }, anchor], { rowSplits: [] })).toEqual(moved)
+    // pPrDefault widowControl off: the anchor demand is one line and the chain stays
+    expect(
+      computeSectionedSlicesF2(
+        [
+          { top: 0, height: 150 },
+          {
+            ...makeTableBlock(150, [{ height: 20, keepNext: true }, anchor]),
+            modernTableHeaders: true,
+            cellWidowOff: true,
+          },
+        ],
+        page,
+        230,
+        { rowSplits: [] },
+      ).map((s) => [s.start, s.end]),
+    ).toEqual([
+      [0, 200],
+      [200, 230],
+    ])
     // without a cell split path the anchor is atomic and demands its full height;
     // a declared-height anchor demands at least its (page-capped) minimum
     expect(
@@ -4064,6 +4132,47 @@ describe('computeSectionedSlicesF2 — multi-column flow', () => {
     expect(eq.widths).toHaveLength(2)
   })
 
+  it('sectionColumns: a corrupt count collapses to one-column flow, not one-character columns (#1952)', () => {
+    // A4 content is ~602px wide; a count whose even share (after gaps) falls
+    // below the usable-column floor is metadata garbage — one column, full width
+    expect(sectionColumns(sec({ columns: 200 }))).toBe(1)
+    // a huge w:space starves the columns the same way
+    expect(sectionColumns(sec({ columns: 2, colSpace: 20000 }))).toBe(1)
+    // Word's own column counts stay untouched (45 columns of A4 fail the
+    // per-column floor above and are corrupt by the same rule)
+    expect(sectionColumns(sec({ columns: 2 }))).toBe(2)
+    expect(sectionColumns(sec({ columns: 3 }))).toBe(3)
+    expect(sectionColumns(sec({ columns: 4 }))).toBe(4)
+    expect(sectionColumns(sec({}))).toBe(1)
+  })
+
+  it('sectionColGeom: a cols list carrying a sub-floor width falls back to even division', () => {
+    // PDF/CNKI converters emit custom lists where one entry collapsed to a
+    // sliver; the healthy columns must not be dragged down with it
+    const s = sec(
+      { columns: 2, colSpace: 720 },
+      {
+        sectPrXml:
+          '<w:sectPr><w:cols w:num="2" w:space="720" w:equalWidth="0"><w:col w:w="120" w:space="720"/><w:col w:w="6000"/></w:cols></w:sectPr>',
+      },
+    )
+    const g = sectionColGeom(s)
+    expect(g.equalWidth).toBe(true)
+    expect(g.cols).toBe(2)
+    expect(Math.round(g.widths[0]!)).toBe(Math.round(g.widths[1]!))
+    // the real CNKI shape (both entries usable) still reads the list
+    const cnki = sec(
+      { columns: 2, colSpace: 720 },
+      {
+        sectPrXml:
+          '<w:sectPr><w:cols w:num="2" w:equalWidth="0"><w:col w:w="4905" w:space="176"/><w:col w:w="4987"/></w:cols></w:sectPr>',
+      },
+    )
+    const cg = sectionColGeom(cnki)
+    expect(cg.equalWidth).toBe(false)
+    expect(cg.widths.map(Math.round)).toEqual([327, 332])
+  })
+
   it('columnLayoutSpecs: unequal columns place blocks at cumulative offsets with per-column widths', () => {
     const els = Array.from({ length: 2 }, () => document.createElement('p'))
     const blocks: BlockBox[] = [
@@ -4717,6 +4826,39 @@ describe('computeSectionedSlicesF2 — multi-cell rows split per cell (Word row 
     expect(again.rowSplits).toEqual(first.rowSplits)
   })
 
+  it('a forced cut below the page capacity never stretches the fragment past the page', () => {
+    // 2 cells x 100 lines x 20px, page 800; the authored break sits at 1500px,
+    // nearly two pages down. The first fragment must still stop at what fits
+    // (40 lines), and the break turns a later fragment instead
+    const row: TableRowBox = {
+      height: 2000,
+      contentBottom: 2000,
+      forcedCuts: [1500],
+      cells: [
+        { ...linesOf(100, 20, 100), alignDy: 0, alignFrac: 0 },
+        { ...linesOf(100, 20, 100), alignDy: 0, alignFrac: 0 },
+      ],
+    }
+    const placed: number[] = []
+    const plan = planRowSplit(
+      row,
+      800,
+      800,
+      (p) => {
+        placed.push(p)
+        return 800
+      },
+      false,
+    )
+    expect(plan).not.toBe('nofit')
+    expect(plan).not.toBeNull()
+    expect(placed[0]).toBeLessThanOrEqual(800)
+    // every fragment stays within a page, and the break still lands on a fragment edge
+    for (const p of placed) expect(p).toBeLessThanOrEqual(800)
+    const edges = placed.reduce<number[]>((acc, p) => [...acc, (acc[acc.length - 1] ?? 0) + p], [])
+    expect(edges).toContain(1500)
+  })
+
   it('a continuation that fits only one more line of a running paragraph holds it back (widow)', () => {
     // one paragraph of 5 x 20px lines; 3 fit the first page (3+2 legal). The next
     // page holds a single line: Word carries the last two lines over together
@@ -5230,6 +5372,38 @@ describe('row splits cut between line boxes (box-relative clips)', () => {
     expect(rules).toContainEqual({ from: 90, cell: 1, child: 0, tail: true, hide: true })
   })
 
+  it('a trailing empty paragraph is carried over, not charged as row margin on the cut fragment', () => {
+    // cell 0: 5 lines in a 100px paragraph plus a 20px empty paragraph (row 120,
+    // 3px below the last ink); 82px available. Charging the whole 23px tail on
+    // every line stopped after line 3 (57 + 23); only the 3px margin applies
+    // before the cell's last line, so line 4 (77 + 3) stays and the empty
+    // paragraph follows the last line onto the next page
+    const row: TableRowBox = {
+      height: 120,
+      contentBottom: 97,
+      cells: [
+        {
+          ...inkLines(5),
+          childBox: [
+            [0, 100],
+            [100, 120],
+          ],
+          alignDy: 0,
+          alignFrac: 0,
+        },
+        { ...inkLines(2), childBox: [[0, 40]], alignDy: 0, alignFrac: 0 },
+      ],
+    }
+    const plan = planRowSplit(row, 82, 200, () => 200, false)
+    expect(plan).toMatchObject({ lastFragment: 40, target: 122 })
+    expect(plan !== 'nofit' && plan?.rules[0]).toEqual({
+      from: 0,
+      cell: 0,
+      child: 0,
+      clipBottom: 20,
+    })
+  })
+
   it('a row under a tblHeader row continues below the repeated header from its first unseen line', () => {
     const out: SliceOutputs = { rowFills: [], rowSplits: [] }
     const slices = computeSectionedSlicesF2(
@@ -5625,5 +5799,86 @@ describe('trailing page break — phantom line', () => {
     } finally {
       host.remove()
     }
+  })
+})
+
+describe('a forced cut inside a cell (page-break-before paragraph)', () => {
+  const linesOf = (n: number, pitch: number, perPara: number, child = 0, top = 0) => ({
+    lines: Array.from({ length: n }, (_, i): [number, number] => [
+      top + i * pitch,
+      top + (i + 1) * pitch,
+    ]),
+    childOf: Array.from({ length: n }, () => child),
+    paraOf: Array.from({ length: n }, (_, i) => Math.floor(i / perPara)),
+  })
+
+  it('turns the page at the instruction even when the whole row fits', () => {
+    // the reporter's case in genoffice#1902: a layout table shorter than the
+    // page, a page-break-before paragraph mid-cell. Word starts that paragraph
+    // on the next page regardless of the row fitting — two fragments, the
+    // break at the instruction's top edge.
+    const row: TableRowBox = {
+      height: 100,
+      contentBottom: 100,
+      forcedCuts: [60],
+      cells: [{ ...linesOf(5, 20, 5), alignDy: 0, alignFrac: 0 }],
+    }
+    const pages = [200]
+    let n = -1
+    const ys: number[] = []
+    const turn = (_placed: number, y: number) => {
+      ys.push(y)
+      return pages[++n] ?? 200
+    }
+    const plan = planRowSplit(row, 200, 200, turn)
+    expect(plan !== 'nofit' && plan !== null).toBe(true)
+    // exactly one page turn, at the instruction's top edge (the rest of the
+    // page stays empty — the fragment must not run on to capacity)
+    expect(n).toBe(0)
+    expect(ys).toEqual([60])
+    if (plan !== 'nofit' && plan !== null) {
+      expect(plan.rules.length).toBeGreaterThan(0)
+    }
+  })
+
+  it('the genoffice#1902 repro shape: an ultra-tall row splits at the cut, then by lines', () => {
+    // 92 x 22px lines over an 864px page, forced cut at 798: the fragment on
+    // the first page ends at the cut, the next page starts there and the rest
+    // splits by lines (widow rules still apply within each fragment)
+    const row: TableRowBox = {
+      height: 2026,
+      contentBottom: 2026,
+      forcedCuts: [798],
+      cells: [{ ...linesOf(92, 22, 22), alignDy: 0, alignFrac: 0 }],
+    }
+    const pages = [864]
+    let n = -1
+    const ys: number[] = []
+    const turn = (_placed: number, y: number) => {
+      ys.push(y)
+      return pages[++n] ?? 864
+    }
+    const plan = planRowSplit(row, 831, 864, turn)
+    expect(plan !== 'nofit' && plan !== null).toBe(true)
+    // the cut turns the page mid-row — AT the instruction (814, line 37's top
+    // edge), not at the 831 capacity the page had left; the rest splits by lines
+    expect(n).toBeGreaterThanOrEqual(1)
+    expect(ys[0]).toBe(814)
+    if (plan !== 'nofit' && plan !== null) {
+      expect(plan.rules.some((r) => r.from > 0)).toBe(true)
+    }
+  })
+})
+
+describe('lifted floats', () => {
+  it('a float lifted into the previous band needs only the room below the flow position', () => {
+    // 700px page; a band block fills 0-600, the lifted picture spans 300-680
+    const blocks = [block(0, 600), block(300, 380, { floated: true, lifted: true }), block(600, 50)]
+    expect(computePageSlices(blocks, 700, 650).map((s) => [s.start, s.end])).toEqual([[0, 650]])
+  })
+
+  it('an unlifted float that does not fit still turns the page', () => {
+    const blocks = [block(0, 600), block(600, 380, { floated: true }), block(600, 50)]
+    expect(computePageSlices(blocks, 700, 650).length).toBe(2)
   })
 })

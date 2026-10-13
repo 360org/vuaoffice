@@ -1,11 +1,12 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
-import { htmlLang } from '@genoffice/i18n'
+import { htmlDir, htmlLang } from '@genoffice/i18n'
 import { AppFrame } from './AppFrame'
 import { LocaleProvider } from './locale'
 import '@genoffice/ui/tokens.css'
 import '@genoffice/ui/screentip.css'
 import '@genoffice/ui/dropdown.css'
+import '@genoffice/ui/ai-usage.css'
 import './home.css'
 import './tabbar.css'
 
@@ -25,14 +26,39 @@ void Promise.all([
   window.aiOffice.getTheme().catch(() => 'system' as const),
 ]).then(([lang, onboardingSeen, theme]) => {
   document.documentElement.lang = htmlLang(lang)
+  document.documentElement.dir = htmlDir(lang)
   // apply theme attribute before first paint to avoid flash
   if (theme !== 'system') {
     document.documentElement.setAttribute('data-theme', theme)
   }
+<<<<<<< HEAD
+=======
+  window.aiOffice.onThemeChanged((next) => {
+    if (next === 'system') document.documentElement.removeAttribute('data-theme')
+    else document.documentElement.setAttribute('data-theme', next)
+  })
+  // The manual tab is the same bundle branched on ?mode=help: no onboarding,
+  // no home state, just the searchable topic browser (issue #1520).
+  //
+  // Split, though: this entry chunk is parsed on every launch whatever the tab
+  // is, and the screen plus its stylesheet are only ever wanted on the other
+  // one. A static import meant Home's first paint paid for a manual nobody had
+  // opened.
+  const isHelp = new URLSearchParams(location.search).get('mode') === 'help'
+  const HelpScreen = React.lazy(() =>
+    import('./i18n/help/HelpScreen').then((m) => ({ default: m.HelpScreen })),
+  )
+>>>>>>> upstream/main
   createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
       <LocaleProvider initial={lang}>
-        <AppFrame initialOnboardingSeen={onboardingSeen} />
+        {isHelp ? (
+          <React.Suspense fallback={<div className="boot" />}>
+            <HelpScreen />
+          </React.Suspense>
+        ) : (
+          <AppFrame initialOnboardingSeen={onboardingSeen} />
+        )}
       </LocaleProvider>
     </React.StrictMode>,
   )

@@ -1,4 +1,9 @@
-import { aiPanelWidthAtPointer, AiPanelSideButton } from '@genoffice/ui'
+import {
+  aiPanelWidthAtPointer,
+  AiPanelSideButton,
+  AiModelPicker,
+  type AiModelPickerBridge,
+} from '@genoffice/ui'
 import { useEffect, useRef, useState } from 'react'
 import type {
   DragEvent as ReactDragEvent,
@@ -6,17 +11,21 @@ import type {
   ReactElement,
   ReactNode,
 } from 'react'
-import { AgentLoop, composeSkills } from '@genoffice/agent-core'
-import type { AgentImage } from '@genoffice/agent-core'
-import { streamText } from '@genoffice/agent-core'
-
+import { AgentLoop, composeSkills, streamText, type MindMapTreeNode, type AgentImage } from '@genoffice/agent-core' 
 import { imageGenerationAvailable, type AiSettings } from '@genoffice/ai-provider/browser'
 import {
   AiComposer,
+  AiQueueStrip,
+  AI_QUEUE_LABELS,
   AiScopeQuote,
   AiTypingIndicator,
+  AiUsageChip,
+  addTokenUsage,
+  createFileNav,
   Markdown,
+  useChatRunQueue,
   type AiScopeQuoteData,
+  type AiTokenUsageView,
 } from '@genoffice/ui'
 import type { Editor } from '@tiptap/core'
 import { aiLangDirective, t as tGlobal, useI18n } from '../i18n/locale'
@@ -26,6 +35,7 @@ import sendStop from '../assets/send-stop.png'
 import { clearAiHighlights } from '../editor/aiHighlight'
 import { setInactiveSelectionShown } from '../editor/inactiveSelection'
 import { createMarkdownSkill, MARKDOWN_RULES } from './markdown-skill'
+import { MindMapCard } from './MindMapCard'
 import {
   buildDocWriterRequest,
   countMarkdownBlocks,
@@ -111,8 +121,11 @@ interface ChatEntry {
   undelivered?: boolean
   tools?: ToolActivity[]
   attachments?: AttachmentMeta[]
+  mindmap?: MindMapTreeNode
   /** the selection this user message targeted, frozen at send */
   scope?: AiScopeQuoteData
+  /** tokens the provider billed for this reply, summed across its turns (absent when unreported) */
+  usage?: AiTokenUsageView
 }
 
 /** longest selection excerpt echoed on a user bubble */
@@ -153,6 +166,14 @@ export interface MarkdownAiDeps {
   onRunDone(mutated: boolean): void
 }
 
+const MODEL_BRIDGE: AiModelPickerBridge = {
+  getSettings: () => window.markdownApi.getAiSettings(),
+  setSettings: (settings) => window.markdownApi.setAiSettings(settings),
+  onSettingsChanged: (handler) => window.markdownApi.onAiSettingsChanged(handler),
+  gskLoggedIn: () => window.markdownApi.aiGskStatus().then((s) => !!s?.loggedIn),
+  openModelSettings: () => window.markdownApi.openAiModelSettings().catch(() => {}),
+}
+
 export function AiPanel({
   deps,
   filePath,
@@ -186,9 +207,22 @@ export function AiPanel({
   const writerEpochRef = useRef(0)
   const [prompt, setPrompt] = useState('')
   const [busy, setBusy] = useState(false)
+<<<<<<< HEAD
   const [attachments, setAttachments] = useState<AttachmentMeta[]>([])
   const [attachNotice, setAttachNotice] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
+=======
+  /** messages queued while a reply runs; the pump re-runs them through send on settle */
+  const msgQueue = useChatRunQueue<void>({
+    busy,
+    submit: (text) => {
+      const loop = loopRef.current
+      if (!loop || loop.busy) return false
+      send(text, text, null)
+      return true
+    },
+  })
+>>>>>>> upstream/main
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null)
   const [snapshots, setSnapshots] = useState<Snapshot[]>([])
   // bumped on selection/doc changes so the scope chip & queue rows stay fresh
@@ -246,6 +280,10 @@ export function AiPanel({
   const runMutatedRef = useRef(false)
   /** tool activity of the whole run, for transcript persistence */
   const runToolsRef = useRef<ToolActivity[]>([])
+  /** tokens billed so far in the in-flight run (summed across turns) */
+  const runUsageRef = useRef<AiTokenUsageView | undefined>(undefined)
+  /** tokens billed across the panel's session (the composer chip) */
+  const [sessionUsage, setSessionUsage] = useState<AiTokenUsageView | undefined>(undefined)
   const chatIdsRef = useRef<{ projectId: string; chatId: string } | null>(null)
   const attachmentsRef = useRef(attachments)
   attachmentsRef.current = attachments
@@ -440,6 +478,9 @@ export function AiPanel({
               [...prev, { label, time, doc: snapshotBefore }].slice(-MAX_SNAPSHOTS),
             )
           }
+          // mind maps ride the UI-only display side channel onto the message
+          const display = execution.display
+          const mindmap = display?.kind === 'mindmap' ? display.tree : undefined
           const activity: ToolActivity = {
             name: call.name,
             summary: execution.summary,
@@ -451,12 +492,17 @@ export function AiPanel({
             // Swap out the running placeholder pushed by onToolStart (parse-fail calls have none)
             const tools = [...(last.tools ?? [])]
             if (tools.at(-1)?.running) tools.pop()
-            return { tools: [...tools, activity] }
+            return { tools: [...tools, activity], ...(mindmap ? { mindmap } : {}) }
           })
         },
         onTurnEnd: () => {
           patchLast({ streaming: false })
           setChat((prev) => [...prev, { role: 'assistant', text: '', streaming: true }])
+        },
+        onUsage: (usage) => {
+          runUsageRef.current = addTokenUsage(runUsageRef.current, usage)
+          setSessionUsage((prev) => addTokenUsage(prev, usage))
+          patchLast({ usage: runUsageRef.current })
         },
         onDone: ({ text, cancelled, turnLimit, truncated }) => {
           const base = turnLimit
@@ -601,6 +647,7 @@ export function AiPanel({
     runMutatedRef.current = false
     runToolsRef.current = []
     sentAttachmentsRef.current = availableAttachments()
+    runUsageRef.current = undefined
     // a queue batch carries its own display text: no selection quote
     const scope =
       retryScope !== undefined
@@ -699,7 +746,18 @@ export function AiPanel({
   const removeAttachment = (path: string): void =>
     setAttachments((prev) => prev.filter((a) => a.path !== path))
 
-  const stop = (): void => loopRef.current?.cancel()
+  const stop = (): void => {
+    msgQueue.hold()
+    loopRef.current?.cancel()
+  }
+
+  /** Enter while a reply runs: the draft joins the queue above the composer */
+  const enqueueDraft = () => {
+    const text = prompt.trim()
+    if (!text) return
+    msgQueue.enqueue(text, undefined)
+    setPrompt('')
+  }
 
   const retry = (): void =>
     send(runInstructionRef.current, runDisplayRef.current, lastScopeRef.current ?? null)
@@ -769,6 +827,10 @@ export function AiPanel({
       if (index !== null && current) navigateToBlock(current, index)
     },
   }
+  // [name](filenav:///abs/path) citations open the cited file in its own app
+  const fileNav = createFileNav((path) => {
+    void window.markdownApi.openSourcePath(path)
+  })
 
   /** submit every still-anchored queued edit as one batch run */
   const sendQueue = (): void => {
@@ -897,6 +959,7 @@ export function AiPanel({
               onClick={() => {
                 stop()
                 abandonWriter()
+                msgQueue.clear()
                 loopRef.current?.reset()
                 setBusy(false)
                 setChat([])
@@ -941,6 +1004,15 @@ export function AiPanel({
                 }}
               >
                 {t('aiQuickPolish')}
+              </button>
+              <button
+                className="ai-starter"
+                onClick={() => {
+                  setPrompt(t('aiQuickMindMapPrompt'))
+                  inputRef.current?.focus()
+                }}
+              >
+                {t('aiQuickMindMap')}
               </button>
             </div>
           </div>
@@ -996,11 +1068,29 @@ export function AiPanel({
               ) : (
                 entry.text && (
                   <div dir="auto">
-                    <Markdown text={entry.text} nav={docNav} />
+                    <Markdown text={entry.text} navs={[docNav, fileNav]} />
                   </div>
                 )
               )}
               {hasTools && <ToolChipList tools={entry.tools!} />}
+              {entry.mindmap && (
+                <MindMapCard
+                  tree={entry.mindmap}
+                  onAsk={(label) => {
+                    setPrompt(t('aiMindMapAskPrompt', { label }))
+                    inputRef.current?.focus()
+                  }}
+                  onJumpBlock={(index) => {
+                    const current = depsRef.current.getEditor()
+                    if (current) navigateToBlock(current, index)
+                  }}
+                />
+              )}
+              {entry.usage && (
+                <div className="ai-message-usage">
+                  <AiUsageChip usage={entry.usage} lang={lang} />
+                </div>
+              )}
               {showToolbar && (
                 <div className="ai-msg-toolbar">
                   <button
@@ -1135,6 +1225,20 @@ export function AiPanel({
           />
         )}
         <AiComposer
+          queueStrip={
+            <AiQueueStrip
+              items={msgQueue.queued}
+              labels={AI_QUEUE_LABELS[lang]}
+              onUpdate={msgQueue.update}
+              onRemove={msgQueue.remove}
+              onClear={msgQueue.clear}
+              paused={msgQueue.paused}
+              onTogglePause={msgQueue.togglePaused}
+              onMove={msgQueue.move}
+            />
+          }
+          onQueue={enqueueDraft}
+          queuePlaceholder={AI_QUEUE_LABELS[lang].queuePlaceholder}
           value={prompt}
           busy={busy}
           header={
@@ -1180,6 +1284,12 @@ export function AiPanel({
           sendLabel={t('aiSend')}
           stopLabel={t('aiStop')}
           iconOnly
+          footerStart={
+            <>
+              <AiModelPicker bridge={MODEL_BRIDGE} lang={lang} />
+              {sessionUsage && <AiUsageChip usage={sessionUsage} session lang={lang} />}
+            </>
+          }
           sendIconEnabled={<img src={sendEnterOn} alt="" aria-hidden />}
           sendIconDisabled={<img src={sendEnterOff} alt="" aria-hidden />}
           stopIcon={<img src={sendStop} alt="" aria-hidden />}

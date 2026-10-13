@@ -29,6 +29,13 @@ import type { MenuItemConstructorOptions, NativeImage, WebContents } from 'elect
 import { atomicCopyFile, atomicWriteFile } from './atomic-write'
 import { tabStripOverlay } from './title-bar-overlay'
 import { handshakeOdooAiConfig, getAiHandshakeStatus } from './ai-handshake'
+import {
+  applyUiScaleTo,
+  applyUiScaleToAll,
+  changeUiScale,
+  onUiScaleChanged,
+  readUiScale,
+} from './ui-scale'
 import menuDocxIcon1x from './assets/menu-docx.png?asset'
 import menuDocxIcon2x from './assets/menu-docx@2x.png?asset'
 import menuXlsxIcon1x from './assets/menu-xlsx.png?asset'
@@ -120,12 +127,15 @@ import {
   docsFileRenamed,
   readRecentFiles,
   readStarredFiles,
+  readStarredGroupMap,
+  readStarredGroups,
   recordRecentFile,
   removeRecentFiles,
   removeStarredFiles,
   replaceRecentFile,
   registerAiIpc,
   registerProjectIpc,
+  setStarredGroup,
   toggleStarredFile,
   registerDocsIpc,
   exportDocsHeadless,
@@ -262,6 +272,7 @@ import type {
   RecentEntry,
   RecentPage,
   RenameResult,
+  DocTheme,
   StarPromptShow,
   UiTheme,
   FileSearchPage,
@@ -320,12 +331,8 @@ import {
 import extractWorkerPath from './file-index/extract-worker?modulePath'
 import { FileIndexer } from './file-index/indexer'
 import { FileIndexStore } from './file-index/store'
-import {
-  jevEndpointOf,
-  normalizeFileSearchSettings,
-  probeJev,
-  SearchReranker,
-} from './file-index/rerank'
+import { normalizeFileSearchSettings, probeDecision, SearchReranker } from './file-index/rerank'
+import { listKnowledgeFiles, readKnowledgeFilePage, searchKnowledgeBase } from './knowledge-base'
 import { runHeadlessExport, type HeadlessExporters } from './headless-export'
 import { TabManager } from './tab-manager'
 import { installShellCloseGuard } from './window-close-guard'
@@ -377,11 +384,32 @@ import type { DiagnosticReportData } from '../shared/home-api'
 // run silently quits and forwards its argv to the running installed VuaOffice.
 // GENOFFICE_USER_DATA: test drivers point this at a scratch dir so an
 // automated instance can run alongside the dev instance (separate lock).
-if (!app.isPackaged)
-  app.setPath(
-    'userData',
-    process.env.GENOFFICE_USER_DATA ?? join(app.getPath('appData'), 'GenOffice Dev'),
-  )
+if (!app.isPackaged) {
+  if (process.env.GENOFFICE_USER_DATA) {
+    app.setPath('userData', process.env.GENOFFICE_USER_DATA)
+  } else {
+    // The dev profile used to live in "GenOffice Dev"; the space breaks
+    // unquoted shell expansions, rsync targets and .desktop Exec= lines, and
+    // XDG config entries are single tokens (genoffice#1817). "GenOffice-Dev" keeps the
+    // family naming of the packaged profile ("GenOffice"). The old directory
+    // moves once — it sits on the same volume as appData, so the rename is
+    // atomic, and a concurrent dev instance keeps its open file handles.
+    const appData = app.getPath('appData')
+    const devDir = join(appData, 'GenOffice-Dev')
+    const oldDevDir = join(appData, 'GenOffice Dev')
+    let userData = devDir
+    if (existsSync(oldDevDir) && !existsSync(devDir)) {
+      try {
+        renameSync(oldDevDir, devDir)
+      } catch {
+        // another dev instance holds the directory: keep using the old one so
+        // the profile is not lost and the move is retried on the next launch
+        userData = oldDevDir
+      }
+    }
+    app.setPath('userData', userData)
+  }
+}
 
 /**
  * `--headless-export <file> --to <format> --out <path> [--json]`: one document, no
@@ -540,6 +568,15 @@ function currentTheme(): UiTheme {
   const saved = readAppSettings(APP_SETTINGS_PATH()).theme
   cachedTheme = saved === 'light' || saved === 'dark' ? saved : 'system'
   return cachedTheme
+}
+
+let cachedDocTheme: DocTheme | null = null
+
+function currentDocTheme(): DocTheme {
+  if (cachedDocTheme) return cachedDocTheme
+  const saved = readAppSettings(APP_SETTINGS_PATH()).documentTheme
+  cachedDocTheme = saved === 'light' || saved === 'dark' ? saved : 'follow'
+  return cachedDocTheme
 }
 
 let cachedAutoSaveDefault: AutoSaveDefault | null = null
@@ -733,6 +770,10 @@ const tMain = createI18n({
     menuSaveAs: '另存为…',
     menuClose: '关闭',
     menuEdit: '编辑',
+    menuView: '视图',
+    menuUiZoomIn: '界面放大',
+    menuUiZoomOut: '界面缩小',
+    menuUiZoomReset: '界面缩放重置为 100%',
     menuWindow: '窗口',
     menuHome: '首页',
     backToHome: '返回首页',
@@ -756,6 +797,7 @@ const tMain = createI18n({
     errUnsupportedExt: '暂不支持 .{ext} 类型',
     copySuffix: '副本',
     menuHelp: '帮助',
+    menuUserGuide: '使用手册',
     menuTroubleshooting: '故障排除',
     menuDeveloperMode: '启用开发者模式',
     menuDiagnosticReport: '生成日志与诊断报告…',
@@ -807,6 +849,10 @@ const tMain = createI18n({
     errFolderRootUnusable: 'The selected folder cannot be read',
     menuFile: 'File',
     menuSectionNew: 'New',
+    menuView: 'View',
+    menuUiZoomIn: 'Interface Zoom In',
+    menuUiZoomOut: 'Interface Zoom Out',
+    menuUiZoomReset: 'Reset Interface Zoom',
     menuOpenInNewWindow: 'Open in New Window',
     menuNewDoc: 'AI Docs',
     menuNewSheet: 'AI Sheets',
@@ -853,6 +899,7 @@ const tMain = createI18n({
     errUnsupportedExt: '.{ext} files are not supported',
     copySuffix: 'copy',
     menuHelp: 'Help',
+    menuUserGuide: 'User Guide',
     menuTroubleshooting: 'Troubleshooting',
     menuDeveloperMode: 'Enable Developer Mode',
     menuDiagnosticReport: 'Generate Log, Diagnostic Report…',
@@ -935,6 +982,10 @@ const tMain = createI18n({
     menuSaveAs: 'Lưu dưới dạng…',
     menuClose: 'Đóng',
     menuEdit: 'Chỉnh sửa',
+    menuView: 'Hiển thị',
+    menuUiZoomIn: 'Phóng to giao diện',
+    menuUiZoomOut: 'Thu nhỏ giao diện',
+    menuUiZoomReset: 'Đặt lại mức phóng giao diện về 100%',
     menuWindow: 'Cửa sổ',
     menuHome: 'Trang chủ',
     backToHome: 'Quay lại Trang chủ',
@@ -958,6 +1009,7 @@ const tMain = createI18n({
     errUnsupportedExt: 'Tệp .{ext} không được hỗ trợ',
     copySuffix: 'bản sao',
     menuHelp: 'Trợ giúp',
+    menuUserGuide: 'Hướng dẫn sử dụng',
     thirdPartyNotices: 'Thông báo của bên thứ ba',
     menuExportDocx: 'Xuất dưới dạng Word…',
     btnCancel: 'Hủy',
@@ -1040,6 +1092,10 @@ const tMain = createI18n({
     menuSaveAs: '名前を付けて保存…',
     menuClose: '閉じる',
     menuEdit: '編集',
+    menuView: '表示',
+    menuUiZoomIn: 'UI を拡大',
+    menuUiZoomOut: 'UI を縮小',
+    menuUiZoomReset: 'UI の拡大率を 100% にリセット',
     menuWindow: 'ウィンドウ',
     menuHome: 'ホーム',
     backToHome: 'ホームに戻る',
@@ -1063,6 +1119,7 @@ const tMain = createI18n({
     errUnsupportedExt: '.{ext} 形式には対応していません',
     copySuffix: 'コピー',
     menuHelp: 'ヘルプ',
+    menuUserGuide: 'ユーザーガイド',
     menuTroubleshooting: 'トラブルシューティング',
     menuDeveloperMode: '開発者モードを有効にする',
     menuCheckForUpdates: 'アップデートを確認…',
@@ -1145,6 +1202,10 @@ const tMain = createI18n({
     menuSaveAs: '다른 이름으로 저장…',
     menuClose: '닫기',
     menuEdit: '편집',
+    menuView: '보기',
+    menuUiZoomIn: 'UI 확대',
+    menuUiZoomOut: 'UI 축소',
+    menuUiZoomReset: 'UI 배율을 100%로 다시 설정',
     menuWindow: '창',
     menuHome: '홈',
     backToHome: '홈으로 돌아가기',
@@ -1168,6 +1229,7 @@ const tMain = createI18n({
     errUnsupportedExt: '.{ext} 형식은 지원되지 않습니다',
     copySuffix: '복사본',
     menuHelp: '도움말',
+    menuUserGuide: '사용자 가이드',
     menuTroubleshooting: '문제 해결',
     menuDeveloperMode: '개발자 모드 활성화',
     menuCheckForUpdates: '업데이트 확인…',
@@ -1249,6 +1311,10 @@ const tMain = createI18n({
     menuSaveAs: 'Enregistrer sous…',
     menuClose: 'Fermer',
     menuEdit: 'Édition',
+    menuView: 'Affichage',
+    menuUiZoomIn: "Agrandir l'interface",
+    menuUiZoomOut: "Réduire l'interface",
+    menuUiZoomReset: "Réinitialiser le zoom de l'interface à 100%",
     menuWindow: 'Fenêtre',
     menuHome: 'Accueil',
     backToHome: "Retour à l'accueil",
@@ -1272,6 +1338,7 @@ const tMain = createI18n({
     errUnsupportedExt: 'les fichiers .{ext} ne sont pas pris en charge',
     copySuffix: 'copie',
     menuHelp: 'Aide',
+    menuUserGuide: "Guide de l'utilisateur",
     menuTroubleshooting: 'Dépannage',
     menuDeveloperMode: 'Activer le mode développeur',
     menuCheckForUpdates: 'Rechercher les mises à jour…',
@@ -1355,6 +1422,10 @@ const tMain = createI18n({
     menuSaveAs: 'Speichern unter…',
     menuClose: 'Schließen',
     menuEdit: 'Bearbeiten',
+    menuView: 'Ansicht',
+    menuUiZoomIn: 'Oberfläche vergrößern',
+    menuUiZoomOut: 'Oberfläche verkleinern',
+    menuUiZoomReset: 'Zoom der Oberfläche auf 100% zurücksetzen',
     menuWindow: 'Fenster',
     menuHome: 'Startseite',
     backToHome: 'Zurück zur Startseite',
@@ -1379,6 +1450,7 @@ const tMain = createI18n({
     errUnsupportedExt: '.{ext}-Dateien werden nicht unterstützt',
     copySuffix: 'Kopie',
     menuHelp: 'Hilfe',
+    menuUserGuide: 'Benutzerhandbuch',
     menuTroubleshooting: 'Fehlerbehebung',
     menuDeveloperMode: 'Entwicklermodus aktivieren',
     menuCheckForUpdates: 'Nach Updates suchen…',
@@ -1462,6 +1534,10 @@ const tMain = createI18n({
     menuSaveAs: 'Guardar como…',
     menuClose: 'Cerrar',
     menuEdit: 'Edición',
+    menuView: 'Ver',
+    menuUiZoomIn: 'Agrandar la interfaz',
+    menuUiZoomOut: 'Reducir la interfaz',
+    menuUiZoomReset: 'Restablecer el zoom de la interfaz al 100%',
     menuWindow: 'Ventana',
     menuHome: 'Inicio',
     backToHome: 'Volver al inicio',
@@ -1485,6 +1561,7 @@ const tMain = createI18n({
     errUnsupportedExt: 'los archivos .{ext} no son compatibles',
     copySuffix: 'copia',
     menuHelp: 'Ayuda',
+    menuUserGuide: 'Guía del usuario',
     menuTroubleshooting: 'Solución de problemas',
     menuDeveloperMode: 'Habilitar modo desarrollador',
     menuCheckForUpdates: 'Buscar actualizaciones…',
@@ -1568,6 +1645,10 @@ const tMain = createI18n({
     menuSaveAs: 'บันทึกเป็น…',
     menuClose: 'ปิด',
     menuEdit: 'แก้ไข',
+    menuView: 'มุมมอง',
+    menuUiZoomIn: 'ขยายส่วนติดต่อผู้ใช้',
+    menuUiZoomOut: 'ย่อส่วนติดต่อผู้ใช้',
+    menuUiZoomReset: 'รีเซ็ตสเกลส่วนติดต่อผู้ใช้เป็น 100%',
     menuWindow: 'หน้าต่าง',
     menuHome: 'หน้าแรก',
     backToHome: 'กลับไปหน้าแรก',
@@ -1591,6 +1672,7 @@ const tMain = createI18n({
     errUnsupportedExt: 'ไม่รองรับไฟล์ .{ext}',
     copySuffix: 'สำเนา',
     menuHelp: 'วิธีใช้',
+    menuUserGuide: 'คู่มือผู้ใช้',
     menuTroubleshooting: 'การแก้ไขปัญหา',
     menuDeveloperMode: 'เปิดใช้งานโหมดนักพัฒนา',
     menuCheckForUpdates: 'ตรวจสอบการอัปเดต…',
@@ -1670,6 +1752,10 @@ const tMain = createI18n({
     menuSaveAs: 'Simpan Sebagai…',
     menuClose: 'Tutup',
     menuEdit: 'Edit',
+    menuView: 'Tampilan',
+    menuUiZoomIn: 'Perbesar Antarmuka',
+    menuUiZoomOut: 'Perkecil Antarmuka',
+    menuUiZoomReset: 'Atur Ulang Skala Antarmuka ke 100%',
     menuWindow: 'Jendela',
     menuHome: 'Beranda',
     backToHome: 'Kembali ke Beranda',
@@ -1693,6 +1779,7 @@ const tMain = createI18n({
     errUnsupportedExt: 'file .{ext} tidak didukung',
     copySuffix: 'salinan',
     menuHelp: 'Bantuan',
+    menuUserGuide: 'Panduan Pengguna',
     menuTroubleshooting: 'Pemecahan Masalah',
     menuDeveloperMode: 'Aktifkan Mode Pengembang',
     menuCheckForUpdates: 'Periksa Pembaruan…',
@@ -1776,6 +1863,10 @@ const tMain = createI18n({
     menuSaveAs: 'Сохранить как…',
     menuClose: 'Закрыть',
     menuEdit: 'Правка',
+    menuView: 'Вид',
+    menuUiZoomIn: 'Увеличить интерфейс',
+    menuUiZoomOut: 'Уменьшить интерфейс',
+    menuUiZoomReset: 'Сбросить масштаб интерфейса к 100%',
     menuWindow: 'Окно',
     menuHome: 'Главная',
     backToHome: 'Вернуться на главную',
@@ -1799,6 +1890,7 @@ const tMain = createI18n({
     errUnsupportedExt: 'файлы .{ext} не поддерживаются',
     copySuffix: 'копия',
     menuHelp: 'Справка',
+    menuUserGuide: 'Руководство пользователя',
     menuTroubleshooting: 'Устранение неполадок',
     menuDeveloperMode: 'Включить режим разработчика',
     menuCheckForUpdates: 'Проверить обновления…',
@@ -1882,6 +1974,10 @@ const tMain = createI18n({
     menuSaveAs: 'حفظ باسم…',
     menuClose: 'إغلاق',
     menuEdit: 'تحرير',
+    menuView: 'عرض',
+    menuUiZoomIn: 'تكبير واجهة المستخدم',
+    menuUiZoomOut: 'تصغير واجهة المستخدم',
+    menuUiZoomReset: 'إعادة تعيين مقياس الواجهة إلى 100%',
     menuWindow: 'نافذة',
     menuHome: 'الصفحة الرئيسية',
     backToHome: 'العودة إلى الصفحة الرئيسية',
@@ -1905,6 +2001,7 @@ const tMain = createI18n({
     errUnsupportedExt: 'ملفات .{ext} غير مدعومة',
     copySuffix: 'نسخة',
     menuHelp: 'تعليمات',
+    menuUserGuide: 'دليل المستخدم',
     menuTroubleshooting: 'استكشاف الأخطاء وإصلاحها',
     menuDeveloperMode: 'تمكين وضع المطور',
     menuCheckForUpdates: 'التحقق من وجود تحديثات…',
@@ -1984,6 +2081,10 @@ const tMain = createI18n({
     menuSaveAs: 'Salvar Como…',
     menuClose: 'Fechar',
     menuEdit: 'Editar',
+    menuView: 'Visualização',
+    menuUiZoomIn: 'Aumentar a interface',
+    menuUiZoomOut: 'Diminuir a interface',
+    menuUiZoomReset: 'Redefinir a escala da interface para 100%',
     menuWindow: 'Janela',
     menuHome: 'Início',
     backToHome: 'Voltar ao início',
@@ -2007,6 +2108,7 @@ const tMain = createI18n({
     errUnsupportedExt: 'arquivos .{ext} não são suportados',
     copySuffix: 'cópia',
     menuHelp: 'Ajuda',
+    menuUserGuide: 'Guia do Usuário',
     menuTroubleshooting: 'Solução de problemas',
     menuDeveloperMode: 'Habilitar modo desenvolvedor',
     menuCheckForUpdates: 'Verificar atualizações…',
@@ -2090,6 +2192,10 @@ const tMain = createI18n({
     menuSaveAs: 'Salva con nome…',
     menuClose: 'Chiudi',
     menuEdit: 'Modifica',
+    menuView: 'Vista',
+    menuUiZoomIn: 'Ingrandisci interfaccia',
+    menuUiZoomOut: 'Riduci interfaccia',
+    menuUiZoomReset: "Reimposta la scala dell'interfaccia al 100%",
     menuWindow: 'Finestra',
     menuHome: 'Home',
     backToHome: 'Torna alla Home',
@@ -2113,6 +2219,7 @@ const tMain = createI18n({
     errUnsupportedExt: 'i file .{ext} non sono supportati',
     copySuffix: 'copia',
     menuHelp: 'Aiuto',
+    menuUserGuide: "Guida dell'utente",
     menuTroubleshooting: 'Risoluzione dei problemi',
     menuDeveloperMode: 'Abilita modalità sviluppatore',
     menuCheckForUpdates: 'Controlla aggiornamenti…',
@@ -2196,6 +2303,10 @@ const tMain = createI18n({
     menuSaveAs: 'Zapisz jako…',
     menuClose: 'Zamknij',
     menuEdit: 'Edycja',
+    menuView: 'Widok',
+    menuUiZoomIn: 'Powiększ interfejs',
+    menuUiZoomOut: 'Pomniejsz interfejs',
+    menuUiZoomReset: 'Resetuj skalę interfejsu do 100%',
     menuWindow: 'Okno',
     menuHome: 'Strona główna',
     backToHome: 'Wróć do strony głównej',
@@ -2219,6 +2330,7 @@ const tMain = createI18n({
     errUnsupportedExt: 'pliki .{ext} nie są obsługiwane',
     copySuffix: 'kopia',
     menuHelp: 'Pomoc',
+    menuUserGuide: 'Podręcznik użytkownika',
     menuTroubleshooting: 'Rozwiązywanie problemów',
     menuDeveloperMode: 'Włącz tryb dewelopera',
     menuCheckForUpdates: 'Sprawdź dostępność aktualizacji…',
@@ -2302,6 +2414,10 @@ const tMain = createI18n({
     menuSaveAs: 'Uložit jako…',
     menuClose: 'Zavřít',
     menuEdit: 'Úpravy',
+    menuView: 'Zobrazení',
+    menuUiZoomIn: 'Zvětšit rozhraní',
+    menuUiZoomOut: 'Zmenšit rozhraní',
+    menuUiZoomReset: 'Obnovit měřítko rozhraní na 100%',
     menuWindow: 'Okno',
     menuHome: 'Domů',
     backToHome: 'Zpět na domovskou stránku',
@@ -2325,6 +2441,7 @@ const tMain = createI18n({
     errUnsupportedExt: 'Soubory .{ext} nejsou podporovány',
     copySuffix: 'kopie',
     menuHelp: 'Nápověda',
+    menuUserGuide: 'Uživatelská příručka',
     menuTroubleshooting: 'Řešení potíží',
     menuDeveloperMode: 'Povolit režim vývojáře',
     menuCheckForUpdates: 'Zkontrolovat aktualizace…',
@@ -2406,6 +2523,10 @@ const tMain = createI18n({
     menuSaveAs: 'Opslaan als…',
     menuClose: 'Sluiten',
     menuEdit: 'Bewerken',
+    menuView: 'Weergave',
+    menuUiZoomIn: 'Interface vergroten',
+    menuUiZoomOut: 'Interface verkleinen',
+    menuUiZoomReset: 'Interfaceschaal herstellen naar 100%',
     menuWindow: 'Venster',
     menuHome: 'Start',
     backToHome: 'Terug naar start',
@@ -2429,6 +2550,7 @@ const tMain = createI18n({
     errUnsupportedExt: '.{ext}-bestanden worden niet ondersteund',
     copySuffix: 'kopie',
     menuHelp: 'Help',
+    menuUserGuide: 'Gebruikershandleiding',
     menuTroubleshooting: 'Probleemoplossing',
     menuDeveloperMode: 'Ontwikkelaarsmodus inschakelen',
     menuCheckForUpdates: 'Controleren op updates…',
@@ -2512,6 +2634,10 @@ const tMain = createI18n({
     menuSaveAs: 'Simpan Sebagai…',
     menuClose: 'Tutup',
     menuEdit: 'Edit',
+    menuView: 'Paparan',
+    menuUiZoomIn: 'Besarkan Antara Muka',
+    menuUiZoomOut: 'Kecilkan Antara Muka',
+    menuUiZoomReset: 'Set semula Skala Antara Muka kepada 100%',
     menuWindow: 'Tetingkap',
     menuHome: 'Laman Utama',
     backToHome: 'Kembali ke Laman Utama',
@@ -2535,6 +2661,7 @@ const tMain = createI18n({
     errUnsupportedExt: 'fail .{ext} tidak disokong',
     copySuffix: 'salinan',
     menuHelp: 'Bantuan',
+    menuUserGuide: 'Panduan Pengguna',
     menuTroubleshooting: 'Penyelesaian Masalah',
     menuDeveloperMode: 'Pilih Mod Pembangun',
     menuCheckForUpdates: 'Semak Kemas Kini…',
@@ -2617,6 +2744,10 @@ const tMain = createI18n({
     menuSaveAs: 'שמירה בשם…',
     menuClose: 'סגירה',
     menuEdit: 'עריכה',
+    menuView: 'תצוגה',
+    menuUiZoomIn: 'הגדלת ממשק',
+    menuUiZoomOut: 'הקטנת ממשק',
+    menuUiZoomReset: 'איפוס מקנה המידה של הממשק ל־100%',
     menuWindow: 'חלון',
     menuHome: 'דף הבית',
     backToHome: 'חזרה לדף הבית',
@@ -2640,6 +2771,7 @@ const tMain = createI18n({
     errUnsupportedExt: 'קובצי .{ext} אינם נתמכים',
     copySuffix: 'עותק',
     menuHelp: 'עזרה',
+    menuUserGuide: 'מדריך למשתמש',
     menuTroubleshooting: 'פתרון בעיות',
     menuDeveloperMode: 'הפעלת מצב מפתח',
     menuCheckForUpdates: 'בדוק אם יש עדכונים…',
@@ -2720,6 +2852,10 @@ const tMain = createI18n({
     menuSaveAs: 'इस रूप में सहेजें…',
     menuClose: 'बंद करें',
     menuEdit: 'संपादन',
+    menuView: 'व्यू',
+    menuUiZoomIn: 'इंटरफ़ेस बड़ा करें',
+    menuUiZoomOut: 'इंटरफ़ेस छोटा करें',
+    menuUiZoomReset: 'इंटरफ़ेस स्केल को 100% पर रीसेट करें',
     menuWindow: 'विंडो',
     menuHome: 'होम',
     backToHome: 'होम पर वापस जाएँ',
@@ -2743,6 +2879,7 @@ const tMain = createI18n({
     errUnsupportedExt: '.{ext} फ़ाइलें समर्थित नहीं हैं',
     copySuffix: 'प्रतिलिपि',
     menuHelp: 'सहायता',
+    menuUserGuide: 'उपयोगकर्ता गाइड',
     menuTroubleshooting: 'त्रुटि निवारण',
     menuDeveloperMode: 'डेवलपर मोड सक्षम करें',
     menuCheckForUpdates: 'अपडेट के लिए जांचें…',
@@ -2826,6 +2963,10 @@ const tMain = createI18n({
     menuSaveAs: '另存新檔…',
     menuClose: '關閉',
     menuEdit: '編輯',
+    menuView: '檢視',
+    menuUiZoomIn: '放大介面',
+    menuUiZoomOut: '縮小介面',
+    menuUiZoomReset: '將介面縮放重設為 100%',
     menuWindow: '視窗',
     menuHome: '首頁',
     backToHome: '返回首頁',
@@ -2849,6 +2990,7 @@ const tMain = createI18n({
     errUnsupportedExt: '暫不支援 .{ext} 類型',
     copySuffix: '副本',
     menuHelp: '說明',
+    menuUserGuide: '使用手冊',
     menuTroubleshooting: '疑難排解',
     menuDeveloperMode: '啟用開發者模式',
     menuCheckForUpdates: '檢查更新…',
@@ -3031,7 +3173,6 @@ function trackedFilesUnder(dir: string): string[] {
   ])
 }
 
-/** stat that tolerates races: the answer is only advisory for the delete gate */
 function statMaybeFile(path: string): { isFile: () => boolean } | null {
   try {
     return statSync(path)
@@ -3040,7 +3181,6 @@ function statMaybeFile(path: string): { isFile: () => boolean } | null {
   }
 }
 
-/** the union trackedFilesUnder uses, as a membership check for the file IPCs */
 function fileTargetSources(): FileTargetSources {
   return {
     insideAnyRoot: (p) => insideAnyRoot(p),
@@ -3114,6 +3254,55 @@ function ensureFolderWatchers(): void {
   }
 }
 
+/**
+ * Put the manual in whatever menu is currently installed.
+ *
+ * Every tab kind builds its own application menu, which is how File and Edit
+ * stay tab-shaped — and which is also why an item added to one builder is
+ * missing from the other six. F1 worked from Home and nowhere else, and the
+ * manual's own shortcut table was wrong for six of the seven tab kinds.
+ *
+ * Injecting after the builder has run is the one place that cannot be
+ * forgotten: a new tab kind gets the manual for free, and a builder that
+ * already has it is left alone rather than getting a second copy.
+ */
+function withUserGuide(): void {
+  const menu = Menu.getApplicationMenu()
+  if (!menu) return
+  const userGuide = {
+    label: tm('menuUserGuide'),
+    accelerator: 'F1',
+    click: () => tabManager?.openHelpTab(),
+  }
+  const help = menu.items.find((item) => item.role === 'help')
+  // Slides and Sheets build a File/Edit/View template with no Help menu at
+  // all, so there is nothing to insert into — one is created instead. Without
+  // this the manual would be reachable from four of the seven tab kinds.
+  if (!help) {
+    menu.append(
+      Menu.buildFromTemplate([{ role: 'help', label: tm('menuHelp'), submenu: [userGuide] }])
+        .items[0]!,
+    )
+    return
+  }
+  const submenu = help.submenu
+  if (!submenu || submenu.items.some((i) => i.accelerator === 'F1')) return
+  // A separator survives a template only *between* two real items — Electron
+  // drops one at either end, so `[userGuide, separator]` builds a single item
+  // and the destructure below used to hand `undefined` to `insert`, which threw
+  // "Invalid item" and took the main process down on the next tab switch. The
+  // third entry is filler, discarded; the type check is what stops this from
+  // silently regressing if Electron's rule ever changes again.
+  const [item, separator] = Menu.buildFromTemplate([
+    userGuide,
+    { type: 'separator' },
+    { role: 'undo' },
+  ]).items
+  if (!item) return
+  submenu.insert(0, item)
+  if (separator?.type === 'separator') submenu.insert(1, separator)
+}
+
 function applyMenuFor(kind: TabKind): void {
   switch (kind) {
     case 'docs':
@@ -3140,11 +3329,103 @@ function applyMenuFor(kind: TabKind): void {
     default:
       buildHomeMenu()
   }
+  withUserGuide()
+  withViewMenu()
+}
+
+/**
+ * The View › interface-scale items, shared by the home menu and every editor
+ * tab. CmdOrCtrl+Alt (not Shift): Shift+= is Sheets insert-cells and Docs
+ * superscript, and the View menu now exists on editor tabs too, where those
+ * accelerators are taken.
+ */
+function uiScaleMenuItems(): MenuItemConstructorOptions[] {
+  return [
+    {
+      label: tm('menuUiZoomIn'),
+      accelerator: 'CmdOrCtrl+Alt+=',
+      click: () => changeUiScale(APP_SETTINGS_PATH(), 1),
+    },
+    {
+      label: tm('menuUiZoomOut'),
+      accelerator: 'CmdOrCtrl+Alt+-',
+      click: () => changeUiScale(APP_SETTINGS_PATH(), -1),
+    },
+    { type: 'separator' },
+    {
+      label: tm('menuUiZoomReset'),
+      accelerator: 'CmdOrCtrl+Alt+0',
+      click: () => changeUiScale(APP_SETTINGS_PATH(), 0),
+    },
+  ]
+}
+
+function viewMenuTemplate(): MenuItemConstructorOptions {
+  return { label: tm('menuView'), submenu: uiScaleMenuItems() }
+}
+
+/**
+ * Interface-scale items in the View menu of every tab kind. Editor menus are
+ * built in the editor apps (docs/sheets/slides) or by the three shell-owned
+ * builders, so rather than teaching seven menu builders about the scale, the
+ * current menu is post-processed here — the same shape as withUserGuide below.
+ * An existing View menu (docs, slides: document zoom) gains the items after a
+ * separator; the rest get a fresh View menu inserted before the Help menu that
+ * withUserGuide has just guaranteed.
+ */
+function withViewMenu(): void {
+  const menu = Menu.getApplicationMenu()
+  if (!menu) return
+  const hasScale = menu.items.some((item) =>
+    item.submenu?.items.some((i) => i.accelerator === 'CmdOrCtrl+Alt+='),
+  )
+  if (hasScale) return
+  const view = menu.items.find((item) => item.label === tm('menuView'))
+  if (view?.submenu) {
+    // build the separator together with the items: Electron drops a separator
+    // that sits alone in a template
+    for (const item of Menu.buildFromTemplate([{ type: 'separator' }, ...uiScaleMenuItems()])
+      .items) {
+      view.submenu.append(item)
+    }
+    return
+  }
+  const viewItem = Menu.buildFromTemplate([viewMenuTemplate()]).items[0]!
+  const helpIdx = menu.items.findIndex((item) => item.role === 'help')
+  if (helpIdx === -1) menu.append(viewItem)
+  else menu.insert(helpIdx, viewItem)
+}
+
+/// Interface scale (genoffice#1913). Read once at boot, then replaced by the View menu.
+let currentUiScale = 1
+
+/**
+ * Stamp the stored interface scale into every renderer — now, and for any
+ * window created later.
+ *
+ * `web-contents-created` is the hook that covers all three window kinds at
+ * once: the shell window, every tab's WebContentsView, and a detached editor
+ * window. Each gets it on `did-finish-load`, because a stylesheet inserted
+ * before the document exists is thrown away.
+ */
+function installUiScale(): void {
+  currentUiScale = readUiScale(APP_SETTINGS_PATH())
+  app.on('web-contents-created', (_event, contents) => {
+    contents.on('did-finish-load', () => applyUiScaleTo(contents, currentUiScale))
+  })
+  applyUiScaleToAll(currentUiScale)
+  // A scale change moves the tab strip, so the editor views below it have to
+  // move too — and the Windows/Linux caption band is sized from it.
+  onUiScaleChanged((scale) => {
+    currentUiScale = scale
+    tabManager?.layout()
+    refreshTitleBarOverlay()
+  })
 }
 
 function refreshTitleBarOverlay(): void {
   if (process.platform === 'darwin' || !shellWindow || shellWindow.isDestroyed()) return
-  shellWindow.setTitleBarOverlay(tabStripOverlay(nativeTheme.shouldUseDarkColors))
+  shellWindow.setTitleBarOverlay(tabStripOverlay(nativeTheme.shouldUseDarkColors, currentUiScale))
 }
 
 function createShellWindow(): void {
@@ -3163,7 +3444,7 @@ function createShellWindow(): void {
           // stays registered for its accelerators and opens from the strip's
           // menu button (Alt still reveals the native bar where one exists)
           titleBarStyle: 'hidden' as const,
-          titleBarOverlay: tabStripOverlay(nativeTheme.shouldUseDarkColors),
+          titleBarOverlay: tabStripOverlay(nativeTheme.shouldUseDarkColors, currentUiScale),
           autoHideMenuBar: true,
         }),
     webPreferences: {
@@ -3198,15 +3479,19 @@ function createShellWindow(): void {
     // no extension: these tabs have no file on disk yet; the title becomes the
     // real filename (the localized untitled default + .docx etc.) once the first save lands
     (kind) =>
-      kind === 'docs'
-        ? tm('untitledDoc')
-        : kind === 'slides'
-          ? tm('untitledDeck')
-          : kind === 'markdown'
-            ? tm('untitledMarkdown')
-            : kind === 'html'
-              ? tm('untitledHtml')
-              : tm('untitledSheet'),
+      kind === 'help'
+        ? tm('menuUserGuide')
+        : kind === 'docs'
+          ? tm('untitledDoc')
+          : kind === 'slides'
+            ? tm('untitledDeck')
+            : kind === 'markdown'
+              ? tm('untitledMarkdown')
+              : kind === 'html'
+                ? tm('untitledHtml')
+                : tm('untitledSheet'),
+    // the tab strip is interface chrome, so its height follows the scale
+    () => currentUiScale,
   )
   tabManager = manager
 
@@ -3214,7 +3499,7 @@ function createShellWindow(): void {
   // document back. The strip reports the insertion slot for each preview
   // (lastDockIndex); the slot is consumed by the dock that follows.
   setDockHost({
-    band: () => dockBandFor(win),
+    band: () => dockBandFor(win, currentUiScale),
     preview: (x) => {
       if (!win.isDestroyed())
         win.webContents.send(TABS_CHANNELS.dockPreview, x === null ? null : { x })
@@ -3919,6 +4204,50 @@ function registerHomeIpc(): void {
     }
   })
 
+  // Knowledge-base channel: the AI-side read access to the reader's starred
+  // files (docs wires these into its panel; see knowledge-base.ts). Path
+  // arguments are validated against the starred set — a corpus file is the
+  // only thing a knowledge tool may read.
+  ipcMain.handle('kb:list', (): unknown => listKnowledgeFiles(readStarredFiles()))
+
+  ipcMain.handle('kb:search', (_event, raw: unknown): unknown => {
+    const query = (raw && typeof raw === 'object' ? raw : {}) as { q?: unknown; limit?: unknown }
+    const q = typeof query.q === 'string' ? query.q : ''
+    const limitRaw = Number(query.limit)
+    const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.floor(limitRaw)) : 8
+    const store = fileIndexStore
+    if (!q.trim() || !store) return []
+    ensureFileIndexer()?.refreshIfStale(60_000)
+    const starred = readStarredFiles()
+    const hits = searchKnowledgeBase(
+      (qq, pool) =>
+        store.search(qq, { limit: pool }).hits.map((h) => ({
+          path: h.path,
+          name: h.name,
+          ext: h.ext,
+          snippetText: (h.snippet ?? []).map((part) => part.text).join(''),
+        })),
+      q,
+      starred,
+      Math.min(limit, 20),
+    )
+    return hits
+  })
+
+  ipcMain.handle('kb:read', async (_event, raw: unknown): Promise<unknown> => {
+    const req = (raw && typeof raw === 'object' ? raw : {}) as {
+      path?: unknown
+      offset?: unknown
+    }
+    const path = typeof req.path === 'string' ? req.path : ''
+    const offsetRaw = Number(req.offset)
+    const offset = Number.isFinite(offsetRaw) ? Math.floor(offsetRaw) : 0
+    if (!path || !readStarredFiles().includes(path)) {
+      throw new Error('path is not in the knowledge base')
+    }
+    return readKnowledgeFilePage(path, offset)
+  })
+
   ipcMain.handle(
     HOME_CHANNELS.rerankSearch,
     async (_event, raw: unknown): Promise<FileSearchRerank | null> => {
@@ -3947,31 +4276,44 @@ function registerHomeIpc(): void {
       const next = normalizeFileSearchSettings({
         ...current,
         ...p,
-        jevKeys: { ...current.jevKeys, ...(p.jevKeys ?? {}) },
+        keys: { ...current.keys, ...(p.keys ?? {}) },
       })
       writeAppSetting(APP_SETTINGS_PATH(), 'fileSearch', next)
       return next
     },
   )
 
-  ipcMain.handle(HOME_CHANNELS.testFileSearchRerank, (_event, input: unknown) => {
-    const { endpoint, apiKey } = (input && typeof input === 'object' ? input : {}) as {
-      endpoint?: unknown
-      apiKey?: unknown
-    }
-    return probeJev(jevEndpointOf(endpoint), typeof apiKey === 'string' ? apiKey : '')
-  })
+  ipcMain.handle(HOME_CHANNELS.testFileSearchRerank, (_event, input: unknown) =>
+    probeDecision(normalizeFileSearchSettings(input)),
+  )
 
   // Starred files sort by mtime, which requires stat-ing them all first; they are hand-picked and few, so this is fine
   ipcMain.handle(HOME_CHANNELS.starred, (_event, query: unknown): RecentPage => {
     const { offset, limit, ext } = normalizeRecentQuery(query)
-    const all = statEntries(readStarredFiles()).sort((a, b) => b.mtimeMs - a.mtimeMs)
+    // the Starred view's group pills scope the whole query (totals included)
+    const raw = (query && typeof query === 'object' ? query : {}) as { group?: unknown }
+    const group = typeof raw.group === 'string' && raw.group ? raw.group : undefined
+    const groupOf = readStarredGroupMap()
+    const paths = readStarredFiles()
+    const scoped = group ? paths.filter((p) => groupOf.get(p) === group) : paths
+    const all = statEntries(scoped)
+      .sort((a, b) => b.mtimeMs - a.mtimeMs)
+      .map((entry) => {
+        const g = groupOf.get(entry.path)
+        return g ? { ...entry, group: g } : entry
+      })
     const filtered = ext ? all.filter((entry) => matchesExtFamily(entry.ext, ext)) : all
     return {
       entries: limit === 0 ? [] : filtered.slice(offset, offset + limit),
       total: filtered.length,
       totalAll: all.length,
     }
+  })
+
+  ipcMain.handle(HOME_CHANNELS.starredGroups, (): string[] => readStarredGroups())
+
+  ipcMain.handle(HOME_CHANNELS.setStarredGroup, (_event, paths: unknown, group: unknown) => {
+    setStarredGroup(stringPaths(paths), typeof group === 'string' && group ? group : null)
   })
 
   ipcMain.handle(HOME_CHANNELS.statPaths, (_event, paths: unknown): RecentEntry[] =>
@@ -4045,6 +4387,14 @@ function registerHomeIpc(): void {
     removeRecentFiles(stringPaths(paths))
   })
 
+  // Bulk unstar from the Starred view: every row there is a favorite, so the
+  // selection action is "unstar", not "remove from recents" — removeRecent
+  // keeps existing files' stars on purpose, which made the Starred view's
+  // bulk removal a no-op for anything still on disk
+  ipcMain.handle(HOME_CHANNELS.unstarPaths, (_event, paths: unknown) => {
+    removeStarredFiles(stringPaths(paths))
+  })
+
   ipcMain.handle(HOME_CHANNELS.revealPath, (_event, path: unknown) => {
     if (typeof path === 'string' && existsSync(path) && assertSafeUserPath(path))
       shell.showItemInFolder(path)
@@ -4057,14 +4407,8 @@ function registerHomeIpc(): void {
         return { ok: false, error: tm('errBadArgs') }
       if (!assertSafeUserPath(path)) return { ok: false, error: tm('errBadArgs') }
       if (!isValidRawRenameName(newName)) return { ok: false, error: tm('errBadName') }
-      // A legal name in an extension nothing routes to turns an openable file
-      // into an unopenable one — "note.md" → "note.xyz" renames cleanly and
-      // then cannot be opened. Same-app renames ("note.md" → "note.markdown")
-      // stay legal.
-      if (typeof path === 'string' && !renameStaysInApp(path, newName.trim()))
+      if (!renameStaysInApp(path, newName.trim()))
         return { ok: false, error: tm('errBadExtension') }
-      // only paths the UI could have shown: a compromised renderer must not
-      // rename arbitrary files outside every tracked source
       if (!isUserVisibleFile(path, fileTargetSources()))
         return { ok: false, error: tm('errBadArgs') }
       const name = newName.trim()
@@ -4108,8 +4452,9 @@ function registerHomeIpc(): void {
 
   ipcMain.handle(HOME_CHANNELS.deleteFiles, async (_event, paths: unknown) => {
     const targets = fileTargetSources()
+    // a missing path still passes so the ghost recent/star entry gets cleaned up
     const list = stringPaths(paths).filter(
-      (p) => assertSafeUserPath(p) && isUserVisibleFile(p, targets) && statMaybeFile(p)?.isFile() === true,
+      (p) => assertSafeUserPath(p) && isUserVisibleFile(p, targets) && statMaybeFile(p)?.isFile() !== false,
     )
     for (const p of list) {
       try {
@@ -4131,6 +4476,9 @@ function registerHomeIpc(): void {
     }
   })
 
+  ipcMain.handle(HOME_CHANNELS.openHelp, () => {
+    tabManager?.openHelpTab()
+  })
   ipcMain.handle(HOME_CHANNELS.getLanguage, (): Lang => currentLang())
 
   ipcMain.handle(HOME_CHANNELS.setLanguage, (_event, lang: unknown) => {
@@ -4178,6 +4526,19 @@ function registerHomeIpc(): void {
     nativeTheme.themeSource = theme
     refreshTitleBarOverlay()
     for (const wc of webContents.getAllWebContents()) wc.send('app:theme-changed', theme)
+  })
+
+  ipcMain.handle(HOME_CHANNELS.getDocumentTheme, (): DocTheme => currentDocTheme())
+  // editor tabs ask via the app-wide channel (symmetric with app:get-theme)
+  ipcMain.handle('app:get-document-theme', (): DocTheme => currentDocTheme())
+
+  ipcMain.handle(HOME_CHANNELS.setDocumentTheme, (_event, theme: unknown) => {
+    if (theme !== 'light' && theme !== 'dark' && theme !== 'follow') return
+    if (theme === currentDocTheme()) return
+    cachedDocTheme = theme
+    writeAppSetting(APP_SETTINGS_PATH(), 'documentTheme', theme)
+    // the native theme is untouched — only the editors' canvas/paper follows this
+    for (const wc of webContents.getAllWebContents()) wc.send('app:document-theme-changed', theme)
   })
 
   ipcMain.handle(HOME_CHANNELS.getAutoSaveDefault, (): AutoSaveDefault => currentAutoSaveDefault())
@@ -4624,6 +4985,7 @@ const TAB_MENU_ICON: Record<TabKind, keyof MenuIconSet> = {
   pdf: 'pdf',
   markdown: 'md',
   html: 'html',
+  help: 'home',
   mail: 'home',
 }
 
@@ -5028,6 +5390,7 @@ function buildHomeMenu(): void {
         { role: 'close', label: tm('menuClose') },
       ],
     },
+    viewMenuTemplate(),
     editMenuTemplate(process.platform, appMenuLabels(currentLang())),
     windowMenuTemplate(process.platform, appMenuLabels(currentLang())),
     {
@@ -5383,7 +5746,7 @@ async function exportPdfAsDocxLocal(): Promise<void> {
   }
   exportingPdfDocx = true
   try {
-    if (!(await flushPdfSave(tab.webContents))) return
+    if (!(await flushPdfSave(tab.webContents, true))) return
     const picked = await showSaveDialogWithMemory(dialog, host, {
       defaultPath: tab.filePath.replace(/\.pdf$/i, '.docx'),
       filters: [{ name: tm('filterWord'), extensions: ['docx'] }],
@@ -5523,7 +5886,7 @@ async function exportPdfAsPptxLocal(): Promise<void> {
   }
   exportingPdfDocx = true
   try {
-    if (!(await flushPdfSave(tab.webContents))) return
+    if (!(await flushPdfSave(tab.webContents, true))) return
     const picked = await showSaveDialogWithMemory(dialog, host, {
       defaultPath: tab.filePath.replace(/\.pdf$/i, '.pptx'),
       filters: [{ name: tm('filterPpt'), extensions: ['pptx'] }],
@@ -5634,7 +5997,7 @@ async function exportPdfAsXlsxLocal(): Promise<void> {
   }
   exportingPdfDocx = true
   try {
-    if (!(await flushPdfSave(tab.webContents))) return
+    if (!(await flushPdfSave(tab.webContents, true))) return
     const picked = await showSaveDialogWithMemory(dialog, host, {
       defaultPath: tab.filePath.replace(/\.pdf$/i, '.xlsx'),
       filters: [{ name: tm('filterExcel'), extensions: ['xlsx'] }],
@@ -5948,6 +6311,16 @@ app.on('second-instance', (_event, argv, _cwd, additionalData) => {
 installNavigationGuard(app)
 installContextMenu(app, () => contextMenuLabels(currentLang()))
 registerAiIpc()
+ipcMain.handle('ai:open-model-settings', () => {
+  const win = shellWindow
+  if (!win || win.isDestroyed()) return
+  // the request may come from a detached window or while the shell is minimized
+  if (win.isMinimized()) win.restore()
+  win.show()
+  win.focus()
+  tabManager?.openHomeTab()
+  win.webContents.send(HOME_CHANNELS.openSettings, { section: 'aiModel' })
+})
 registerProjectIpc()
 registerDocsIpc()
 registerHomeIpc()
@@ -6036,7 +6409,8 @@ app.whenReady().then(async () => {
     pdf: join(PDF_OUT, 'renderer'),
     markdown: join(MARKDOWN_OUT, 'renderer'),
     html: join(HTML_OUT, 'renderer'),
-    mail: join(MAIL_OUT, 'renderer'),
+  help: 'home',
+  mail: 'home',
   })
   if (headlessArgv.kind !== 'none') {
     await runHeadlessExportEntry(headlessArgv)
@@ -6222,6 +6596,7 @@ app.whenReady().then(async () => {
   void startMcpFromSettings(currentMcpSettings()).catch((error) => {
     console.error('[mcp] failed to start on boot:', error)
   })
+  installUiScale()
   createShellWindow()
   // deferred to ready: labels need currentLang(), which reads app.getLocale()
   installBackToHomeItems()

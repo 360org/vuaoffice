@@ -25,7 +25,7 @@ const MAX_ENTRY_COUNT: usize = 10_000;
 // 500 MiB, not 512: the host patches entries as JavaScript strings, and
 // V8's maximum string length is 536,870,888 bytes — an entry between that
 // and 512 MiB would pass a 512 MiB cap and then fail to materialize.
-const MAX_EXTRACTED_ENTRY_BYTES: u64 = 500 * 1024 * 1024;
+pub(crate) const MAX_EXTRACTED_ENTRY_BYTES: u64 = 500 * 1024 * 1024;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -158,8 +158,6 @@ pub fn read_entries_to_dir(
         }
         let output_path = output_dir.join(format!("entry-{index}.bin"));
         let mut output = BufWriter::new(File::create(&output_path)?);
-        // The limit above reads only the declaration; the copy is what keeps a
-        // part that under-declares from streaming its whole payload to disk.
         copy_entry_bounded(&mut entry, declared, MAX_EXTRACTED_ENTRY_BYTES, &mut output)?;
         output.flush()?;
         extracted.push(ExtractedEntry {
@@ -177,7 +175,7 @@ pub fn save_archive(
     removals: &[String],
     additions: &[EntryContent],
 ) -> Result<SaveArchiveResult, SidecarError> {
-    if source_path.canonicalize()? == target_path.canonicalize().unwrap_or_default() {
+    if crate::canonicalize(source_path)? == crate::canonicalize(target_path).unwrap_or_default() {
         return Err(SidecarError::InvalidRequest(
             "Save target must differ from the source archive.".into(),
         ));

@@ -3,7 +3,7 @@ import type { Mark as PmMark } from '@tiptap/pm/model'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
 import {} from '@tiptap/pm/tables'
-import { cssCsFontFamily, cssRunFontFamily, cssFontFamily } from '../line-metrics'
+import { cssCsFontFamily, cssRunFontFamily, cssFontFamily, lineHeightFactor } from '../line-metrics'
 import { isEastAsianFontName } from '../font-list'
 import { t } from '../i18n/locale'
 import { dkBackground } from './dark-page'
@@ -435,6 +435,18 @@ export const CtrlCheckboxMark = Mark.create({
 })
 
 /**
+ * CSS-only system keywords: names that resolve to a face inside a UA, never a
+ * real font family. They reach a pasted chain as ordinary-looking entries — a
+ * GitHub copy in Safari starts `-apple-system, BlinkMacSystemFont, "Segoe UI"…`
+ * — but persisting one pins w:rFonts to a name that Word, LibreOffice, Pages
+ * and Google Docs cannot resolve, so the run silently falls back to whatever
+ * default the reader picks. Same list the sheets canvas path already treats as
+ * non-concrete (PASSTHROUGH_FAMILY in cell-font-fallback.ts).
+ */
+const CSS_ONLY_FAMILY =
+  /^(?:math|ui-serif|ui-sans-serif|ui-monospace|ui-rounded|-apple-system|BlinkMacSystemFont)$/i
+
+/**
  * font-family chain → dual-slot font attrs, inverting renderHTML's encoding:
  * the Latin slot is the chain's first Latin family, the eastAsia slot its first
  * East Asian family. Generic families and the bundled CJK tofu-fallbacks that
@@ -452,6 +464,7 @@ export function fontAttrsFromFamilyChain(chain: string | undefined): Record<stri
         // var(--doc-latin-chain, ...) fragments from eastAsia-only chains
         !/^var\(|\)$/.test(x) &&
         !/^(serif|sans-serif|monospace|cursive|fantasy|system-ui)$/i.test(x) &&
+        !CSS_ONLY_FAMILY.test(x) &&
         // internal fonts.css aliases are not user picks: 'GenOffice *', the
         // '* GO' renamed/range-limited faces (Carlito GO, KR Theme Latin GO,
         // Noto Sans/Serif CJK GO...) and the size-adjusted Noto Arabic aliases
@@ -684,6 +697,9 @@ export const TextStyleMark = Mark.create({
             : cssRunFontFamily(ascii, ea)
         }`,
       )
+      // own-face line factor for cell paragraphs mixing faces (styles.css .doc-mixed-face)
+      const lh = Math.max(...[cs, ascii ?? ea].filter(Boolean).map((f) => lineHeightFactor(f!)))
+      styles.push(`--doc-run-lh:${lh}`)
     }
     const spacingPt = mark.attrs.charSpacingTwips ? Number(mark.attrs.charSpacingTwips) / 20 : 0
     const scaleEm = mark.attrs.charScaleEm ? Number(mark.attrs.charScaleEm) : 0

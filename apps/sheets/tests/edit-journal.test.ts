@@ -22,6 +22,7 @@ import {
   recordWorkbookProtection,
   recordSheetDuplicate,
   recordSheetHidden,
+  recordSheetTabColor,
   recordSheetInsert,
   recordSheetOrderChange,
   recordSheetRemove,
@@ -39,6 +40,7 @@ import {
   toSavePivotAdds,
   toSaveTableAdds,
   toSaveSheetOps,
+  toSavePageSetupStates,
   toSaveStructuralOps,
 } from '../src/renderer/edit-journal'
 
@@ -571,6 +573,11 @@ describe('style conversion', () => {
   })
 
   it('maps text rotation and double underline both ways', () => {
+    expect(toNeutralStyle({ va: 3 })).toEqual({ vertAlign: 'superscript' })
+    expect(toNeutralStyle({ va: 2 })).toEqual({ vertAlign: 'subscript' })
+    expect(toNeutralStyle({ va: null })).toEqual({ vertAlign: null })
+    expect(fromNeutralStyle({ vertAlign: 'subscript' })).toEqual({ va: 2 })
+    expect(fromNeutralStyle({ vertAlign: null })).toEqual({ va: null })
     expect(toNeutralStyle({ tr: { a: 45 } })).toEqual({ textRotation: 45 })
     expect(toNeutralStyle({ tr: { a: -45 } })).toEqual({ textRotation: 135 })
     expect(toNeutralStyle({ tr: { a: 0, v: 1 } })).toEqual({ textRotation: 255 })
@@ -958,6 +965,34 @@ describe('sheet visibility and order journal', () => {
       { kind: 'reorder-sheets' },
     ])
   })
+
+  it('journals tab colors normalized to #RRGGBB and drops a revert', () => {
+    const journal = createEditJournal()
+    recordSheetTabColor(journal, 'sheet-1', '#92d050', null)
+    expect(journalSize(journal)).toBe(1)
+    expect(toSaveSheetOps(journal)).toEqual([
+      { kind: 'set-sheet-tab-color', sheetId: 'sheet-1', color: '#92D050' },
+    ])
+    recordSheetTabColor(journal, 'sheet-1', undefined, null)
+    expect(journalSize(journal)).toBe(0)
+    recordSheetTabColor(journal, 'sheet-2', '', '#FF0000')
+    expect(toSaveSheetOps(journal)).toEqual([
+      { kind: 'set-sheet-tab-color', sheetId: 'sheet-2', color: null },
+    ])
+    recordSheetTabColor(journal, 'sheet-2', 'ff0000', '#FF0000')
+    expect(journalSize(journal)).toBe(0)
+  })
+
+  it('copies a pending tab color onto a duplicate of the sheet', () => {
+    const journal = createEditJournal()
+    recordSheetTabColor(journal, 'sheet-1', '#92D050', null)
+    recordSheetDuplicate(journal, 'u-copy', 'Copy', 'sheet-1')
+    expect(toSaveSheetOps(journal)).toContainEqual({
+      kind: 'set-sheet-tab-color',
+      sheetId: 'u-copy',
+      color: '#92D050',
+    })
+  })
 })
 
 describe('rich-text run capture', () => {
@@ -1238,5 +1273,18 @@ describe('recordStructuralOp page-break remapping', () => {
     recordStructuralOp(journal, 'sheet-1', { kind: 'remove-rows', index: 0, count: 4 })
     expect(journal.structuralOps.get('sheet-1')).toBeUndefined()
     expect(journal.pageSetup.get('sheet-1')?.rowBreaks).toEqual([6])
+  })
+})
+
+describe('right-to-left page-setup journal', () => {
+  it('merges the direction flag with other sheet-view state and saves it', () => {
+    const journal = createEditJournal()
+    recordPageSetup(journal, 'sheet-1', { showGridlines: false })
+    recordPageSetup(journal, 'sheet-1', { rightToLeft: true })
+    recordPageSetup(journal, 'sheet-2', { rightToLeft: false })
+    expect(toSavePageSetupStates(journal)).toEqual([
+      { sheetId: 'sheet-1', showGridlines: false, rightToLeft: true },
+      { sheetId: 'sheet-2', rightToLeft: false },
+    ])
   })
 })

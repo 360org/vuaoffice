@@ -2,7 +2,7 @@ import type { AgentMessage, AgentToolCall, AgentToolDef } from '@genoffice/agent
 import { aiFetch } from '../fetch'
 import { httpBodyDetail } from '../http-error'
 import { gensparkAttributionHeaders, opencodeSessionHeaders } from '../providers'
-import type { AiChatResponse, AiProviderConfig } from '../types'
+import type { AiChatResponse, AiProviderConfig, AiTokenUsage } from '../types'
 import { createStreamWatchdog, type StreamWatchdog } from '../watchdog'
 import {
   endpointUrl,
@@ -14,6 +14,7 @@ import {
   throwIfCreditsNotice,
   throwIfToolCountOverBudget,
   throwIfToolJsonOverBudget,
+  usageCount,
   type StreamCallbacks,
 } from './shared'
 
@@ -70,6 +71,7 @@ function emitAnthropicJsonMessage(bodyText: string, cb: StreamCallbacks): void {
       input?: Record<string, unknown>
     }>
     stop_reason?: string
+    usage?: { input_tokens?: unknown; output_tokens?: unknown }
     error?: { message?: string } | string
   }
   try {
@@ -102,6 +104,31 @@ function emitAnthropicJsonMessage(bodyText: string, cb: StreamCallbacks): void {
   for (const call of toolCalls) cb.onToolCall(call)
   if (!emitted) throw new Error(`Claude returned no content: ${httpBodyDetail(bodyText)}`)
   if (msg.stop_reason) cb.onStopReason?.(msg.stop_reason)
+  const jsonUsage: AiTokenUsage = {}
+  mergeAnthropicUsage(jsonUsage, msg.usage)
+  if (jsonUsage.inputTokens !== undefined || jsonUsage.outputTokens !== undefined)
+    cb.onUsage?.(jsonUsage)
+}
+
+/** Merge an Anthropic usage object into an accumulator (input arrives on message_start,
+ * the running output total on message_delta; stream events and JSON bodies share the shape). */
+function mergeAnthropicUsage(
+  target: AiTokenUsage,
+  usage: { input_tokens?: unknown; output_tokens?: unknown } | undefined,
+): void {
+  if (!usage) return
+  const input = usageCount(usage.input_tokens)
+  const output = usageCount(usage.output_tokens)
+  if (input !== undefined) target.inputTokens = input
+  if (output !== undefined) target.outputTokens = output
+}
+
+/** Per-endpoint request shaping resolved from the provider registry. */
+export interface AnthropicRequestOptions {
+  /** static headers a user-hosted Messages endpoint needs (merged last, so they win) */
+  headers?: Record<string, string> | undefined
+  /** stream idle budget override for slow local servers */
+  idleTimeoutMs?: number | undefined
 }
 
 export async function streamAnthropic(
@@ -112,9 +139,12 @@ export async function streamAnthropic(
   maxTokens: number,
   cb: StreamCallbacks,
   baseUrl = ANTHROPIC_BASE_URL,
+  options: AnthropicRequestOptions = {},
 ): Promise<void> {
-  const wd = createStreamWatchdog(cb.signal)
-  return wd.guard(() => anthropicTurn(config, system, messages, tools, maxTokens, cb, baseUrl, wd))
+  const wd = createStreamWatchdog(cb.signal, undefined, options.idleTimeoutMs)
+  return wd.guard(() =>
+    anthropicTurn(config, system, messages, tools, maxTokens, cb, baseUrl, wd, options),
+  )
 }
 
 async function anthropicTurn(
@@ -126,6 +156,7 @@ async function anthropicTurn(
   cb: StreamCallbacks,
   baseUrl: string,
   wd: StreamWatchdog,
+  options: AnthropicRequestOptions = {},
 ): Promise<void> {
   const onBytes = () => {
     wd.touch()
@@ -146,6 +177,8 @@ async function anthropicTurn(
         'anthropic-dangerous-direct-browser-access': 'true',
         ...gensparkAttributionHeaders(baseUrl),
         ...opencodeSessionHeaders(baseUrl, cb.sessionId),
+        // a user-hosted endpoint may route or authenticate on static headers
+        ...options.headers,
       },
       body: JSON.stringify({
         model: config.model,
@@ -194,22 +227,23 @@ async function anthropicTurn(
   const completedTools: AgentToolCall[] = []
   let stopReason: string | undefined
   let emitted = false
-  for await (const payload of sseDataEvents(response.body, onBytes)) {
-    // A truncated frame or a non-JSON keep-alive from a proxy should skip
-    // that event, not kill the entire AI turn with a parser error.
-    let event
-    try {
-      event = JSON.parse(payload) as {
-        type?: string
-        index?: number
-        content_block?: { type?: string; id?: string; name?: string }
-        delta?: { type?: string; text?: string; partial_json?: string; stop_reason?: string }
-        error?: { message?: string } | string
-      }
-    } catch {
-      continue
+  const turnUsage: AiTokenUsage = {}
+  for await (const sse of sseDataEvents(response.body, onBytes)) {
+    // A truncated frame or a non-JSON keep-alive from a proxy skips that event
+    // rather than killing the turn.
+    if (sse.json === undefined) continue
+    const event = sse.json as {
+      type?: string
+      index?: number
+      content_block?: { type?: string; id?: string; name?: string }
+      delta?: { type?: string; text?: string; partial_json?: string; stop_reason?: string }
+      message?: { usage?: { input_tokens?: unknown; output_tokens?: unknown } }
+      usage?: { input_tokens?: unknown; output_tokens?: unknown }
+      error?: { message?: string } | string
     }
-    if (event.type === 'content_block_start' && event.content_block?.type === 'tool_use') {
+    if (event.type === 'message_start') {
+      mergeAnthropicUsage(turnUsage, event.message?.usage)
+    } else if (event.type === 'content_block_start' && event.content_block?.type === 'tool_use') {
       const toolIndex = event.index ?? 0
       currentToolIndex = toolIndex
       if (!pendingTools.has(toolIndex)) {
@@ -245,6 +279,9 @@ async function anthropicTurn(
       }
     } else if (event.type === 'message_delta') {
       if (event.delta?.stop_reason) stopReason = event.delta.stop_reason
+      // message_delta's usage.output_tokens is the running total for the message;
+      // it supersedes anything message_start reported for the output side
+      mergeAnthropicUsage(turnUsage, event.usage)
     } else if (event.type === 'error' || event.error) {
       // also catches gateway errors delivered in a non-Anthropic shape (no `type` field)
       throw new Error(sseErrorText(event.error, 'Claude stream error'))
@@ -288,6 +325,8 @@ async function anthropicTurn(
     throw new Error('Claude stream ended before a stop_reason')
   }
   if (stopReason) cb.onStopReason?.(stopReason)
+  if (turnUsage.inputTokens !== undefined || turnUsage.outputTokens !== undefined)
+    cb.onUsage?.(turnUsage)
 }
 
 export async function chatAnthropic(
@@ -296,6 +335,7 @@ export async function chatAnthropic(
   system: string,
   user: string,
   baseUrl = ANTHROPIC_BASE_URL,
+  options: AnthropicRequestOptions = {},
 ): Promise<AiChatResponse> {
   const response = await aiFetch(endpointUrl(baseUrl, 'v1/messages'), {
     method: 'POST',
@@ -308,6 +348,7 @@ export async function chatAnthropic(
       'anthropic-dangerous-direct-browser-access': 'true',
       ...gensparkAttributionHeaders(baseUrl),
       ...opencodeSessionHeaders(baseUrl),
+      ...options.headers,
     },
     body: JSON.stringify({
       model: config.model,
