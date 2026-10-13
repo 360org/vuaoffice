@@ -3855,7 +3855,7 @@ export function App() {
                               onClick={toggleAi}
                             >
                               <GensparkMark size={14} />
-                              <span>VuaAI Pro</span>
+                              <span>Genspark AI</span>
                             </button>
                             {/* Same one-click presets as the Home tab; hidden instead of
                         disabled while the deck has no real content */}

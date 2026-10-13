@@ -40,7 +40,7 @@ export async function handshakeOdooAiConfig(
     writeAppSetting(appSettingsPath, 'deviceUid', deviceUid)
   }
 
-  const appName = app.getName() || 'VuaOffice'
+  const appName = app.getName() || 'GenOffice'
   const appVer = app.getVersion() || '1.0.0'
   const deviceName = os.hostname() || 'Desktop'
   const osName = os.type() + ' ' + os.release()
