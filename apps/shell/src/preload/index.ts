@@ -547,8 +547,12 @@ const homeApi: HomeApi = {
   async getCodexModels(cliPath) {
     return (await ipcRenderer.invoke('ai:codex-models', cliPath)) as CodexModelCatalog
   },
-  async getCustomModels(baseUrl, apiKey) {
-    return (await ipcRenderer.invoke('ai:custom-models', { baseUrl, apiKey })) as CodexModelCatalog
+  async getCustomModels(baseUrl, apiKey, api) {
+    return (await ipcRenderer.invoke('ai:custom-models', {
+      baseUrl,
+      apiKey,
+      ...(api ? { api } : {}),
+    })) as CodexModelCatalog
   },
   async testAiSettings(settings) {
     const result: unknown = await ipcRenderer.invoke('ai:chat', {

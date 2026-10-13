@@ -100,6 +100,7 @@ import {
   sanitizeCliPath,
   setAiUserAgent,
   setRescueFetch,
+  resolveProfileCredential,
   streamForProvider,
   type AiChatRequest,
   type AiSettings,
@@ -3877,6 +3878,8 @@ export function registerAiIpc(): void {
       gskKey = gskApiKey()
       config = { ...config, apiKey: gskKey }
     }
+    // a custom endpoint may name an environment variable instead of storing a key
+    config = config ? resolveProfileCredential(config) : config
     const send = (chunk: AiStreamChunk) => {
       if (!event.sender.isDestroyed()) event.sender.send('ai:stream-chunk', chunk)
     }
@@ -4073,6 +4076,8 @@ export function registerAiIpc(): void {
       gskKey = gskApiKey()
       config = { ...config, apiKey: gskKey }
     }
+    // a custom endpoint may name an environment variable instead of storing a key
+    config = config ? resolveProfileCredential(config) : config
     if (!config || (provider !== 'codex' && !config.apiKey)) {
       return {
         ok: false,

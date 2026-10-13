@@ -27,6 +27,7 @@ import {
   sanitizeAiSettings,
   setAiUserAgent,
   setRescueFetch,
+  resolveProfileCredential,
   streamForProvider,
   type AiSettings,
   type AiStreamChunk,
@@ -192,6 +193,8 @@ export function registerAiIpc(): void {
       gskKey = gskApiKey()
       config = { ...config, apiKey: gskKey }
     }
+    // a custom endpoint may name an environment variable instead of storing a key
+    config = config ? resolveProfileCredential(config) : config
     const send = (chunk: AiStreamChunk) => {
       if (!event.sender.isDestroyed()) event.sender.send('ai:stream-chunk', chunk)
     }

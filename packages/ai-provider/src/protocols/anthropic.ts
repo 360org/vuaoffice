@@ -123,6 +123,14 @@ function mergeAnthropicUsage(
   if (output !== undefined) target.outputTokens = output
 }
 
+/** Per-endpoint request shaping resolved from the provider registry. */
+export interface AnthropicRequestOptions {
+  /** static headers a user-hosted Messages endpoint needs (merged last, so they win) */
+  headers?: Record<string, string> | undefined
+  /** stream idle budget override for slow local servers */
+  idleTimeoutMs?: number | undefined
+}
+
 export async function streamAnthropic(
   config: AiProviderConfig,
   system: string,
@@ -131,9 +139,12 @@ export async function streamAnthropic(
   maxTokens: number,
   cb: StreamCallbacks,
   baseUrl = ANTHROPIC_BASE_URL,
+  options: AnthropicRequestOptions = {},
 ): Promise<void> {
-  const wd = createStreamWatchdog(cb.signal)
-  return wd.guard(() => anthropicTurn(config, system, messages, tools, maxTokens, cb, baseUrl, wd))
+  const wd = createStreamWatchdog(cb.signal, undefined, options.idleTimeoutMs)
+  return wd.guard(() =>
+    anthropicTurn(config, system, messages, tools, maxTokens, cb, baseUrl, wd, options),
+  )
 }
 
 async function anthropicTurn(
@@ -145,6 +156,7 @@ async function anthropicTurn(
   cb: StreamCallbacks,
   baseUrl: string,
   wd: StreamWatchdog,
+  options: AnthropicRequestOptions = {},
 ): Promise<void> {
   const onBytes = () => {
     wd.touch()
@@ -165,6 +177,8 @@ async function anthropicTurn(
         'anthropic-dangerous-direct-browser-access': 'true',
         ...gensparkAttributionHeaders(baseUrl),
         ...opencodeSessionHeaders(baseUrl, cb.sessionId),
+        // a user-hosted endpoint may route or authenticate on static headers
+        ...options.headers,
       },
       body: JSON.stringify({
         model: config.model,
@@ -321,6 +335,7 @@ export async function chatAnthropic(
   system: string,
   user: string,
   baseUrl = ANTHROPIC_BASE_URL,
+  options: AnthropicRequestOptions = {},
 ): Promise<AiChatResponse> {
   const response = await aiFetch(endpointUrl(baseUrl, 'v1/messages'), {
     method: 'POST',
@@ -333,6 +348,7 @@ export async function chatAnthropic(
       'anthropic-dangerous-direct-browser-access': 'true',
       ...gensparkAttributionHeaders(baseUrl),
       ...opencodeSessionHeaders(baseUrl),
+      ...options.headers,
     },
     body: JSON.stringify({
       model: config.model,

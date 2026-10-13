@@ -75,6 +75,7 @@ import {
   resolveAiSettings,
   setAiUserAgent,
   setRescueFetch,
+  resolveProfileCredential,
   streamForProvider,
   type AiProviderId,
   type AiSettings,
@@ -3681,6 +3682,8 @@ export function registerSheetsAiIpc(): void {
       gskKey = gskApiKey()
       config = { ...config, apiKey: gskKey }
     }
+    // a custom endpoint may name an environment variable instead of storing a key
+    config = config ? resolveProfileCredential(config) : config
     if (!config || (provider !== 'codex' && !config.apiKey)) {
       return {
         ok: false,
@@ -3719,6 +3722,8 @@ export function registerSheetsAiIpc(): void {
       gskKey = gskApiKey()
       config = { ...config, apiKey: gskKey }
     }
+    // a custom endpoint may name an environment variable instead of storing a key
+    config = config ? resolveProfileCredential(config) : config
     const send = (chunk: AiStreamChunk) => {
       if (!event.sender.isDestroyed()) event.sender.send(IPC_CHANNELS.aiStreamChunk, chunk)
     }
