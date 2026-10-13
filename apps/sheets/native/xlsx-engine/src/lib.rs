@@ -172,6 +172,18 @@ fn temp_dir() -> PathBuf {
     }
 }
 
+/// `Path::canonicalize`, which WASI does not support: there the host hands over absolute
+/// paths in a sandbox without symlinks or a working directory, so the path is already
+/// canonical and only has to exist.
+pub(crate) fn canonicalize(path: &Path) -> std::io::Result<PathBuf> {
+    if cfg!(target_os = "wasi") {
+        fs::metadata(path)?;
+        Ok(path.to_path_buf())
+    } else {
+        path.canonicalize()
+    }
+}
+
 /// Creates the cache directory an open needs. This is the one boundary where
 /// the open touches the filesystem, so it is the one abort that happens after
 /// the directory exists: returning here drops the guard, which reclaims it,
@@ -226,7 +238,7 @@ impl WorkbookSessions {
         if cancelled.load(Ordering::Acquire) {
             return Err(SidecarError::cancelled());
         }
-        let canonical_path = path.canonicalize()?;
+        let canonical_path = canonicalize(path)?;
         let file = File::open(&canonical_path)?;
         let mut archive = ZipArchive::new(file)?;
         archive::validate_entries(&mut archive)?;

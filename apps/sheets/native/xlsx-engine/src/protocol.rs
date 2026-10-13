@@ -919,10 +919,12 @@ mod tests {
 
     /// While one recalculation is in flight, a second request short-circuits
     /// with recalc_busy instead of queueing behind the import.
-    // Without threads two recalcs never overlap, so there is no busy state.
-    #[cfg(not(feature = "single-thread"))]
     #[test]
     fn concurrent_recalc_reports_busy() {
+        // Without threads two recalcs never overlap, so there is no busy state.
+        if !THREADS {
+            return;
+        }
         let dir = tempfile::tempdir().unwrap();
         let source = dir.path().join("open.xlsx");
         write_workbook(&source);
