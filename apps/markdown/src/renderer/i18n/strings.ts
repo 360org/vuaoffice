@@ -1,5 +1,7 @@
 export const strings = {
   zh: {
+    mdThemeTitle: '文档主题',
+    mdThemeDefault: '默认（跟随文档主题）',
     renameNeedsSave: '先保存或放弃改动，再改文件后缀',
     redactMenuLabel: '把选中的内容对 AI 隐藏',
     redactDialogDesc:
@@ -248,6 +250,8 @@ export const strings = {
     zoomOut: '缩小',
   },
   en: {
+    mdThemeTitle: 'Document theme',
+    mdThemeDefault: 'Default (follow the document theme)',
     renameNeedsSave: 'Save or discard your changes before changing the extension',
     redactMenuLabel: 'Hide the selection from AI',
     redactDialogDesc:
@@ -505,6 +509,8 @@ export const strings = {
     zoomOut: 'Zoom out',
   },
   vi: {
+    mdThemeTitle: 'Chủ đề tài liệu',
+    mdThemeDefault: 'Mặc định (theo chủ đề tài liệu)',
     renameNeedsSave: 'Hãy lưu hoặc hủy thay đổi trước khi đổi phần mở rộng',
     redactMenuLabel: 'Ẩn phần đã chọn khỏi AI',
     redactDialogDesc:
@@ -760,6 +766,8 @@ export const strings = {
     zoomOut: 'Thu nhỏ',
   },
   ja: {
+    mdThemeTitle: 'ドキュメントテーマ',
+    mdThemeDefault: 'デフォルト（ドキュメントテーマに従う）',
     renameNeedsSave: '拡張子を変更する前に変更を保存または破棄してください',
     redactMenuLabel: '選択範囲をAIから隠す',
     redactDialogDesc:
@@ -1015,6 +1023,8 @@ export const strings = {
     zoomOut: '縮小',
   },
   ko: {
+    mdThemeTitle: '문서 테마',
+    mdThemeDefault: '기본값(문서 테마 따르기)',
     renameNeedsSave: '확장자를 바꾸기 전에 변경 사항을 저장하거나 버리세요',
     redactMenuLabel: '선택한 부분을 AI에서 숨기기',
     redactDialogDesc:
@@ -1271,6 +1281,8 @@ export const strings = {
     zoomOut: '축소',
   },
   fr: {
+    mdThemeTitle: 'Thème du document',
+    mdThemeDefault: 'Par défaut (suivre le thème du document)',
     renameNeedsSave: "Enregistrez ou annulez vos modifications avant de changer l'extension",
     redactMenuLabel: 'Masquer la sélection à l’IA',
     redactDialogDesc:
@@ -1532,6 +1544,8 @@ export const strings = {
     zoomOut: 'Zoom arrière',
   },
   de: {
+    mdThemeTitle: 'Dokumentthema',
+    mdThemeDefault: 'Standard (dem Dokumentthema folgen)',
     renameNeedsSave:
       'Speichern oder verwerfen Sie Ihre Änderungen, bevor Sie die Erweiterung ändern',
     redactMenuLabel: 'Auswahl vor der KI verbergen',
@@ -1793,6 +1807,8 @@ export const strings = {
     zoomOut: 'Verkleinern',
   },
   es: {
+    mdThemeTitle: 'Tema del documento',
+    mdThemeDefault: 'Predeterminado (seguir el tema del documento)',
     renameNeedsSave: 'Guarda o descarta los cambios antes de cambiar la extensión',
     redactMenuLabel: 'Ocultar la selección a la IA',
     redactDialogDesc:
@@ -2054,6 +2070,8 @@ export const strings = {
     zoomOut: 'Alejar',
   },
   th: {
+    mdThemeTitle: 'ธีมเอกสาร',
+    mdThemeDefault: 'ค่าเริ่มต้น (ตามธีมเอกสาร)',
     renameNeedsSave: 'บันทึกหรือยกเลิกการเปลี่ยนแปลงก่อนเปลี่ยนนามสกุลไฟล์',
     redactMenuLabel: 'ซ่อนส่วนที่เลือกจาก AI',
     redactDialogDesc:
@@ -2307,6 +2325,8 @@ export const strings = {
     zoomOut: 'ย่อ',
   },
   id: {
+    mdThemeTitle: 'Tema dokumen',
+    mdThemeDefault: 'Bawaan (ikuti tema dokumen)',
     renameNeedsSave: 'Simpan atau batalkan perubahan Anda sebelum mengubah ekstensi',
     redactMenuLabel: 'Sembunyikan pilihan dari AI',
     redactDialogDesc:
@@ -2563,6 +2583,8 @@ export const strings = {
     zoomOut: 'Perkecil',
   },
   ru: {
+    mdThemeTitle: 'Тема документа',
+    mdThemeDefault: 'По умолчанию (как тема документа)',
     renameNeedsSave: 'Сохраните или отмените изменения перед сменой расширения',
     redactMenuLabel: 'Скрыть выделение от ИИ',
     redactDialogDesc:
@@ -2820,6 +2842,8 @@ export const strings = {
     zoomOut: 'Уменьшить',
   },
   ar: {
+    mdThemeTitle: 'سمة المستند',
+    mdThemeDefault: 'الافتراضي (اتباع سمة المستند)',
     renameNeedsSave: 'احفظ تغييراتك أو تجاهلها قبل تغيير الامتداد',
     redactMenuLabel: 'إخفاء التحديد عن الذكاء الاصطناعي',
     redactDialogDesc:
@@ -3073,6 +3097,8 @@ export const strings = {
     zoomOut: 'تصغير',
   },
   pt: {
+    mdThemeTitle: 'Tema do documento',
+    mdThemeDefault: 'Padrão (seguir o tema do documento)',
     renameNeedsSave: 'Salve ou descarte as alterações antes de mudar a extensão',
     redactMenuLabel: 'Ocultar a seleção da IA',
     redactDialogDesc:
@@ -3332,6 +3358,8 @@ export const strings = {
     zoomOut: 'Reduzir',
   },
   it: {
+    mdThemeTitle: 'Tema del documento',
+    mdThemeDefault: 'Predefinito (segui il tema del documento)',
     renameNeedsSave: "Salva o annulla le modifiche prima di cambiare l'estensione",
     redactMenuLabel: 'Nascondi la selezione all’IA',
     redactDialogDesc:
@@ -3591,6 +3619,8 @@ export const strings = {
     zoomOut: 'Riduci',
   },
   pl: {
+    mdThemeTitle: 'Motyw dokumentu',
+    mdThemeDefault: 'Domyślnie (zgodnie z motywem dokumentu)',
     renameNeedsSave: 'Zapisz lub odrzuć zmiany przed zmianą rozszerzenia',
     redactMenuLabel: 'Ukryj zaznaczenie przed AI',
     redactDialogDesc:
@@ -3848,6 +3878,8 @@ export const strings = {
     zoomOut: 'Pomniejsz',
   },
   cs: {
+    mdThemeTitle: 'Motiv dokumentu',
+    mdThemeDefault: 'Výchozí (podle motivu dokumentu)',
     renameNeedsSave: 'Před změnou přípony uložte nebo zrušte změny',
     redactMenuLabel: 'Skrýt výběr před AI',
     redactDialogDesc:
@@ -4104,6 +4136,8 @@ export const strings = {
     mermaidError: 'Chyba syntaxe diagramu',
   },
   nl: {
+    mdThemeTitle: 'Documentthema',
+    mdThemeDefault: 'Standaard (documentthema volgen)',
     renameNeedsSave: 'Sla uw wijzigingen op of verwerp ze voordat u de extensie wijzigt',
     redactMenuLabel: 'Selectie verbergen voor de AI',
     redactDialogDesc:
@@ -4362,6 +4396,8 @@ export const strings = {
     zoomOut: 'Uitzoomen',
   },
   ms: {
+    mdThemeTitle: 'Tema dokumen',
+    mdThemeDefault: 'Lalai (ikut tema dokumen)',
     renameNeedsSave: 'Simpan atau buang perubahan anda sebelum menukar sambungan',
     redactMenuLabel: 'Sembunyikan pilihan daripada AI',
     redactDialogDesc:
@@ -4618,6 +4654,8 @@ export const strings = {
     zoomOut: 'Zum keluar',
   },
   he: {
+    mdThemeTitle: 'ערכת נושא של המסמך',
+    mdThemeDefault: 'ברירת מחדל (בהתאם לערכת המסמך)',
     renameNeedsSave: 'שמור או בטל את השינויים לפני שינוי הסיומת',
     redactMenuLabel: 'הסתרת הבחירה מהמודל',
     redactDialogDesc:
@@ -4869,6 +4907,8 @@ export const strings = {
     zoomOut: 'הקטנה',
   },
   hi: {
+    mdThemeTitle: 'दस्तावेज़ थीम',
+    mdThemeDefault: 'डिफ़ॉल्ट (दस्तावेज़ थीम का पालन करें)',
     renameNeedsSave: 'एक्सटेंशन बदलने से पहले अपने बदलाव सहेजें या छोड़ें',
     redactMenuLabel: 'चयन को AI से छिपाएँ',
     redactDialogDesc:
@@ -5125,6 +5165,8 @@ export const strings = {
     zoomOut: 'ज़ूम आउट',
   },
   'zh-TW': {
+    mdThemeTitle: '文件主題',
+    mdThemeDefault: '預設（跟隨文件主題）',
     renameNeedsSave: '先儲存或捨棄變更，再更改副檔名',
     redactMenuLabel: '把選中的內容對 AI 隱藏',
     redactDialogDesc:
