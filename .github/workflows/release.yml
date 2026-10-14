@@ -124,7 +124,7 @@ jobs:
         run: |
           npm run notices
           npm run build:all
-          npm run dist:mac:x64 -w @genoffice/shell
+          npm run dist:mac:x64 -w @genoffice/shell || (echo 'Retrying packaging...' && sleep 15 && npm run dist:mac:x64 -w @genoffice/shell)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GENOFFICE_UPDATE_URL: https://github.com/360org/vuaoffice/releases/latest/download
@@ -179,7 +179,7 @@ jobs:
         run: |
           npm run notices
           npm run build:all
-          npm run dist:mac:arm64 -w @genoffice/shell
+          npm run dist:mac:arm64 -w @genoffice/shell || (echo 'Retrying packaging...' && sleep 15 && npm run dist:mac:arm64 -w @genoffice/shell)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GENOFFICE_UPDATE_URL: https://github.com/360org/vuaoffice/releases/latest/download

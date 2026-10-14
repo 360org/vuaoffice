@@ -3,7 +3,7 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.59] - 2026-10-14
+## [1.0.60] - 2026-10-14
 
 ### [FEAT/AI] Đồng bộ AI Pack Hai Chiều (2-Way Sync) & Chuẩn hóa Toàn diện Nhận diện VuaOffice
 
