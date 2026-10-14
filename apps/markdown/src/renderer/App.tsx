@@ -22,7 +22,7 @@ import type { Editor } from '@tiptap/core'
 import { TextSelection } from '@tiptap/pm/state'
 import { exportImages } from './export/imageExport'
 import type { StringKey } from './i18n/locale'
-import { useI18n } from './i18n/locale'
+import { t as translate, useI18n } from './i18n/locale'
 import {
   buildFrontmatterRaw,
   frontmatterInner,
@@ -41,6 +41,7 @@ import { tiptapFindTarget } from './editor/findTarget'
 import { collectOutline, type OutlineItem } from './editor/outline'
 import { buildSlashItems } from './editor/slashCommand'
 import type { SlashController, SlashMenuState } from './editor/slashCommand'
+import { wikiFragmentPosition } from './editor/wikilink'
 import { dirOf, setImageBaseDir, VIEW_IMAGE_EVENT } from './editor/localImage'
 import { Ribbon } from './components/Ribbon'
 import type { MarkdownTheme } from '../shared/markdown-theme'
@@ -262,6 +263,28 @@ export default function App() {
     })()
   }, [])
 
+  /**
+   * Land on the heading a wiki link pointed at. The fragment waited in main
+   * for this path — the shell activates an open tab without waking anything —
+   * so it is taken here, once the note is actually on screen.
+   */
+  const jumpToWikiFragment = useCallback((path: string): void => {
+    const current = editorRef.current
+    if (!current) return
+    // The browser test harness stubs markdownApi without the Electron-only
+    // wiki channels; a missing API here means nothing to jump to, not a
+    // failed load.
+    if (typeof window.markdownApi.takeWikiFragment !== 'function') return
+    void window.markdownApi.takeWikiFragment(path).then((fragment) => {
+      if (!fragment || filePathRef.current !== path) return
+      const pos = wikiFragmentPosition(current.state.doc, fragment)
+      if (pos === null) return
+      const selection = TextSelection.near(current.state.doc.resolve(pos))
+      current.view.dispatch(current.state.tr.setSelection(selection).scrollIntoView())
+      current.view.focus()
+    })
+  }, [])
+
   const extensions = useMemo(() => {
     const controller: SlashController = {
       onOpen: setSlashState,
@@ -273,8 +296,20 @@ export default function App() {
       slashController: controller,
       slashItems: () =>
         buildSlashItems({ insertImage: filePathRef.current ? insertImage : undefined }),
+      wikiLink: {
+        getDocumentPath: () => filePathRef.current ?? '',
+        onOpen: (path, fragment) => {
+          void window.markdownApi.rememberWikiFragment(path, fragment)
+          void window.markdownApi.openSourcePath(path)
+          // a link into the note already on screen opens no tab; jump here
+          if (filePathRef.current === path) jumpToWikiFragment(path)
+        },
+        // the module-level `t`, not the hook's: this memo holds the closure for
+        // the life of the editor, and the hook's `t` is a new function each render
+        onUnresolved: (target) => showToast(translate('wikiLinkUnresolved', { target }), 'error'),
+      },
     })
-  }, [insertImage])
+  }, [insertImage, jumpToWikiFragment])
 
   const editor = useEditor({
     extensions,
@@ -370,6 +405,7 @@ export default function App() {
           const raw = await window.markdownApi.readFile(path)
           if (cancelled) return
           loadFromPath(path, raw)
+          jumpToWikiFragment(path)
         } else {
           envelopeRef.current = { ...EMPTY_ENVELOPE }
         }
@@ -386,7 +422,7 @@ export default function App() {
     return () => {
       cancelled = true
     }
-  }, [editor, roundTripEnabled, loadFromPath])
+  }, [editor, roundTripEnabled, loadFromPath, jumpToWikiFragment])
 
   const onFrontmatterChange = useCallback(
     (inner: string) => {
