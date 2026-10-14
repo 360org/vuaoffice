@@ -4,7 +4,7 @@
 
 ## Bài toán cần giải quyết
 1. **Bộ ứng dụng văn phòng AI-Native VuaOffice**:
-   Sản phẩm office suite AI-native (Docs, Sheets, Slides, PDF, Markdown) cần mang thương hiệu Việt (**VuaOffice** by **360 CORP**), loại bỏ nhận diện của upstream GenOffice/Genspark. Hệ thống AI định tuyến trực tiếp qua AI Router riêng của 360 CORP (**omirouter / 9router / hermes**) để tối ưu chi phí, tốc độ và bảo mật dữ liệu.
+   Sản phẩm office suite AI-native (Docs, Sheets, Slides, PDF, Markdown) cần mang thương hiệu Việt (**VuaOffice** by **360 CORP**), loại bỏ nhận diện của upstream GenOffice/Genspark. Hệ thống AI định tuyến trực tiếp qua AI Router riêng của 360 CORP (**vuaaipro / 9router / hermes**) để tối ưu chi phí, tốc độ và bảo mật dữ liệu.
 
 2. **Email Client Ngoại tuyến VuaMail (Outlook Clone)**:
    Doanh nghiệp thiếu một giải pháp Email Client chuyên nghiệp, nhẹ, tốc độ cao, hỗ trợ đầy đủ tiếng Việt và giao diện Microsoft 365 Outlook quen thuộc. Cần tích hợp trực tiếp **VuaMail** (`apps/mail`) vào VuaOffice Suite với khả năng hoạt động Offline (SQLite WAL Engine), OpQueue hàng đợi đồng bộ và trợ lý AI tóm tắt/soạn thảo thư thông minh.
@@ -18,7 +18,7 @@ Các khách hàng doanh nghiệp trong hệ sinh thái của **360 CORP**, các 
 ## Vision sản phẩm
 - Trở thành hệ sinh thái văn phòng AI-native toàn diện: **VuaOffice** (Docs, Sheets, Slides, PDF) + **VuaMail** (Email, Calendar, Contacts, Tasks).
 - Giao diện Fluent UI hiện đại, chuẩn xác theo Microsoft Outlook & Microsoft 365 Ribbon.
-- Sử dụng hạ tầng AI Router độc lập (omirouter/9router/hermes) làm default provider.
+- Sử dụng hạ tầng AI Router độc lập (vuaaipro/9router/hermes) làm default provider.
 - Cơ chế Whitelabel và Module hóa: Phát triển độc lập từng module và kết hợp liền mạch vào Shell đa tab.
 
 ## Giá trị cốt lõi
@@ -29,7 +29,7 @@ Các khách hàng doanh nghiệp trong hệ sinh thái của **360 CORP**, các 
 5. **An toàn & Riêng tư:** Dữ liệu email và tài liệu nằm an toàn tại máy người dùng; kết nối mã hoá HTTPS/TLS.
 
 ## Hệ sinh thái / Liên kết
-Nằm trong hệ sinh thái giải pháp doanh nghiệp của **360 CORP** (cùng với Vua Hệ Thống, CloudPanel, Hermes, 9router, OmiRouter...).
+Nằm trong hệ sinh thái giải pháp doanh nghiệp của **360 CORP** (cùng với Vua Hệ Thống, CloudPanel, Hermes, 9router, VuaAI Pro...).
 
 ---
 

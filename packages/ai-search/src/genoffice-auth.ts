@@ -135,6 +135,9 @@ export interface GenofficeAuth {
   apiKey: string
   keyId?: string
   accessToken?: string
+  email?: string
+  name?: string
+  avatarUrl?: string
 }
 
 let cachedAuth: GenofficeAuth | null | undefined
@@ -645,3 +648,5 @@ export function resetGenofficeAuthCache(): void {
 export function genofficeProxyFallbackPreferred(): boolean {
   return proxyFallbackPreferred
 }
+
+export const saveGenofficeAuth = saveAuth

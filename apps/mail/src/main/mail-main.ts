@@ -1,3 +1,4 @@
+import { rendererUrl } from "@genoffice/electron-utils"
 import { BrowserWindow, WebContentsView, app } from 'electron'
 import { join } from 'node:path'
 import { AsyncMailStorage } from './db/async-storage'
@@ -85,7 +86,7 @@ export function startMailStandalone(): void {
       height: 800,
       minWidth: 900,
       minHeight: 600,
-      title: 'GenOffice Mail',
+      title: 'VuaOffice Mail',
       webPreferences: {
         preload: runtime.preloadPath,
         contextIsolation: true,

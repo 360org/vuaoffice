@@ -26,8 +26,8 @@ File `brand-config.json` định nghĩa các tham số cấu hình tĩnh của t
   "appId": "com.vuahethong.vuaoffice",
   "executableName": "vuaoffice",
   "author": "360 CORP",
-  "defaultProvider": "omirouter",
-  "omirouterUrl": "https://api.omirouter.com/v1",
+  "defaultProvider": "vuaaipro",
+  "vuaaiproUrl": "https://vuahethong.net",
   "ninerouterUrl": "https://api.9router.com/v1",
   "textReplacements": [
     {
@@ -51,7 +51,7 @@ Các thuộc tính quan trọng:
 - `appName`: Tên hiển thị của ứng dụng.
 - `appId`: Application Bundle Identifier của Electron.
 - `executableName`: Tên file thực thi sau khi build (`.app` hoặc `.exe`).
-- `defaultProvider`: Provider mặc định cho AI (`omirouter` hoặc `ninerouter`...).
+- `defaultProvider`: Provider mặc định cho AI (`vuaaipro` hoặc `ninerouter`...).
 - `textReplacements`: Danh sách các file nguồn cần thay thế từ khóa thương hiệu dựa trên Regex.
 
 ## 3. Đặc tả CLI Script `scripts/whitelabel.js`
@@ -69,8 +69,8 @@ CLI Script được phát triển bằng NodeJS thuần (không dependency ngoà
    - Cập nhật `desktopName` thành `${executableName}.desktop`.
    - Cập nhật `author` thành `author`.
 4. **Patch module `@genoffice/ai-provider`**:
-   - Thêm `omirouter` và `ninerouter` vào enum `AiProviderId` trong `packages/ai-provider/src/types.ts`.
-   - Thêm metadata của `omirouter` và `ninerouter` vào mảng `AI_PROVIDERS` trong `packages/ai-provider/src/providers.ts`.
+   - Thêm `vuaaipro` và `ninerouter` vào enum `AiProviderId` trong `packages/ai-provider/src/types.ts`.
+   - Thêm metadata của `vuaaipro` và `ninerouter` vào mảng `AI_PROVIDERS` trong `packages/ai-provider/src/providers.ts`.
    - Cấu hình mặc định `baseUrl` và thiết lập default provider là `defaultProvider` trong `packages/ai-provider/src/providers.ts`.
    - Chèn logic xử lý router trong `packages/ai-provider/src/stream.ts`.
 5. **Thay thế Text**: Duyệt qua danh sách `textReplacements` trong config, đọc từng file, áp dụng Regex để thay thế text và lưu lại.
@@ -93,12 +93,12 @@ CLI Script được phát triển bằng NodeJS thuần (không dependency ngoà
 ### 4.1 Thêm AI Provider IDs
 Trong `packages/ai-provider/src/types.ts`:
 ```typescript
-export type AiProviderId = 'genspark' | 'anthropic' | 'gemini' | 'deepseek' | 'openai' | 'openrouter' | 'custom' | 'omirouter' | 'ninerouter' | 'hermes'
+export type AiProviderId = 'genspark' | 'anthropic' | 'gemini' | 'deepseek' | 'openai' | 'openrouter' | 'custom' | 'vuaaipro' | 'ninerouter' | 'hermes'
 ```
 
 ### 4.2 Cấu hình AI Provider Metadata
 Trong `packages/ai-provider/src/providers.ts`:
-Bổ sung `hermes` với endpoint mặc định `https://hermes.vuahethong.com/v1`, đồng thời tích hợp `omirouter` và `ninerouter`.
+Bổ sung `hermes` với endpoint mặc định `https://hermes.vuahethong.com/v1`, đồng thời tích hợp `vuaaipro` và `ninerouter`.
 
 ## 5. Đặc tả Tính năng Kiểm tra Cập nhật Thủ công (Manual Check for Updates)
 
@@ -126,11 +126,11 @@ Bổ sung `hermes` với endpoint mặc định `https://hermes.vuahethong.com/v
 - **Message List**: Danh sách thư hỗ trợ phân loại *Focused* và *Other*, tìm kiếm từ khóa, unread indicator.
 - **Reading Pane**: Xem thư, avatar người gửi, danh sách file đính kèm với nút xem trước Docx/PDF trực tiếp.
 - **AI Assist Card**: Tóm tắt nội dung email quan trọng trong 2-3 gạch đầu dòng và gợi ý câu trả lời tự động.
-- Bổ sung định nghĩa `omirouter` và `ninerouter` vào `AI_PROVIDERS`:
+- Bổ sung định nghĩa `vuaaipro` và `ninerouter` vào `AI_PROVIDERS`:
 ```typescript
   {
-    id: 'omirouter',
-    label: 'OmiRouter AI',
+    id: 'vuaaipro',
+    label: 'VuaAI Pro AI',
     models: ['claude-3-5-sonnet', 'gpt-4o', 'gemini-1.5-pro', 'deepseek-chat'],
     defaultModel: 'claude-3-5-sonnet',
     keyPlaceholder: 'sk-or-...',
@@ -147,18 +147,18 @@ Bổ sung `hermes` với endpoint mặc định `https://hermes.vuahethong.com/v
 ```
 - Khởi tạo mặc định `baseUrl` cho hai nhà cung cấp này dựa trên config:
 ```typescript
-baseUrl: meta.needsBaseUrl ? (meta.id === 'omirouter' ? 'https://api.omirouter.com/v1' : (meta.id === 'ninerouter' ? 'https://api.9router.com/v1' : '')) : undefined
+baseUrl: meta.needsBaseUrl ? (meta.id === 'vuaaipro' ? 'https://vuahethong.net' : (meta.id === 'ninerouter' ? 'https://api.9router.com/v1' : '')) : undefined
 ```
 - Thay đổi giá trị trả về trong `defaultAiSettings`:
 ```typescript
-return { provider: 'omirouter', providers }
+return { provider: 'vuaaipro', providers }
 ```
 
 ### 4.3 Định tuyến Stream AI
 Trong `packages/ai-provider/src/stream.ts`:
-- Định nghĩa switch-case cho `omirouter` và `ninerouter` gọi `streamOpenAiCompatible`:
+- Định nghĩa switch-case cho `vuaaipro` và `ninerouter` gọi `streamOpenAiCompatible`:
 ```typescript
-    case 'omirouter':
+    case 'vuaaipro':
     case 'ninerouter':
       if (!config.baseUrl) throw new Error('A Base URL is required')
       return streamOpenAiCompatible(config.baseUrl, config, system, messages, tools, maxTokens, cb)

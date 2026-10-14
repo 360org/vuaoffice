@@ -6,7 +6,7 @@
 
 ### 1.1 Mục tiêu kinh doanh
 - Chuyển đổi bộ ứng dụng GenOffice thành **VuaOffice** thuộc sở hữu của **360 CORP**.
-- Độc lập hạ tầng AI bằng cách định tuyến qua **omirouter** và **9router**.
+- Độc lập hạ tầng AI bằng cách định tuyến qua **vuaaipro** và **9router**.
 - Tự động hoá 100% quy trình rebrand qua CLI để tối ưu chi phí vận hành và bảo trì khi cập nhật từ upstream.
 
 ### 1.2 Đối tượng người dùng (Personas)
@@ -17,8 +17,8 @@
 - **Trong phạm vi:**
   - Viết CLI script `scripts/whitelabel.js` để tự động hóa việc `apply` rebrand (patch cấu hình build, copy logo/icon, thay thế từ khóa) và `restore` codebase gốc.
   - Cấu hình file `whitelabel/brand-config.json` chứa toàn bộ biến số thương hiệu (tên app, appID, text replacement rules, mặc định provider).
-  - Tích hợp 2 provider AI mới: `omirouter` và `ninerouter` vào hệ thống core `packages/ai-provider`.
-  - Thay đổi default AI provider từ `genspark` thành `omirouter`.
+  - Tích hợp 2 provider AI mới: `vuaaipro` và `ninerouter` vào hệ thống core `packages/ai-provider`.
+  - Thay đổi default AI provider từ `genspark` thành `vuaaipro`.
   - Thay đổi toàn bộ logo và icon ứng dụng (PNG, ICNS, ICO, SVG) sang logo VuaOffice.
 - **Ngoài phạm vi:**
   - Sửa đổi giao diện gốc hoặc tính năng cốt lõi của các ứng dụng con (Docs, Sheets, Slides, PDF).
@@ -33,12 +33,12 @@
   - Khi chạy `restore`: Khôi phục lại toàn bộ codebase sạch sẽ về trạng thái ban đầu của upstream thông qua `git checkout`. Không để sót file rác hoặc thay đổi thương hiệu nào trong git tracker.
 - **Nguồn:** IDEA §Vision, §Giá trị cốt lõi
 
-### 2.2 Tích hợp AI Router (omirouter / ninerouter)
-- **Mô tả:** Tích hợp `omirouter` và `ninerouter` vào danh sách AI Provider của ứng dụng.
+### 2.2 Tích hợp AI Router (vuaaipro / ninerouter)
+- **Mô tả:** Tích hợp `vuaaipro` và `ninerouter` vào danh sách AI Provider của ứng dụng.
 - **Tiêu chí nghiệm thu:**
   - Hỗ trợ các model mặc định: `claude-3-5-sonnet`, `gpt-4o`, `gemini-1.5-pro`, `deepseek-chat`.
   - Hỗ trợ custom Base URL lấy từ cấu hình `brand-config.json` hoặc nhập thủ công trong phần cài đặt AI của ứng dụng.
-  - Thiết lập default AI provider của ứng dụng là `omirouter`.
+  - Thiết lập default AI provider của ứng dụng là `vuaaipro`.
   - Luồng stream AI tương thích chuẩn OpenAI (`streamOpenAiCompatible`).
 - **Nguồn:** IDEA §Bài toán cần giải quyết, §Vision
 
@@ -60,7 +60,7 @@
 
 ### 3.1 Hiệu năng
 - Script whitelabel apply/restore phải thực thi nhanh chóng (< 2 giây).
-- Quá trình stream AI qua omirouter/9router không được làm tăng độ trễ (latency) so với kết nối trực tiếp đến các provider gốc.
+- Quá trình stream AI qua vuaaipro/9router không được làm tăng độ trễ (latency) so với kết nối trực tiếp đến các provider gốc.
 
 ### 3.2 Bảo mật
 - Không lưu cứng API Keys trong mã nguồn. Cung cấp giao diện cấu hình API key cho người dùng cuối.
@@ -84,7 +84,7 @@
 ## 5. Tích hợp & Phụ thuộc
 
 ### 5.1 Hệ thống bên ngoài
-- **OmiRouter API**: Gateway phân phối AI của 360 CORP (mặc định: `https://api.omirouter.com/v1`).
+- **VuaAI Pro API**: Gateway phân phối AI của 360 CORP (mặc định: `https://vuahethong.net`).
 - **9Router API**: Gateway phân phối AI dự phòng của 360 CORP (mặc định: `https://api.9router.com/v1`).
 
 ### 5.2 Hệ sinh thái
@@ -103,7 +103,7 @@
 |---|----------|---------------------|
 | 1 | Áp dụng Whitelabel thành công | Chạy `npm run whitelabel:apply`, kiểm tra thông tin hiển thị trong `package.json` và `electron-builder.cjs` |
 | 2 | Khôi phục Codebase gốc sạch sẽ | Chạy `npm run whitelabel:restore`, chạy `git status` đảm bảo không còn file code nào bị modified (ngoại trừ brand-config.json và scripts/whitelabel.js) |
-| 3 | Tích hợp AI Router thành công | Chạy typecheck và kiểm tra settings AI trong ứng dụng có xuất hiện OmiRouter AI và 9Router AI với URL tương ứng |
+| 3 | Tích hợp AI Router thành công | Chạy typecheck và kiểm tra settings AI trong ứng dụng có xuất hiện VuaAI Pro AI và 9Router AI với URL tương ứng |
 | 4 | Build ứng dụng thành công | Chạy `npm run dist:mac` build ra file cài đặt `.dmg` / `.app` mang tên VuaOffice và hoạt động bình thường |
 
 ---

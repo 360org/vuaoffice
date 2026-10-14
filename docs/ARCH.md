@@ -35,7 +35,7 @@ graph TD
         UiLib["@genoffice/ui<br/>(Semantic Tokens & Components)"]
         I18nLib["@genoffice/i18n<br/>(19 Languages Core)"]
         AgentCore["@genoffice/agent-core<br/>(Agentic Loop & Tools)"]
-        AiProvider["@genoffice/ai-provider<br/>(OmiRouter, 9Router, Hermes)"]
+        AiProvider["@genoffice/ai-provider<br/>(VuaAI Pro, 9Router, Hermes)"]
     end
 
     subgraph "Whitelabel & Distribution Layer"
@@ -84,7 +84,7 @@ sequenceDiagram
     participant Renderer as Home / App Renderer
     participant Preload as Preload ContextBridge
     participant Main as Electron Main Process
-    participant AI as 360 AI Gateway (OmiRouter/Hermes)
+    participant AI as 360 AI Gateway (VuaAI Pro/Hermes)
 
     User->>Renderer: Thao tác UI / Yêu cầu AI
     Renderer->>Preload: Gọi API typed an toàn (window.aiOffice)
@@ -101,7 +101,7 @@ sequenceDiagram
 
 Module `@genoffice/ai-provider` cung cấp cơ chế định tuyến linh hoạt:
 
-1. **Mặc định (Production Mode)**: Kết nối tự động đến **OmiRouter AI** (`https://api.omirouter.com/v1`) hoặc **9Router AI** (`https://api.9router.com/v1`).
+1. **Mặc định (Production Mode)**: Kết nối tự động đến **VuaAI Pro AI** (`https://vuahethong.net`) hoặc **9Router AI** (`https://api.9router.com/v1`).
 2. **Tác tử Thông minh (Agentic Workflows)**: Kết nối đến **Hermes Agent** (`https://hermes.vuahethong.com/v1`) hỗ trợ multi-step tool calls, tra cứu tài liệu và phân tích tự động.
 3. **Chế độ Nhà phát triển (Developer Mode)**: Kích hoạt thông qua menu `Help > Troubleshooting > Enable Developer Mode`, cho phép cấu hình tùy biến Endpoint và Key (OpenAI, Anthropic, Gemini, DeepSeek, Local Ollama/vLLM).
 

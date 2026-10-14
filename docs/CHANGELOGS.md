@@ -3,6 +3,26 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.56] - 2026-10-13
+
+### [FEAT/UPSTREAM] Hợp nhất bản phát hành Upstream mới nhất & Chuẩn hóa VuaAI Pro
+
+- **[AI/BRAND] Chuẩn hóa toàn diện tên gọi VuaAI Pro (`vuaaipro`)**:
+  - Chuẩn hóa toàn bộ cấu hình AI Provider, AI Handshake và kết nối Gateway sang **VuaAI Pro** trên hạ tầng `vuahethong.net`.
+  - Cập nhật checklist kiểm thử 360 và cổng tự động `check-360-features.mjs` xác nhận định danh `vuaaipro`.
+- **[UPSTREAM] Hợp nhất tính năng & cải tiến hiệu năng mới nhất**:
+  - **Scale giao diện độc lập (Interface Scale)**: Cho phép điều chỉnh tỉ lệ hiển thị giao diện shell độc lập với mức thu phóng (zoom) của tài liệu.
+  - **Sơ đồ tư duy AI Mind Map**: Hỗ trợ vẽ và tương tác mindmap trực quan trong trợ lý AI của Markdown.
+  - **Hàng đợi tin nhắn AI (Message Queue)**: Cho phép gửi tiếp câu lệnh vào hàng đợi khi mô hình AI đang sinh văn bản ở tất cả các phân hệ.
+  - **Thống kê Token (Token Usage View)**: Hiển thị minh bạch số lượng token sử dụng theo từng lượt trả lời và theo phiên làm việc.
+  - **Hỏi đáp Tri thức chuyên sâu (Ask Knowledge Base)**: Trợ lý AI có khả năng đọc và trích xuất dữ liệu từ các tài liệu đã đánh dấu sao (Starred).
+  - **XLSX Engine tối ưu hóa**: Cải thiện tốc độ mở file bảng tính lớn và hỗ trợ hướng bảng RTL.
+  - **PDF Digital Certificate & Signatures**: Hỗ trợ ký số chứng thực điện tử và kiểm tra tính hợp lệ của chữ ký trong file PDF.
+- **[DOWNLOAD] Khắc phục lỗi nhận diện phần cứng tải về**:
+  - Chuẩn hóa cơ chế tự động nhận diện máy Mac Apple Silicon M1–M4 vs Intel x64 trên cổng tải `vuahethong.net`.
+
+---
+
 ## [1.0.55] - 2026-10-05
 
 ### [FIX] Ghi đè luồng tạo slide Genspark AI sang API VuaHệThống & Bảo vệ phân tách Token

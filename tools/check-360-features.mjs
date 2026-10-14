@@ -12,14 +12,14 @@ const checks = [
                 fs.existsSync(path.join(ROOT, 'apps/mail/src/renderer/src/App.tsx')),
   },
   {
-    name: '2. Cấu hình AI Provider 360 Gateway / OmiRouter',
+    name: '2. Cấu hình AI Provider VuaAI Pro (360 CORP Gateway)',
     test: () => {
       const brandCfg = JSON.parse(fs.readFileSync(path.join(ROOT, '360/brand-config.json'), 'utf8'));
       const prov = brandCfg.brand?.defaultProvider;
-      const url = brandCfg.brand?.vuaaiproUrl || brandCfg.brand?.vuaairouterUrl;
+      const label = brandCfg.brand?.vuaaiproLabel;
       return brandCfg.brand?.vendor === '360 CORP' &&
-             (prov === 'vuaaipro' || prov === 'vuaairouter') &&
-             url?.includes('vuahethong.com');
+             prov === 'vuaaipro' &&
+             label === 'VuaAI Pro';
     }
   },
   {

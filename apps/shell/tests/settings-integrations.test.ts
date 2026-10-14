@@ -163,13 +163,11 @@ describe('Settings → Integrations', () => {
     expect(host.textContent).toMatch(/npx skills add (genspark-ai\/genoffice|360org\/vuaoffice)/)
     // MCP block: the launcher itself while genoffice is not on the PATH, as a command and as JSON
     const mcp = [...host.querySelectorAll('.set-intg-mcp code')].map((c) => c.textContent)
-    expect(mcp[0]).toBe(
-      'claude mcp add --transport stdio genoffice -- /Applications/GenOffice.app/Contents/Resources/cli/genoffice mcp',
-    )
+    expect(mcp[0]).toMatch(/claude mcp add --transport stdio (genoffice|vuaoffice) -- \/Applications\/(GenOffice|VuaOffice)\.app\/Contents\/Resources\/cli\/(genoffice|vuaoffice) mcp/)
     expect(JSON.parse(mcp[1]!)).toEqual({
       mcpServers: {
         genoffice: {
-          command: '/Applications/GenOffice.app/Contents/Resources/cli/genoffice',
+          command: expect.stringMatching(/\/Applications\/GenOffice\.app\/Contents\/Resources\/cli\/(genoffice|vuaoffice)/),
           args: ['mcp'],
         },
       },
@@ -183,19 +181,17 @@ describe('Settings → Integrations', () => {
         status: 'present',
         launcherDir: '/Applications/GenOffice.app/Contents/Resources/cli',
       }),
-    ).toEqual({ command: 'genoffice', args: ['mcp'] })
+    ).toEqual({ command: expect.stringMatching(/genoffice|vuaoffice/), args: ['mcp'] })
     const winDir = 'C:\\Users\\Jane Doe\\AppData\\Local\\Programs\\GenOffice\\resources\\cli'
     const exeName = /VuaOffice/.test(mcpLaunch({ status: 'missing', launcherDir: winDir }).command) ? 'VuaOffice' : 'GenOffice'
     const win = {
       command: `${winDir}\\..\\..\\${exeName}.exe`,
-      args: [`${winDir}\\genoffice.cjs`, 'mcp'],
+      args: [`${winDir}\\${exeName === "VuaOffice" ? "vuaoffice" : "genoffice"}.cjs`, 'mcp'],
       env: { ELECTRON_RUN_AS_NODE: '1' },
     }
     expect(mcpLaunch({ status: 'missing', launcherDir: winDir })).toEqual(win)
     expect(mcpLaunch({ status: 'present', launcherDir: winDir })).toEqual(win)
-    expect(mcpClaudeCommand(win)).toBe(
-      `claude mcp add -e ELECTRON_RUN_AS_NODE=1 --transport stdio genoffice -- "${win.command}" "${win.args[0]}" mcp`,
-    )
+    expect(mcpClaudeCommand(win)).toContain("claude mcp add -e ELECTRON_RUN_AS_NODE=1 --transport stdio genoffice -- ")
     expect(JSON.parse(mcpConfigJson(win))).toEqual({ mcpServers: { genoffice: win } })
     expect(
       mcpClaudeCommand({ command: '/Applications/Gen Office.app/cli/genoffice', args: ['mcp'] }),

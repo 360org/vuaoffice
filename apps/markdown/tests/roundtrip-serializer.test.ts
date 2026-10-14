@@ -15,6 +15,21 @@ import {
   serializeMarkdown,
 } from '../src/renderer/markdown/roundtripSerializer'
 
+class LocalStorageMock {
+  store: Record<string, string> = {}
+  clear() { this.store = {} }
+  getItem(key: string) { return this.store[key] ?? null }
+  setItem(key: string, value: string) { this.store[key] = String(value) }
+  removeItem(key: string) { delete this.store[key] }
+}
+if (!globalThis.localStorage || typeof globalThis.localStorage.setItem !== 'function') {
+  Object.defineProperty(globalThis, 'localStorage', {
+    value: new LocalStorageMock(),
+    configurable: true,
+    writable: true,
+  })
+}
+
 const editors: Editor[] = []
 afterEach(() => {
   editors.splice(0).forEach((editor) => editor.destroy())

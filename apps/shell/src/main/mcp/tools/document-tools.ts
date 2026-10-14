@@ -207,7 +207,7 @@ export function createDocumentTools(deps: DocToolDeps, host: SessionHost): McpTo
     },
     {
       name: 'open_in_genoffice',
-      description: 'Open an existing file in the running GenOffice app, focusing its tab.',
+      description: 'Open an existing file in the running VuaOffice app, focusing its tab.',
       inputSchema: {
         path: z.string().describe('absolute path to the file to open'),
       },
@@ -223,11 +223,11 @@ export function createDocumentTools(deps: DocToolDeps, host: SessionHost): McpTo
     {
       name: 'get_app_info',
       description:
-        'Report GenOffice version, the default save folder, the document formats this server can ' +
+        'Report VuaOffice version, the default save folder, the document formats this server can ' +
         "generate, and the editor's full open/save/export format matrix per family.",
       inputSchema: {},
       handler: () => ({
-        name: 'GenOffice',
+        name: 'VuaOffice',
         version: deps.version,
         defaultSaveDir: deps.defaultSaveDir(),
         // Every format listed here is written by a headless create/read tool, and

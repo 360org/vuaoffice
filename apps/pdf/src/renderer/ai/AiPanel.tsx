@@ -793,7 +793,7 @@ export function AiPanel({
       <header className="ai-panel-header">
         <span className="ai-panel-title">
           <GensparkMark size={22} />
-          Genspark
+          VuaAI Pro
         </span>
         <div className="ai-panel-header-actions">
           <AiPanelSideButton
@@ -1017,6 +1017,9 @@ export function AiPanel({
           iconOnly
           footerStart={
             <>
+              <button type="button" className="ai-attach-btn" onClick={pickAttachments} aria-label="Attach file">
+                +
+              </button>
               <AiModelPicker bridge={MODEL_BRIDGE} lang={lang} />
               {sessionUsage && <AiUsageChip usage={sessionUsage} session lang={lang} />}
             </>
@@ -1024,11 +1027,6 @@ export function AiPanel({
           sendIconEnabled={<img src={sendEnterOn} alt="" aria-hidden />}
           sendIconDisabled={<img src={sendEnterOff} alt="" aria-hidden />}
           stopIcon={<img src={sendStop} alt="" aria-hidden />}
-          footerStart={
-            <button type="button" className="ai-attach-btn" onClick={pickAttachments} aria-label="Attach file">
-              +
-            </button>
-          }
           onPasteFiles={onPasteFiles}
           onChange={setPrompt}
           onSend={() => send(prompt)}

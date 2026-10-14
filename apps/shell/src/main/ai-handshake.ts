@@ -40,7 +40,7 @@ export async function handshakeOdooAiConfig(
     writeAppSetting(appSettingsPath, 'deviceUid', deviceUid)
   }
 
-  const appName = app.getName() || 'GenOffice'
+  const appName = app.getName() || 'VuaOffice'
   const appVer = app.getVersion() || '1.0.0'
   const deviceName = os.hostname() || 'Desktop'
   const osName = os.type() + ' ' + os.release()
@@ -68,7 +68,7 @@ export async function handshakeOdooAiConfig(
         let body = ''
         res.on('data', (chunk) => (body += chunk))
         res.on('end', async () => {
-          let data = {}
+          let data: any = {}
           try {
             data = JSON.parse(body)
           } catch {}
@@ -83,7 +83,7 @@ export async function handshakeOdooAiConfig(
 
             // Clean up local AI settings
             try {
-              let aiRaw = {}
+              let aiRaw: any = {}
               try { aiRaw = JSON.parse(readFileSync(aiSettingsPath, 'utf8')) } catch {}
               if (aiRaw.providers) delete aiRaw.providers.vuaaipro
               aiRaw.provider = ''
@@ -116,13 +116,13 @@ export async function handshakeOdooAiConfig(
           if (res.statusCode === 200) {
             try {
               if (data.api_format === 'openai-compatible' && data.api_key) {
-                let aiRaw = {}
+                let aiRaw: any = {}
                 try {
                   aiRaw = JSON.parse(readFileSync(aiSettingsPath, 'utf8'))
                 } catch {}
                 if (!aiRaw.providers) aiRaw.providers = {}
 
-                const validPacks = (data.models || []).map((m) => m.id)
+                const validPacks = (data.models || []).map((m: any) => m.id)
                 const current = aiRaw.providers.vuaaipro || aiRaw.providers.vuaairouter || {}
                 const effectiveModel = validPacks.includes(current.model)
                   ? current.model

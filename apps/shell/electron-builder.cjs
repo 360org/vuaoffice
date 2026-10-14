@@ -319,13 +319,120 @@ function ensureThirdPartyNotices() {
   }
 }
 
+const WIN_OPEN_WITH_ONLY_EXTS = new Set(['txt', 'json'])
+const FILE_ASSOCIATIONS = [
+  {
+    ext: 'docx',
+    name: 'Word Document',
+    description: 'Word Document',
+    role: 'Editor',
+    icon: 'docx',
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  },
+  {
+    ext: 'xlsx',
+    name: 'Excel Workbook',
+    description: 'Excel Workbook',
+    role: 'Editor',
+    icon: 'xlsx',
+    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  },
+  {
+    ext: 'xlsm',
+    name: 'Excel Macro-Enabled Workbook',
+    role: 'Editor',
+    icon: 'xlsx',
+    mimeType: 'application/vnd.ms-excel.sheet.macroEnabled.12',
+  },
+  {
+    ext: 'pptx',
+    name: 'PowerPoint Presentation',
+    description: 'PowerPoint Presentation',
+    role: 'Editor',
+    icon: 'pptx',
+    mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  },
+  {
+    ext: 'xls',
+    name: 'Excel 97-2003 Workbook',
+    role: 'Editor',
+    icon: 'xlsx',
+    mimeType: 'application/vnd.ms-excel',
+  },
+  {
+    ext: 'csv',
+    name: 'CSV Document',
+    role: 'Editor',
+    icon: 'xlsx',
+    mimeType: 'text/csv',
+  },
+  {
+    ext: 'tsv',
+    name: 'TSV Document',
+    role: 'Editor',
+    icon: 'xlsx',
+    mimeType: 'text/tab-separated-values',
+  },
+  {
+    ext: 'pdf',
+    name: 'PDF Document',
+    role: 'Editor',
+    icon: 'pdf',
+    mimeType: 'application/pdf',
+  },
+  {
+    ext: 'md',
+    name: 'Markdown Document',
+    role: 'Editor',
+    icon: 'md',
+    mimeType: 'text/markdown',
+  },
+  {
+    ext: 'markdown',
+    name: 'Markdown Document',
+    role: 'Editor',
+    icon: 'md',
+    mimeType: 'text/markdown',
+  },
+  {
+    ext: 'txt',
+    name: 'Text Document',
+    description: 'Text Document',
+    role: 'Editor',
+    icon: 'txt',
+    mimeType: 'text/plain',
+  },
+  {
+    ext: 'json',
+    name: 'JSON Document',
+    description: 'JSON Document',
+    role: 'Editor',
+    icon: 'json',
+    mimeType: 'application/json',
+  },
+  {
+    ext: 'html',
+    name: 'HTML Document',
+    role: 'Editor',
+    icon: 'html',
+    mimeType: 'text/html',
+  },
+  {
+    ext: 'htm',
+    name: 'HTML Document',
+    role: 'Editor',
+    icon: 'html',
+    mimeType: 'text/html',
+  },
+]
+
 /** @type {import('electron-builder').Configuration} */
 const config = {
-  appId: 'com.genspark.genoffice',
-  productName: 'GenOffice',
+  appId: 'com.vuahethong.vuaoffice',
+  productName: 'VuaOffice',
   protocols: [
     {
-      name: 'GenOffice Deep Link',
+      name: 'VuaOffice Deep Link',
       schemes: ['vuaoffice'],
       role: 'Viewer',
     },
@@ -452,99 +559,10 @@ const config = {
   // bare GenOffice logo instead of a per-type document icon. The icns/ico
   // pairs are generated from the shell renderer's file-type tiles by
   // tools/gen-file-association-icons.mjs.
-  fileAssociations: [
-    {
-      ext: 'docx',
-      name: 'Word Document',
-      description: 'Word Document',
-      role: 'Editor',
-      icon: 'docx',
-      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    },
-    {
-      ext: 'xlsx',
-      name: 'Excel Workbook',
-      description: 'Excel Workbook',
-      role: 'Editor',
-      icon: 'xlsx',
-      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    },
-    {
-      ext: 'xlsm',
-      name: 'Excel Macro-Enabled Workbook',
-      role: 'Editor',
-      icon: 'xlsx',
-      mimeType: 'application/vnd.ms-excel.sheet.macroEnabled.12',
-    },
-    {
-      ext: 'pptx',
-      name: 'PowerPoint Presentation',
-      description: 'PowerPoint Presentation',
-      role: 'Editor',
-      icon: 'pptx',
-      mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    },
-    {
-      ext: 'xls',
-      name: 'Excel 97-2003 Workbook',
-      role: 'Editor',
-      icon: 'xlsx',
-      mimeType: 'application/vnd.ms-excel',
-    },
-    {
-      ext: 'csv',
-      name: 'CSV Document',
-      role: 'Editor',
-      icon: 'xlsx',
-      mimeType: 'text/csv',
-    },
-    {
-      // opens as a converted copy and saves as .xlsx (genoffice#1146)
-      ext: 'tsv',
-      name: 'TSV Document',
-      role: 'Editor',
-      icon: 'xlsx',
-      mimeType: 'text/tab-separated-values',
-    },
-    {
-      ext: 'pdf',
-      name: 'PDF Document',
-      role: 'Editor',
-      icon: 'pdf',
-      mimeType: 'application/pdf',
-    },
-    {
-      ext: 'md',
-      name: 'Markdown Document',
-      role: 'Editor',
-      icon: 'md',
-      mimeType: 'text/markdown',
-    },
-    {
-      ext: 'markdown',
-      name: 'Markdown Document',
-      role: 'Editor',
-      icon: 'md',
-      mimeType: 'text/markdown',
-    },
-    {
-      ext: 'html',
-      name: 'HTML Document',
-      role: 'Editor',
-      icon: 'html',
-      mimeType: 'text/html',
-    },
-    {
-      ext: 'htm',
-      name: 'HTML Document',
-      role: 'Editor',
-      icon: 'html',
-      mimeType: 'text/html',
-    },
-  ],
+  fileAssociations: FILE_ASSOCIATIONS,
   npmRebuild: false,
   mac: {
-    artifactName: 'GenOffice-${version}-macOS-${arch}.${ext}',
+    artifactName: 'VuaOffice-${version}-macOS-${arch}.${ext}',
     // Two separate arch packages (NOT universal): arm64 keeps the exact
     // artifact names and update-feed entries it always had, x64 (opt-in via
     // GENOFFICE_MAC_X64=1, see includeMacX64 above) adds Intel support with
@@ -570,7 +588,8 @@ const config = {
     ],
   },
   win: {
-    artifactName: 'GenOffice-${version}-Windows-${arch}-Setup.${ext}',
+    fileAssociations: FILE_ASSOCIATIONS.filter((entry) => !WIN_OPEN_WITH_ONLY_EXTS.has(entry.ext)),
+    artifactName: 'VuaOffice-${version}-Windows-${arch}-Setup.${ext}',
     // No `arch` here on purpose: computeArchToTargetNamesMap() ignores the CLI
     // arch flag whenever a target declares its own `arch`, so `--win --x64`
     // would still queue an ia32 pass too. Each release job passes --x64 / --ia32.

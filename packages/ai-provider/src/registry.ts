@@ -321,11 +321,6 @@ export const AI_PROVIDER_ADAPTERS: Record<AiProviderId, ProviderAdapter> = {
       }
     },
   },
-  omirouter: {
-    meta: metaOf('omirouter'),
-    capabilities: { auth: 'api-key', vision: true },
-    resolveEndpoint: fixedEndpoint('openai-compatible', 'https://api.omirouter.com/v1'),
-  },
   vuaaipro: {
     meta: metaOf('vuaaipro'),
     capabilities: { auth: 'api-key', vision: true },

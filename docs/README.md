@@ -42,7 +42,7 @@ Trang web giới thiệu trực quan hoàn chỉnh được lưu tại [`index.h
 | **Quảng cáo & Watermark PDF** | ❌ **Tuyệt đối KHÔNG** (Không pop-up, xuất file sạch) | ❌ Không (khi trả phí) | ⚠️ Quảng cáo & popup, watermark | ❌ Không |
 | **Tương thích MS Office (.docx, .xlsx)** | ✅ **Chuẩn 100% Layout & Font** (Không vỡ bố cục) | ✅ Gốc | Khá tốt (đôi khi lệch) | ⚠️ Thường lệch font & bảng |
 | **Chỉnh sửa chữ trực tiếp trong PDF** | ✅ **Tích hợp sẵn** (Giữ phông gốc, ký số miễn phí) | ❌ Cần mua thêm Adobe Acrobat | ⚠️ Khóa tính năng với bản Free | ⚠️ Vỡ layout khi mở qua Draw |
-| **Trí tuệ nhân tạo (Native AI)** | ✅ **Tích hợp sẵn** (VuaAIRouter + Developer Key) | ⚠️ Phụ thu Copilot $20-$30/tháng | ⚠️ Giới hạn điểm token/VIP | ❌ Không có |
+| **Trí tuệ nhân tạo (Native AI)** | ✅ **Tích hợp sẵn** (VuaAI Pro + Developer Key) | ⚠️ Phụ thu Copilot $20-$30/tháng | ⚠️ Giới hạn điểm token/VIP | ❌ Không có |
 | **Bộ công cụ All-in-One** | ✅ **Docs, Sheets, Slides, PDF, MD, Mail** trong 1 app | Phân tán nhiều app riêng lẻ | Nhiều tab nhưng kèm QC | Thiếu PDF Studio & Markdown |
 | **Hiệu năng & Tốc độ** | ✅ **Rust Engine mở bảng tính lớn cực mượt** | Nặng, tốn tài nguyên RAM | Dễ crash khi mở file nặng | Khởi động chậm, font mờ |
 | **Bảo mật dữ liệu Offline** | ✅ **100% Offline trên thiết bị** (An toàn bảo mật) | Bắt buộc OneDrive | Lưu đám mây bên thứ ba | ✅ Chạy Offline |

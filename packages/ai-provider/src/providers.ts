@@ -431,16 +431,8 @@ export const AI_PROVIDERS: AiProviderMeta[] = [
   // 360 CORP's own OpenAI-compatible gateways. baseUrl is editable so a
   // self-hosted deployment can point elsewhere; defaults live in DEFAULT_BASE_URLS.
   {
-    id: 'omirouter',
-    label: 'OmiRouter AI',
-    models: ['claude-3-5-sonnet', 'gpt-4o', 'gemini-1.5-pro', 'deepseek-chat'],
-    defaultModel: 'claude-3-5-sonnet',
-    keyPlaceholder: 'sk-or-...',
-    needsBaseUrl: true,
-  },
-  {
     id: 'vuaaipro',
-    label: 'VuaAi Provider',
+    label: 'VuaAI Pro',
     models: ['claude-3-5-sonnet', 'gpt-4o', 'gemini-1.5-pro', 'deepseek-chat'],
     defaultModel: 'default_model',
     keyPlaceholder: 'sk-or-...',
@@ -458,7 +450,6 @@ export const AI_PROVIDERS: AiProviderMeta[] = [
 
 /** preset endpoints for providers whose baseUrl has a known default */
 const DEFAULT_BASE_URLS: Partial<Record<AiProviderId, string>> = {
-  omirouter: 'https://api.omirouter.com/v1',
   vuaaipro: 'https://ai-router.vuahethong.com/v1',
   hermes: 'https://hermes.vuahethong.com/v1',
 }

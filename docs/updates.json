@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.0.56",
+    "date": "13/10/2026",
+    "highlight": "Hợp nhất toàn diện các cải tiến mới nhất từ upstream, tích hợp Sơ đồ tư duy AI Mindmap, Scale giao diện độc lập và chuẩn hóa VuaAI Pro.",
+    "features": [
+      {
+        "title": "Sơ đồ tư duy AI tương tác (Mind Map)",
+        "desc": "Trợ lý AI hỗ trợ tự động trực quan hóa ý tưởng thành cây sơ đồ tư duy (Mindmap) sinh động ngay trong tài liệu, giúp nắm bắt cấu trúc thông tin nhanh chóng."
+      },
+      {
+        "title": "Tùy chỉnh tỉ lệ giao diện linh hoạt (Interface Scale)",
+        "desc": "Cho phép tùy chỉnh phóng to/thu nhỏ kích thước thanh công cụ và giao diện ứng dụng hoàn toàn độc lập với mức zoom của trang tài liệu."
+      },
+      {
+        "title": "Chuẩn hóa VuaAI Pro & Trí tuệ nhân tạo thế hệ mới",
+        "desc": "Quy chuẩn kết nối trợ lý AI trực tiếp qua hạ tầng VuaAI Pro trên vuahethong.net; hỗ trợ hàng đợi tin nhắn thông minh và thống kê token minh bạch."
+      }
+    ]
+  },
+  {
     "version": "1.0.55",
     "date": "05/10/2026",
     "highlight": "Chuẩn hóa thương hiệu VuaAI Pro, Native Slide Engine, tự động kiểm tra trạng thái AI Pack và hợp nhất bản vá upstream mới nhất.",

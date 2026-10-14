@@ -1,6 +1,5 @@
 {
   "_doc": "NGUỒN CHÂN LÝ DUY NHẤT cho thương hiệu 360 CORP. Mọi công cụ (scripts/360-brand.js, tools/check-brand.mjs) đều đọc tệp này. TUYỆT ĐỐI không hardcode quy tắc thương hiệu ở nơi khác. Xem docs/360_BRAND_STRATEGY.md.",
-
   "brand": {
     "appName": "VuaOffice",
     "appId": "com.vuahethong.vuaoffice",
@@ -9,29 +8,45 @@
     "repoSlug": "360org/vuaoffice",
     "releasesUrl": "https://vuahethong.net/#download-desktop-app",
     "defaultProvider": "vuaaipro",
-    "omirouterUrl": "https://api.omirouter.com/v1",
-    "vuaaiproLabel": "VuaAI Pro",
-    "vuaaiproUrl": "https://ai-router.vuahethong.com/v1",
-    "vuaaiproModel": "vuaai-daily"
+    "vuaaiproLabel": "VuaAI Pro"
   },
-
   "upstream": {
     "_doc": "Định danh của dự án gốc. Dùng để dựng quy tắc nghịch đảo cho lệnh restore.",
     "repoSlug": "genspark-ai/genoffice",
     "productName": "GenOffice",
     "aiBrand": "Genspark"
   },
-
   "scan": {
     "_doc": "Phạm vi quét. Phải bao phủ CẢ renderer, main và shared — không chỉ renderer.",
-    "roots": ["apps"],
-    "includeDirs": ["src/renderer", "src/main", "src/shared", "src/preload"],
-    "extensions": [".ts", ".tsx", ".html", ".css"],
-    "excludeDirs": ["node_modules", "dist", "out", "build", ".build", "release", "target"],
+    "roots": [
+      "apps"
+    ],
+    "includeDirs": [
+      "src/renderer",
+      "src/main",
+      "src/shared",
+      "src/preload"
+    ],
+    "extensions": [
+      ".ts",
+      ".tsx",
+      ".html",
+      ".css"
+    ],
+    "excludeDirs": [
+      "node_modules",
+      "dist",
+      "out",
+      "build",
+      ".build",
+      "release",
+      "target"
+    ],
     "_extraFilesDoc": "Tệp nằm ngoài cây includeDirs nhưng vẫn sinh ra chuỗi NGƯỜI DÙNG THẤY. Thiếu mục này, cấu hình đóng gói là ĐIỂM MÙ của cổng kiểm tra: tên tệp cài đặt rpm đã mang thương hiệu upstream (genoffice-<v>.rpm) suốt nhiều bản phát hành mà không cổng nào phát hiện.",
-    "extraFiles": ["apps/shell/electron-builder.cjs"]
+    "extraFiles": [
+      "apps/shell/electron-builder.cjs"
+    ]
   },
-
   "replacements": [
     {
       "_doc": "Cặp thay thế SONG ÁNH (bijective). apply: from->to. restore: to->from. Áp dụng theo thứ tự khai báo, chuỗi dài đặt trước chuỗi ngắn để tránh khớp lồng nhau.",
@@ -190,7 +205,6 @@
       "reason": "Quy tắc BAO TRÙM — phải đặt CUỐI CÙNG. Bắt mọi trường hợp sản phẩm tự xưng còn lại (lời mời Star trên GitHub, tác giả chú thích PDF, system prompt của AI). An toàn vì engine sắp xếp chuỗi dài trước, và mọi định danh kỹ thuật/ghi công giấy phép đã được `protected` che chắn."
     }
   ],
-
   "protected": [
     {
       "_doc": "MIỄN TRỪ TUYỆT ĐỐI. Các định danh kỹ thuật KHÔNG BAO GIỜ được đổi tên. Đổi chúng gây thiệt hại lớn hơn lợi ích thương hiệu. Xem WHITELABEL_STRATEGY.md mục 5.",
@@ -246,7 +260,6 @@
       "reason": "🔒 ĐỐI XỨNG BẮT BUỘC với quy tắc GenOffice[A-Za-z0-9_] ngay trên. Bảo vệ định danh ghép phía ta (VuaOfficeIcon, handleVuaOfficeUrl). THIẾU quy tắc này, chu kỳ restore→apply sẽ HỎNG VĨNH VIỄN mã nguồn: `VuaOfficeIcon` bị restore thành `GenOfficeIcon`, rồi apply KHÔNG đổi ngược được vì `GenOffice[A-Za-z]` đang được bảo vệ. Mọi quy tắc `protected` chặn một chiều đều PHẢI có cặp đối xứng chiều còn lại."
     }
   ],
-
   "driftPatterns": [
     {
       "_doc": "Tầng 2 của tools/check-brand.mjs: bắt chuỗi thương hiệu upstream MỚI mà mục `replacements` chưa khai báo. Chỉ liệt kê định danh KHÔNG BAO GIỜ hợp lệ trên bề mặt người dùng.",
@@ -262,27 +275,34 @@
       "reason": "Tên tệp cài đặt mang thương hiệu upstream (vd `genoffice-${version}.${arch}.rpm`). Đây là chuỗi CHỮ THƯỜNG nên mọi quy tắc phân biệt hoa/thường khác đều bỏ lọt — trong khi người dùng nhìn thấy nó ngay trên tên tệp họ tải về. Bản `deb` từng được sửa còn `rpm` bị bỏ sót đúng theo cách này."
     }
   ],
-
   "_driftNote": "CỐ Ý KHÔNG đưa `\\bGenspark\\b` vào driftPatterns. Genspark là NHÀ CUNG CẤP AI HỢP LỆ trong AI_PROVIDERS (đăng nhập gsk, nạp credit tại genspark.ai/pricing), nên tên này xuất hiện hợp pháp ở hàng trăm chuỗi i18n. Đưa vào sẽ tạo 338 cảnh báo giả, khiến cả cổng kiểm tra bị vô hiệu hóa vì nhiễu. Biến thể mang tính thương hiệu sản phẩm (`Genspark AI`) đã được bắt chính xác ở Tầng 1 qua `replacements`.",
-
   "fileTargets": {
     "_doc": "Các tệp cần patch riêng ngoài luồng thay thế chuỗi thông thường.",
     "electronBuilder": "apps/shell/electron-builder.cjs",
     "rootPackageJson": "package.json"
   },
-
   "assets": {
     "_doc": "Tài sản đồ họa sao chép khi apply.",
     "icons": {
       "from": "360/assets",
       "to": "apps/shell/build",
-      "files": ["icon.png", "icon.icns", "icon.ico"],
-      "aliases": { "icon.icns": "app.icns", "icon.ico": "app.ico" }
+      "files": [
+        "icon.png",
+        "icon.icns",
+        "icon.ico"
+      ],
+      "aliases": {
+        "icon.icns": "app.icns",
+        "icon.ico": "app.ico"
+      }
     },
     "logos": {
       "from": "360/Logo",
       "to": "apps/shell/src/renderer/src/assets",
-      "files": ["vuaoffice-logo.svg", "vuaoffice-icon.svg"]
+      "files": [
+        "vuaoffice-logo.svg",
+        "vuaoffice-icon.svg"
+      ]
     }
   }
 }

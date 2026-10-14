@@ -175,8 +175,8 @@ Build hỏng → sửa lỗi, bump số **mới**, tag mới. Người dùng có
 
 ## 5. Hạ tầng AI Settings & Developer Mode
 
-- **Chế độ Tiêu chuẩn (Normal Mode)**: Kết nối qua Gateway **OmiRouter**
-  (`https://api.omirouter.com/v1`) hoặc **9Router** (`https://api.9router.com/v1`).
+- **Chế độ Tiêu chuẩn (Normal Mode)**: Kết nối qua Gateway **VuaAI Pro**
+  (`https://vuahethong.net`) hoặc **9Router** (`https://api.9router.com/v1`).
 - **Chế độ Nhà phát triển (Developer Mode)**: Bật/tắt qua
   `Help > Troubleshooting > Enable Developer Mode`, hỗ trợ Custom Endpoints và
   **Hermes Agent** (`https://hermes.vuahethong.com/v1`).

@@ -160,10 +160,11 @@ function CustomFontSizeInput({
   )
 }
 
-export type SectionId = 'account' | 'aiMedia' | 'general' | 'integrations' | 'about'
+export type SectionId = 'account' | 'aiModel' | 'aiMedia' | 'general' | 'integrations' | 'about'
 
 const SECTIONS: readonly { id: SectionId; labelKey: StringKey }[] = [
   { id: 'account', labelKey: 'setSecAccount' },
+  { id: 'aiModel', labelKey: 'setSecAiModel' },
   { id: 'aiMedia', labelKey: 'setSecAiMedia' },
   { id: 'general', labelKey: 'setSecGeneral' },
   { id: 'integrations', labelKey: 'setSecIntegrations' },
@@ -1885,7 +1886,7 @@ export function SettingsModal({
               </button>
             ))}
           </nav>
-          <div className={'set-pane' + (section === 'aiModel' ? ' set-pane-ai-model' : '')}>
+          <div className="set-pane">
             {section === 'account' && (
               <>
                 <h3 className="set-pane-title">{t('setSecAccount')}</h3>
@@ -1930,7 +1931,8 @@ export function SettingsModal({
                 </div>
               </>
             )}
-                        {section === 'aiMedia' && (
+                        {section === 'aiModel' && <AiModelPane t={t} />}
+            {section === 'aiMedia' && (
               <AiMediaPane
                 t={t}
                 onFileSearchChange={onFileSearchChange}
@@ -2183,8 +2185,8 @@ export function SettingsModal({
                   label={t('setGithub')}
                   value={
                     githubStars === null
-                      ? 'github.com/genspark-ai/genoffice'
-                      : `github.com/genspark-ai/genoffice · ★ ${formatStars(githubStars)}`
+                      ? 'github.com/360org/vuaoffice'
+                      : `github.com/360org/vuaoffice · ★ ${formatStars(githubStars)}`
                   }
                   action={
                     <button

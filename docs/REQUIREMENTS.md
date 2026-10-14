@@ -11,7 +11,7 @@
 
 ### 1.1 Mục tiêu Kinh doanh & Kỹ thuật
 - Xây dựng **VuaOffice** trở thành bộ công cụ văn phòng máy tính (Desktop Office Suite) hoàn chỉnh, mã nguồn mở, tích hợp trí tuệ nhân tạo (AI-Native) 100% miễn phí bản quyền.
-- Hoàn toàn làm chủ hạ tầng định tuyến AI thông qua mạng lưới Gateway của 360 CORP (**OmiRouter**, **9Router**, **Hermes Agent**) và hỗ trợ Custom Endpoint tương thích chuẩn OpenAI API.
+- Hoàn toàn làm chủ hạ tầng định tuyến AI thông qua mạng lưới Gateway của 360 CORP (**VuaAI Pro**, **9Router**, **Hermes Agent**) và hỗ trợ Custom Endpoint tương thích chuẩn OpenAI API.
 - Tự động hóa 100% quy trình Rebrand/Whitelabel thông qua CLI và quy trình đồng bộ 2 Remote Git (GitLab Private / GitHub Public).
 
 ### 1.2 Chân dung Người dùng (User Personas)
@@ -93,7 +93,7 @@
 ## 3. Yêu cầu Kết nối & Hạ tầng AI Gateway
 
 ### 3.1 Cấu hình AI Provider Mặc định
-- Kết nối tự động qua hạ tầng **OmiRouter AI** (`https://api.omirouter.com/v1`) và **9Router AI** (`https://api.9router.com/v1`).
+- Kết nối tự động qua hạ tầng **VuaAI Pro AI** (`https://vuahethong.net`) và **9Router AI** (`https://api.9router.com/v1`).
 - Mô hình hỗ trợ: `claude-3-5-sonnet`, `gpt-4o`, `gemini-1.5-pro`, `deepseek-chat`.
 
 ### 3.2 Tác tử Thông minh Hermes Agent
@@ -135,7 +135,7 @@
 | **FR-01** | Áp dụng Whitelabel thương hiệu VuaOffice | Chạy `npm run whitelabel:apply`, sau đó `npm run whitelabel:status` báo SẠCH và `npm run brand:check` ĐẠT | Đạt |
 | **FR-02** | Khôi phục Codebase gốc sạch sẽ | Chạy `npm run whitelabel:restore` (mã nguồn trở về dạng upstream — `git status` sẽ báo BẨN, vì trạng thái đã commit mang thương hiệu VuaOffice). Nghiệm thu bằng `npm run whitelabel:selftest`: bất biến `apply(restore(apply(x))) === apply(x)` phải ĐẠT | Đạt |
 | **FR-02b** | Chống ghi đè khi đồng bộ upstream | `npm run upstream:setup` cấu hình remote + merge driver `ours`; `.gitattributes` bảo vệ tài sản thương hiệu; `npm run brand:gate` chặn rò rỉ sau merge | Đạt |
-| **FR-03** | Tích hợp OmiRouter, 9Router, Hermes | Chạy typecheck và kiểm tra dropdown AI Settings trong ứng dụng | Đạt |
+| **FR-03** | Tích hợp VuaAI Pro, 9Router, Hermes | Chạy typecheck và kiểm tra dropdown AI Settings trong ứng dụng | Đạt |
 | **FR-04** | Toggle Developer Mode qua Menu Help | Kiểm tra checkbox trong `Help > Troubleshooting > Enable Developer Mode` | Đạt |
 | **FR-05** | Kiểm tra cập nhật thủ công & tự động | Kiểm tra menu `Check for Updates…` và Account dropdown menu | Đạt |
 | **FR-06** | Đóng gói phân phối đa nền tảng | Build thành công gói cài đặt DMG/EXE/DEB mang tên VuaOffice | Đạt |

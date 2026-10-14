@@ -1,21 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('node:fs', () => {
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>()
   const realpathSync = ((path?: string) => {
     if (path === undefined) return undefined
     if (path === '/real/file' || path === '/canonical/file' || path === '/REAL/FILE')
       return '/real/file'
     return path
   }) as typeof import('node:fs').realpathSync
-
-  realpathSync.native = ((path?: string) => {
-    if (path === undefined) return undefined
-    if (path === '/real/file' || path === '/canonical/file' || path === '/REAL/FILE')
-      return '/real/file'
-    return path
-  }) as typeof import('node:fs').realpathSync.native
-
-  return { realpathSync }
+  realpathSync.native = realpathSync
+  return {
+    ...actual,
+    realpathSync,
+  }
 })
 
 /**
@@ -65,6 +62,14 @@ function makeFakeView(): FakeView {
 }
 
 vi.mock('electron', () => ({
+  app: {
+    getPath: vi.fn(() => '/tmp'),
+  },
+  ipcMain: {
+    handle: vi.fn(),
+    on: vi.fn(),
+    removeHandler: vi.fn(),
+  },
   BrowserWindow: class {},
   // the manual's view is constructed inline in tab-manager (createHelpView),
   // unlike the editor views which arrive through mocked module factories, so
@@ -819,7 +824,7 @@ describe('file path bookkeeping', () => {
     }
     // file-less tabs (the in-app manual) have no path to rename, so they are
     // opened by the enumeration but must not demand a RENAMABLE case
-    const fileless = new Set(['help'])
+    const fileless = new Set(['help', 'mail'])
     expect([...new Set(opened.filter((k) => !fileless.has(k)))].sort()).toEqual(
       RENAMABLE.map((c) => c.kind).sort(),
     )

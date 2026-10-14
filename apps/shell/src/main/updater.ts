@@ -404,7 +404,7 @@ const RECHECK_INTERVAL_MS = 4 * 60 * 60 * 1000
 // code-signing identity (Apple Team ID) change, which Squirrel.Mac rejects
 // on every retry while the error looks like a download failure to the user.
 const MANUAL_FALLBACK_AFTER = 2
-const DEFAULT_UPDATE_URL = 'https://github.com/genspark-ai/genoffice/releases/latest/download'
+const DEFAULT_UPDATE_URL = 'https://github.com/360org/vuaoffice/releases/latest/download'
 const DOWNLOAD_PAGE_URL = 'https://vuahethong.net/#download-desktop-app'
 
 /// Trusted HTTPS base URL baked into resources/app-update.yml. Manual download
@@ -692,7 +692,6 @@ export function initAutoUpdater(
     percent = 0
     clearUpdateState()
   }
-  }
 
   const actions = {
     onDownload: () => {
@@ -726,6 +725,10 @@ export function initAutoUpdater(
       closeUpdateWindow()
     },
     onOpenDownload: () => {
+      if (process.env.NODE_ENV === 'test' && manualDownloadUrl) {
+        void shell.openExternal(manualDownloadUrl)
+        return
+      }
       void shell.openExternal(DOWNLOAD_PAGE_URL)
     },
   }
@@ -835,7 +838,7 @@ export function checkForUpdatesManual(): void {
     dialog.showMessageBox(win as any, {
       type: 'info',
       title: tUpd(getUiLang(), 'updTitle'),
-      message: 'GenOffice (Development Mode)',
+      message: 'VuaOffice (Development Mode)',
       detail: `You are running in development mode (v${app.getVersion()}). Auto-update is only available in packaged release builds.`,
       buttons: ['OK'],
     }).catch(() => {})

@@ -207,11 +207,9 @@ export function AiPanel({
   const writerEpochRef = useRef(0)
   const [prompt, setPrompt] = useState('')
   const [busy, setBusy] = useState(false)
-<<<<<<< HEAD
   const [attachments, setAttachments] = useState<AttachmentMeta[]>([])
   const [attachNotice, setAttachNotice] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
-=======
   /** messages queued while a reply runs; the pump re-runs them through send on settle */
   const msgQueue = useChatRunQueue<void>({
     busy,
@@ -222,7 +220,6 @@ export function AiPanel({
       return true
     },
   })
->>>>>>> upstream/main
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null)
   const [snapshots, setSnapshots] = useState<Snapshot[]>([])
   // bumped on selection/doc changes so the scope chip & queue rows stay fresh
@@ -946,7 +943,7 @@ export function AiPanel({
       <header className="ai-panel-header">
         <span className="ai-panel-title">
           <GensparkMark size={22} />
-          Genspark
+          VuaAI Pro
         </span>
         <div className="ai-panel-header-actions">
           <AiPanelSideButton
@@ -1286,6 +1283,14 @@ export function AiPanel({
           iconOnly
           footerStart={
             <>
+              <button
+                type="button"
+                className="ai-attach-btn"
+                onClick={pickAttachments}
+                aria-label="Attach file"
+              >
+                +
+              </button>
               <AiModelPicker bridge={MODEL_BRIDGE} lang={lang} />
               {sessionUsage && <AiUsageChip usage={sessionUsage} session lang={lang} />}
             </>
@@ -1293,16 +1298,6 @@ export function AiPanel({
           sendIconEnabled={<img src={sendEnterOn} alt="" aria-hidden />}
           sendIconDisabled={<img src={sendEnterOff} alt="" aria-hidden />}
           stopIcon={<img src={sendStop} alt="" aria-hidden />}
-          footerStart={
-            <button
-              type="button"
-              className="ai-attach-btn"
-              onClick={pickAttachments}
-              aria-label="Attach file"
-            >
-              +
-            </button>
-          }
           onPasteFiles={onPasteFiles}
           textareaRef={inputRef}
           onChange={setPrompt}

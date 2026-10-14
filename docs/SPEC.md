@@ -32,7 +32,7 @@ vuaoffice/
 │   ├── ui/                 # Thư viện UI chung & Semantic CSS Tokens
 │   ├── i18n/               # Hệ thống Đa ngôn ngữ (19 ngôn ngữ)
 │   ├── font-metrics/       # Đo đạc kích thước font chính xác
-│   ├── ai-provider/        # Tích hợp AI Gateway (OmiRouter, 9Router, Hermes)
+│   ├── ai-provider/        # Tích hợp AI Gateway (VuaAI Pro, 9Router, Hermes)
 │   ├── agent-core/         # Lõi thực thi Agentic Tools & Reasoning Loop
 │   ├── ai-search/          # Tìm kiếm thông minh qua vector/embeddings
 │   ├── project-store/      # Quản lý cấu trúc thư mục dự án cục bộ
@@ -52,8 +52,8 @@ vuaoffice/
   "appId": "com.vuahethong.vuaoffice",
   "executableName": "vuaoffice",
   "author": "360 CORP",
-  "defaultProvider": "omirouter",
-  "omirouterUrl": "https://api.omirouter.com/v1",
+  "defaultProvider": "vuaaipro",
+  "vuaaiproUrl": "https://vuahethong.net",
   "ninerouterUrl": "https://api.9router.com/v1",
   "hermesUrl": "https://hermes.vuahethong.com/v1",
   "textReplacements": [
@@ -121,7 +121,7 @@ vuaoffice/
 ### 4.1 Định nghĩa Types & Providers
 ```typescript
 export type AiProviderId = 
-  | 'omirouter' 
+  | 'vuaaipro' 
   | 'ninerouter' 
   | 'hermes' 
   | 'genspark' 
@@ -136,8 +136,8 @@ export type AiProviderId =
 ```typescript
 export const AI_PROVIDERS: readonly AiProviderMeta[] = [
   {
-    id: 'omirouter',
-    label: 'OmiRouter AI (360 CORP)',
+    id: 'vuaaipro',
+    label: 'VuaAI Pro AI (360 CORP)',
     models: ['claude-3-5-sonnet', 'gpt-4o', 'gemini-1.5-pro', 'deepseek-chat'],
     defaultModel: 'claude-3-5-sonnet',
     keyPlaceholder: 'sk-or-...',
@@ -183,7 +183,7 @@ Hệ thống cung cấp cơ chế thu thập và báo cáo lỗi trực tiếp v
 - **Giao diện Modal (`DiagnosticReportModal.tsx`)**:
   - **Mã định danh sự cố (Reference ID)**: Dạng `VUA-DIAG-YYYYMMDD-XXXXX` kèm nút copy nhanh.
   - **Thông tin hệ thống**: OS Platform/Arch, Electron, Chromium, Node.js version, RAM metric, Developer Mode state, Language & Theme.
-  - **Kiểm tra mạng song song (Network Reachability)**: Ping đồng thời GitLab API, OmiRouter AI, 9Router AI và Hermes Agent endpoint với timeout 4s.
+  - **Kiểm tra mạng song song (Network Reachability)**: Ping đồng thời GitLab API, VuaAI Pro AI, 9Router AI và Hermes Agent endpoint với timeout 4s.
   - **Bộ lọc bảo mật (Scrubber & Redactor)**:
     - Xóa sạch đường dẫn thư mục cá nhân (`/Users/...` ➜ `~`).
     - Redact toàn bộ Bearer Token, API Key (`sk-...`, `glpat-...`, `ghp_...`).

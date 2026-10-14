@@ -27,7 +27,6 @@ export type AiProviderId =
   | 'opencode-zen'
   | 'opencode-go'
   | 'custom'
-  | 'omirouter'
   | 'vuaaipro'
   | 'hermes'
 
