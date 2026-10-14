@@ -7,6 +7,11 @@ import { readAppSettings, writeAppSetting } from './app-settings'
 import { loadGenofficeAuth, genofficeLogout } from '@genoffice/ai-search'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { HOME_CHANNELS, type AiHandshakeResult } from '../shared/home-api'
+import {
+  startEgressTunnel,
+  stopEgressTunnel,
+  getEgressTunnelStatus,
+} from '../../../../360/tunnel/index'
 
 const API_ROOT = 'https://vuahethong.net'
 const DEFAULT_SETUP_URL = 'https://vuahethong.net/my/ai-provider?tab=packs'
@@ -16,6 +21,8 @@ let lastHandshakeResult: AiHandshakeResult | null = null
 export function getAiHandshakeStatus(): AiHandshakeResult | null {
   return lastHandshakeResult
 }
+
+export { getEgressTunnelStatus, stopEgressTunnel }
 
 export async function handshakeOdooAiConfig(
   appSettingsPath: string,
@@ -78,7 +85,8 @@ export async function handshakeOdooAiConfig(
             const revokeMsg = data.message || 'Thiết bị này đã bị thu hồi quyền truy cập từ trang quản lý vuahethong.net. Phiên đăng nhập đã kết thúc.'
             console.warn('[AI Handshake] Device is REVOKED:', revokeMsg)
 
-            // Terminate session locally
+            // Terminate tunnel and session locally
+            stopEgressTunnel()
             await genofficeLogout().catch(() => {})
 
             // Clean up local AI settings
@@ -124,9 +132,9 @@ export async function handshakeOdooAiConfig(
 
                 const validPacks = (data.models || []).map((m: any) => m.id)
                 const current = aiRaw.providers.vuaaipro || aiRaw.providers.vuaairouter || {}
-                const effectiveModel = validPacks.includes(current.model)
-                  ? current.model
-                  : data.default_model || current.model || ''
+                // Pack assigned trên vuahethong.net = default selected assigned dưới VuaOffice
+                const assignedOnServer = data.default_model && validPacks.includes(data.default_model) ? data.default_model : ''
+                const effectiveModel = assignedOnServer || (validPacks.includes(current.model) ? current.model : (validPacks[0] || ''))
 
                 aiRaw.providers.vuaaipro = {
                   apiKey: data.api_key,
@@ -146,6 +154,22 @@ export async function handshakeOdooAiConfig(
 
                 const hasPack = Array.isArray(data.models) && data.models.length > 0
                 const packName = data.models?.[0]?.label || effectiveModel
+
+                // Initialize VuaOffice Native Egress Tunnel under 360/tunnel
+                try {
+                  const tunnelUrl = data.tunnel_endpoint || data.base_url?.replace(/\/v1.*$/, '') || 'https://airouter.vuahethong.com'
+                  const accountSlug = data.account_slug || (effectiveModel ? effectiveModel.split('-')[0] : 'vuaoffice-client')
+                  startEgressTunnel({
+                    endpointUrl: tunnelUrl,
+                    accountSlug,
+                    deviceUid,
+                    token: data.api_key,
+                  })
+                  console.log('[AI Handshake] VuaOffice Egress Tunnel initialized via 360/tunnel')
+                } catch (tunnelErr: any) {
+                  console.warn('[AI Handshake] Egress tunnel start warning:', tunnelErr?.message)
+                }
+
                 lastHandshakeResult = {
                   ok: true,
                   hasPack,
@@ -191,5 +215,66 @@ export async function handshakeOdooAiConfig(
       resolve(lastHandshakeResult)
     })
     req.end()
+  })
+}
+
+/**
+ * Gửi yêu cầu chuyển đổi AI Pack lên máy chủ vuahethong.net
+ * Khi người dùng chọn pack mới trong VuaOffice, trên vuahethong.net sẽ tự động chuyển đổi theo.
+ */
+export async function selectOdooAiPack(
+  model: string,
+  appSettingsPath: string,
+): Promise<boolean> {
+  const auth = loadGenofficeAuth()
+  if (!auth || (!auth.accessToken && !auth.apiKey) || !model) return false
+
+  let settings = readAppSettings(appSettingsPath)
+  let deviceUid = settings.deviceUid as string
+  if (!deviceUid) return false
+
+  return new Promise((resolve) => {
+    try {
+      const url = new URL(API_ROOT + '/api/ai/v1/device/select-pack')
+      const reqMethod = url.protocol === 'http:' ? httpRequest : request
+      const payload = JSON.stringify({ model })
+
+      const req = reqMethod(
+        url,
+        {
+          method: 'POST',
+          rejectUnauthorized: false,
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(payload),
+            Authorization: 'Bearer ' + (auth.accessToken || auth.apiKey),
+            'X-Device-Uid': deviceUid,
+            'X-Client-App': (app.getName() || 'VuaOffice') + '/' + (app.getVersion() || '1.0.0'),
+          },
+        },
+        (res) => {
+          let body = ''
+          res.on('data', (chunk) => (body += chunk))
+          res.on('end', () => {
+            if (res.statusCode === 200) {
+              console.log('[AI Pack Sync] Đã chuyển đổi AI Pack trên vuahethong.net sang:', model)
+              resolve(true)
+            } else {
+              console.warn('[AI Pack Sync] Lỗi chuyển đổi AI Pack:', res.statusCode, body)
+              resolve(false)
+            }
+          })
+        },
+      )
+      req.on('error', (err) => {
+        console.error('[AI Pack Sync] Network error:', err.message)
+        resolve(false)
+      })
+      req.write(payload)
+      req.end()
+    } catch (e) {
+      console.error('[AI Pack Sync] Exception:', e)
+      resolve(false)
+    }
   })
 }

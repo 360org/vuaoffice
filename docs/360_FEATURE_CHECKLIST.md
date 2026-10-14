@@ -20,16 +20,17 @@ Mỗi khi **merge upstream**, **sửa lỗi** hoặc **chuẩn bị release phi�
 | **8** | **Cổng Tải Về vuahethong.net & Update Modal** | `apps/shell/src/main/updater.ts` | `DOWNLOAD_PAGE_URL: 'https://vuahethong.net/#download-desktop-app'`, `onOpenDownload` | Khi có bản cập nhật mới hoặc cập nhật lỗi, nút bấm luôn mở trang landing page `vuahethong.net`, tuyệt đối không mở link thô GitHub raw binary. |
 | **9** | **Động Cơ Whitelabel Song Ánh** | `360/brand-config.json`, `scripts/360-brand.js` | Quy tắc song ánh `apply(restore(apply(x))) === apply(x)`, selftest 1234 tệp | Đảm bảo chuyển đổi sạch giữa upstream và VuaOffice trước/sau khi merge, không rò rỉ tên gốc trên giao diện. |
 | **10** | **Website & Trình Sinh Changelog Tự Động** | `tools/sync-site-updates.mjs`, `docs/updates.json`, `docs/index.html` | Cổng `site:check`, tự động đồng bộ theo version `package.json` | Website giới thiệu sản phẩm và lịch sử phiên bản trên `vuaoffice.com` luôn đồng bộ tự động 100%. |
+| **11** | **VuaOffice Egress Tunnel Native Core** | `360/tunnel/` | `apps/shell/src/main/ai-handshake.ts`, `360/tunnel/index.ts` | 100% Core Native Node.js/Electron stdlib; ghép kênh TCP qua HTTP Upgrade/WSS, mượn card mạng dân cư của máy khách làm cổng ra chống mass ban. |
 
 ---
 
-## 2. Checklist 10 Bước Kiểm Thử Bắt Buộc Trước Khi Release
+## 2. Checklist 11 Bước Kiểm Thử Bắt Buộc Trước Khi Release
 
 Trước khi tag và release bất kỳ phiên bản nào, kỹ sư phụ trách BẮT BUỘC thực hiện tuần tự:
 
 - [ ] **Bước 1 (Cổng tự động)**: Chạy `npm run brand:gate`. Toàn bộ 7 cổng kiểm tra (Selftest, Brand, Audit, Site, Boundary, Module-Wiring, 360-Features) phải báo **ĐẠT 100%**.
 - [ ] **Bước 2 (Kiểm tra VuaOffice Mail)**: Khởi động app qua `npm run dev`, bấm mở tab **Mail**. Xác nhận giao diện hiển thị danh sách thư, thanh soạn thảo, không xuất hiện màn hình trắng.
-- [ ] **Bước 3 (Kiểm tra AI Assistant)**: Mở khung chat AI trong Docs hoặc Mail, gõ câu hỏi thử nghiệm. Xác nhận AI phản hồi thông qua 360 Gateway (`vuaairouter`).
+- [ ] **Bước 3 (Kiểm tra AI Assistant & Egress Tunnel)**: Mở khung chat AI trong Docs hoặc Mail, gõ câu hỏi thử nghiệm. Xác nhận AI phản hồi thông qua VuaAI Pro và Egress Tunnel được kích hoạt native qua `360/tunnel`.
 - [ ] **Bước 4 (Kiểm tra Tìm kiếm Font)**: Trong Docs, bấm vào dropdown chọn Font trên thanh Ribbon, gõ tìm kiếm tiếng Việt không dấu (VD: "danh", "sans"). Xác nhận danh sách font hiển thị chính xác.
 - [ ] **Bước 5 (Kiểm tra Đổi tên Tab)**: Mở 1 file tài liệu, click đúp hoặc chuột phải vào tab trên thanh tiêu đề, đổi tên thành tên khác. Xác nhận tên tab cập nhật tức thì.
 - [ ] **Bước 6 (Kiểm tra About Modal)**: Vào menu `VuaOffice > About VuaOffice`. Xác nhận bản quyền ghi rõ `360 CORP (Derivative Work & Proprietary Freeware)` và phần Original Work ghi nhận `Mainfunc, Inc. (GenOffice)`.

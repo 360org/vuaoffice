@@ -49,6 +49,21 @@
   },
   "replacements": [
     {
+      "from": "Đã đăng nhập vào Genspark",
+      "to": "Đã đăng nhập VuaOffice",
+      "reason": "Trạng thái đăng nhập"
+    },
+    {
+      "from": "Đăng nhập bằng Genspark",
+      "to": "Đăng nhập VuaOffice",
+      "reason": "Nút đăng nhập"
+    },
+    {
+      "from": "Tài khoản Genspark",
+      "to": "Tài khoản VuaOffice",
+      "reason": "Thương hiệu tài khoản"
+    },
+    {
       "from": "Dự án Genspark",
       "to": "Dự án VuaOffice",
       "reason": "Thương hiệu dự án tiếng Việt"

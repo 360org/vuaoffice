@@ -3,10 +3,33 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.59] - 2026-10-14
+
+### [FEAT/AI] Đồng bộ AI Pack Hai Chiều (2-Way Sync) & Chuẩn hóa Toàn diện Nhận diện VuaOffice
+
+- **[AI PACKS] Tải toàn bộ danh sách AI Pack từ vuahethong.net**:
+  - Tải và hiển thị đầy đủ tất cả các gói AI Pack mà người dùng đang sở hữu trên `vuahethong.net` (không bị giới hạn vào 1 gói duy nhất).
+  - Tự động lấy gói AI Pack đang được gán cho thiết bị trên `vuahethong.net` làm gói mặc định được chọn (`default selected model`) khi VuaOffice khởi động.
+- **[2-WAY SYNC] Đồng bộ chuyển đổi AI Pack hai chiều theo thời gian thực**:
+  - Khi người dùng chuyển đổi AI Pack trong bộ chọn nhanh của VuaOffice, ứng dụng tự động gửi tín hiệu đồng bộ lên cổng `POST /api/ai/v1/device/select-pack` của `vuahethong.net`.
+  - Trên `vuahethong.net`, thiết bị sẽ được tự động gán vào AI Pack mới và cập nhật chính sách phân quyền Gateway ngay lập tức.
+- **[CLEAN UI] Bộ chọn gói AI VuaAI Pro độc quyền & Rút gọn tên gói**:
+  - Rút gọn tên hiển thị của các gói AI (ví dụ: `chau-le-ba/pack/premium` -> hiển thị sạch là **`premium`**; `daily-task` -> **`daily-task`**).
+  - Loại bỏ hoàn toàn các mô hình bên thứ ba (Hermes, GPT lẻ...) trong bộ chọn nhanh, ưu tiên tuyệt đối cho VuaAI Pro và các gói bản quyền của người dùng.
+- **[REBRAND] Đồng bộ thương hiệu VuaOffice Projects**:
+  - Chuẩn hóa toàn bộ tên gọi màn hình và menu: `Genspark Projects` -> **`VuaOffice Projects`** (`Dự án VuaOffice`).
+
+---
+
 ## [1.0.58] - 2026-10-14
 
 ### [FEAT/UI] Tối ưu hóa Bộ chọn Gói AI VuaAI Pro & Khôi phục Nhận diện Người dùng
 
+- **[EGRESS/TUNNEL] VuaOffice Egress Tunnel Native Core (360/tunnel/)**:
+  - Triển khai toàn bộ lõi đường hầm cục bộ bằng 100% Node.js / Electron standard library (`node:net`, `node:https`, `node:crypto`, `node:stream`).
+  - Nằm hoàn toàn trong vùng bảo vệ thương hiệu `360/tunnel/` (`merge=ours` trong `.gitattributes`), không phụ thuộc thư viện ngoài (zero 3rd-party binary sidecars).
+  - Tự động bắt tay và khởi tạo kết nối Egress Tunnel khi VuaOffice khởi động thành công với `vuahethong.net`, mượn cổng ra mạng dân cư của máy khách làm đường truyền AI an toàn.
+  - Tích hợp hàng rào bảo mật `allowlist.ts`: chỉ cho phép mở kết nối cổng 443 tới các domain AI chính thức (`*.openai.com`, `*.anthropic.com`, `*.claude.ai`...).
 - **[AVATAR] Tự động trích xuất ảnh đại diện người dùng từ JWT Token**:
   - Khôi phục hàm phân tích payload JWT (`parseJwtPayload`) trong `@genoffice/ai-search`, tự động lấy `avatar_url` hoặc tạo URL ảnh từ Odoo Portal `https://vuahethong.net/web/image/res.users/{uid}/avatar_128`.
   - Hiển thị ngay ảnh đại diện chính chủ tại menu tài khoản (Shell Home) thay vì fallback chữ cái mặc định.

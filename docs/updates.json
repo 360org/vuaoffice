@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.0.59",
+    "date": "14/10/2026",
+    "highlight": "Hỗ trợ đồng bộ AI Pack hai chiều với vuahethong.net, hiển thị đầy đủ danh sách gói bản quyền và chuẩn hóa tên gọi VuaOffice Projects.",
+    "features": [
+      {
+        "title": "Tải toàn bộ danh sách AI Pack thời gian thực",
+        "desc": "Hiển thị đầy đủ tất cả các gói AI Pack mà bạn sở hữu trên vuahethong.net; tự động chọn đúng gói đang được phân bổ cho thiết bị."
+      },
+      {
+        "title": "Đồng bộ chuyển đổi gói AI hai chiều",
+        "desc": "Khi bạn chọn đổi AI Pack trong VuaOffice, hệ thống tự động cập nhật liên kết thiết bị trên vuahethong.net ngay lập tức."
+      },
+      {
+        "title": "Giao diện bộ chọn VuaAI Pro tinh gọn",
+        "desc": "Rút gọn tên gói AI phẳng và trực quan, loại bỏ các mục thừa và chuẩn hóa nhận diện VuaOffice Projects."
+      }
+    ]
+  },
+  {
     "version": "1.0.58",
     "date": "14/10/2026",
     "highlight": "Tối ưu hóa bộ chọn gói AI VuaAI Pro tinh gọn, khôi phục ảnh đại diện người dùng tự động và đồng bộ thương hiệu VuaOffice Projects.",

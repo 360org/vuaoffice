@@ -434,7 +434,7 @@ export const AI_PROVIDERS: AiProviderMeta[] = [
     id: 'vuaaipro',
     label: 'VuaAI Pro',
     models: [],
-    defaultModel: '',
+    defaultModel: 'vuaai-daily',
     keyPlaceholder: 'sk-or-...',
     needsBaseUrl: true,
   },
@@ -647,7 +647,7 @@ export function resolveAiSettings(stored: unknown, defaults: AiSettings): AiSett
     providers.vuaaipro = {
       ...providers.vuaaipro,
       baseUrl: DEFAULT_BASE_URLS.vuaaipro,
-      model: providers.vuaaipro.model === 'claude-3-5-sonnet' ? 'default_model' : providers.vuaaipro.model,
+      model: providers.vuaaipro.model === 'claude-3-5-sonnet' ? 'vuaai-daily' : providers.vuaaipro.model,
     }
   }
   return resolveCustomEndpoints({

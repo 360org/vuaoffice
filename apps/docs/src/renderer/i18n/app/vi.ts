@@ -298,7 +298,7 @@ export const vi = {
   appTabBar: 'Thanh dọc',
   appTabClear: 'Xóa',
   appAiSettings: 'Cài đặt AI',
-  appGensparkAccount: 'Tài khoản Genspark',
+  appGensparkAccount: 'Tài khoản VuaOffice',
   appChecking: 'Đang kiểm tra…',
   appLoggedIn: 'Đã đăng nhập',
   appLoggedInEmail: 'Đã đăng nhập: {email}',

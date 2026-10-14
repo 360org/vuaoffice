@@ -69,6 +69,13 @@ const checks = [
     name: '10. Website VuaOffice & Trình sinh Changelog tự động',
     test: () => fs.existsSync(path.join(ROOT, 'tools/sync-site-updates.mjs')) &&
                 fs.existsSync(path.join(ROOT, 'docs/updates.json')),
+  },
+  {
+    name: '11. VuaOffice Egress Tunnel Native Core (360/tunnel/)',
+    test: () => fs.existsSync(path.join(ROOT, '360/tunnel/index.ts')) &&
+                fs.existsSync(path.join(ROOT, '360/tunnel/client.ts')) &&
+                fs.existsSync(path.join(ROOT, '360/tunnel/protocol.ts')) &&
+                fs.existsSync(path.join(ROOT, '360/tunnel/allowlist.ts')),
   }
 ];
 
@@ -92,4 +99,4 @@ if (!allPassed) {
   process.exit(1);
 }
 
-console.log('\n🎉 [360-Features] ĐẠT — Toàn bộ 10/10 tính năng độc quyền của 360 CORP được bảo toàn đầy đủ 100%!\n');
+console.log('\n🎉 [360-Features] ĐẠT — Toàn bộ 11/11 tính năng độc quyền của 360 CORP được bảo toàn đầy đủ 100%!\n');

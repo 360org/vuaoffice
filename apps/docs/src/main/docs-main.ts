@@ -1,3 +1,4 @@
+import { selectOdooAiPack } from '../../../shell/src/main/ai-handshake'
 import { createHash, randomUUID } from 'node:crypto'
 import { handOffBytes } from './byte-handoff'
 import {
@@ -3852,6 +3853,10 @@ export function registerAiIpc(): void {
     }
     writeJsonAtomic(SETTINGS_PATH(), sanitized)
     broadcastAiSettingsChanged()
+    if (sanitized.provider === 'vuaaipro' && sanitized.providers?.vuaaipro?.model) {
+      const appSettingsPath = join(app.getPath('userData'), 'app-settings.json')
+      void selectOdooAiPack(sanitized.providers.vuaaipro.model, appSettingsPath).catch(() => {})
+    }
   })
 
   ipcMain.handle('ai:codex-models', async (_event, cliPath: unknown) => {
