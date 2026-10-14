@@ -117,7 +117,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npm ci
+          npm ci || npm install --no-audit
           node scripts/360-brand.js apply
       - name: Build macOS Intel (x64)
         shell: bash
@@ -172,7 +172,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npm ci
+          npm ci || npm install --no-audit
           node scripts/360-brand.js apply
       - name: Build macOS Silicon (arm64)
         shell: bash
@@ -227,7 +227,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npm ci
+          npm ci || npm install --no-audit
           node scripts/360-brand.js apply
       - name: Build Windows (x64)
         shell: bash
@@ -277,7 +277,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npm ci
+          npm ci || npm install --no-audit
           node scripts/360-brand.js apply
       - name: Build Windows (x86)
         shell: bash
@@ -324,7 +324,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npm ci
+          npm ci || npm install --no-audit
           node scripts/360-brand.js apply
       - name: Build Linux (AppImage & deb)
         shell: bash
