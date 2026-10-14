@@ -433,8 +433,8 @@ export const AI_PROVIDERS: AiProviderMeta[] = [
   {
     id: 'vuaaipro',
     label: 'VuaAI Pro',
-    models: ['claude-3-5-sonnet', 'gpt-4o', 'gemini-1.5-pro', 'deepseek-chat'],
-    defaultModel: 'default_model',
+    models: [],
+    defaultModel: '',
     keyPlaceholder: 'sk-or-...',
     needsBaseUrl: true,
   },

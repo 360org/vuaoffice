@@ -5,6 +5,7 @@ import {
   aiModelPickerGroups,
   aiModelPickerSelection,
   withAiModelSelection,
+  formatModelDisplayName,
   type AiModelPickerSelection,
 } from './ai-model-picker-options'
 import { ProviderLogo } from './provider-logos'
@@ -107,7 +108,7 @@ export function AiModelPicker({
   if (!settings) return null
   const chipText =
     currentUsable && current
-      ? current.model || (groups.find(sameGroup)?.label ?? '')
+      ? formatModelDisplayName(current.model) || (groups.find(sameGroup)?.label ?? '')
       : strings.choose
 
   return (
@@ -170,7 +171,7 @@ export function AiModelPicker({
                       className={`ai-model-item${selected ? ' selected' : ''}`}
                       onClick={() => pick({ provider: g.id, endpoint: g.endpoint, model: m })}
                     >
-                      <span className="ai-model-item-text">{m || g.label}</span>
+                      <span className="ai-model-item-text">{formatModelDisplayName(m) || g.label}</span>
                       {selected && (
                         <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
                           <path

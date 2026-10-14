@@ -3,6 +3,22 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.58] - 2026-10-14
+
+### [FEAT/UI] Tối ưu hóa Bộ chọn Gói AI VuaAI Pro & Khôi phục Nhận diện Người dùng
+
+- **[AVATAR] Tự động trích xuất ảnh đại diện người dùng từ JWT Token**:
+  - Khôi phục hàm phân tích payload JWT (`parseJwtPayload`) trong `@genoffice/ai-search`, tự động lấy `avatar_url` hoặc tạo URL ảnh từ Odoo Portal `https://vuahethong.net/web/image/res.users/{uid}/avatar_128`.
+  - Hiển thị ngay ảnh đại diện chính chủ tại menu tài khoản (Shell Home) thay vì fallback chữ cái mặc định.
+- **[AI PICKER] Chuẩn hóa Bộ chọn Gói AI VuaAI Pro phẳng & tinh gọn**:
+  - Rút gọn định danh gói AI hiển thị trên thanh công cụ: `chau-le-ba/pack/premium` -> hiển thị sạch là **`premium`**.
+  - Chỉ tải các gói AI Pack được phân bổ chính thức từ `vuahethong.net`, loại bỏ triệt để các model lẻ hardcoded.
+  - Loại bỏ hoàn toàn các nhà cung cấp bên thứ 3 (Hermes, GPT, Custom...) trong popover chọn nhanh, dành trọn vẹn không gian cho **VuaAI Pro** và gói tài khoản của người dùng.
+- **[BRANDING] Rebrand toàn diện Genspark sang VuaOffice**:
+  - Chuẩn hóa toàn bộ tiêu đề và điều hướng: `Genspark Projects` -> **`VuaOffice Projects`** (`Dự án VuaOffice`).
+
+---
+
 ## [1.0.57] - 2026-10-13
 
 ### [FEAT/UPSTREAM] Hợp nhất bản phát hành Upstream mới nhất & Chuẩn hóa VuaAI Pro

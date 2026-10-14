@@ -1,3 +1,17 @@
+
+/**
+ * Rút gọn định danh gói AI: chau-le-ba/pack/premium -> premium
+ */
+export function formatModelDisplayName(model: string): string {
+  if (!model) return ''
+  if (model.includes('/pack/')) {
+    return model.split('/pack/').pop() || model
+  }
+  if (model.includes('/')) {
+    return model.split('/').pop() || model
+  }
+  return model
+}
 import {
   AI_PROVIDERS,
   activeProvider,
@@ -31,45 +45,25 @@ export interface AiModelPickerSelection {
 export function aiModelPickerGroups(input: AiSettings, gskLoggedIn: boolean): AiModelPickerGroup[] {
   const settings = resolveCustomEndpoints(input)
   const groups: AiModelPickerGroup[] = []
-  for (const meta of AI_PROVIDERS) {
-    if (meta.id === 'custom') {
-      for (const ep of settings.customEndpoints ?? []) {
-        if (!ep.baseUrl || !ep.model) continue
-        // Declared models come before a server probe's answer: a profile entry
-        // is the user's own list, which outranks what the server advertised
-        // (a server that no longer serves an id the user pinned keeps it
-        // selectable). The configured model is pinned to the top, as before.
-        const ids = [ep.model, ...(ep.modelProfiles ?? []).map((m) => m.id), ...(ep.models ?? [])]
-        const seen = new Set<string>()
-        const models = ids.filter((m) => {
-          if (!m || seen.has(m)) return false
-          seen.add(m)
-          return true
-        })
-        groups.push({
-          id: meta.id,
-          endpoint: ep.id,
-          label: customEndpointLabel(ep, meta.label),
-          models,
-        })
-      }
-      continue
-    }
-    const config = settings.providers?.[meta.id]
+
+  // VuaOffice: Chỉ hiển thị VuaAI Pro và danh sách các gói (pack) cấp phép từ vuahethong.net
+  const vuaMeta = AI_PROVIDERS.find((m) => m.id === 'vuaaipro')
+  if (vuaMeta) {
+    const config = (settings.providers?.vuaaipro || {}) as any
     const stored = config?.model?.trim() ?? ''
-    // CLI vendors pass activeProvider unconfigured (the binary auto-discovers);
-    // list them only once the settings page holds a model or a path
-    const usable =
-      meta.id === 'genspark'
-        ? gskLoggedIn
-        : meta.needsCliPath
-          ? Boolean(stored || config?.cliPath?.trim())
-          : activeProvider({ ...settings, provider: meta.id }) === meta.id
-    if (!usable) continue
-    const models = stored && !meta.models.includes(stored) ? [stored, ...meta.models] : meta.models
-    if (models.length === 0 && !meta.needsCliPath) continue
-    groups.push({ id: meta.id, label: meta.label, models })
+    const serverPacks: string[] = Array.isArray(config?.models) ? config.models : []
+    const rawList = stored && !serverPacks.includes(stored) ? [stored, ...serverPacks] : (serverPacks.length > 0 ? serverPacks : (stored ? [stored] : []))
+    // Lọc bỏ hoàn toàn các model lẻ hardcoded nếu có
+    const filteredPacks = rawList.filter((m) => !['claude-3-5-sonnet', 'gpt-4o', 'gemini-1.5-pro', 'deepseek-chat', 'default_model'].includes(m))
+    const displayPacks = filteredPacks.length > 0 ? filteredPacks : (stored ? [stored] : ['premium'])
+
+    groups.push({
+      id: 'vuaaipro',
+      label: 'VuaAI Pro',
+      models: displayPacks,
+    })
   }
+
   return groups
 }
 

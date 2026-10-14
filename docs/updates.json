@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.0.58",
+    "date": "14/10/2026",
+    "highlight": "Tối ưu hóa bộ chọn gói AI VuaAI Pro tinh gọn, khôi phục ảnh đại diện người dùng tự động và đồng bộ thương hiệu VuaOffice Projects.",
+    "features": [
+      {
+        "title": "Hiển thị ảnh đại diện người dùng tự động",
+        "desc": "Tự động phân giải và hiển thị ảnh đại diện sắc nét từ tài khoản Vua Hệ Thống ngay trên góc điều hướng ứng dụng."
+      },
+      {
+        "title": "Bộ chọn gói AI VuaAI Pro tinh gọn",
+        "desc": "Tự động rút gọn tên gói phân bổ (ví dụ: premium) trên thanh soạn thảo, chỉ hiển thị gói bản quyền chính chủ từ vuahethong.net."
+      },
+      {
+        "title": "Đồng bộ nhận diện VuaOffice Projects",
+        "desc": "Chuẩn hóa toàn diện tên gọi danh mục dự án sang VuaOffice Projects trên toàn bộ giao diện điều hướng."
+      }
+    ]
+  },
+  {
     "version": "1.0.57",
     "date": "13/10/2026",
     "highlight": "Hợp nhất toàn diện các cải tiến mới nhất từ upstream, tích hợp Sơ đồ tư duy AI Mindmap, Scale giao diện độc lập và chuẩn hóa VuaAI Pro.",

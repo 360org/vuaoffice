@@ -49,6 +49,16 @@
   },
   "replacements": [
     {
+      "from": "Dự án Genspark",
+      "to": "Dự án VuaOffice",
+      "reason": "Thương hiệu dự án tiếng Việt"
+    },
+    {
+      "from": "Genspark Projects",
+      "to": "VuaOffice Projects",
+      "reason": "Thương hiệu dự án web"
+    },
+    {
       "_doc": "Cặp thay thế SONG ÁNH (bijective). apply: from->to. restore: to->from. Áp dụng theo thứ tự khai báo, chuỗi dài đặt trước chuỗi ngắn để tránh khớp lồng nhau.",
       "from": "genspark-ai/genoffice",
       "to": "360org/vuaoffice",

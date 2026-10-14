@@ -132,6 +132,7 @@ export async function handshakeOdooAiConfig(
                   apiKey: data.api_key,
                   baseUrl: data.base_url,
                   model: effectiveModel,
+                  models: validPacks,
                 }
                 aiRaw.provider = 'vuaaipro'
                 delete aiRaw.providers.vuaairouter
