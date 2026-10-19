@@ -110,12 +110,7 @@ export function Dropdown<K extends string>({
   const listId = useId()
   const optionId = (index: number) => `${listId}-opt-${index}`
 
-  useDismissablePopover({
-    open,
-    onDismiss: () => setOpen(false),
-    containerRef: popRef,
-    triggerRef: wrapRef,
-  })
+  useDismissablePopover(open, () => setOpen(false), { inside: () => [wrapRef.current] })
 
   useEffect(() => {
     if (!open) {

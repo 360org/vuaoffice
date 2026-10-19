@@ -110,6 +110,9 @@ async function bundle() {
       '.svg': 'empty',
       '.png': 'empty',
     },
+    alias: {
+      '@genoffice/odf2ooxml': join(here, '../odf2ooxml/src/index.ts'),
+    },
     plugins: [rawText],
   })
   const offenders = findElectronRequires(await readFile(CLI_BUNDLE, 'utf8'))

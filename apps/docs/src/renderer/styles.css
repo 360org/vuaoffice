@@ -13629,6 +13629,7 @@ tr > .page-gap-cut {
 
 .ai-open-vuahethong-btn:hover {
   background: #005fa3;
+}
 
 /* ---- withheld spans: text kept in the document, hidden from the model ----
    An underline rather than a fill, because every other decoration here is
