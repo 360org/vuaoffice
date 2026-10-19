@@ -247,7 +247,7 @@ export const vi = {
   appRehearseDiscard: 'Không lưu',
   appRehearseSave: 'Lưu',
   appSettingsTitle: 'Cài đặt AI',
-  appSettingsAccount: 'Tài khoản VuaOffice',
+  appSettingsAccount: 'Tài khoản Genspark',
   appSettingsChecking: 'Đang kiểm tra…',
   appSettingsLoggedIn: 'Đã đăng nhập',
   appSettingsLoggedInEmail: 'Đã đăng nhập: {email}',
