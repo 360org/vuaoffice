@@ -112,6 +112,8 @@ export const pl = {
   aiUnknownError: 'Nieznany błąd',
   aiTimeoutError:
     'Przekroczono limit czasu żądania AI: brak odpowiedzi sieci, przerwano. Sprawdź połączenie i spróbuj ponownie',
+  aiRegionError:
+    'Dostawca tego modelu nie obsługuje Twojego obecnego regionu — wybierz inny model lub zmień sieć',
   aiOverloadedError: 'Usługa AI jest obecnie przeciążona — spróbuj ponownie za chwilę',
   aiNetworkError:
     'Problem z siecią: nie można połączyć się z usługą AI. Sprawdź połączenie i spróbuj ponownie',
@@ -184,4 +186,17 @@ export const pl = {
   aiCmdImages: 'Zaktualizowano obrazów: {count}',
   aiCmdToc: 'Wstawiono spis treści (pozycji: {count})',
   aiCmdSkipped: ' (pominięto chronione bloki: {count})',
+  aiStarterMindMap: 'Wygeneruj mapę myśli tego dokumentu',
+  aiMindMapBtn: 'Mapa myśli AI',
+  aiMindMapPrompt:
+    'Wygeneruj mapę myśli tego dokumentu, porządkując główne tematy i kluczowe pojęcia według struktury sekcji',
+  aiSumMindMap: 'Generuj mapę myśli',
+  aiMindMapTitle: 'Mapa myśli',
+  aiMindMapNodes: '{count} węzłów',
+  aiMindMapAskPrompt: 'Opowiedz o „{label}” w tym dokumencie',
+  aiMindMapJump: 'Przejdź do cytowanego fragmentu',
+  aiMindMapExport: 'Eksportuj PNG',
+  aiMindMapReset: 'Resetuj widok',
+  aiMindMapExpand: 'Rozwiń gałąź',
+  aiMindMapCollapse: 'Zwiń gałąź',
 } satisfies Record<keyof typeof zh, string>

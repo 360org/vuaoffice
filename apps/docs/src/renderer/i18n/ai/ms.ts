@@ -111,6 +111,8 @@ export const ms = {
   aiUnknownError: 'Ralat tidak diketahui',
   aiTimeoutError:
     'Permintaan AI tamat masa: rangkaian tidak memberi respons, proses dihentikan. Semak sambungan anda dan cuba lagi',
+  aiRegionError:
+    'Penyedia model ini tidak memberi perkhidmatan di rantau semasa anda — pilih model lain atau tukar rangkaian',
   aiOverloadedError: 'Perkhidmatan AI sedang sibuk — sila cuba lagi sebentar lagi',
   aiNetworkError:
     'Masalah rangkaian: tidak dapat menghubungi perkhidmatan AI. Semak sambungan anda dan cuba lagi',
@@ -182,4 +184,17 @@ export const ms = {
   aiCmdImages: '{count} imej dikemas kini',
   aiCmdToc: 'Jadual kandungan disisipkan ({count} entri)',
   aiCmdSkipped: ' ({count} blok dilindungi dilangkau)',
+  aiStarterMindMap: 'Jana peta minda dokumen ini',
+  aiMindMapBtn: 'Peta Minda AI',
+  aiMindMapPrompt:
+    'Jana peta minda dokumen ini, susun topik utama dan konsep utama mengikut struktur bahagiannya',
+  aiSumMindMap: 'Jana peta minda',
+  aiMindMapTitle: 'Peta minda',
+  aiMindMapNodes: '{count} nod',
+  aiMindMapAskPrompt: 'Terangkan tentang "{label}" dalam dokumen ini',
+  aiMindMapJump: 'Lompat ke petik yang dirujuk',
+  aiMindMapExport: 'Eksport PNG',
+  aiMindMapReset: 'Set semula pandangan',
+  aiMindMapExpand: 'Kembangkan cabang',
+  aiMindMapCollapse: 'Lipat cabang',
 } satisfies Record<keyof typeof zh, string>

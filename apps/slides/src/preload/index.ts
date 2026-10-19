@@ -47,6 +47,7 @@ import type {
   TableStructureIpcOp,
   TableMergeIpcOp,
   ReorderElementOp,
+  SaveRecordingOp,
   SetAdvanceTimesOp,
   SetAnimationsOp,
   SetSlideHiddenOp,
@@ -166,17 +167,6 @@ const api: SlidesApi = {
       atIndex,
       deckName,
     ),
-  cloudGenStatus: () => ipcRenderer.invoke('slides:cloud-gen-status'),
-  cloudPageCancel: () => ipcRenderer.invoke('slides:cloud-page-cancel'),
-  cloudGeneratePage: (op: {
-    brief: string
-    title?: string
-    styleSkill?: string
-    deckContext?: Record<string, unknown>
-    images?: { url: string; caption?: string }[]
-    width?: number
-    height?: number
-  }) => ipcRenderer.invoke('slides:cloud-page-generate', op),
   localGeneratePage: (op: { specJson: string }) =>
     ipcRenderer.invoke('slides:local-page-generate', op),
   editText: (op: EditTextOp) => ipcRenderer.invoke('slides:edit-text', op),
@@ -311,7 +301,12 @@ const api: SlidesApi = {
   applyTheme: (op: ApplyThemeOp) => ipcRenderer.invoke('slides:apply-theme', op),
   setTransition: (op: SetTransitionOp) => ipcRenderer.invoke('slides:set-transition', op),
   getTransition: (slideIndex: number) => ipcRenderer.invoke('slides:get-transition', slideIndex),
+  getShowTiming: (slideIndex: number) => ipcRenderer.invoke('slides:get-show-timing', slideIndex),
   setAdvanceTimes: (op: SetAdvanceTimesOp) => ipcRenderer.invoke('slides:set-advance-times', op),
+  saveRecording: (op: SaveRecordingOp) => ipcRenderer.invoke('slides:save-recording', op),
+  clearNarration: (slideIndexes: number[]) =>
+    ipcRenderer.invoke('slides:clear-narration', slideIndexes),
+  microphoneAccess: () => ipcRenderer.invoke('slides:microphone-access'),
   getAnimations: (slideIndex: number) => ipcRenderer.invoke('slides:get-animations', slideIndex),
   getShapeKeys: (slideIndex: number) => ipcRenderer.invoke('slides:get-shape-keys', slideIndex),
   setAnimations: (op: SetAnimationsOp) => ipcRenderer.invoke('slides:set-animations', op),

@@ -109,6 +109,8 @@ export const ko = {
   aiUnknownError: '알 수 없는 오류',
   aiTimeoutError:
     'AI 요청 시간 초과: 네트워크 응답이 없어 중단되었습니다. 연결을 확인한 후 다시 시도해 주세요',
+  aiRegionError:
+    '이 모델의 제공업체는 현재 지역에서 서비스를 제공하지 않습니다. 다른 모델을 선택하거나 네트워크를 변경하세요',
   aiOverloadedError: 'AI 서비스가 혼잡합니다. 잠시 후 다시 시도해 주세요',
   aiNetworkError:
     '네트워크에 문제가 있어 AI 서비스에 연결할 수 없습니다. 연결을 확인한 후 다시 시도해 주세요',
@@ -179,4 +181,17 @@ export const ko = {
   aiCmdImages: '이미지 {count}장을 업데이트했습니다',
   aiCmdToc: '목차를 삽입했습니다({count}개 항목)',
   aiCmdSkipped: ' (보호된 블록 {count}개 건너뜀)',
+  aiStarterMindMap: '이 문서의 마인드맵 생성',
+  aiMindMapBtn: 'AI 마인드맵',
+  aiMindMapPrompt:
+    '이 문서의 마인드맵을 생성하고, 장 구조에 따라 주요 주제와 핵심 개념을 정리해 주세요',
+  aiSumMindMap: '마인드맵 생성',
+  aiMindMapTitle: '마인드맵',
+  aiMindMapNodes: '노드 {count}개',
+  aiMindMapAskPrompt: '이 문서에서 「{label}」에 대해 설명해 주세요',
+  aiMindMapJump: '해당 단락으로 이동',
+  aiMindMapExport: 'PNG 내보내기',
+  aiMindMapReset: '보기 초기화',
+  aiMindMapExpand: '가지 펼치기',
+  aiMindMapCollapse: '가지 접기',
 } satisfies Record<keyof typeof zh, string>

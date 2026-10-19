@@ -13,6 +13,17 @@ export const MAX_PASTED_IMAGE_BYTES = 50 * 1024 * 1024
 export const MARKDOWN_CHANNELS = {
   consumePending: 'markdown:consume-pending',
   readFile: 'markdown:read-file',
+  resolveWikiLinks: 'markdown:resolve-wiki-links',
+  /** remember the `#fragment` of a wiki link, so the note opens on its heading */
+  rememberWikiFragment: 'markdown:remember-wiki-fragment',
+  /** take the fragment remembered for a path, '' when there is none */
+  takeWikiFragment: 'markdown:take-wiki-fragment',
+  /** list the vault's notes for the `[[` suggester, breadth-first from the root */
+  listWikiNotes: 'markdown:list-wiki-notes',
+  /** notes whose links land on the given path (the backlinks panel) */
+  wikiBacklinks: 'markdown:wiki-backlinks',
+  /** the vault's link graph (nodes + resolved edges, the graph view) */
+  wikiGraph: 'markdown:wiki-graph',
   save: 'markdown:save',
   saveRequest: 'markdown:save-request',
   saveRequestAck: 'markdown:save-request-ack',
@@ -53,6 +64,69 @@ export const MARKDOWN_CHANNELS = {
   getAiPanelPrefs: 'app:get-ai-panel-prefs',
   aiPanelPrefsChanged: 'app:ai-panel-prefs-changed',
 } as const
+
+/** the raw text between `[[ ]]`, verbatim, as the editor holds it */
+export interface WikiLinkResolveRequest {
+  /** absolute path of the document holding the links; '' when untitled */
+  fromPath: string
+  targets: string[]
+}
+export interface WikiLinkResolved {
+  /** absolute path, '' when unresolved (or a same-file link on an untitled doc) */
+  path: string
+  /** the `#Heading` / `#^block` part, '' when there was none */
+  fragment: string
+  found: boolean
+}
+
+/** one vault note offered by the `[[` suggester, in the resolver's own order */
+export interface WikiNoteEntry {
+  /** absolute path, the shape `resolveWikiLinks` answers with */
+  path: string
+  /** file name with extension, as `[[Figure 1.png]]` addresses it */
+  file: string
+  /** stem without extension, as a bare `[[Figure 1]]` addresses it */
+  name: string
+  /** path relative to the walk root, shown under the name in the menu */
+  relPath: string
+}
+
+/** a note whose link lands on the asked-for path */
+export interface WikiBacklink {
+  /** absolute path of the note carrying the link */
+  source: string
+  /** the target as written there (`Note`, `Note#Heading`) */
+  target: string
+}
+
+export interface WikiGraphNode {
+  /** absolute path */
+  path: string
+  /** stem, the label a node carries */
+  name: string
+  /** path relative to the vault root, the label's smaller half */
+  relPath: string
+}
+
+export interface WikiGraphEdge {
+  /** absolute path of the linking note */
+  from: string
+  /** absolute path of the linked note */
+  to: string
+}
+
+export interface WikiGraph {
+  nodes: WikiGraphNode[]
+  edges: WikiGraphEdge[]
+  /**
+   * the vault held more notes than the node cap, so this is a slice: the nodes
+   * are the first `MAX_GRAPH_NODES` in walk order and the edges only those among
+   * them. Callers say so rather than presenting a cut graph as the whole vault.
+   */
+  truncated: boolean
+  /** how many notes the walk found in total (never below nodes.length) */
+  totalNotes: number
+}
 
 export type UiTheme = 'light' | 'dark' | 'system'
 
@@ -240,6 +314,33 @@ export interface MarkdownApi {
   consumePending(): Promise<string | null>
   /** open any shell-routed document path (an AI answer's filenav citation) */
   openSourcePath(path: string): Promise<void>
+  /**
+   * Resolve every `[[target]]` in this document to a file. One walk for the
+   * whole batch: a fifty-link document would otherwise pay fifty root
+   * traversals, and the renderer needs the answer for the unresolved ones too
+   * (to mark them), not just the one that was clicked.
+   */
+  resolveWikiLinks(request: WikiLinkResolveRequest): Promise<Record<string, WikiLinkResolved>>
+  /**
+   * Remember where a wiki link pointed before asking the shell to open the
+   * note. The shell activates an open tab without waking its renderer, so the
+   * `#fragment` cannot ride on the open request itself; whichever renderer
+   * loads the path takes it with {@link takeWikiFragment} and lands on the
+   * heading. An empty fragment clears any earlier one for that path.
+   */
+  rememberWikiFragment(path: string, fragment: string): Promise<void>
+  /** Take the fragment remembered for `path`; '' when there is none (it is consumed) */
+  takeWikiFragment(path: string): Promise<string>
+  /**
+   * List the vault's notes for the `[[` suggester: the resolution root walked
+   * breadth-first (the order the resolver matches in), capped so a huge
+   * library cannot stall the popup.
+   */
+  listWikiNotes(): Promise<WikiNoteEntry[]>
+  /** Notes whose links resolve to `path` (the backlinks panel); '' answers []. */
+  wikiBacklinks(path: string): Promise<WikiBacklink[]>
+  /** The vault's link graph, notes as nodes and resolved links as edges. */
+  wikiGraph(): Promise<WikiGraph>
   /** Headless export mode: the PDF path this hidden renderer must export to, null in normal use */
   consumeHeadlessExport(): Promise<string | null>
   /** Headless export mode: report the export outcome so the main process can quit */

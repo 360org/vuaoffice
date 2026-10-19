@@ -105,10 +105,16 @@ export const vi = {
   aiErrTimeout: 'Đã hết thời gian chờ ({ms}ms)',
   aiErrEmptyOutput: 'Đầu ra trống',
   aiErrUnknown: 'Lỗi không xác định',
-  aiErrStreamTimeout: 'Yêu cầu AI đã hết thời gian: mạng không phản hồi nên đã dừng. Vui lòng kiểm tra kết nối và thử lại',
-  aiErrOverloaded: 'Dịch vụ AI đang bận — vui lòng thử lại sau ít phút.',
-  aiErrNetwork: 'Sự cố mạng: không thể kết nối tới dịch vụ AI. Vui lòng kiểm tra kết nối và thử lại',
-  aiCreditsExhausted: 'Số dư tín dụng Genspark của bạn đã hết. Vui lòng truy cập genspark.ai/pricing để nạp thêm và thử lại',
+  aiErrStreamTimeout:
+    'Yêu cầu AI đã hết thời gian chờ: không có phản hồi từ mạng, quá trình xử lý đã bị dừng. Vui lòng kiểm tra kết nối mạng và thử lại',
+  aiErrRegion:
+    'Nhà cung cấp của mô hình này không phục vụ khu vực hiện tại của bạn — hãy chọn mô hình khác hoặc đổi mạng',
+  aiErrOverloaded: 'Dịch vụ AI hiện đang bận — vui lòng thử lại sau giây lát',
+  aiErrNetwork:
+    'Sự cố mạng: không thể kết nối tới dịch vụ AI. Vui lòng kiểm tra kết nối và thử lại',
+  aiCreditsExhausted:
+    'Tín dụng Genspark của bạn đã hết. Truy cập genspark.ai/pricing để nạp thêm, sau đó thử lại',
+
   aiErrRequestFailed: 'Gửi yêu cầu thất bại: {msg}',
   aiErrGenerateFailed: 'Tạo thất bại',
   aiErrRegenFailed: 'Làm lại trang thất bại',
@@ -216,6 +222,5 @@ export const vi = {
   aiSumSaveTemplate: 'Đã lưu mẫu phong cách "{name}"',
   aiSumTemplatesEmpty: 'Mẫu phong cách (trống)',
   aiSumListTemplates: 'Đã liệt kê {count} mẫu phong cách',
-  aiPageCloudToLocal: 'Đám mây không khả dụng — đã tạo cục bộ',
 
 } satisfies Record<keyof typeof zh, string>

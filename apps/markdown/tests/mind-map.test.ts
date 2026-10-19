@@ -239,12 +239,13 @@ describe('layoutMindMap', () => {
     const a2 = byId.get('0.0.1')!
     const { nodeWidth: w, nodeHeight: h, depthGap, siblingGap, padding } = MIND_MAP_METRICS
 
-    expect(a1.y).toBe(2 * (h + depthGap))
+    expect(a1.y).toBe(2 * (h + depthGap) + padding)
     expect(a2.y).toBe(a1.y)
     // B is a direct child of the root: one level up from A1/A2, level with A
-    expect(b.y).toBe(h + depthGap)
-    expect(a.y).toBe(h + depthGap)
-    expect(root.y).toBe(0)
+    expect(b.y).toBe(h + depthGap + padding)
+    expect(a.y).toBe(h + depthGap + padding)
+    expect(root.y).toBe(padding)
+    expect(a1.x).toBe(padding)
 
     // leaves are sequential; A centers over A1/A2; the root centers over A..B
     expect(a2.x).toBe(a1.x + w + siblingGap)
@@ -256,7 +257,7 @@ describe('layoutMindMap', () => {
     expect(edges).toHaveLength(4)
     expect(edges.every((e) => e.d.startsWith('M '))).toBe(true)
 
-    expect(width).toBe(b.x + w + padding * 2)
+    expect(width).toBe(b.x + w + padding)
     expect(height).toBe(3 * (h + depthGap) - depthGap + padding * 2)
   })
 
@@ -410,5 +411,23 @@ describe('generate_mindmap tool', () => {
     const exec = await executeTool(editor, call('generate_mindmap', { root: { label: 'Lonely' } }))
     expect(exec.isError).toBe(true)
     expect(exec.display).toBeUndefined()
+  })
+})
+
+describe('MIND_MAP_TOOL schema', () => {
+  it('gives every array an items schema (Gemini refuses the whole request without one)', () => {
+    // genoffice#2059: the leaf `children` array carried only a description,
+    // and the API answered "...properties[children].items: missing field".
+    const walk = (node: unknown): void => {
+      if (typeof node !== 'object' || node === null) return
+      if (Array.isArray(node)) {
+        node.forEach(walk)
+        return
+      }
+      const record = node as Record<string, unknown>
+      if (record.type === 'array') expect(record.items).toBeDefined()
+      for (const value of Object.values(record)) walk(value)
+    }
+    walk(MIND_MAP_TOOL.inputSchema)
   })
 })

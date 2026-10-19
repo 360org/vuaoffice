@@ -49,7 +49,18 @@ export function reconcileActiveIndex(
 }
 
 function foldStr(s: string): string {
-  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim()
+  return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim()
+}
+
+export function filterOptions<T extends { readonly value: string; readonly label: string }>(
+  options: ReadonlyArray<T>,
+  query: string,
+): T[] {
+  const terms = foldStr(query).split(/\s+/).filter(Boolean)
+  return options.filter((o) => {
+    const hay = foldStr(`${o.value} ${o.label}`)
+    return terms.every((term) => hay.includes(term))
+  })
 }
 
 export function Dropdown<K extends string>({
@@ -80,77 +91,73 @@ export function Dropdown<K extends string>({
   readonly ariaInvalid?: boolean
   /** When true, shows an inline search input at the top of the popover */
   readonly searchable?: boolean
+  /** Set to put a filter box atop the list (long catalogs); arrows/Enter keep working from it. */
   readonly searchPlaceholder?: string
 }): React.JSX.Element {
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(0)
-  const [searchQuery, setSearchQuery] = useState('')
+  const [query, setQuery] = useState('')
+  const searchRef = useRef<HTMLInputElement>(null)
+  const all = options
+  const isSearchEnabled = !!(searchable || searchPlaceholder)
+  const effectivePlaceholder = searchPlaceholder || (searchable ? 'Tìm kiếm…' : undefined)
+  const visible = useMemo(
+    () => (isSearchEnabled && query.trim() ? filterOptions(all, query) : all),
+    [all, query, isSearchEnabled],
+  )
   const popRef = useRef<HTMLDivElement>(null)
   const wrapRef = useRef<HTMLSpanElement>(null)
-  const searchInputRef = useRef<HTMLInputElement>(null)
-
-  // Focus stays on the trigger (menu-button pattern), so the open listbox and
-  // the option the arrows are on are referenced by id instead of by focus.
   const listId = useId()
-  const optionId = (index: number): string => `${listId}-option-${index}`
+  const optionId = (index: number) => `${listId}-opt-${index}`
 
-  // Filter options when searching
-  const filteredOptions = useMemo(() => {
-    if (!searchable || !searchQuery.trim()) return options
-    const q = foldStr(searchQuery)
-    return options.filter((o) => {
-      const labelFolded = foldStr(o.label || o.value)
-      return labelFolded.includes(q)
-    })
-  }, [options, searchable, searchQuery])
-
-  // guarded (capture-phase) dismissal: a press on another dropdown's trigger
-  // must close this one even though that trigger stops mousedown propagation
-  useDismissablePopover(open, () => setOpen(false), { inside: () => [wrapRef.current] })
+  useDismissablePopover({
+    open,
+    onDismiss: () => setOpen(false),
+    containerRef: popRef,
+    triggerRef: wrapRef,
+  })
 
   useEffect(() => {
     if (!open) {
-      setSearchQuery('')
+      setQuery('')
       return
-    }
-    if (searchable) {
-      searchInputRef.current?.focus()
     }
     // optional chaining on the call: jsdom elements have no scrollIntoView
     popRef.current?.querySelectorAll('.gs-dd-item')[active]?.scrollIntoView?.({ block: 'nearest' })
-  }, [open, active, searchable])
+  }, [open, active])
 
   useEffect(() => {
-    setActive((current) => reconcileActiveIndex(filteredOptions, current, value))
-  }, [filteredOptions, value])
+    setActive((current) => reconcileActiveIndex(visible, current, value))
+  }, [visible, value])
 
   // No fallback to options[0]: an off-list value (e.g. a document-only font)
   // must read as itself, not masquerade as the first option
-  const current = options.find((o) => o.value === value)
+  const current = all.find((o) => o.value === value)
   // mirrors the .active class: a disabled row is never the active option
-  const activeOption =
-    open && filteredOptions[active] && !filteredOptions[active]!.disabled ? active : null
-
+  const activeOption = open && visible[active] && !visible[active]!.disabled ? active : null
   const openList = () => {
-    setSearchQuery('')
-    const i = options.findIndex((o) => o.value === value)
-    setActive(reconcileActiveIndex(options, i, value))
+    setQuery('')
+    const i = all.findIndex((o) => o.value === value)
+    setActive(reconcileActiveIndex(all, i, value))
     setOpen(true)
   }
+  useEffect(() => {
+    if (open && isSearchEnabled) searchRef.current?.focus()
+  }, [open, isSearchEnabled])
 
   const pick = (o: DropdownOption<K>) => {
     if (o.disabled) return
     setOpen(false)
-    setSearchQuery('')
+    setQuery('')
     onPick(o.value)
   }
 
   const move = (step: 1 | -1) => {
     setActive((i) => {
-      const current = i >= 0 && i < filteredOptions.length ? i : -1
-      const start = current < 0 ? (step === 1 ? 0 : filteredOptions.length - 1) : current + step
-      const next = nextEnabledIndex(filteredOptions, start, step)
-      return next < 0 ? reconcileActiveIndex(filteredOptions, current, value) : next
+      const cur = i >= 0 && i < visible.length ? i : -1
+      const start = cur < 0 ? (step === 1 ? 0 : visible.length - 1) : cur + step
+      const next = nextEnabledIndex(visible, start, step)
+      return next < 0 ? reconcileActiveIndex(visible, cur, value) : next
     })
   }
 
@@ -162,18 +169,25 @@ export function Dropdown<K extends string>({
       }
       return
     }
+    // a space typed into the filter box is text, and keys during an IME
+    // composition belong to the IME: neither is a pick, and neither may reach
+    // the hosting modal (an Escape there would close it)
+    if (e.target === searchRef.current && (e.key === ' ' || e.nativeEvent.isComposing)) {
+      e.stopPropagation()
+      return
+    }
     if (e.key === 'Escape') setOpen(false)
     else if (e.key === 'ArrowDown') move(1)
     else if (e.key === 'ArrowUp') move(-1)
-    else if (e.key === 'Home') setActive(nextEnabledIndex(filteredOptions, 0, 1))
-    else if (e.key === 'End') setActive(nextEnabledIndex(filteredOptions, filteredOptions.length - 1, -1))
+    else if (e.key === 'Home') setActive(nextEnabledIndex(visible, 0, 1))
+    else if (e.key === 'End') setActive(nextEnabledIndex(visible, visible.length - 1, -1))
     else if (e.key === 'Enter' || e.key === ' ') {
-      const o = filteredOptions[active]
+      const o = visible[active]
       if (o && !o.disabled) pick(o)
       else {
-        const next = reconcileActiveIndex(filteredOptions, active, value)
+        const next = reconcileActiveIndex(visible, active, value)
         setActive(next)
-        const nextOption = filteredOptions[next]
+        const nextOption = visible[next]
         if (nextOption) pick(nextOption)
       }
     } else return
@@ -220,44 +234,37 @@ export function Dropdown<K extends string>({
         </span>
       </button>
       {open && (
-        <div ref={popRef} className="gs-dd-pop" role="listbox" id={listId}>
-          {searchable && (
-            <div className="gs-dd-search-wrap" onMouseDown={(e) => e.stopPropagation()}>
-              <input
-                ref={searchInputRef}
-                type="text"
-                className="gs-dd-search-input"
-                placeholder={searchPlaceholder ?? 'Tìm kiếm phông chữ…'}
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value)
-                  setActive(0)
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-                    e.preventDefault()
-                    move(e.key === 'ArrowDown' ? 1 : -1)
-                  } else if (e.key === 'Enter') {
-                    e.preventDefault()
-                    const o = filteredOptions[active]
-                    if (o && !o.disabled) pick(o)
-                  } else if (e.key === 'Escape') {
-                    e.preventDefault()
-                    setOpen(false)
-                  }
-                }}
-              />
-            </div>
+        <div
+          ref={popRef}
+          className={`gs-dd-pop${isSearchEnabled ? ' has-search' : ''}`}
+          role="listbox"
+          id={listId}
+        >
+          {isSearchEnabled && (
+            <input
+              ref={searchRef}
+              className="gs-dd-search"
+              type="text"
+              value={query}
+              placeholder={effectivePlaceholder}
+              aria-label={effectivePlaceholder}
+              spellCheck={false}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={onKeyDown}
+              onBlur={(e) => {
+                if (!wrapRef.current?.contains(e.relatedTarget as Node)) setOpen(false)
+              }}
+            />
           )}
-          {filteredOptions.length === 0 ? (
-            <div className="gs-dd-empty">Không tìm thấy kết quả</div>
-          ) : (
-            filteredOptions.map((o, i) => (
+          <div className="gs-dd-list">
+            {visible.map((o, i) => (
               <button
                 key={o.value}
                 id={optionId(i)}
                 type="button"
                 role="option"
+                // menu-button pattern: options never join the tab order (focus
+                // lives on the trigger; Tab away closes via its onBlur)
                 tabIndex={-1}
                 disabled={o.disabled}
                 aria-selected={o.value === value}
@@ -268,13 +275,16 @@ export function Dropdown<K extends string>({
                 onMouseEnter={() => {
                   if (!o.disabled) setActive(i)
                 }}
+                // menu-button pattern: options never take focus, so picking one
+                // can't blur focus-scoped hosts (the PDF text editor commits its
+                // draft on focus leaving the edit bar)
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => pick(o)}
               >
                 {o.render ?? o.label}
               </button>
-            ))
-          )}
+            ))}
+          </div>
         </div>
       )}
     </span>

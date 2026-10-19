@@ -18,6 +18,7 @@ import type {
   FolderListing,
   FolderRoot,
   MoveResult,
+  AuthorNameSetting,
   HomeApi,
   RecentEntry,
   RecentPage,
@@ -27,6 +28,7 @@ import type {
   FileSearchRerank,
   FileSearchSettings,
 } from '../shared/home-api'
+import type { ProjectApi } from '@genoffice/project-store'
 import { HOME_CHANNELS } from '../shared/home-api'
 import { INTEGRATIONS_CHANNELS } from '../shared/integrations-api'
 import type {
@@ -97,6 +99,14 @@ function normalizeDefaultAppStatus(result: unknown): DefaultAppStatus {
   }
 }
 
+function normalizeAuthorNameSetting(result: unknown): AuthorNameSetting {
+  const r = (result ?? {}) as Partial<AuthorNameSetting>
+  return {
+    value: typeof r.value === 'string' ? r.value : '',
+    fallback: typeof r.fallback === 'string' ? r.fallback : '',
+  }
+}
+
 const homeApi: HomeApi = {
   async recents(query) {
     return asRecentPage(await ipcRenderer.invoke(HOME_CHANNELS.recents, query))
@@ -159,6 +169,9 @@ const homeApi: HomeApi = {
   },
   async kbRead(path, offset) {
     return ipcRenderer.invoke('kb:read', { path, offset })
+  },
+  async kbCreateDocument(request) {
+    return ipcRenderer.invoke('kb:create-document', request)
   },
   async aiGetSettings() {
     return ipcRenderer.invoke('ai:get-settings')
@@ -445,6 +458,12 @@ const homeApi: HomeApi = {
     const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.setAnalyticsEnabled, enabled)
     return result === true
   },
+  async getAuthorName() {
+    return normalizeAuthorNameSetting(await ipcRenderer.invoke(HOME_CHANNELS.getAuthorName))
+  },
+  async setAuthorName(value) {
+    return normalizeAuthorNameSetting(await ipcRenderer.invoke(HOME_CHANNELS.setAuthorName, value))
+  },
   async getAiPanelPrefs() {
     return normalizeAiPanelPrefs(await ipcRenderer.invoke(HOME_CHANNELS.getAiPanelPrefs))
   },
@@ -648,6 +667,18 @@ function asCloudProjectsSnapshot(result: unknown): CloudProjectsSnapshot | null 
 
 contextBridge.exposeInMainWorld('aiOffice', homeApi)
 
+// The same project:* channels the editor preloads use; the home screen's
+// knowledge-base ask panel keeps its thread through them. The handlers are
+// registered once by the docs main process in shell mode (registerProjectIpc).
+const projectApi: ProjectApi = {
+  resolveChat: (args) => ipcRenderer.invoke('project:resolveChat', args),
+  appendChat: (args) => ipcRenderer.invoke('project:appendChat', args),
+  loadChat: (args) => ipcRenderer.invoke('project:loadChat', args),
+  rebindChat: (args) => ipcRenderer.invoke('project:rebindChat', args),
+}
+
+contextBridge.exposeInMainWorld('projectApi', projectApi)
+
 const integrationsApi: IntegrationsApi = {
   async status() {
     return (await ipcRenderer.invoke(INTEGRATIONS_CHANNELS.status)) as IntegrationsStatus
@@ -744,6 +775,13 @@ const tabsApi: TabsApi = {
     const listener = () => handler()
     ipcRenderer.on('app:chrome-pressed', listener)
     return () => ipcRenderer.removeListener('app:chrome-pressed', listener)
+  },
+  onStartRename(handler) {
+    const listener = (_event: IpcRendererEvent, id: unknown) => {
+      if (typeof id === 'string') handler(id)
+    }
+    ipcRenderer.on(TABS_CHANNELS.startRename, listener)
+    return () => ipcRenderer.removeListener(TABS_CHANNELS.startRename, listener)
   },
 }
 

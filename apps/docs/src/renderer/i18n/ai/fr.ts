@@ -113,6 +113,8 @@ export const fr = {
   aiUnknownError: 'Erreur inconnue',
   aiTimeoutError:
     "Délai de la requête IA dépassé : aucune réponse du réseau, l'exécution a été interrompue. Vérifiez votre connexion et réessayez",
+  aiRegionError:
+    'Le fournisseur de ce modèle ne dessert pas votre région actuelle — choisissez un autre modèle ou changez de réseau',
   aiOverloadedError: "Le service d'IA est actuellement surchargé — réessayez dans un instant",
   aiNetworkError:
     'Problème réseau : impossible de joindre le service IA. Vérifiez votre connexion et réessayez',
@@ -185,4 +187,17 @@ export const fr = {
   aiCmdImages: '{count} image(s) mise(s) à jour',
   aiCmdToc: 'Table des matières insérée ({count} entrées)',
   aiCmdSkipped: ' ({count} bloc(s) protégé(s) ignoré(s))',
+  aiStarterMindMap: 'Générer une carte mentale de ce document',
+  aiMindMapBtn: 'Carte mentale IA',
+  aiMindMapPrompt:
+    'Génère une carte mentale de ce document en organisant les thèmes principaux et les concepts clés selon sa structure de sections',
+  aiSumMindMap: 'Générer la carte mentale',
+  aiMindMapTitle: 'Carte mentale',
+  aiMindMapNodes: '{count} nœuds',
+  aiMindMapAskPrompt: 'Parle-moi de « {label} » dans ce document',
+  aiMindMapJump: 'Aller au passage cité',
+  aiMindMapExport: 'Exporter en PNG',
+  aiMindMapReset: 'Réinitialiser la vue',
+  aiMindMapExpand: 'Déplier la branche',
+  aiMindMapCollapse: 'Replier la branche',
 } satisfies Record<keyof typeof zh, string>

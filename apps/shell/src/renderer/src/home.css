@@ -47,6 +47,7 @@
   --logo-invert: 0;
   --shadow-composer: 0 1px 3px rgb(0 0 0 / 5%);
   color-scheme: light;
+  /* lift for the kb-ask composer box */
 }
 
 /* ── Dark mode overrides ─────────────────────────────────── */
@@ -2541,6 +2542,138 @@ body.vib .home {
 
 .account-menu-ai-actions {
   display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 7px;
+}
+.kb-ask .ai-input-box {
+  margin-top: 8px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-16);
+  background: var(--color-bg-page);
+  box-shadow: var(--shadow-composer);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+.kb-ask .ai-input-box textarea {
+  display: block;
+  width: 100%;
+  resize: none;
+  border: none;
+  background: none;
+  padding: 0 14px;
+  margin: 12px 0 4px;
+  font-size: 16px;
+  font-family: inherit;
+  line-height: 24px;
+  outline: none;
+  color: var(--color-text-primary);
+  min-height: 48px;
+  max-height: 168px;
+  overflow-y: auto;
+}
+.kb-ask .ai-input-box textarea::placeholder {
+  color: var(--color-text-tertiary);
+}
+.kb-ask .ai-input-footer {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px 8px 10px;
+}
+.kb-ask .ai-send-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 35%;
+  background: transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.kb-ask .ai-send-btn img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.kb-ask .ai-send-btn:hover:not(:disabled) {
+  filter: brightness(0.92);
+}
+.kb-ask .ai-send-btn:active:not(:disabled) {
+  filter: brightness(0.88);
+  transform: scale(0.98);
+}
+.kb-ask .ai-send-btn:disabled {
+  cursor: default;
+}
+.kb-ask-tool-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  padding: 3px 9px;
+  border-radius: 99px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-subtle);
+}
+.kb-ask-tool-note svg {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+.kb-ask-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.kb-ask-action {
+  appearance: none;
+  font: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  padding: 3px 9px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+}
+.kb-ask-action:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--text);
+}
+.kb-ask-action:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.kb-ask-action svg {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+.kb-ask-action-saved {
+  color: var(--accent);
+  border-color: var(--accent-soft);
+  background: var(--accent-soft);
+}
+.kb-ask-action-saved svg {
+  color: var(--accent);
+}
+.kb-ask-action-error {
+  font-size: 11.5px;
+  color: var(--danger);
+}
+/* citation links inside answers (filenav): a soft pill, click opens the file */
+.kb-ask-assistant a {
+  display: inline-flex;
+
   align-items: center;
   gap: 4px;
 }

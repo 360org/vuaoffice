@@ -41,8 +41,9 @@ export const MIND_MAP_EXPORT_COLORS = {
   toggleText: '#606366',
 } as const
 
-/** Bounded recursion: the schema inlines down to the enforced depth limit; deeper
- *  levels (which the parser trims anyway) carry a generic children description. */
+/** Bounded recursion: the schema inlines down to the enforced depth limit; the
+ *  deepest level carries a leaf-node shape, because Gemini's function schema
+ *  refuses an array without `items` for the whole request (genoffice#2059). */
 const nodeSchema = (depth: number): Record<string, unknown> => ({
   type: 'object',
   properties: {
@@ -66,6 +67,16 @@ const nodeSchema = (depth: number): Record<string, unknown> => ({
         : {
             type: 'array',
             description: 'sub-topics; 2-5 per node reads best',
+            items: {
+              type: 'object',
+              properties: {
+                label: {
+                  type: 'string',
+                  description: "short node label (2-8 words) in the document's language",
+                },
+              },
+              required: ['label'],
+            },
           },
   },
   required: ['label'],
@@ -344,7 +355,8 @@ export function layoutMindMap(
 ): MindMapLayout {
   const nodes: MindMapLayoutNode[] = []
   const edges: MindMapLayoutEdge[] = []
-  let nextX = 0
+  const { padding } = MIND_MAP_METRICS
+  let nextX = padding
   let maxDepth = 0
 
   const place = (node: MindMapTreeNode, id: string, depth: number): MindMapLayoutNode => {
@@ -368,7 +380,7 @@ export function layoutMindMap(
       block: node.block,
       depth,
       x,
-      y: depth * (MIND_MAP_METRICS.nodeHeight + MIND_MAP_METRICS.depthGap),
+      y: depth * (MIND_MAP_METRICS.nodeHeight + MIND_MAP_METRICS.depthGap) + padding,
       hasChildren: kids.length > 0,
       childCount: kids.length,
       descendants: countMindMapNodes(node) - 1,
@@ -382,11 +394,11 @@ export function layoutMindMap(
   }
 
   place(root, '0', 0)
-  const { nodeWidth: w, nodeHeight: h, depthGap, siblingGap, padding } = MIND_MAP_METRICS
+  const { nodeWidth: w, nodeHeight: h, depthGap, siblingGap } = MIND_MAP_METRICS
   return {
     nodes,
     edges,
-    width: Math.max(w, nextX - siblingGap) + padding * 2,
+    width: Math.max(w, nextX - siblingGap - padding) + padding * 2,
     height: (maxDepth + 1) * (h + depthGap) - depthGap + padding * 2,
   }
 }

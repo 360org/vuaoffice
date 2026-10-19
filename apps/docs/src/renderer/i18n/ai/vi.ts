@@ -111,6 +111,8 @@ export const vi = {
   aiUnknownError: 'Lỗi không xác định',
   aiTimeoutError:
     'Yêu cầu AI đã hết thời gian chờ: mạng không phản hồi nên quá trình xử lý đã dừng. Kiểm tra kết nối của bạn và thử lại',
+  aiRegionError:
+    'Nhà cung cấp của mô hình này không phục vụ khu vực hiện tại của bạn — hãy chọn mô hình khác hoặc đổi mạng',
   aiOverloadedError: 'Dịch vụ AI hiện đang bận — vui lòng thử lại sau giây lát',
   aiNetworkError:
     'Sự cố mạng: không thể kết nối tới dịch vụ AI. Kiểm tra kết nối của bạn và thử lại',
@@ -182,4 +184,17 @@ export const vi = {
   aiCmdImages: 'Đã cập nhật {count} hình ảnh',
   aiCmdToc: 'Đã chèn mục lục ({count} mục)',
   aiCmdSkipped: ' (đã bỏ qua {count} khối được bảo vệ)',
+  aiStarterMindMap: 'Tạo bản đồ tư duy cho tài liệu này',
+  aiMindMapBtn: 'Bản đồ tư duy AI',
+  aiMindMapPrompt:
+    'Tạo bản đồ tư duy cho tài liệu này, sắp xếp các chủ đề chính và khái niệm then chốt theo cấu trúc các phần',
+  aiSumMindMap: 'Tạo bản đồ tư duy',
+  aiMindMapTitle: 'Bản đồ tư duy',
+  aiMindMapNodes: '{count} nút',
+  aiMindMapAskPrompt: 'Hãy giới thiệu về "{label}" trong tài liệu này',
+  aiMindMapJump: 'Đến đoạn được trích dẫn',
+  aiMindMapExport: 'Xuất PNG',
+  aiMindMapReset: 'Đặt lại khung nhìn',
+  aiMindMapExpand: 'Mở rộng nhánh',
+  aiMindMapCollapse: 'Thu gọn nhánh',
 } satisfies Record<keyof typeof zh, string>

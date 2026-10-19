@@ -71,6 +71,11 @@ type Arrange =
   | 'sameSize'
 
 const PASTE_OFFSET_PTS = 12
+/// Printer option that is not a device name (Electron: '' = OS default printer)
+const PRINT_SYSTEM_DIALOG = '\u0000system-dialog'
+// macOS's print sheet already carries copies/duplex, so it stays the default there
+const IS_MAC = navigator.platform.toLowerCase().includes('mac')
+const PRINT_DUPLEX_MODES: PrintDuplex[] = ['simplex', 'longEdge', 'shortEdge']
 /** Auto-detect stops here so a long scanned form cannot flood the document with fields */
 const DETECT_FIELD_CAP = 300
 
@@ -124,7 +129,8 @@ import { LinkLayer } from './LinkLayer'
 import { OutlinePanel } from './OutlinePanel'
 import type { OutlineNode } from './OutlinePanel'
 import { buildHeadingOutline, remapOutlinePages } from './heading-outline'
-import { printPdf } from './print'
+import { filterPageParity, printPdf, type PageParity } from './print'
+import type { PrintDuplex, PrinterInfo } from '../shared/ipc'
 import { PasswordDialog } from './PasswordDialog'
 import { PropertiesDialog } from './PropertiesDialog'
 import { ForensicsModal } from './ForensicsModal'
@@ -172,6 +178,7 @@ import {
   rememberAiPanelOpen,
   useDismissablePopover,
   useRibbonCollapse,
+  useAiSidebarEnabled,
 } from '@genoffice/ui'
 import { useI18n } from './i18n/locale'
 import { useAutosave } from './useAutosave'
@@ -372,6 +379,9 @@ export default function App() {
   const collapse = useRibbonCollapse('genoffice-pdf-ribbon-collapsed', {
     collapse: t('ribbonCollapse'),
     expand: t('ribbonExpand'),
+    // ⌥⌘K / Ctrl+Alt+K: the icon-only middle density (docs parity, see #362)
+    compact: t('ribbonCompact'),
+    expandFull: t('ribbonExpand'),
   })
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null)
   const [filePath, setFilePath] = useState('')
@@ -453,6 +463,10 @@ export default function App() {
   const [aiCollapsed, setAiCollapsed] = useState(
     () => !aiPanelInitiallyOpen('genoffice-pdf-show-ai'),
   )
+  /** the panel setter in the "true = visible" sense the sidebar hook expects */
+  const setAiOpen = useCallback((open: boolean) => setAiCollapsed(!open), [])
+  // the sidebar switch is a soft hide; it closes the panel when it turns off
+  const aiSidebarEnabled = useAiSidebarEnabled(setAiOpen)
   useEffect(() => {
     rememberAiPanelOpen('genoffice-pdf-show-ai', !aiCollapsed)
   }, [aiCollapsed])
@@ -983,6 +997,12 @@ export default function App() {
   const [printMode, setPrintMode] = useState<'all' | 'current' | 'custom'>('all')
   const [printInput, setPrintInput] = useState('')
   const [printInvalid, setPrintInvalid] = useState(false)
+  const [printParity, setPrintParity] = useState<PageParity>('all')
+  const [printers, setPrinters] = useState<PrinterInfo[]>([])
+  const [printDevice, setPrintDevice] = useState(IS_MAC ? PRINT_SYSTEM_DIALOG : '')
+  const [printCopies, setPrintCopies] = useState(1)
+  const [printCollate, setPrintCollate] = useState(true)
+  const [printDuplex, setPrintDuplex] = useState<PrintDuplex>('simplex')
   /** Page-crop dialog: rendered page bitmap + which page it shows */
   const [pageCropDlg, setPageCropDlg] = useState<{ png: string; origIdx: number } | null>(null)
   const [cropAllPages, setCropAllPages] = useState(false)
@@ -6307,7 +6327,12 @@ export default function App() {
     setPrintMode('all')
     setPrintInput(String(printCurrentPage))
     setPrintInvalid(false)
+    setPrintParity('all')
     setPrintDlg(true)
+    window.pdfApi
+      .listPrinters()
+      .then(setPrinters)
+      .catch(() => undefined)
   }
 
   /** Print: save first (markups/forms/page ops all into the file), then reload from the file to render, avoiding a destroyed old doc */
@@ -6319,6 +6344,15 @@ export default function App() {
   const printDoc = async (pages?: number[]) => {
     if (printBusyRef.current) return
     printBusyRef.current = true
+    const job =
+      printDevice === PRINT_SYSTEM_DIALOG
+        ? undefined
+        : {
+            deviceName: printDevice,
+            copies: printCopies,
+            collate: printCollate,
+            duplex: printDuplex,
+          }
     try {
       await flushThen(async () => {
         setPrinting(true)
@@ -6326,7 +6360,7 @@ export default function App() {
           const data = await window.pdfApi.readFile(filePath)
           const pdoc = await getDocument({ data: new Uint8Array(data), ...DOC_OPTS }).promise
           try {
-            await printPdf(pdoc, pages)
+            await printPdf(pdoc, pages, job)
           } finally {
             void pdoc.loadingTask.destroy()
           }
@@ -6343,23 +6377,19 @@ export default function App() {
 
   /** Print dialog confirm: visible page numbers → 1-based file pages */
   const confirmPrint = () => {
-    if (printMode === 'all') {
-      setPrintDlg(false)
-      void printDoc()
-      return
-    }
-    if (printMode === 'current') {
-      setPrintDlg(false)
-      void printDoc([printCurrentPage])
-      return
-    }
-    const pages = parsePageRanges(printInput, pageCount)
-    if (!pages || pages.length === 0) {
+    const pages =
+      printMode === 'all'
+        ? Array.from({ length: pageCount }, (_x, i) => i + 1)
+        : printMode === 'current'
+          ? [printCurrentPage]
+          : parsePageRanges(printInput, pageCount)
+    const subset = pages ? filterPageParity(pages, printParity) : []
+    if (subset.length === 0) {
       setPrintInvalid(true)
       return
     }
     setPrintDlg(false)
-    void printDoc(pages)
+    void printDoc(printMode === 'all' && printParity === 'all' ? undefined : subset)
   }
 
   /** Capability surface for AI tools; rebuilt each render (AiPanel mirrors it via refs to get the latest) */
@@ -7124,7 +7154,7 @@ export default function App() {
                 <span className="rb-color-bar" style={{ background: cssRgb(highlightColor) }} />
               </span>
             </span>
-            {t('highlight')}
+            <span>{t('highlight')}</span>
           </button>
           <button
             className={`rb-highlight-caret${highlightColorOpen ? ' active' : ''}`}
@@ -7153,7 +7183,7 @@ export default function App() {
           <span className="rb-big-icon">
             <IconUnderline />
           </span>
-          {t('underline')}
+          <span>{t('underline')}</span>
         </button>
         <button
           className="rb-big"
@@ -7164,7 +7194,7 @@ export default function App() {
           <span className="rb-big-icon">
             <IconStrike />
           </span>
-          {t('strikeout')}
+          <span>{t('strikeout')}</span>
         </button>
       </div>
     </div>
@@ -7214,7 +7244,7 @@ export default function App() {
           <span className="rb-big-icon">
             <IconFitWidth />
           </span>
-          {t('fitWidth')}
+          <span>{t('fitWidth')}</span>
         </button>
         <button
           className="rb-big"
@@ -7226,7 +7256,7 @@ export default function App() {
           <span className="rb-big-icon">
             <IconFitPage />
           </span>
-          {t('fitPage')}
+          <span>{t('fitPage')}</span>
         </button>
       </div>
     </div>
@@ -7241,7 +7271,7 @@ export default function App() {
       <span className="rb-big-icon">
         <IconSearch />
       </span>
-      {t('search')}
+      <span>{t('search')}</span>
     </button>
   )
 
@@ -7263,7 +7293,7 @@ export default function App() {
       <span className="rb-big-icon">
         <IconEditText />
       </span>
-      {t('editText')}
+      <span>{t('editText')}</span>
     </button>
   )
 
@@ -7294,7 +7324,7 @@ export default function App() {
       <span className="rb-big-icon">
         <IconFormText />
       </span>
-      {t('insertText')}
+      <span>{t('insertText')}</span>
     </button>
   )
 
@@ -7370,7 +7400,7 @@ export default function App() {
           <span className="rb-big-icon">
             <IconThumbs />
           </span>
-          {t('thumbs')}
+          <span>{t('thumbs')}</span>
         </button>
         <button
           className={`rb-big${sidebar === 'outline' ? ' active' : ''}`}
@@ -7380,7 +7410,7 @@ export default function App() {
           <span className="rb-big-icon">
             <IconOutline />
           </span>
-          {t('outline')}
+          <span>{t('outline')}</span>
         </button>
         {searchBtn}
         <button
@@ -7389,7 +7419,7 @@ export default function App() {
           onClick={() => setSpread((v) => (v === 1 ? 2 : 1))}
         >
           <span className="rb-big-icon">{spread === 2 ? <IconSinglePage /> : <IconSpread />}</span>
-          {spread === 2 ? t('singlePage') : t('twoPage')}
+          <span>{spread === 2 ? t('singlePage') : t('twoPage')}</span>
         </button>
         <button
           className={`rb-big${nightMode ? ' active' : ''}`}
@@ -7399,7 +7429,7 @@ export default function App() {
           <span className="rb-big-icon">
             <IconNight />
           </span>
-          {t('nightMode')}
+          <span>{t('nightMode')}</span>
         </button>
       </div>
     </div>
@@ -7582,7 +7612,7 @@ export default function App() {
                         <IconConvertPdf />
                         <RbCaret />
                       </span>
-                      {t('convertPdf')}
+                      <span>{t('convertPdf')}</span>
                     </button>
                     {convertOpen && (
                       <div className="rb-drop rb-menu">
@@ -7591,6 +7621,10 @@ export default function App() {
                           {t('convertToExcel')}
                         </button>
                         <button onClick={() => void convertTo('pptx')}>{t('convertToPpt')}</button>
+                        <button onClick={() => void convertTo('md')}>
+                          {t('convertToMarkdown')}
+                        </button>
+                        <button onClick={() => void convertTo('html')}>{t('convertToHtml')}</button>
                         <div style={{ height: 1, margin: '4px 0', background: 'var(--border, rgba(128, 128, 128, 0.2))' }} />
                         <button
                           disabled={curOrigIdx < 0 || readOnly}
@@ -7621,7 +7655,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconPrint />
                     </span>
-                    {printing ? t('printPreparing') : t('print')}
+                    <span>{printing ? t('printPreparing') : t('print')}</span>
                   </button>
                   <button
                     className="rb-big"
@@ -7632,7 +7666,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconExportImg />
                     </span>
-                    {exporting ? t('exporting') : t('exportImages')}
+                    <span>{exporting ? t('exporting') : t('exportImages')}</span>
                   </button>
                   <button
                     className="rb-big"
@@ -7642,7 +7676,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconProps />
                     </span>
-                    {t('props')}
+                    <span>{t('props')}</span>
                   </button>
                 </div>
               </div>
@@ -7702,7 +7736,7 @@ export default function App() {
                       <span className="rb-big-icon">
                         <DrawIcon />
                       </span>
-                      {t(key)}
+                      <span>{t(key)}</span>
                     </button>
                   ))}
                   <button
@@ -7719,7 +7753,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconRect />
                     </span>
-                    {t('redact')}
+                    <span>{t('redact')}</span>
                   </button>
                   {redactions.length > 0 && (
                     <>
@@ -7751,7 +7785,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconSign />
                     </span>
-                    {t('sign')}
+                    <span>{t('sign')}</span>
                   </button>
                   <button
                     className="rb-big"
@@ -7762,7 +7796,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconCertSign />
                     </span>
-                    {t('certSign')}
+                    <span>{t('certSign')}</span>
                   </button>
                   {digitalSignatures.length > 0 && (
                     <button
@@ -7773,7 +7807,7 @@ export default function App() {
                       <span className="rb-big-icon">
                         <IconSignatures />
                       </span>
-                      {t('sigPanel')}
+                      <span>{t('sigPanel')}</span>
                     </button>
                   )}
                   <div ref={drawColorWrapRef} className="rb-drop-wrap">
@@ -7793,7 +7827,7 @@ export default function App() {
                         </span>
                         <RbCaret />
                       </span>
-                      {t('drawColor')}
+                      <span>{t('drawColor')}</span>
                     </button>
                     {colorOpen && (
                       <ColorPickerPopover
@@ -7823,7 +7857,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconInsertImage />
                     </span>
-                    {t('insertImage')}
+                    <span>{t('insertImage')}</span>
                   </button>
                   <button
                     className={`rb-big${editImageMode ? ' active' : ''}`}
@@ -7842,7 +7876,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconEditImage />
                     </span>
-                    {t('editImage')}
+                    <span>{t('editImage')}</span>
                   </button>
                 </div>
               </div>
@@ -7858,7 +7892,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconWatermark />
                     </span>
-                    {t('watermark')}
+                    <span>{t('watermark')}</span>
                   </button>
                 </div>
               </div>
@@ -7895,7 +7929,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconFormText />
                     </span>
-                    {t('formAddText')}
+                    <span>{t('formAddText')}</span>
                   </button>
                   <button
                     className={`rb-big${pendingStaticFill === 'check' ? ' active' : ''}`}
@@ -7906,7 +7940,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconFormCheck />
                     </span>
-                    {t('formAddCheck')}
+                    <span>{t('formAddCheck')}</span>
                   </button>
                   <button
                     className={`rb-big${pendingStaticFill === 'cross' ? ' active' : ''}`}
@@ -7917,7 +7951,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconFormCross />
                     </span>
-                    {t('formAddCross')}
+                    <span>{t('formAddCross')}</span>
                   </button>
                 </div>
               </div>
@@ -7934,7 +7968,7 @@ export default function App() {
                         <span className="rb-big-icon">
                           <IconPreviousField />
                         </span>
-                        {t('formPreviousField')}
+                        <span>{t('formPreviousField')}</span>
                       </button>
                       <button
                         className="rb-big"
@@ -7944,7 +7978,7 @@ export default function App() {
                         <span className="rb-big-icon">
                           <IconNextField />
                         </span>
-                        {t('formNextField')}
+                        <span>{t('formNextField')}</span>
                       </button>
                       <span className="form-ribbon-progress">
                         {t('formFieldProgress', {
@@ -7975,7 +8009,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconSign />
                     </span>
-                    {t('sign')}
+                    <span>{t('sign')}</span>
                   </button>
                   <button
                     className={`rb-big${imagePick && !pendingStaticFill ? ' active' : ''}`}
@@ -7986,7 +8020,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconInsertImage />
                     </span>
-                    {t('insertImage')}
+                    <span>{t('insertImage')}</span>
                   </button>
                 </div>
               </div>
@@ -7997,7 +8031,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconCompleteForm />
                     </span>
-                    {t('formComplete')}
+                    <span>{t('formComplete')}</span>
                   </button>
                 </div>
               </div>
@@ -8038,7 +8072,7 @@ export default function App() {
                       <span className="rb-big-icon">
                         <FieldIcon />
                       </span>
-                      {t(labelKey)}
+                      <span>{t(labelKey)}</span>
                     </button>
                   ))}
                 </div>
@@ -8056,7 +8090,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconFieldKeep />
                     </span>
-                    {t('formDesignKeepTool')}
+                    <span>{t('formDesignKeepTool')}</span>
                   </button>
                   <button
                     className={`rb-big${formDesignPreview ? ' active' : ''}`}
@@ -8073,7 +8107,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconFieldPreview />
                     </span>
-                    {t('formDesignPreview')}
+                    <span>{t('formDesignPreview')}</span>
                   </button>
                   <button
                     className="rb-big"
@@ -8084,7 +8118,9 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconFieldDetect />
                     </span>
-                    {detectingFields ? t('formDesignDetecting') : t('formDesignDetect')}
+                    <span>
+                      {detectingFields ? t('formDesignDetecting') : t('formDesignDetect')}
+                    </span>
                   </button>
                   <div className="rb-drop-wrap" ref={arrangeWrapRef}>
                     <button
@@ -8097,7 +8133,7 @@ export default function App() {
                         <IconFieldArrange />
                         <RbCaret />
                       </span>
-                      {t('formDesignArrange')}
+                      <span>{t('formDesignArrange')}</span>
                     </button>
                     {arrangeOpen && (
                       <div className="rb-drop rb-menu">
@@ -8125,7 +8161,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconTrash />
                     </span>
-                    {t('formDesignDelete')}
+                    <span>{t('formDesignDelete')}</span>
                   </button>
                   <span className="form-ribbon-progress">
                     {formDesignPreview
@@ -8154,7 +8190,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconRotateL />
                     </span>
-                    {t('rotateLeft')}
+                    <span>{t('rotateLeft')}</span>
                   </button>
                   <button
                     className="rb-big"
@@ -8164,7 +8200,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconRotateR />
                     </span>
-                    {t('rotateRight')}
+                    <span>{t('rotateRight')}</span>
                   </button>
                   <button
                     className="rb-big"
@@ -8174,7 +8210,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconRotateAll />
                     </span>
-                    {t('rotateAllPages')}
+                    <span>{t('rotateAllPages')}</span>
                   </button>
                 </div>
               </div>
@@ -8189,7 +8225,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconDeletePage />
                     </span>
-                    {t('deletePage')}
+                    <span>{t('deletePage')}</span>
                   </button>
                   <button
                     className="rb-big"
@@ -8199,7 +8235,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconExtract />
                     </span>
-                    {t('extractPage')}
+                    <span>{t('extractPage')}</span>
                   </button>
                   <button
                     className="rb-big"
@@ -8209,7 +8245,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconInsertPdf />
                     </span>
-                    {t('insertPdf')}
+                    <span>{t('insertPdf')}</span>
                   </button>
                   <button
                     className="rb-big"
@@ -8219,7 +8255,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconInsertBlank />
                     </span>
-                    {t('insertBlankPage')}
+                    <span>{t('insertBlankPage')}</span>
                   </button>
                   <button
                     className="rb-big"
@@ -8229,7 +8265,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconReplacePages />
                     </span>
-                    {t('replacePages')}
+                    <span>{t('replacePages')}</span>
                   </button>
                   <button
                     className="rb-big"
@@ -8254,7 +8290,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconCropPages />
                     </span>
-                    {t('cropPages')}
+                    <span>{t('cropPages')}</span>
                   </button>
                   <button
                     className="rb-big"
@@ -8264,7 +8300,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconPageSize />
                     </span>
-                    {t('pageSize')}
+                    <span>{t('pageSize')}</span>
                   </button>
                 </div>
               </div>
@@ -8279,7 +8315,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconReverse />
                     </span>
-                    {t('reversePages')}
+                    <span>{t('reversePages')}</span>
                   </button>
                   <button
                     className="rb-big"
@@ -8289,13 +8325,13 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconSplitPdf />
                     </span>
-                    {t('splitPdf')}
+                    <span>{t('splitPdf')}</span>
                   </button>
                   <button className="rb-big" disabled={readOnly} onClick={() => void mergePdf()}>
                     <span className="rb-big-icon">
                       <IconMergePdf />
                     </span>
-                    {t('mergePdf')}
+                    <span>{t('mergePdf')}</span>
                   </button>
                   <button
                     className="rb-big"
@@ -8305,7 +8341,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconMergePages />
                     </span>
-                    {t('mergePages')}
+                    <span>{t('mergePages')}</span>
                   </button>
                   <button
                     className="rb-big"
@@ -8315,7 +8351,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <IconSplitPages />
                     </span>
-                    {t('splitPages')}
+                    <span>{t('splitPages')}</span>
                   </button>
                 </div>
               </div>
@@ -8343,9 +8379,13 @@ export default function App() {
       />
       <div className="app-main">
         {/* dock wrapper animates the width between panel and rail (docs-style 180ms ease);
-            the panel stays mounted while collapsed so the chat history survives */}
-        <div className={`ai-dock${aiCollapsed ? ' collapsed' : ''}`}>
-          {aiCollapsed && (
+              the panel stays mounted while collapsed so the chat history survives */}
+        <div
+          className={`ai-dock${aiCollapsed ? ' collapsed' : ''}${
+            !aiSidebarEnabled && aiCollapsed ? ' ai-dock-off' : ''
+          }`}
+        >
+          {aiCollapsed && aiSidebarEnabled && (
             <button
               className="ai-rail"
               data-tip={t('aiOpenAssistant')}
@@ -10607,12 +10647,80 @@ export default function App() {
               <div className="pdf-modal-mask" onClick={() => setPrintDlg(false)}>
                 <div className="pdf-modal" onClick={(e) => e.stopPropagation()}>
                   <div className="pdf-modal-title">{t('print')}</div>
+                  <label className="pdf-modal-row pdf-print-field">
+                    <span>{t('printPrinter')}</span>
+                    <select
+                      className="pdf-modal-input"
+                      value={printDevice}
+                      onChange={(e) => setPrintDevice(e.target.value)}
+                    >
+                      <option value="">{t('printDefaultPrinter')}</option>
+                      {printers.map((p) => (
+                        <option key={p.name} value={p.name}>
+                          {p.displayName}
+                        </option>
+                      ))}
+                      <option value={PRINT_SYSTEM_DIALOG}>{t('printSystemDialog')}</option>
+                    </select>
+                  </label>
+                  <div className="pdf-modal-row pdf-print-field">
+                    <label className="pdf-print-copies">
+                      <span>{t('printCopies')}</span>
+                      <input
+                        className="pdf-modal-input"
+                        type="number"
+                        min={1}
+                        max={999}
+                        value={printCopies}
+                        disabled={printDevice === PRINT_SYSTEM_DIALOG}
+                        onChange={(e) =>
+                          setPrintCopies(
+                            Math.min(999, Math.max(1, Math.round(Number(e.target.value)) || 1)),
+                          )
+                        }
+                      />
+                    </label>
+                    <label className="pdf-modal-check">
+                      <input
+                        type="checkbox"
+                        checked={printCollate}
+                        disabled={printDevice === PRINT_SYSTEM_DIALOG || printCopies < 2}
+                        onChange={(e) => setPrintCollate(e.target.checked)}
+                      />
+                      {t('printCollate')}
+                    </label>
+                  </div>
+                  <label className="pdf-modal-row pdf-print-field">
+                    <span>{t('printDuplex')}</span>
+                    <select
+                      className="pdf-modal-input"
+                      value={printDuplex}
+                      disabled={printDevice === PRINT_SYSTEM_DIALOG}
+                      onChange={(e) => setPrintDuplex(e.target.value as PrintDuplex)}
+                    >
+                      {PRINT_DUPLEX_MODES.map((m) => (
+                        <option key={m} value={m}>
+                          {t(
+                            m === 'simplex'
+                              ? 'printDuplexOff'
+                              : m === 'longEdge'
+                                ? 'printDuplexLong'
+                                : 'printDuplexShort',
+                          )}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="pdf-print-divider" />
                   <label className="pdf-modal-row">
                     <input
                       type="radio"
                       name="print-range"
                       checked={printMode === 'all'}
-                      onChange={() => setPrintMode('all')}
+                      onChange={() => {
+                        setPrintMode('all')
+                        setPrintInvalid(false)
+                      }}
                     />
                     <span>{t('printRangeAll')}</span>
                   </label>
@@ -10621,7 +10729,10 @@ export default function App() {
                       type="radio"
                       name="print-range"
                       checked={printMode === 'current'}
-                      onChange={() => setPrintMode('current')}
+                      onChange={() => {
+                        setPrintMode('current')
+                        setPrintInvalid(false)
+                      }}
                     />
                     <span>
                       {t('printRangeCurrent')} ({printCurrentPage})
@@ -10651,6 +10762,24 @@ export default function App() {
                         else if (e.key === 'Escape') setPrintDlg(false)
                       }}
                     />
+                  )}
+                  <label className="pdf-modal-row pdf-print-field">
+                    <span>{t('printSubset')}</span>
+                    <select
+                      className="pdf-modal-input"
+                      value={printParity}
+                      onChange={(e) => {
+                        setPrintParity(e.target.value as PageParity)
+                        setPrintInvalid(false)
+                      }}
+                    >
+                      <option value="all">{t('printSubsetAll')}</option>
+                      <option value="odd">{t('printSubsetOdd')}</option>
+                      <option value="even">{t('printSubsetEven')}</option>
+                    </select>
+                  </label>
+                  {printInvalid && printMode !== 'custom' && (
+                    <div className="pdf-modal-hint pdf-print-empty">{t('printSubsetEmpty')}</div>
                   )}
                   <div className="pdf-modal-actions">
                     <button className="pdf-modal-btn" onClick={() => setPrintDlg(false)}>

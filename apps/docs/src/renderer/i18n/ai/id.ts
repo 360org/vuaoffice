@@ -111,6 +111,8 @@ export const id = {
   aiUnknownError: 'Kesalahan tidak dikenal',
   aiTimeoutError:
     'Permintaan AI habis waktu: jaringan tidak merespons sehingga proses dihentikan. Periksa koneksi Anda lalu coba lagi',
+  aiRegionError:
+    'Penyedia model ini tidak melayani wilayah Anda saat ini — pilih model lain atau ganti jaringan',
   aiOverloadedError: 'Layanan AI sedang sibuk — silakan coba lagi sebentar lagi',
   aiNetworkError:
     'Masalah jaringan: tidak dapat terhubung ke layanan AI. Periksa koneksi Anda lalu coba lagi',
@@ -181,4 +183,17 @@ export const id = {
   aiCmdImages: '{count} gambar diperbarui',
   aiCmdToc: 'Daftar isi disisipkan ({count} entri)',
   aiCmdSkipped: ' ({count} blok terlindungi dilewati)',
+  aiStarterMindMap: 'Buat peta pikiran dari dokumen ini',
+  aiMindMapBtn: 'Peta Pikiran AI',
+  aiMindMapPrompt:
+    'Buat peta pikiran dari dokumen ini, susun topik utama dan konsep kunci menurut struktur bagiannya',
+  aiSumMindMap: 'Buat peta pikiran',
+  aiMindMapTitle: 'Peta pikiran',
+  aiMindMapNodes: '{count} node',
+  aiMindMapAskPrompt: 'Jelaskan tentang "{label}" dalam dokumen ini',
+  aiMindMapJump: 'Lompat ke bagian yang dikutip',
+  aiMindMapExport: 'Ekspor PNG',
+  aiMindMapReset: 'Setel ulang tampilan',
+  aiMindMapExpand: 'Bentangkan cabang',
+  aiMindMapCollapse: 'Lipat cabang',
 } satisfies Record<keyof typeof zh, string>

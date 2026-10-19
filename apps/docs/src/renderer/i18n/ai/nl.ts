@@ -113,6 +113,8 @@ export const nl = {
   aiUnknownError: 'Onbekende fout',
   aiTimeoutError:
     'AI-verzoek verlopen: geen reactie van het netwerk, uitvoering gestopt. Controleer je verbinding en probeer het opnieuw',
+  aiRegionError:
+    'De aanbieder van dit model bedient uw huidige regio niet — kies een ander model of wissel van netwerk',
   aiOverloadedError: 'De AI-service is momenteel overbelast — probeer het zo opnieuw',
   aiNetworkError:
     'Netwerkprobleem: kan de AI-service niet bereiken. Controleer je verbinding en probeer het opnieuw',
@@ -185,4 +187,17 @@ export const nl = {
   aiCmdImages: '{count} afbeelding(en) bijgewerkt',
   aiCmdToc: 'Inhoudsopgave ingevoegd ({count} vermeldingen)',
   aiCmdSkipped: ' ({count} beveiligde blok(ken) overgeslagen)',
+  aiStarterMindMap: 'Maak een mindmap van dit document',
+  aiMindMapBtn: 'AI-mindmap',
+  aiMindMapPrompt:
+    'Maak een mindmap van dit document en orden de hoofdonderwerpen en kernconcepten naar de sectiestructuur',
+  aiSumMindMap: 'Mindmap maken',
+  aiMindMapTitle: 'Mindmap',
+  aiMindMapNodes: '{count} knooppunten',
+  aiMindMapAskPrompt: 'Vertel me over "{label}" in dit document',
+  aiMindMapJump: 'Ga naar het geciteerde fragment',
+  aiMindMapExport: 'PNG exporteren',
+  aiMindMapReset: 'Weergave opnieuw instellen',
+  aiMindMapExpand: 'Tak uitklappen',
+  aiMindMapCollapse: 'Tak inklappen',
 } satisfies Record<keyof typeof zh, string>

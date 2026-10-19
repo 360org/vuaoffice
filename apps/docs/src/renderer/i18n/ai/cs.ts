@@ -112,6 +112,8 @@ export const cs = {
   aiUnknownError: 'Neznámá chyba',
   aiTimeoutError:
     'Časový limit požadavku AI vypršel: síť neodpověděla, běh byl zastaven. Zkontrolujte připojení a zkuste to znovu',
+  aiRegionError:
+    'Poskytovatel tohoto modelu neposkytuje služby ve vaší aktuální oblasti — vyberte jiný model nebo změňte síť',
   aiOverloadedError: 'Služba AI je právě zaneprázdněna – zkuste to prosím za chvíli znovu',
   aiNetworkError:
     'Problém se sítí: nepodařilo se připojit ke službě AI. Zkontrolujte připojení a zkuste to znovu',
@@ -183,4 +185,17 @@ export const cs = {
   aiCmdImages: 'Aktualizováno obrázků: {count}',
   aiCmdToc: 'Vložen obsah ({count} položek)',
   aiCmdSkipped: ' (přeskočeno {count} chráněných bloků)',
+  aiStarterMindMap: 'Vytvořit myšlenkovou mapu tohoto dokumentu',
+  aiMindMapBtn: 'Myšlenková mapa AI',
+  aiMindMapPrompt:
+    'Vytvoř myšlenkovou mapu tohoto dokumentu a uspořádej hlavní témata a klíčové pojmy podle struktury sekcí',
+  aiSumMindMap: 'Vytvořit myšlenkovou mapu',
+  aiMindMapTitle: 'Myšlenková mapa',
+  aiMindMapNodes: '{count} uzlů',
+  aiMindMapAskPrompt: 'Pověz mi o „{label}“ v tomto dokumentu',
+  aiMindMapJump: 'Přejít na citovanou pasáž',
+  aiMindMapExport: 'Exportovat PNG',
+  aiMindMapReset: 'Obnovit zobrazení',
+  aiMindMapExpand: 'Rozbalit větev',
+  aiMindMapCollapse: 'Sbalit větev',
 } satisfies Record<keyof typeof zh, string>

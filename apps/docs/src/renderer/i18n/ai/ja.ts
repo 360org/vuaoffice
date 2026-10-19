@@ -111,6 +111,8 @@ export const ja = {
   aiUnknownError: '不明なエラー',
   aiTimeoutError:
     'AIリクエストがタイムアウトしました：ネットワークからの応答がないため中断しました。接続を確認して再試行してください',
+  aiRegionError:
+    'このモデルの提供元は現在の地域ではサービスを提供していません。別のモデルを選ぶか、ネットワークを切り替えてください',
   aiOverloadedError: 'AI サービスが混み合っています。しばらくしてからもう一度お試しください',
   aiNetworkError:
     'ネットワークに問題があり、AI サービスに接続できません。接続を確認して再試行してください',
@@ -183,4 +185,17 @@ export const ja = {
   aiCmdImages: '{count} 枚の画像を更新しました',
   aiCmdToc: '目次を挿入しました({count} 項目)',
   aiCmdSkipped: '({count} 個の保護されたブロックをスキップ)',
+  aiStarterMindMap: 'このドキュメントのマインドマップを生成',
+  aiMindMapBtn: 'AI マインドマップ',
+  aiMindMapPrompt:
+    'このドキュメントのマインドマップを生成し、章構成に沿って主要トピックとキーワードを整理してください',
+  aiSumMindMap: 'マインドマップを生成',
+  aiMindMapTitle: 'マインドマップ',
+  aiMindMapNodes: '{count} ノード',
+  aiMindMapAskPrompt: 'このドキュメントの「{label}」について教えて',
+  aiMindMapJump: '該当段落へジャンプ',
+  aiMindMapExport: 'PNG で書き出す',
+  aiMindMapReset: '表示をリセット',
+  aiMindMapExpand: 'ブランチを展開',
+  aiMindMapCollapse: 'ブランチを折りたたむ',
 } satisfies Record<keyof typeof zh, string>
