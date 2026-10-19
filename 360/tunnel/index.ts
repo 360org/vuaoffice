@@ -6,11 +6,25 @@
  */
 
 import { EgressTunnelClient, type EgressTunnelConfig, type EgressTunnelStatus } from './client'
+import {
+  startLocalAiProxy,
+  stopLocalAiProxy,
+  getLocalAiProxyStatus,
+  type LocalAiProxyConfig,
+  type LocalAiProxyStatus,
+} from './local-proxy'
 
 export { EgressTunnelClient }
 export type { EgressTunnelConfig, EgressTunnelStatus, TunnelState } from './client'
 export { isAllowedEgressDestination } from './allowlist'
 export { FrameType, encodeFrame, createFrameParser } from './protocol'
+export {
+  startLocalAiProxy,
+  stopLocalAiProxy,
+  getLocalAiProxyStatus,
+  type LocalAiProxyConfig,
+  type LocalAiProxyStatus,
+}
 
 let singletonClient: EgressTunnelClient | null = null
 

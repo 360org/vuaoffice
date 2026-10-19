@@ -11,10 +11,42 @@ import {
   startEgressTunnel,
   stopEgressTunnel,
   getEgressTunnelStatus,
+  startLocalAiProxy,
+  stopLocalAiProxy,
 } from '../../../../360/tunnel/index'
 
 const API_ROOT = 'https://vuahethong.net'
 const DEFAULT_SETUP_URL = 'https://vuahethong.net/my/ai-provider?tab=packs'
+
+
+let cachedPublicIp = ''
+let lastIpCheck = 0
+
+async function resolveClientPublicIp(): Promise<string> {
+  const now = Date.now()
+  if (cachedPublicIp && now - lastIpCheck < 300_000) return cachedPublicIp
+  for (const url of ['https://api.ipify.org', 'https://icanhazip.com', 'https://ifconfig.me/ip']) {
+    try {
+      const ip = await new Promise<string>((resolve) => {
+        const u = new URL(url)
+        const req = (u.protocol === 'https:' ? request : httpRequest)(u, { timeout: 2000, rejectUnauthorized: false }, (res) => {
+          let b = ''
+          res.on('data', (c) => (b += c))
+          res.on('end', () => resolve(b.trim()))
+        })
+        req.on('error', () => resolve(''))
+        req.on('timeout', () => { req.destroy(); resolve('') })
+        req.end()
+      })
+      if (ip && !ip.includes('<') && ip.length >= 7 && ip.length <= 45) {
+        cachedPublicIp = ip
+        lastIpCheck = now
+        return ip
+      }
+    } catch {}
+  }
+  return cachedPublicIp || ''
+}
 
 let lastHandshakeResult: AiHandshakeResult | null = null
 
@@ -22,7 +54,7 @@ export function getAiHandshakeStatus(): AiHandshakeResult | null {
   return lastHandshakeResult
 }
 
-export { getEgressTunnelStatus, stopEgressTunnel }
+export { getEgressTunnelStatus, stopEgressTunnel, stopLocalAiProxy }
 
 export async function handshakeOdooAiConfig(
   appSettingsPath: string,
@@ -51,6 +83,7 @@ export async function handshakeOdooAiConfig(
   const appVer = app.getVersion() || '1.0.0'
   const deviceName = os.hostname() || 'Desktop'
   const osName = os.type() + ' ' + os.release()
+  const clientPublicIp = await resolveClientPublicIp()
 
   return new Promise((resolve) => {
     const urlStr = API_ROOT + '/api/ai/v1/config'
@@ -66,6 +99,7 @@ export async function handshakeOdooAiConfig(
           Authorization: 'Bearer ' + (auth.accessToken || auth.apiKey),
           'X-Client-App': appName + '/' + appVer,
           'X-Device-Uid': deviceUid,
+          ...(clientPublicIp ? { 'X-Device-IP': clientPublicIp, 'X-Client-Real-IP': clientPublicIp } : {}),
           'X-Device-Name': deviceName,
           'X-Device-OS': osName,
           ...(url.protocol === 'http:' ? { 'X-Odoo-Database': 'vuahethong_v19_prod_test' } : {}),
@@ -85,7 +119,8 @@ export async function handshakeOdooAiConfig(
             const revokeMsg = data.message || 'Thiết bị này đã bị thu hồi quyền truy cập từ trang quản lý vuahethong.net. Phiên đăng nhập đã kết thúc.'
             console.warn('[AI Handshake] Device is REVOKED:', revokeMsg)
 
-            // Terminate tunnel and session locally
+            // Terminate proxy, tunnel and session locally
+            stopLocalAiProxy()
             stopEgressTunnel()
             await genofficeLogout().catch(() => {})
 
@@ -136,9 +171,24 @@ export async function handshakeOdooAiConfig(
                 const assignedOnServer = data.default_model && validPacks.includes(data.default_model) ? data.default_model : ''
                 const effectiveModel = assignedOnServer || (validPacks.includes(current.model) ? current.model : (validPacks[0] || ''))
 
+                // Khởi chạy Local AI Proxy (ưu tiên cổng 3600, fallback 3601/36000 nếu bận)
+                // Đảm bảo AI request phát xuất trực tiếp từ card mạng dân cư của máy khách để chống mass-ban
+                let localBaseUrl = data.base_url
+                try {
+                  const proxyPort = await startLocalAiProxy({
+                    upstreamBaseUrl: data.base_url,
+                    apiKey: data.api_key,
+                    preferredPort: 3600,
+                  })
+                  localBaseUrl = `http://127.0.0.1:${proxyPort}/v1`
+                  console.log(`[AI Handshake] Local AI Egress Proxy active at ${localBaseUrl} (Port: ${proxyPort})`)
+                } catch (proxyErr: any) {
+                  console.warn('[AI Handshake] Local AI Proxy fallback to direct gateway:', proxyErr?.message)
+                }
+
                 aiRaw.providers.vuaaipro = {
                   apiKey: data.api_key,
-                  baseUrl: data.base_url,
+                  baseUrl: localBaseUrl,
                   model: effectiveModel,
                   models: validPacks,
                 }

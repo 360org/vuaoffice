@@ -75,7 +75,8 @@ const checks = [
     test: () => fs.existsSync(path.join(ROOT, '360/tunnel/index.ts')) &&
                 fs.existsSync(path.join(ROOT, '360/tunnel/client.ts')) &&
                 fs.existsSync(path.join(ROOT, '360/tunnel/protocol.ts')) &&
-                fs.existsSync(path.join(ROOT, '360/tunnel/allowlist.ts')),
+                fs.existsSync(path.join(ROOT, '360/tunnel/allowlist.ts')) &&
+                fs.existsSync(path.join(ROOT, '360/tunnel/local-proxy.ts')),
   }
 ];
 
