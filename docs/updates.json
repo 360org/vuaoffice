@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.0.61",
+    "date": "19/10/2026",
+    "highlight": "Kéo cập nhật chính thức từ upstream, hợp nhất Native Slide Pipeline, kích hoạt Local AI Egress Proxy chống mass-ban và tự động hủy phiên khi thu hồi thiết bị.",
+    "features": [
+      {
+        "title": "Hợp nhất Native Slide Generation & Upstream Updates",
+        "desc": "Tích hợp toàn diện các cập nhật mới nhất từ upstream; thay thế toàn bộ tạo slide đám mây bằng Native Pipeline chạy trực tiếp qua pptx-engine trên máy khách."
+      },
+      {
+        "title": "Local AI Egress Proxy & Bảo toàn IP Dân cư",
+        "desc": "Khởi chạy proxy nội bộ 127.0.0.1:3600/v1 để phát request AI trực tiếp từ card mạng gia đình/văn phòng, bảo vệ tài khoản khỏi thuật toán quét bot ASN của nhà cung cấp."
+      },
+      {
+        "title": "Tự động phát hiện thu hồi quyền & Đóng tab SSO",
+        "desc": "Tự động phát hiện trạng thái device_revoked từ vuahethong.net để đăng xuất an toàn; tối ưu trải nghiệm đăng nhập SSO với cơ chế tự đóng tab sau 10 giây hoặc 3 giây."
+      }
+    ]
+  },
+  {
     "version": "1.0.60",
     "date": "14/10/2026",
     "highlight": "Hỗ trợ đồng bộ AI Pack hai chiều với vuahethong.net, hiển thị đầy đủ danh sách gói bản quyền và chuẩn hóa tên gọi VuaOffice Projects.",

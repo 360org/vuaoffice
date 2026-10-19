@@ -3080,7 +3080,7 @@ function RibbonInner({
                   <span className="rb-big-icon">
                     <GensparkMark size={26} />
                   </span>
-                  <span>Genspark AI</span>
+                  <span>VuaAI Pro</span>
                 </button>
                 <button
                   className="rb-big ai-entry"
@@ -3205,7 +3205,7 @@ function RibbonInner({
                   <span>{t('aiMindMapBtn')}</span>
                 </button>
               </div>
-              <div className="ribbon-group-label">Genspark AI</div>
+              <div className="ribbon-group-label">VuaAI Pro</div>
             </div>
 
             <div className="ribbon-sep" />

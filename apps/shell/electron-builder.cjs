@@ -428,11 +428,11 @@ const FILE_ASSOCIATIONS = [
 
 /** @type {import('electron-builder').Configuration} */
 const config = {
-  appId: 'com.genspark.genoffice',
-  productName: 'GenOffice',
+  appId: 'com.vuahethong.vuaoffice',
+  productName: 'VuaOffice',
   protocols: [
     {
-      name: 'GenOffice Deep Link',
+      name: 'VuaOffice Deep Link',
       schemes: ['vuaoffice'],
       role: 'Viewer',
     },
@@ -562,7 +562,7 @@ const config = {
   fileAssociations: FILE_ASSOCIATIONS,
   npmRebuild: false,
   mac: {
-    artifactName: 'GenOffice-${version}-macOS-${arch}.${ext}',
+    artifactName: 'VuaOffice-${version}-macOS-${arch}.${ext}',
     // Two separate arch packages (NOT universal): arm64 keeps the exact
     // artifact names and update-feed entries it always had, x64 (opt-in via
     // GENOFFICE_MAC_X64=1, see includeMacX64 above) adds Intel support with
@@ -589,7 +589,7 @@ const config = {
   },
   win: {
     fileAssociations: FILE_ASSOCIATIONS.filter((entry) => !WIN_OPEN_WITH_ONLY_EXTS.has(entry.ext)),
-    artifactName: 'GenOffice-${version}-Windows-${arch}-Setup.${ext}',
+    artifactName: 'VuaOffice-${version}-Windows-${arch}-Setup.${ext}',
     // No `arch` here on purpose: computeArchToTargetNamesMap() ignores the CLI
     // arch flag whenever a target declares its own `arch`, so `--win --x64`
     // would still queue an ia32 pass too. Each release job passes --x64 / --ia32.

@@ -42,7 +42,7 @@ export const tMain = createI18n({
     legacyPptTitle: '无法打开 .ppt 旧格式',
     odpImportMsg: '转换 .{ext} 演示文稿？',
     odpImportDetail:
-      'GenOffice 只编辑 .pptx，不编辑 ODF。每页会变成一张幻灯片，文字框和图片按原位置摆放；母版、占位符版式、表格和图形样式不会保留。原文件不会被修改，转换出的 .pptx 是一份独立副本，之后的保存都写入它。',
+      'VuaOffice 只编辑 .pptx，不编辑 ODF。每页会变成一张幻灯片，文字框和图片按原位置摆放；母版、占位符版式、表格和图形样式不会保留。原文件不会被修改，转换出的 .pptx 是一份独立副本，之后的保存都写入它。',
     odpImportConvertBtn: '转换并打开',
     odpImportFailedTitle: '无法转换 .odp',
     odpImportFailedBody: '文件可能已损坏或不是有效的 ODF 演示文稿。',
@@ -77,10 +77,10 @@ export const tMain = createI18n({
     errParseFailed: '文件解析失败',
     errImageNoText: '图片附件不提供文本,已作为图像随用户消息发送,直接看图即可',
     errNotImage: '不是支持的图片类型',
-    errGskNotLoggedIn: '未登录 Genspark:请点击下方「登录 Genspark」完成登录后重试',
+    errGskNotLoggedIn: '未登录 VuaOffice:请点击下方「登录 VuaOffice」完成登录后重试',
     errNoApiKey: '未配置 {provider} 的 API Key',
     errNoModel: '未配置模型名称',
-    errGskCli: 'gsk 未登录:请先运行 gsk login 登录 Genspark 账号',
+    errGskCli: 'gsk 未登录:请先运行 gsk login 登录 VuaOffice 账号',
     errNoDeckAppend:
       '当前没有可追加的文稿（会话不存在）。请先用 mode:"replace" 生成首页，或改用原生工具新增页面。',
     errAppendFailed: '追加失败：{reason}',
@@ -160,7 +160,7 @@ export const tMain = createI18n({
     legacyPptTitle: 'Cannot open legacy .ppt',
     odpImportMsg: 'Convert this .{ext} presentation?',
     odpImportDetail:
-      'GenOffice edits .pptx, not ODF. Each page becomes a slide with its text boxes and pictures placed at their original positions; masters, placeholder layouts, tables and shape styling are not preserved. The original file is never changed; the converted .pptx is a separate copy that later saves write to.',
+      'VuaOffice edits .pptx, not ODF. Each page becomes a slide with its text boxes and pictures placed at their original positions; masters, placeholder layouts, tables and shape styling are not preserved. The original file is never changed; the converted .pptx is a separate copy that later saves write to.',
     odpImportConvertBtn: 'Convert and open',
     odpImportFailedTitle: 'Cannot convert this .odp',
     odpImportFailedBody: 'The file may be damaged or not a valid ODF presentation.',
@@ -196,7 +196,7 @@ export const tMain = createI18n({
     errImageNoText: 'Image attachments have no text; the image is sent along with the user message',
     errNotImage: 'not a supported image type',
     errGskNotLoggedIn:
-      'Not signed in to GenOffice: click “Sign in to Genspark” below, sign in, then retry',
+      'Not signed in to VuaOffice: click “Sign in to VuaOffice” below, sign in, then retry',
     errNoApiKey: 'No API key configured for {provider}',
     errNoModel: 'No model name configured',
     errGskCli: 'gsk not signed in: run gsk login to sign in to your Genspark account first',
@@ -279,7 +279,7 @@ export const tMain = createI18n({
     legacyPptTitle: 'Không thể mở tệp .ppt phiên bản cũ',
     odpImportMsg: 'Chuyển đổi bản trình bày .{ext} này?',
     odpImportDetail:
-      'GenOffice chỉnh sửa .pptx chứ không chỉnh sửa ODF. Mỗi trang trở thành một slide với hộp văn bản và hình ảnh đặt đúng vị trí gốc; mẫu trình chiếu, bố cục giữ chỗ, bảng và kiểu hình khối không được giữ lại. Tệp gốc không bao giờ bị sửa; bản .pptx sau chuyển đổi là một bản sao độc lập để tiếp tục chỉnh sửa và lưu.',
+      'VuaOffice chỉnh sửa .pptx chứ không chỉnh sửa ODF. Mỗi trang trở thành một slide với hộp văn bản và hình ảnh đặt đúng vị trí gốc; mẫu trình chiếu, bố cục giữ chỗ, bảng và kiểu hình khối không được giữ lại. Tệp gốc không bao giờ bị sửa; bản .pptx sau chuyển đổi là một bản sao độc lập để tiếp tục chỉnh sửa và lưu.',
     odpImportConvertBtn: 'Chuyển đổi và mở',
     odpImportFailedTitle: 'Không thể chuyển đổi .odp này',
     odpImportFailedBody: 'Tệp có thể bị hỏng hoặc không phải bản trình bày ODF hợp lệ.',
@@ -402,7 +402,7 @@ export const tMain = createI18n({
     legacyPptTitle: '.ppt 形式は開けません',
     odpImportMsg: 'この .{ext} プレゼンテーションを変換しますか？',
     odpImportDetail:
-      'GenOffice は ODF ではなく .pptx を編集します。各ページがスライドになり、テキストボックスと画像は元の位置に配置されます。マスター・プレースホルダーレイアウト・表・図形スタイルは保持されません。元のファイルは変更されず、変換後の .pptx は独立したコピーとして以後の保存先になります。',
+      'VuaOffice は ODF ではなく .pptx を編集します。各ページがスライドになり、テキストボックスと画像は元の位置に配置されます。マスター・プレースホルダーレイアウト・表・図形スタイルは保持されません。元のファイルは変更されず、変換後の .pptx は独立したコピーとして以後の保存先になります。',
     odpImportConvertBtn: '変換して開く',
     odpImportFailedTitle: 'この .odp を変換できません',
     odpImportFailedBody:
@@ -440,7 +440,7 @@ export const tMain = createI18n({
       '画像添付はテキストを提供しません。画像としてユーザー メッセージと一緒に送信済みのため、そのまま画像をご覧ください',
     errNotImage: 'サポートされていない画像形式です',
     errGskNotLoggedIn:
-      'Genspark にサインインしていません。下の「Genspark にサインイン」からサインインして再試行してください',
+      'VuaOffice にサインインしていません。下の「VuaOffice にサインイン」からサインインして再試行してください',
     errNoApiKey: '{provider} の API キーが設定されていません',
     errNoModel: 'モデル名が設定されていません',
     errGskCli:
@@ -527,7 +527,7 @@ export const tMain = createI18n({
     legacyPptTitle: '.ppt 형식을 열 수 없음',
     odpImportMsg: '이 .{ext} 프레젠테이션을 변환할까요?',
     odpImportDetail:
-      'GenOffice은 ODF가 아니라 .pptx를 편집합니다. 각 페이지가 슬라이드가 되고 텍스트 상자와 이미지는 원래 위치에 배치됩니다. 마스터, 자리 표시자 레이아웃, 표, 도형 스타일은 유지되지 않습니다. 원본 파일은 변경되지 않으며, 변환된 .pptx는 이후 저장이 기록되는 독립적인 사본입니다.',
+      'VuaOffice은 ODF가 아니라 .pptx를 편집합니다. 각 페이지가 슬라이드가 되고 텍스트 상자와 이미지는 원래 위치에 배치됩니다. 마스터, 자리 표시자 레이아웃, 표, 도형 스타일은 유지되지 않습니다. 원본 파일은 변경되지 않으며, 변환된 .pptx는 이후 저장이 기록되는 독립적인 사본입니다.',
     odpImportConvertBtn: '변환 후 열기',
     odpImportFailedTitle: '이 .odp을 변환할 수 없습니다',
     odpImportFailedBody: '파일이 손상되었거나 유효한 ODF 프레젠테이션이 아닐 수 있습니다.',
@@ -564,7 +564,7 @@ export const tMain = createI18n({
       '이미지 첨부는 텍스트를 제공하지 않으며, 이미지로 사용자 메시지와 함께 전송되었으니 이미지를 직접 확인하세요',
     errNotImage: '지원되는 이미지 형식이 아님',
     errGskNotLoggedIn:
-      'GenOffice에 로그인되어 있지 않습니다. 아래 "Genspark 로그인"을 눌러 로그인한 뒤 다시 시도하세요',
+      'VuaOffice에 로그인되어 있지 않습니다. 아래 "VuaOffice 로그인"을 눌러 로그인한 뒤 다시 시도하세요',
     errNoApiKey: '{provider}의 API 키가 설정되지 않았습니다',
     errNoModel: '모델 이름이 설정되지 않았습니다',
     errGskCli:
@@ -648,7 +648,7 @@ export const tMain = createI18n({
     legacyPptTitle: 'Impossible d’ouvrir le format .ppt',
     odpImportMsg: 'Convertir cette présentation .{ext} ?',
     odpImportDetail:
-      'GenOffice modifie des .pptx, pas de l’ODF. Chaque page devient une diapositive, avec les zones de texte et les images à leur position d’origine ; les masques, les dispositions d’espaces réservés, les tableaux et les styles de formes ne sont pas conservés. Le fichier d’origine n’est jamais modifié ; le .pptx converti est une copie distincte où s’effectuent les enregistrements suivants.',
+      'VuaOffice modifie des .pptx, pas de l’ODF. Chaque page devient une diapositive, avec les zones de texte et les images à leur position d’origine ; les masques, les dispositions d’espaces réservés, les tableaux et les styles de formes ne sont pas conservés. Le fichier d’origine n’est jamais modifié ; le .pptx converti est une copie distincte où s’effectuent les enregistrements suivants.',
     odpImportConvertBtn: 'Convertir et ouvrir',
     odpImportFailedTitle: 'Impossible de convertir ce .odp',
     odpImportFailedBody:
@@ -686,7 +686,7 @@ export const tMain = createI18n({
       "Les pièces jointes image ne fournissent pas de texte ; l'image a été envoyée avec le message de l'utilisateur, consultez-la directement",
     errNotImage: "n'est pas un type d'image pris en charge",
     errGskNotLoggedIn:
-      'Non connecté à GenOffice : cliquez sur « Se connecter à Genspark » ci-dessous, connectez-vous puis réessayez',
+      'Non connecté à VuaOffice : cliquez sur « Se connecter à VuaOffice » ci-dessous, connectez-vous puis réessayez',
     errNoApiKey: 'Aucune clé API configurée pour {provider}',
     errNoModel: 'Aucun nom de modèle configuré',
     errGskCli:
@@ -775,7 +775,7 @@ export const tMain = createI18n({
     legacyPptTitle: '.ppt kann nicht geöffnet werden',
     odpImportMsg: 'Diese .{ext}-Präsentation konvertieren?',
     odpImportDetail:
-      'GenOffice bearbeitet .pptx, nicht ODF. Jede Seite wird eine Folie, mit Textfeldern und Bildern an ihren ursprünglichen Positionen; Masters, Platzhalterlayouts, Tabellen und Formatstile werden nicht übernommen. Die Originaldatei bleibt unverändert; die konvertierte .pptx-Kopie ist eigenständig, und spätere Speicherungen landen in ihr.',
+      'VuaOffice bearbeitet .pptx, nicht ODF. Jede Seite wird eine Folie, mit Textfeldern und Bildern an ihren ursprünglichen Positionen; Masters, Platzhalterlayouts, Tabellen und Formatstile werden nicht übernommen. Die Originaldatei bleibt unverändert; die konvertierte .pptx-Kopie ist eigenständig, und spätere Speicherungen landen in ihr.',
     odpImportConvertBtn: 'Konvertieren und öffnen',
     odpImportFailedTitle: 'Diese .odp-Datei kann nicht konvertiert werden',
     odpImportFailedBody:
@@ -813,7 +813,7 @@ export const tMain = createI18n({
       'Bildanlagen liefern keinen Text; das Bild wurde mit der Benutzernachricht gesendet, bitte direkt ansehen',
     errNotImage: 'kein unterstütztes Bildformat',
     errGskNotLoggedIn:
-      'Nicht bei GenOffice angemeldet: Klicken Sie unten auf „Bei Genspark anmelden“, melden Sie sich an und versuchen Sie es erneut',
+      'Nicht bei VuaOffice angemeldet: Klicken Sie unten auf „Bei VuaOffice anmelden“, melden Sie sich an und versuchen Sie es erneut',
     errNoApiKey: 'Kein API-Schlüssel für {provider} konfiguriert',
     errNoModel: 'Kein Modellname konfiguriert',
     errGskCli:
@@ -901,7 +901,7 @@ export const tMain = createI18n({
     legacyPptTitle: 'No se puede abrir el formato .ppt',
     odpImportMsg: '¿Convertir esta presentación .{ext}?',
     odpImportDetail:
-      'GenOffice edita .pptx, no ODF. Cada página se convierte en una diapositiva, con los cuadros de texto y las imágenes en su posición original; los patrones, los diseños de marcadores de posición, las tablas y los estilos de forma no se conservan. El archivo original nunca se modifica; el .pptx convertido es una copia independiente en la que se guardan los cambios posteriores.',
+      'VuaOffice edita .pptx, no ODF. Cada página se convierte en una diapositiva, con los cuadros de texto y las imágenes en su posición original; los patrones, los diseños de marcadores de posición, las tablas y los estilos de forma no se conservan. El archivo original nunca se modifica; el .pptx convertido es una copia independiente en la que se guardan los cambios posteriores.',
     odpImportConvertBtn: 'Convertir y abrir',
     odpImportFailedTitle: 'No se puede convertir este .odp',
     odpImportFailedBody: 'El archivo puede estar dañado o no ser una presentación ODF válida.',
@@ -938,7 +938,7 @@ export const tMain = createI18n({
       'Las imágenes adjuntas no proporcionan texto; la imagen se envió junto con el mensaje del usuario, consúltala directamente',
     errNotImage: 'no es un tipo de imagen compatible',
     errGskNotLoggedIn:
-      'No has iniciado sesión en GenOffice: pulsa «Iniciar sesión en Genspark» abajo, inicia sesión y vuelve a intentarlo',
+      'No has iniciado sesión en VuaOffice: pulsa «Iniciar sesión en VuaOffice» abajo, inicia sesión y vuelve a intentarlo',
     errNoApiKey: 'No hay clave de API configurada para {provider}',
     errNoModel: 'No hay nombre de modelo configurado',
     errGskCli:
@@ -1025,7 +1025,7 @@ export const tMain = createI18n({
     legacyPptTitle: 'ไม่สามารถเปิดไฟล์ .ppt',
     odpImportMsg: 'แปลงงานนำเสนอ .{ext} นี้ไหม?',
     odpImportDetail:
-      'GenOffice แก้ไข .pptx ไม่ใช่ ODF แต่ละหน้าจะกลายเป็นสไลด์ โดยกล่องข้อความและรูปภาพจะอยู่ตำแหน่งเดิม ส่วนต้นแบบ เลย์เอาต์ตัวยึด ตาราง และสไตล์รูปทรงจะไม่ถูกเก็บไว้ ไฟล์ต้นทางจะไม่ถูกแก้ไข และไฟล์ .pptx ที่แปลงแล้วเป็นสำเนาแยกต่างหากที่การบันทึกครั้งต่อไปจะเขียนลง',
+      'VuaOffice แก้ไข .pptx ไม่ใช่ ODF แต่ละหน้าจะกลายเป็นสไลด์ โดยกล่องข้อความและรูปภาพจะอยู่ตำแหน่งเดิม ส่วนต้นแบบ เลย์เอาต์ตัวยึด ตาราง และสไตล์รูปทรงจะไม่ถูกเก็บไว้ ไฟล์ต้นทางจะไม่ถูกแก้ไข และไฟล์ .pptx ที่แปลงแล้วเป็นสำเนาแยกต่างหากที่การบันทึกครั้งต่อไปจะเขียนลง',
     odpImportConvertBtn: 'แปลงแล้วเปิด',
     odpImportFailedTitle: 'ไม่สามารถแปลงไฟล์ .odp นี้ได้',
     odpImportFailedBody: 'ไฟล์อาจเสียหายหรือไม่ใช่งานนำเสนอ ODF ที่ถูกต้อง',
@@ -1062,7 +1062,7 @@ export const tMain = createI18n({
       'สิ่งที่แนบเป็นรูปภาพไม่มีข้อความ รูปถูกส่งไปพร้อมข้อความของผู้ใช้แล้ว โปรดดูรูปโดยตรง',
     errNotImage: 'ไม่ใช่ชนิดรูปภาพที่รองรับ',
     errGskNotLoggedIn:
-      'ยังไม่ได้ลงชื่อเข้าใช้ Genspark: แตะ “ลงชื่อเข้าใช้ Genspark” ด้านล่าง แล้วลองอีกครั้ง',
+      'ยังไม่ได้ลงชื่อเข้าใช้ VuaOffice: แตะ “ลงชื่อเข้าใช้ VuaOffice” ด้านล่าง แล้วลองอีกครั้ง',
     errNoApiKey: 'ยังไม่ได้ตั้งค่า API Key ของ {provider}',
     errNoModel: 'ยังไม่ได้ตั้งค่าชื่อโมเดล',
     errGskCli: 'gsk ยังไม่ได้เข้าสู่ระบบ: โปรดรัน gsk login เพื่อเข้าสู่ระบบบัญชี Genspark ก่อน',
@@ -1145,7 +1145,7 @@ export const tMain = createI18n({
     legacyPptTitle: 'Tidak dapat membuka format .ppt',
     odpImportMsg: 'Konversi presentasi .{ext} ini?',
     odpImportDetail:
-      'GenOffice mengedit .pptx, bukan ODF. Setiap halaman menjadi satu salindia dengan kotak teks dan gambar pada posisi aslinya; master, tata letak placeholder, tabel, dan gaya bentuk tidak dipertahankan. File asli tidak pernah diubah; salinan .pptx hasil konversi berdiri sendiri dan penyimpanan berikutnya ditulis ke sana.',
+      'VuaOffice mengedit .pptx, bukan ODF. Setiap halaman menjadi satu salindia dengan kotak teks dan gambar pada posisi aslinya; master, tata letak placeholder, tabel, dan gaya bentuk tidak dipertahankan. File asli tidak pernah diubah; salinan .pptx hasil konversi berdiri sendiri dan penyimpanan berikutnya ditulis ke sana.',
     odpImportConvertBtn: 'Konversi dan buka',
     odpImportFailedTitle: 'Tidak dapat mengonversi .odp ini',
     odpImportFailedBody: 'File mungkin rusak atau bukan presentasi ODF yang valid.',
@@ -1181,7 +1181,7 @@ export const tMain = createI18n({
     errImageNoText:
       'Lampiran gambar tidak menyediakan teks; gambar telah dikirim bersama pesan pengguna, silakan lihat gambarnya langsung',
     errNotImage: 'bukan jenis gambar yang didukung',
-    errGskNotLoggedIn: 'Belum masuk ke GenOffice: klik “Masuk ke Genspark” di bawah, lalu coba lagi',
+    errGskNotLoggedIn: 'Belum masuk ke VuaOffice: klik “Masuk ke VuaOffice” di bawah, lalu coba lagi',
     errNoApiKey: 'API Key untuk {provider} belum dikonfigurasi',
     errNoModel: 'Nama model belum dikonfigurasi',
     errGskCli: 'gsk belum masuk: jalankan gsk login dulu untuk masuk ke akun Genspark',
@@ -1268,7 +1268,7 @@ export const tMain = createI18n({
     legacyPptTitle: 'Не удаётся открыть формат .ppt',
     odpImportMsg: 'Преобразовать эту презентацию .{ext}?',
     odpImportDetail:
-      'GenOffice редактирует .pptx, а не ODF. Каждая страница становится слайдом, текстовые поля и изображения располагаются на исходных местах; образцы, макеты заполнителей, таблицы и стили фигур не сохраняются. Исходный файл никогда не изменяется; преобразованный .pptx — отдельная копия, в которую записывается дальнейшее сохранение.',
+      'VuaOffice редактирует .pptx, а не ODF. Каждая страница становится слайдом, текстовые поля и изображения располагаются на исходных местах; образцы, макеты заполнителей, таблицы и стили фигур не сохраняются. Исходный файл никогда не изменяется; преобразованный .pptx — отдельная копия, в которую записывается дальнейшее сохранение.',
     odpImportConvertBtn: 'Преобразовать и открыть',
     odpImportFailedTitle: 'Не удалось преобразовать этот .odp',
     odpImportFailedBody: 'Возможно, файл повреждён или не является допустимой презентацией ODF.',
@@ -1305,7 +1305,7 @@ export const tMain = createI18n({
       'Вложения-изображения не содержат текста; изображение отправлено вместе с сообщением пользователя, просто посмотрите на него',
     errNotImage: 'неподдерживаемый тип изображения',
     errGskNotLoggedIn:
-      'Вы не вошли в GenOffice: нажмите «Войти в Genspark» ниже, войдите и повторите попытку',
+      'Вы не вошли в VuaOffice: нажмите «Войти в VuaOffice» ниже, войдите и повторите попытку',
     errNoApiKey: 'API-ключ для {provider} не настроен',
     errNoModel: 'Не указано имя модели',
     errGskCli:
@@ -1392,7 +1392,7 @@ export const tMain = createI18n({
     legacyPptTitle: 'تعذّر فتح تنسيق .ppt',
     odpImportMsg: 'تحويل هذا العرض التقديمي ‎.{ext}؟',
     odpImportDetail:
-      'يحرّر GenOffice ملفات ‎.pptx ولا يحرّر ODF. تصبح كل صفحة شريحة، مع مربعات النصوص والصور في مواضعها الأصلية؛ أما الشرائح الرئيسية وتخطيطات العناصر النائبة والجداول وأنماط الأشكال فلا تُحفظ. لا يتغيّر الملف الأصلي أبدًا؛ والملف ‎.pptx المحوَّل نسخة مستقلة تُكتب فيها عمليات الحفظ اللاحقة.',
+      'يحرّر VuaOffice ملفات ‎.pptx ولا يحرّر ODF. تصبح كل صفحة شريحة، مع مربعات النصوص والصور في مواضعها الأصلية؛ أما الشرائح الرئيسية وتخطيطات العناصر النائبة والجداول وأنماط الأشكال فلا تُحفظ. لا يتغيّر الملف الأصلي أبدًا؛ والملف ‎.pptx المحوَّل نسخة مستقلة تُكتب فيها عمليات الحفظ اللاحقة.',
     odpImportConvertBtn: 'تحويل وفتح',
     odpImportFailedTitle: 'تعذّر تحويل هذا الملف ‎.odp',
     odpImportFailedBody: 'قد يكون الملف تالفًا أو ليس عرضًا تقديميًا بصيغة ODF صالحًا.',
@@ -1429,7 +1429,7 @@ export const tMain = createI18n({
       'المرفقات من نوع الصور لا توفر نصًا؛ وقد أُرسلت الصورة مع رسالة المستخدم، يكفي النظر إليها مباشرة',
     errNotImage: 'ليس نوع صورة مدعومًا',
     errGskNotLoggedIn:
-      'لم تسجّل الدخول إلى GenOffice: انقر على «تسجيل الدخول إلى Genspark» أدناه ثم أعد المحاولة',
+      'لم تسجّل الدخول إلى VuaOffice: انقر على «تسجيل الدخول إلى VuaOffice» أدناه ثم أعد المحاولة',
     errNoApiKey: 'لم يتم تكوين مفتاح API لـ {provider}',
     errNoModel: 'لم يتم تكوين اسم النموذج',
     errGskCli: 'gsk غير مسجَّل الدخول: شغّل gsk login أولًا لتسجيل الدخول إلى حساب Genspark',
@@ -1512,7 +1512,7 @@ export const tMain = createI18n({
     legacyPptTitle: 'Não é possível abrir o formato .ppt antigo',
     odpImportMsg: 'Converter esta apresentação .{ext}?',
     odpImportDetail:
-      'O GenOffice edita .pptx, não ODF. Cada página torna-se um slide, com caixas de texto e imagens nas posições originais; mestres, layouts de espaços reservados, tabelas e estilos de formas não são preservados. O arquivo original nunca é alterado; o .pptx convertido é uma cópia independente em que os salvamentos seguintes são gravados.',
+      'O VuaOffice edita .pptx, não ODF. Cada página torna-se um slide, com caixas de texto e imagens nas posições originais; mestres, layouts de espaços reservados, tabelas e estilos de formas não são preservados. O arquivo original nunca é alterado; o .pptx convertido é uma cópia independente em que os salvamentos seguintes são gravados.',
     odpImportConvertBtn: 'Converter e abrir',
     odpImportFailedTitle: 'Não foi possível converter este .odp',
     odpImportFailedBody: 'O arquivo pode estar danificado ou não é uma apresentação ODF válida.',
@@ -1549,7 +1549,7 @@ export const tMain = createI18n({
       'Anexos de imagem não têm texto; a imagem é enviada junto com a mensagem do usuário',
     errNotImage: 'não é um tipo de imagem suportado',
     errGskNotLoggedIn:
-      'Não conectado ao GenOffice: clique em “Entrar no Genspark” abaixo, entre e tente novamente',
+      'Não conectado ao VuaOffice: clique em “Entrar no VuaOffice” abaixo, entre e tente novamente',
     errNoApiKey: 'Nenhuma chave de API configurada para {provider}',
     errNoModel: 'Nenhum nome de modelo configurado',
     errGskCli: 'gsk não conectado: execute gsk login primeiro para entrar na sua conta Genspark',
@@ -1636,7 +1636,7 @@ export const tMain = createI18n({
     legacyPptTitle: 'Impossibile aprire il vecchio formato .ppt',
     odpImportMsg: 'Convertire questa presentazione .{ext}?',
     odpImportDetail:
-      'GenOffice modifica .pptx, non ODF. Ogni pagina diventa una diapositiva, con caselle di testo e immagini nelle posizioni originali; schemi, layout dei segnaposto, tabelle e stili delle forme non sono conservati. Il file originale non viene mai modificato; il .pptx convertito è una copia indipendente su cui vengono salvate le modifiche successive.',
+      'VuaOffice modifica .pptx, non ODF. Ogni pagina diventa una diapositiva, con caselle di testo e immagini nelle posizioni originali; schemi, layout dei segnaposto, tabelle e stili delle forme non sono conservati. Il file originale non viene mai modificato; il .pptx convertito è una copia indipendente su cui vengono salvate le modifiche successive.',
     odpImportConvertBtn: 'Converti e apri',
     odpImportFailedTitle: 'Impossibile convertire questo .odp',
     odpImportFailedBody:
@@ -1674,7 +1674,7 @@ export const tMain = createI18n({
       "Gli allegati immagine non hanno testo; l'immagine viene inviata insieme al messaggio dell'utente",
     errNotImage: 'tipo di immagine non supportato',
     errGskNotLoggedIn:
-      'Accesso a GenOffice non effettuato: fai clic su “Accedi a Genspark” qui sotto, accedi e riprova',
+      'Accesso a VuaOffice non effettuato: fai clic su “Accedi a VuaOffice” qui sotto, accedi e riprova',
     errNoApiKey: 'Nessuna chiave API configurata per {provider}',
     errNoModel: 'Nessun nome di modello configurato',
     errGskCli:
@@ -1763,7 +1763,7 @@ export const tMain = createI18n({
     legacyPptTitle: 'Nie można otworzyć starego formatu .ppt',
     odpImportMsg: 'Skonwertować tę prezentację .{ext}?',
     odpImportDetail:
-      'GenOffice edytuje .pptx, a nie ODF. Każda strona staje się slajdem, a pola tekstowe i obrazy trafiają na swoje pierwotne pozycje; wzorce, układy symboli zastępczych, tabele i style kształtów nie są zachowywane. Plik oryginalny nigdy nie jest zmieniany; skonwertowany .pptx to niezależna kopia, do której trafiają kolejne zapisy.',
+      'VuaOffice edytuje .pptx, a nie ODF. Każda strona staje się slajdem, a pola tekstowe i obrazy trafiają na swoje pierwotne pozycje; wzorce, układy symboli zastępczych, tabele i style kształtów nie są zachowywane. Plik oryginalny nigdy nie jest zmieniany; skonwertowany .pptx to niezależna kopia, do której trafiają kolejne zapisy.',
     odpImportConvertBtn: 'Konwertuj i otwórz',
     odpImportFailedTitle: 'Nie można skonwertować tego pliku .odp',
     odpImportFailedBody: 'Plik może być uszkodzony lub nie jest prawidłową prezentacją ODF.',
@@ -1800,7 +1800,7 @@ export const tMain = createI18n({
       'Załączniki graficzne nie zawierają tekstu; obraz jest wysyłany razem z wiadomością użytkownika',
     errNotImage: 'nieobsługiwany typ obrazu',
     errGskNotLoggedIn:
-      'Nie zalogowano do GenOffice: kliknij „Zaloguj się do Genspark” poniżej, zaloguj się i spróbuj ponownie',
+      'Nie zalogowano do VuaOffice: kliknij „Zaloguj się do VuaOffice” poniżej, zaloguj się i spróbuj ponownie',
     errNoApiKey: 'Nie skonfigurowano klucza API dla {provider}',
     errNoModel: 'Nie skonfigurowano nazwy modelu',
     errGskCli:
@@ -1887,7 +1887,7 @@ export const tMain = createI18n({
     legacyPptTitle: 'Nelze otevřít starší formát .ppt',
     odpImportMsg: 'Převést tuto prezentaci .{ext}?',
     odpImportDetail:
-      'GenOffice upravuje .pptx, nikoli ODF. Každá stránka se stane snímkem, textová pole a obrázky zůstanou na původních pozicích; předlohy, rozložení zástupných symbolů, tabulky a styly tvarů se nepřevezmou. Původní soubor se nikdy nemění; převedený .pptx je samostatná kopie, do níž se dalším ukládáním zapisuje.',
+      'VuaOffice upravuje .pptx, nikoli ODF. Každá stránka se stane snímkem, textová pole a obrázky zůstanou na původních pozicích; předlohy, rozložení zástupných symbolů, tabulky a styly tvarů se nepřevezmou. Původní soubor se nikdy nemění; převedený .pptx je samostatná kopie, do níž se dalším ukládáním zapisuje.',
     odpImportConvertBtn: 'Převést a otevřít',
     odpImportFailedTitle: 'Tento soubor .odp nelze převést',
     odpImportFailedBody: 'Soubor může být poškozený nebo to není platná prezentace ODF.',
@@ -2009,7 +2009,7 @@ export const tMain = createI18n({
     legacyPptTitle: 'Kan het oude .ppt-formaat niet openen',
     odpImportMsg: 'Deze .{ext}-presentatie converteren?',
     odpImportDetail:
-      'GenOffice bewerkt .pptx, niet ODF. Elke pagina wordt een dia, met tekstvakken en afbeeldingen op hun oorspronkelijke positie; modellen, plaatsaanduidingslay-outs, tabellen en vormstijlen worden niet overgenomen. Het oorspronkelijke bestand wordt nooit gewijzigd; de omgezette .pptx is een zelfstandige kopie waarin volgende opslaan-acties terechtkomen.',
+      'VuaOffice bewerkt .pptx, niet ODF. Elke pagina wordt een dia, met tekstvakken en afbeeldingen op hun oorspronkelijke positie; modellen, plaatsaanduidingslay-outs, tabellen en vormstijlen worden niet overgenomen. Het oorspronkelijke bestand wordt nooit gewijzigd; de omgezette .pptx is een zelfstandige kopie waarin volgende opslaan-acties terechtkomen.',
     odpImportConvertBtn: 'Converteren en openen',
     odpImportFailedTitle: 'Deze .odp kan niet worden omgezet',
     odpImportFailedBody: 'Het bestand is mogelijk beschadigd of geen geldige ODF-presentatie.',
@@ -2046,7 +2046,7 @@ export const tMain = createI18n({
       'Afbeeldingsbijlagen bevatten geen tekst; de afbeelding wordt samen met het gebruikersbericht verzonden',
     errNotImage: 'geen ondersteund afbeeldingstype',
     errGskNotLoggedIn:
-      'Niet aangemeld bij GenOffice: klik hieronder op “Aanmelden bij Genspark”, meld u aan en probeer het opnieuw',
+      'Niet aangemeld bij VuaOffice: klik hieronder op “Aanmelden bij VuaOffice”, meld u aan en probeer het opnieuw',
     errNoApiKey: 'Geen API-sleutel geconfigureerd voor {provider}',
     errNoModel: 'Geen modelnaam geconfigureerd',
     errGskCli:
@@ -2133,7 +2133,7 @@ export const tMain = createI18n({
     legacyPptTitle: 'Tidak dapat membuka format .ppt lama',
     odpImportMsg: 'Tukar pembentangan .{ext} ini?',
     odpImportDetail:
-      'GenOffice menyunting .pptx, bukan ODF. Setiap halaman menjadi satu slaid, dengan kotak teks dan imej pada kedudukan asalnya; induk, susun atur pemegang tempat, jadual dan gaya bentuk tidak dikekalkan. Fail asal tidak pernah diubah; salinan .pptx yang ditukar ialah salinan berasingan tempat simpanan seterusnya ditulis.',
+      'VuaOffice menyunting .pptx, bukan ODF. Setiap halaman menjadi satu slaid, dengan kotak teks dan imej pada kedudukan asalnya; induk, susun atur pemegang tempat, jadual dan gaya bentuk tidak dikekalkan. Fail asal tidak pernah diubah; salinan .pptx yang ditukar ialah salinan berasingan tempat simpanan seterusnya ditulis.',
     odpImportConvertBtn: 'Tukar dan buka',
     odpImportFailedTitle: 'Tidak dapat menukar .odp ini',
     odpImportFailedBody: 'Fail mungkin rosak atau bukan pembentangan ODF yang sah.',
@@ -2169,7 +2169,7 @@ export const tMain = createI18n({
     errImageNoText: 'Lampiran imej tiada teks; imej dihantar bersama mesej pengguna',
     errNotImage: 'bukan jenis imej yang disokong',
     errGskNotLoggedIn:
-      'Belum log masuk ke GenOffice: klik “Log masuk ke Genspark” di bawah, kemudian cuba lại',
+      'Belum log masuk ke VuaOffice: klik “Log masuk ke VuaOffice” di bawah, kemudian cuba lại',
     errNoApiKey: 'Kunci API untuk {provider} belum dikonfigurasikan',
     errNoModel: 'Nama model belum dikonfigurasikan',
     errGskCli:
@@ -2255,7 +2255,7 @@ export const tMain = createI18n({
     legacyPptTitle: 'לא ניתן לפתוח את הפורמט הישן .ppt',
     odpImportMsg: 'להמיר את מצגת ה‑.{ext} הזו?',
     odpImportDetail:
-      'GenOffice עורך קבצי ‎.pptx ולא ODF. כל עמוד הופך לשקופית, עם תיבות הטקסט והתמונות במקומן המקורי; גבות, פריסות של מצייני מקום, טבלאות וסגנונות צורות אינם נשמרים. קובץ המקור לעולם אינו משתנה; קובץ ה‑.pptx שהומר הוא עותק נפרד שאליו נכתבות השמירות הבאות.',
+      'VuaOffice עורך קבצי ‎.pptx ולא ODF. כל עמוד הופך לשקופית, עם תיבות הטקסט והתמונות במקומן המקורי; גבות, פריסות של מצייני מקום, טבלאות וסגנונות צורות אינם נשמרים. קובץ המקור לעולם אינו משתנה; קובץ ה‑.pptx שהומר הוא עותק נפרד שאליו נכתבות השמירות הבאות.',
     odpImportConvertBtn: 'המר ופתח',
     odpImportFailedTitle: 'לא ניתן להמיר את קובץ ה‑.odp הזה',
     odpImportFailedBody: 'ייתכן שהקובץ פגום או שאינו מצגת ODF תקינה.',
@@ -2290,7 +2290,7 @@ export const tMain = createI18n({
     errParseFailed: 'ניתוח הקובץ נכשל',
     errImageNoText: 'קבצים מצורפים מסוג תמונה אינם מכילים טקסט; התמונה נשלחת יחד עם הודעת המשתמש',
     errNotImage: 'סוג תמונה שאינו נתמך',
-    errGskNotLoggedIn: 'לא מחובר ל-GenOffice: לחץ על "התחבר ל-Genspark" למטה, התחבר ונסה שוב',
+    errGskNotLoggedIn: 'לא מחובר ל-VuaOffice: לחץ על "התחבר ל-VuaOffice" למטה, התחבר ונסה שוב',
     errNoApiKey: 'לא הוגדר מפתח API עבור {provider}',
     errNoModel: 'לא הוגדר שם מודל',
     errGskCli: 'gsk אינו מחובר: הרץ תחילה gsk login כדי להיכנס לחשבון Genspark שלך',
@@ -2373,7 +2373,7 @@ export const tMain = createI18n({
     legacyPptTitle: 'पुराना .ppt प्रारूप नहीं खोला जा सकता',
     odpImportMsg: 'इस .{ext} प्रेजेंटेशन को बदलें?',
     odpImportDetail:
-      'GenOffice .pptx संपादित करता है, ODF नहीं। हर पृष्ठ एक स्लाइड बन जाता है, टेक्स्ट बॉक्स और चित्र अपनी मूल स्थिति पर रखे जाते हैं; मास्टर, प्लेसहोल्डर लेआउट, तालिकाएँ और आकृति शैलियाँ नहीं रखी जातीं। मूल फ़ाइल कभी नहीं बदलती; बदली हुई .pptx एक स्वतंत्र प्रति है जिसमें आगे के सेव लिखे जाते हैं।',
+      'VuaOffice .pptx संपादित करता है, ODF नहीं। हर पृष्ठ एक स्लाइड बन जाता है, टेक्स्ट बॉक्स और चित्र अपनी मूल स्थिति पर रखे जाते हैं; मास्टर, प्लेसहोल्डर लेआउट, तालिकाएँ और आकृति शैलियाँ नहीं रखी जातीं। मूल फ़ाइल कभी नहीं बदलती; बदली हुई .pptx एक स्वतंत्र प्रति है जिसमें आगे के सेव लिखे जाते हैं।',
     odpImportConvertBtn: 'बदलकर खोलें',
     odpImportFailedTitle: 'यह .odp बदला नहीं जा सका',
     odpImportFailedBody: 'फ़ाइल क्षतिग्रस्त हो सकती है या मान्य ODF प्रेजेंटेशन नहीं है।',
@@ -2409,7 +2409,7 @@ export const tMain = createI18n({
     errImageNoText: 'छवि अनुलग्नक में टेक्स्ट नहीं होता; छवि उपयोगकर्ता संदेश के साथ भेजी जाती है',
     errNotImage: 'समर्थित छवि प्रकार नहीं है',
     errGskNotLoggedIn:
-      'GenOffice में साइन इन नहीं है: नीचे “Genspark में साइन इन करें” पर क्लिक करें, साइन इन करें और फिर से कोशिश करें',
+      'VuaOffice में साइन इन नहीं है: नीचे “VuaOffice में साइन इन करें” पर क्लिक करें, साइन इन करें और फिर से कोशिश करें',
     errNoApiKey: '{provider} के लिए कोई API कुंजी कॉन्फ़िगर नहीं है',
     errNoModel: 'कोई मॉडल नाम कॉन्फ़िगर नहीं है',
     errGskCli: 'gsk साइन इन नहीं है: पहले gsk login चलाकर अपने Genspark खाते में साइन इन करें',
@@ -2493,7 +2493,7 @@ export const tMain = createI18n({
     legacyPptTitle: '無法開啟 .ppt 舊格式',
     odpImportMsg: '轉換這個 .{ext} 簡報？',
     odpImportDetail:
-      'GenOffice 只編輯 .pptx，不編輯 ODF。每一頁會變成一張投影片，文字方塊與圖片按原始位置擺放；母片、預留位置版面、表格與圖形樣式不會保留。原始檔案不會被修改，轉換後的 .pptx 是獨立副本，之後的儲存都寫入它。',
+      'VuaOffice 只編輯 .pptx，不編輯 ODF。每一頁會變成一張投影片，文字方塊與圖片按原始位置擺放；母片、預留位置版面、表格與圖形樣式不會保留。原始檔案不會被修改，轉換後的 .pptx 是獨立副本，之後的儲存都寫入它。',
     odpImportConvertBtn: '轉換並開啟',
     odpImportFailedTitle: '無法轉換這個 .odp',
     odpImportFailedBody: '檔案可能已損壞，或不是有效的 ODF 簡報。',
@@ -2528,10 +2528,10 @@ export const tMain = createI18n({
     errParseFailed: '檔案解析失敗',
     errImageNoText: '圖片附件不提供文字,已作為影像隨使用者訊息傳送,直接看圖即可',
     errNotImage: '不是支援的圖片類型',
-    errGskNotLoggedIn: '未登入 Genspark:請點擊下方「登入 Genspark」完成登入後重試',
+    errGskNotLoggedIn: '未登入 VuaOffice:請點擊下方「登入 VuaOffice」完成登入後重試',
     errNoApiKey: '未設定 {provider} 的 API Key',
     errNoModel: '未設定模型名稱',
-    errGskCli: 'gsk 未登入:請先執行 gsk login 登入 Genspark 帳號',
+    errGskCli: 'gsk 未登入:請先執行 gsk login 登入 VuaOffice 帳號',
     errNoDeckAppend:
       '目前沒有可附加的簡報（工作階段不存在）。請先用 mode:"replace" 產生首頁，或改用原生工具新增頁面。',
     errAppendFailed: '附加失敗：{reason}',

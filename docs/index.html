@@ -45,7 +45,7 @@
         "alternateName": ["360 Office Suite", "Vua Office", "VuaOffice AI"],
         "operatingSystem": "Windows 10, Windows 11, macOS 12+, Linux (Ubuntu, Debian, Fedora)",
         "applicationCategory": "BusinessApplication, OfficeApplication",
-        "softwareVersion": "1.0.60",
+        "softwareVersion": "1.0.61",
         "offers": {
           "@type": "Offer",
           "price": "0",
@@ -715,7 +715,7 @@
 
   <!-- Top Announcement Bar -->
   <div class="top-bar">
-    ⚡ <strong>VuaOffice <span id="top-bar-version">v1.0.60</span> đã ra mắt:</strong> Hỗ trợ đồng bộ AI Pack hai chiều với vuahethong.net, hiển thị đầy đủ danh sách gói bản quyền và chuẩn hóa tên gọi VuaOffice Projects. <a href="#changelog">Khám phá tính năng mới &rarr;</a>
+    ⚡ <strong>VuaOffice <span id="top-bar-version">v1.0.61</span> đã ra mắt:</strong> Kéo cập nhật chính thức từ upstream, hợp nhất Native Slide Pipeline, kích hoạt Local AI Egress Proxy chống mass-ban và tự động hủy phiên khi thu hồi thiết bị. <a href="#changelog">Khám phá tính năng mới &rarr;</a>
   </div>
 
   <!-- Header -->
@@ -1166,12 +1166,37 @@
       </div>
 
       <div class="timeline">
+        <!-- v1.0.61 -->
+        <div class="timeline-item">
+          <div class="timeline-header">
+            <span class="timeline-ver">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+              Phiên bản v1.0.61 (Mới nhất)
+            </span>
+            <span class="timeline-date">19/10/2026</span>
+          </div>
+          <ul>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Hợp nhất Native Slide Generation & Upstream Updates:</strong> Tích hợp toàn diện các cập nhật mới nhất từ upstream; thay thế toàn bộ tạo slide đám mây bằng Native Pipeline chạy trực tiếp qua pptx-engine trên máy khách.</span>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Local AI Egress Proxy & Bảo toàn IP Dân cư:</strong> Khởi chạy proxy nội bộ 127.0.0.1:3600/v1 để phát request AI trực tiếp từ card mạng gia đình/văn phòng, bảo vệ tài khoản khỏi thuật toán quét bot ASN của nhà cung cấp.</span>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Tự động phát hiện thu hồi quyền & Đóng tab SSO:</strong> Tự động phát hiện trạng thái device_revoked từ vuahethong.net để đăng xuất an toàn; tối ưu trải nghiệm đăng nhập SSO với cơ chế tự đóng tab sau 10 giây hoặc 3 giây.</span>
+            </li>
+          </ul>
+        </div>
+
         <!-- v1.0.60 -->
         <div class="timeline-item">
           <div class="timeline-header">
             <span class="timeline-ver">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-              Phiên bản v1.0.60 (Mới nhất)
+              Phiên bản v1.0.60
             </span>
             <span class="timeline-date">14/10/2026</span>
           </div>
@@ -1291,34 +1316,9 @@
           </ul>
         </div>
 
-        <!-- v1.0.53 -->
-        <div class="timeline-item">
-          <div class="timeline-header">
-            <span class="timeline-ver">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-              Phiên bản v1.0.53
-            </span>
-            <span class="timeline-date">02/10/2026</span>
-          </div>
-          <ul>
-            <li>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-              <span><strong>Tự động cập nhật mượt mà & chính xác:</strong> Cải tiến cơ chế kiểm tra và tải gói nâng cấp trên tất cả các hệ điều hành (macOS Apple Silicon & Intel, Windows, Linux), đảm bảo ứng dụng luôn nhận diện ngay phiên bản mới nhất.</span>
-            </li>
-            <li>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-              <span><strong>Kênh tải về chính thức an toàn:</strong> Tích hợp điều hướng trực tiếp về trang tải về chính thức của VuaOffice, giúp người dùng dễ dàng cài đặt hoặc nâng cấp bản mới nhanh chóng và an toàn nhất.</span>
-            </li>
-            <li>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-              <span><strong>Nâng cao độ ổn định tổng thể:</strong> Tối ưu hóa tiến trình kiểm tra cập nhật chạy ngầm, loại bỏ hiện tượng gián đoạn và giúp ứng dụng khởi động nhanh hơn.</span>
-            </li>
-          </ul>
-        </div>
-
         <div style="text-align: center; margin-top: 36px;">
           <a href="changelog.html" class="btn-main" style="display: inline-flex; padding: 12px 28px; font-size: 15px;">
-            Xem toàn bộ lịch sử cập nhật (29 phiên bản) →
+            Xem toàn bộ lịch sử cập nhật (30 phiên bản) →
           </a>
         </div>
       </div>

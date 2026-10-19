@@ -667,7 +667,7 @@ export const BUNDLED_FONTS = new Set([
   'GenOffice Serif KR',
   'GenOffice Gothic KR',
   'GenOffice Poppins',
-  'GenOffice DM Sans',
+  'VuaOffice DM Sans',
   'GenOffice Tamil',
   'GenOffice Fullwidth TC',
   'GenOffice Songti SC',
@@ -1047,7 +1047,7 @@ export function cssFontFamily(font: string, followAltName = true): string {
   if (f.includes('poppins')) return `${chain(font, 'GenOffice Poppins', CJK_SANS)},sans-serif`
   // DM Sans renders real in Word when installed; the bundled Latin subset
   // (fonts.css) carries its true advances (corpus 2026-09-30)
-  if (f.includes('dm sans')) return `${chain(font, 'GenOffice DM Sans', CJK_SANS)},sans-serif`
+  if (f.includes('dm sans')) return `${chain(font, 'VuaOffice DM Sans', CJK_SANS)},sans-serif`
   // Montserrat is an M365 cloud font Word renders real, ignoring its fontTable
   // altName; the per-class size-adjusted Liberation Sans alias (fonts.css)
   // carries its wide advances. Only the cloud family names qualify: a
@@ -1070,7 +1070,7 @@ export function cssFontFamily(font: string, followAltName = true): string {
   // SimSun's ASCII is half-width fixed pitch (0.5em); the Songti stand-in is proportional
   // FZ XiaoBiaoSong is missing on Word for Mac and substitutes SimSun (probe 2026-09-30)
   if (/simsun|\u5b8b\u4f53|nsimsun|\u5c0f\u6807\u5b8b|xiaobiaosong/.test(f)) {
-    return `${chain(font, 'GenOffice SimSun Latin', 'GenOffice Songti SC', 'STSong', 'SimSun', CJK_SERIF)},serif`
+    return `${chain(font, 'VuaOffice SimSun Latin', 'GenOffice Songti SC', 'STSong', 'SimSun', CJK_SERIF)},serif`
   }
   if (f.includes('simhei') || f.includes('黑体') || f.includes('细黑') || f.includes('xihei'))
     return `${chain(font, 'Heiti SC', 'STHeiti', 'SimHei', 'PingFang SC', CJK_SANS)},sans-serif`
@@ -1298,7 +1298,7 @@ export function cssFontFamily(font: string, followAltName = true): string {
   // where YaHei itself is missing. Not gated on availability: macOS lists the
   // name for Apple's on-demand BiauKai asset while drawing nothing with it
   if (/\u6a19\u6977|dfkai/.test(f))
-    return `${chain(font, 'Microsoft YaHei', 'GenOffice YaHei Latin', 'PingFang SC', CJK_SANS)},sans-serif`
+    return `${chain(font, 'Microsoft YaHei', 'VuaOffice YaHei Latin', 'PingFang SC', CJK_SANS)},sans-serif`
   if (
     /jhenghei|p?mingliu|biaukai|dfkai|kaiu|正黑|細明|標楷|蘋方|-繁|繁體|pingfang (tc|hk)|(heiti|songti|kaiti) tc/i.test(
       nfkc,

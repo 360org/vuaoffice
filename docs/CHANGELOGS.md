@@ -3,6 +3,27 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.61] - 2026-10-19
+
+### [CORE/UPSTREAM] Hợp nhất Bản cập nhật Upstream, Native Slide Engine & Local AI Proxy
+
+- **[UPSTREAM/MERGE] Đồng bộ 42 commit từ Upstream Official**:
+  - Hợp nhất các cải tiến mới nhất về trình đọc/ghi tài liệu (ODT import, Word filters, PDF Markdown/HTML export).
+  - Tích hợp tính năng Author Name trong theo dõi sửa đổi và bình luận tài liệu Docs, Sheets, Slides.
+  - Tích hợp bộ công cụ kiểm toán bảo mật và giấu dữ liệu nhạy cảm (Redaction Spans) trong trình soạn thảo Docs.
+- **[SLIDES/NATIVE] Ghi đè toàn diện Native Slide Generation**:
+  - Loại bỏ hoàn toàn luồng gọi Cloud bên thứ ba; chuyển hướng 100% việc tạo slide trang đơn sang Native Local Pipeline dựng qua `@genoffice/pptx-engine` trực tiếp trên máy khách.
+- **[EGRESS/PROXY] Local AI Proxy & Bảo toàn IP Dân cư thực tế**:
+  - Triển khai Local AI Proxy nội bộ lắng nghe tại `http://127.0.0.1:3600/v1` (fallback cổng 3601 nếu bận), gửi request AI bằng chính card mạng máy khách để chống Mass-Ban.
+  - Tự động phát hiện địa chỉ IP công cộng của máy khách gửi kèm header `X-Device-IP` tới Odoo Backend để lưu đúng IP dân cư thay vì IP Datacenter.
+- **[SECURITY/SSO] Tự động thu hồi phiên đăng nhập & Đóng tab xác thực SSO**:
+  - Lắng nghe sự kiện `device_revoked`: tự động hủy kết nối tunnel, proxy cục bộ, xóa thiết lập và hiển thị modal thông báo đăng nhập lại.
+  - Tối ưu màn hình đăng nhập SSO trên `vuahethong.net`: tự động đếm ngược 10 giây đóng tab hoặc 3 giây sau khi người dùng nhấp mở lại ứng dụng.
+- **[BRAND/WHITELABEL] Bảo tồn trọn vẹn 11/11 tính năng độc quyền 360 CORP**:
+  - Xác thực thành công 11 cổng kiểm tra: Mail app, VuaAI Pro gateway, Tab rename, Diacritic-folding font search, Native Vision OCR, PDF Forensics, Egress Tunnel.
+
+---
+
 ## [1.0.60] - 2026-10-14
 
 ### [FEAT/AI] Đồng bộ AI Pack Hai Chiều (2-Way Sync) & Chuẩn hóa Toàn diện Nhận diện VuaOffice

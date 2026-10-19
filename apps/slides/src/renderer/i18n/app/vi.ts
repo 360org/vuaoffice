@@ -254,7 +254,7 @@ export const vi = {
   appStatusRecordFailed: 'Không thể lưu bản ghi',
   appStatusNarrationCleared: 'Đã xóa tường thuật',
   appSettingsTitle: 'Cài đặt AI',
-  appSettingsAccount: 'Tài khoản Genspark',
+  appSettingsAccount: 'Tài khoản VuaOffice',
   appSettingsChecking: 'Đang kiểm tra…',
   appSettingsLoggedIn: 'Đã đăng nhập',
   appSettingsLoggedInEmail: 'Đã đăng nhập: {email}',
