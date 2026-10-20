@@ -12,6 +12,7 @@
  * repair); shows as the poster image in PowerPoint.
  */
 import { deflateSync } from 'node:zlib'
+import { crc32 } from './crc32'
 import type { EmuRect, Slide } from './types'
 import { creationIdXml, escapeXmlAttr, hasDefaultFor, maxRelationshipIdNumber } from './xml-utils'
 import { relsPathFor } from './zip'
@@ -43,22 +44,6 @@ const MEDIA_MIME: Record<string, string> = {
 }
 
 // ── Solid-color PNG generation (poster frame fallback, no canvas dependency) ──
-
-const CRC_TABLE = (() => {
-  const t = new Int32Array(256)
-  for (let n = 0; n < 256; n++) {
-    let c = n
-    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1
-    t[n] = c
-  }
-  return t
-})()
-
-function crc32(buf: Uint8Array): number {
-  let c = -1
-  for (let i = 0; i < buf.length; i++) c = CRC_TABLE[(c ^ buf[i]!) & 0xff]! ^ (c >>> 8)
-  return (c ^ -1) >>> 0
-}
 
 function pngChunk(type: string, data: Uint8Array): Buffer {
   const head = Buffer.alloc(8)
@@ -96,7 +81,7 @@ export function solidPng(w: number, h: number, rgb: [number, number, number]): B
 
 // ── Shared part / rels surgery ─────────────────────────────────────────
 
-function ensureDefaultContentType(opened: OpenedPptx, ext: string, mime: string): void {
+export function ensureDefaultContentType(opened: OpenedPptx, ext: string, mime: string): void {
   const ctPath = '[Content_Types].xml'
   const ct = opened.archive.readText(ctPath)
   if (ct && !hasDefaultFor(ct, ext)) {
