@@ -40,6 +40,7 @@ import { z } from 'zod'
 import {
   abortOnDestroyed,
   appMenuLabels,
+  appMenuTemplate,
   buildPrintableHtml,
   configuredDefaultSaveDir,
   contextMenuLabels,
@@ -54,6 +55,7 @@ import {
   helpMenuTemplate,
   viewMenuTemplate,
   windowMenuTemplate,
+  settingsMenuItem,
   installRendererProtocol,
   registerRendererScheme,
   rendererUrl,
@@ -61,6 +63,7 @@ import {
   recoveryCopyDiskNewer,
   configuredAuthorName,
 } from '@genoffice/electron-utils'
+import { createMainProcessProxyDispatcher } from '@genoffice/electron-utils/main-proxy'
 import { createI18n, getUiLang, type Lang, normalizeLang, setUiLang } from '@genoffice/i18n'
 import { ProjectStore } from '@genoffice/project-store'
 
@@ -4806,9 +4809,13 @@ export function setSheetsCloseTabHook(fn: (() => void) | null): void {
 function installApplicationMenu(): void {
   const sendMenuAction = sendSheetsMenuAction
   const labels = appMenuLabels(getUiLang())
+  const appMenu = appMenuTemplate(process.platform, labels, {
+    appLabel: app.name,
+    extra: [settingsMenuItem(labels)],
+  })
   Menu.setApplicationMenu(
     Menu.buildFromTemplate([
-      ...(process.platform === 'darwin' ? [{ role: 'appMenu' as const }] : []),
+      ...(appMenu ? [appMenu] : []),
       {
         label: tm('menuFile'),
         submenu: [
@@ -4856,6 +4863,8 @@ function installApplicationMenu(): void {
             : process.platform === 'darwin'
               ? { role: 'close' as const, label: tm('menuClose') }
               : { role: 'quit' as const, label: tm('menuQuit') },
+          { type: 'separator' },
+          settingsMenuItem(labels),
         ],
       },
       {
@@ -4915,12 +4924,14 @@ async function applyMainProcessProxy(): Promise<void> {
     // dispatcher below — forward the proxy to them via env
     setGskProxyUrl(proxyUrl)
     try {
-      const { ProxyAgent, setGlobalDispatcher } = await import('undici')
-      setGlobalDispatcher(new ProxyAgent(proxyUrl))
+      const { setGlobalDispatcher } = await import('undici')
+      // loopback stays direct: a Custom provider on 127.0.0.1 must not ride
+      // the proxy as an absolute-form request (#2084)
+      setGlobalDispatcher(await createMainProcessProxyDispatcher(proxyUrl))
       // strip user:pass credentials before logging
       console.log('[proxy] main-process fetch via', proxyUrl.replace(/\/\/[^@/]*@/, '//***@'))
     } catch (e) {
-      console.warn('[proxy] failed to set ProxyAgent:', e)
+      console.warn('[proxy] failed to set proxy dispatcher:', e)
     }
   }
   const envProxy =

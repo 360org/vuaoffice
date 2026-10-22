@@ -59,6 +59,7 @@ import {
   DEFAULT_SAVE_DIR_KEY,
   GITHUB_REPO_URL,
   appMenuLabels,
+  appMenuTemplate,
   contextMenuLabels,
   editMenuTemplate,
   installContextMenu,
@@ -75,7 +76,9 @@ import {
   windowMenuTemplate,
   aboutMenuItem,
   checkUpdatesMenuItem,
+  setSettingsInvoker,
   setUpdateCheckInvoker,
+  settingsMenuItem,
   installRendererProtocol,
   DROP_OPEN_CHANNEL,
   AUTHOR_NAME_KEY,
@@ -83,6 +86,7 @@ import {
   sanitizeAuthorName,
   systemAuthorName,
 } from '@genoffice/electron-utils'
+import { createMainProcessProxyDispatcher } from '@genoffice/electron-utils/main-proxy'
 import {
   readAppSettings,
   writeAppSetting,
@@ -95,6 +99,7 @@ import { controlHandler } from './control-handlers'
 import { installCliLinkBestEffort } from './cli-link'
 import { createDefaultAppService, execFileRunner } from './default-app'
 import { registerIntegrationsIpc } from './integrations-ipc'
+import { makeUserCliRunner, registerUserSkillsIpc } from './user-cli'
 import {
   ANALYTICS_ENABLED_KEY,
   analyticsEnabledFrom,
@@ -6008,8 +6013,15 @@ async function openFileViaDialog(): Promise<void> {
 }
 
 function buildHomeMenu(): void {
+  const labels = appMenuLabels(currentLang())
+  // macOS only: the application menu is spelled out so it can carry a
+  // Settings entry of our own (role:'appMenu' is a fixed template)
+  const appMenu = appMenuTemplate(process.platform, labels, {
+    appLabel: app.name,
+    extra: [settingsMenuItem(labels)],
+  })
   const template: MenuItemConstructorOptions[] = [
-    ...macAppMenu(),
+    ...(appMenu ? [appMenu] : []),
     {
       label: tm('menuFile'),
       submenu: [
@@ -6035,6 +6047,8 @@ function buildHomeMenu(): void {
         },
         { type: 'separator' },
         { role: 'close', label: tm('menuClose') },
+        { type: 'separator' },
+        settingsMenuItem(labels),
       ],
     },
     viewMenuTemplate(),
@@ -6057,8 +6071,15 @@ function buildHomeMenu(): void {
 // ---- pdf menu (pdf-main has no menu of its own; the shell owns pdf tabs, so it builds one) ----
 
 function buildPdfMenu(): void {
+  const labels = appMenuLabels(currentLang())
+  // macOS only: the application menu is spelled out so it can carry a
+  // Settings entry of our own (role:'appMenu' is a fixed template)
+  const appMenu = appMenuTemplate(process.platform, labels, {
+    appLabel: app.name,
+    extra: [settingsMenuItem(labels)],
+  })
   const template: MenuItemConstructorOptions[] = [
-    ...macAppMenu(),
+    ...(appMenu ? [appMenu] : []),
     {
       label: tm('menuFile'),
       submenu: [
@@ -6118,6 +6139,8 @@ function buildPdfMenu(): void {
           accelerator: 'CmdOrCtrl+W',
           click: () => closeFocusedEditor(),
         },
+        { type: 'separator' },
+        settingsMenuItem(labels),
       ],
     },
     editMenuTemplate(process.platform, appMenuLabels(currentLang())),
@@ -6139,8 +6162,15 @@ function buildPdfMenu(): void {
 // ---- markdown menu (markdown-main has no menu of its own; the shell owns markdown tabs) ----
 
 function buildMarkdownMenu(): void {
+  const labels = appMenuLabels(currentLang())
+  // macOS only: the application menu is spelled out so it can carry a
+  // Settings entry of our own (role:'appMenu' is a fixed template)
+  const appMenu = appMenuTemplate(process.platform, labels, {
+    appLabel: app.name,
+    extra: [settingsMenuItem(labels)],
+  })
   const template: MenuItemConstructorOptions[] = [
-    ...macAppMenu(),
+    ...(appMenu ? [appMenu] : []),
     {
       label: tm('menuFile'),
       submenu: [
@@ -6216,6 +6246,8 @@ function buildMarkdownMenu(): void {
           accelerator: 'CmdOrCtrl+W',
           click: () => closeFocusedEditor(),
         },
+        { type: 'separator' },
+        settingsMenuItem(labels),
       ],
     },
     editMenuTemplate(process.platform, appMenuLabels(currentLang())),
@@ -6237,9 +6269,15 @@ function buildMarkdownMenu(): void {
 // ---- html menu (html-main has no menu of its own; the shell owns html tabs) ----
 
 function buildHtmlMenu(): void {
-  const isMac = process.platform === 'darwin'
+  const labels = appMenuLabels(currentLang())
+  // macOS only: the application menu is spelled out so it can carry a
+  // Settings entry of our own (role:'appMenu' is a fixed template)
+  const appMenu = appMenuTemplate(process.platform, labels, {
+    appLabel: app.name,
+    extra: [settingsMenuItem(labels)],
+  })
   const template: MenuItemConstructorOptions[] = [
-    ...(isMac ? [{ role: 'appMenu' as const }] : []),
+    ...(appMenu ? [appMenu] : []),
     {
       label: tm('menuFile'),
       submenu: [
@@ -6308,6 +6346,8 @@ function buildHtmlMenu(): void {
           accelerator: 'CmdOrCtrl+W',
           click: () => closeFocusedEditor(),
         },
+        { type: 'separator' },
+        settingsMenuItem(labels),
       ],
     },
     editMenuTemplate(process.platform, appMenuLabels(currentLang())),
@@ -6809,6 +6849,20 @@ function installBackToHomeItems(): void {
   setSlidesExtraFileMenuItems([backToHomeItem])
 }
 
+/** The Settings view lives in the Home tab, so every app's menu points here:
+ *  ⌘, lands on it from anywhere in the suite. The window comes back first if
+ *  it was hidden or minimized, and asking again re-opens the same panel —
+ *  the renderer keeps one. */
+function openSettingsView(): void {
+  const win = shellWindow ?? BrowserWindow.getFocusedWindow()
+  if (!win || win.isDestroyed()) return
+  if (win.isMinimized()) win.restore()
+  win.show()
+  win.focus()
+  tabManager?.openHomeTab()
+  win.webContents.send(HOME_CHANNELS.openSettings, { section: 'general' })
+}
+
 function installDockMenu(): void {
   if (process.platform !== 'darwin') return
   app.dock?.setMenu(
@@ -6859,12 +6913,14 @@ async function installMainProcessProxy(): Promise<void> {
   // the dispatcher below — forward the proxy to them via env
   setGskProxyUrl(proxyUrl)
   try {
-    const { ProxyAgent, setGlobalDispatcher } = await import('undici')
-    setGlobalDispatcher(new ProxyAgent(proxyUrl))
+    const { setGlobalDispatcher } = await import('undici')
+    // loopback stays direct: a Custom provider on 127.0.0.1 must not ride
+    // the proxy as an absolute-form request (#2084)
+    setGlobalDispatcher(await createMainProcessProxyDispatcher(proxyUrl))
     // strip user:pass credentials before logging
     console.log('[proxy] main-process fetch via', proxyUrl.replace(/\/\/[^@/]*@/, '//***@'))
   } catch (e) {
-    console.warn('[proxy] failed to set ProxyAgent:', e)
+    console.warn('[proxy] failed to set proxy dispatcher:', e)
   }
 }
 
@@ -7030,6 +7086,8 @@ registerIntegrationsIpc({
     : join(APPS_ROOT, '..', 'packages', 'cli', 'package.json'),
 })
 registerTabsIpc()
+registerDroppedFilesIpc()
+registerUserSkillsIpc({ cliRunner: makeUserCliRunner })
 
 // sheets' project:resolveChat goes through the handler registered by docs-main; the sessionId reverse lookup hooks in here
 setSessionPathResolver(resolveSheetsSessionPath)
@@ -7289,6 +7347,8 @@ app.whenReady().then(async () => {
   installBackToHomeItems()
   installDockMenu()
   setUpdateCheckInvoker(() => void checkForUpdatesNow())
+  // every app's Settings entry (⌘, / Ctrl+,) lands on the shell's Settings view
+  setSettingsInvoker(() => openSettingsView())
   initAutoUpdater(() => shellWindow, currentUpdateChannel())
   // resource watchdog: a renderer that stays hot for minutes gets diagnostics
   // recorded and the user an offer to close the document (headless exports
