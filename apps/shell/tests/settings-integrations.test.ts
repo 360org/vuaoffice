@@ -186,7 +186,8 @@ describe('Settings → Integrations', () => {
     const exeName = /VuaOffice/.test(mcpLaunch({ status: 'missing', launcherDir: winDir }).command) ? 'VuaOffice' : 'GenOffice'
     const win = {
       command: `${winDir}\\..\\..\\${exeName}.exe`,
-      args: [`${winDir}\\${exeName === "VuaOffice" ? "vuaoffice" : "genoffice"}.cjs`, 'mcp'],
+      // the packaged bundle is always cli/genoffice.cjs (electron-builder extraResources)
+      args: [`${winDir}\\genoffice.cjs`, 'mcp'],
       env: { ELECTRON_RUN_AS_NODE: '1' },
     }
     expect(mcpLaunch({ status: 'missing', launcherDir: winDir })).toEqual(win)

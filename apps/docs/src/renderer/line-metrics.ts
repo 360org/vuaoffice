@@ -677,9 +677,9 @@ export const BUNDLED_FONTS = new Set([
   'GenOffice Serif KR',
   'GenOffice Gothic KR',
   'GenOffice Poppins',
-  'GenOffice DM Sans',
+  'VuaOffice DM Sans',
   'GenOffice Tamil',
-  'GenOffice Bengali',
+  'VuaOffice Bengali',
   'GenOffice Fullwidth TC',
   'GenOffice Songti SC',
   'GenOffice Songti TC',
@@ -779,7 +779,7 @@ export function unloadedBundledPrimary(chain: string): string | null {
  * while layout later resolves the loaded alias (0.69/0.25em) as primary.
  */
 function isWebFace(family: string): boolean {
-  return isBundledFont(family) || / GO$/.test(family) || /^GenOffice /.test(family)
+  return isBundledFont(family) || / GO$/.test(family) || /^VuaOffice /.test(family)
 }
 
 /** bundled web face a chain resolves to before any installed family or generic */
@@ -1063,11 +1063,11 @@ const STAND_IN_CHAINS: Record<string, [string[], Generic]> = {
   nanummyeongjoextrabold: [KO_SERIF, 'serif'],
   '\ub098\ub214\uba85\uc870 extrabold': [KO_SERIF, 'serif'],
   simsun: [
-    ['GenOffice SimSun Latin', 'GenOffice Songti SC', 'STSong', 'SimSun', CJK_SERIF],
+    ['VuaOffice SimSun Latin', 'GenOffice Songti SC', 'STSong', 'SimSun', CJK_SERIF],
     'serif',
   ],
   '\u5b8b\u4f53': [
-    ['GenOffice SimSun Latin', 'GenOffice Songti SC', 'STSong', 'SimSun', CJK_SERIF],
+    ['VuaOffice SimSun Latin', 'GenOffice Songti SC', 'STSong', 'SimSun', CJK_SERIF],
     'serif',
   ],
   simhei: [['Heiti SC', 'STHeiti', 'SimHei', 'PingFang SC', CJK_SANS], 'sans-serif'],
@@ -1114,7 +1114,7 @@ function latinSlotHead(sub: string): string[] {
   const k = sub.normalize('NFKC').toLowerCase()
   if (k === 'calibri') return ['Carlito GO']
   if (k === 'cambria') return ['KR Theme Latin GO']
-  if (k === 'simsun' || k === '\u5b8b\u4f53') return ['GenOffice SimSun Latin']
+  if (k === 'simsun' || k === '\u5b8b\u4f53') return ['VuaOffice SimSun Latin']
   return latinChainHead(sub)
 }
 
@@ -1255,7 +1255,7 @@ export function cssFontFamily(font: string): string {
   if (f.includes('poppins')) return `${chain(font, 'GenOffice Poppins', CJK_SANS)},sans-serif`
   // DM Sans renders real in Word when installed; the bundled Latin subset
   // (fonts.css) carries its true advances (corpus 2026-09-30)
-  if (f.includes('dm sans')) return `${chain(font, 'GenOffice DM Sans', CJK_SANS)},sans-serif`
+  if (f.includes('dm sans')) return `${chain(font, 'VuaOffice DM Sans', CJK_SANS)},sans-serif`
   // Montserrat is an M365 cloud font Word renders real, ignoring its fontTable
   // altName; the per-class size-adjusted Liberation Sans alias (fonts.css)
   // carries its wide advances. Only the cloud family names qualify: a
@@ -1273,7 +1273,7 @@ export function cssFontFamily(font: string): string {
   // registered weight-normal only, lets Blink synthesize. Unresolvable elsewhere.
   // SimSun's ASCII is half-width fixed pitch (0.5em); the Songti stand-in is proportional
   if (/simsun|\u5b8b\u4f53|nsimsun/.test(f)) {
-    return `${chain(font, 'GenOffice SimSun Latin', 'GenOffice Songti SC', 'STSong', 'SimSun', CJK_SERIF)},serif`
+    return `${chain(font, 'VuaOffice SimSun Latin', 'GenOffice Songti SC', 'STSong', 'SimSun', CJK_SERIF)},serif`
   }
   if (f.includes('simhei') || f.includes('黑体') || f.includes('细黑') || f.includes('xihei'))
     return `${chain(font, 'Heiti SC', 'STHeiti', 'SimHei', 'PingFang SC', CJK_SANS)},sans-serif`
@@ -1452,7 +1452,7 @@ export function cssFontFamily(font: string): string {
   // where YaHei itself is missing. Not gated on availability: macOS lists the
   // name for Apple's on-demand BiauKai asset while drawing nothing with it
   if (/\u6a19\u6977|dfkai/.test(f))
-    return `${chain(font, 'Microsoft YaHei', 'GenOffice YaHei Latin', 'PingFang SC', CJK_SANS)},sans-serif`
+    return `${chain(font, 'Microsoft YaHei', 'VuaOffice YaHei Latin', 'PingFang SC', CJK_SANS)},sans-serif`
   if (
     /jhenghei|p?mingliu|biaukai|dfkai|kaiu|正黑|細明|標楷|蘋方|-繁|繁體|pingfang (tc|hk)|(heiti|songti|kaiti) tc/i.test(
       nfkc,
@@ -1473,7 +1473,7 @@ export function cssFontFamily(font: string): string {
   // Nirmala-metric face (fonts.css) leads. On Windows the declared name
   // resolves natively ahead of the chain.
   if (/nirmala/i.test(nfkc)) {
-    return `${chain(font, 'GenOffice Bengali', 'Kohinoor Bangla', 'Bangla Sangam MN')},sans-serif`
+    return `${chain(font, 'VuaOffice Bengali', 'Kohinoor Bangla', 'Bangla Sangam MN')},sans-serif`
   }
   // Tamil: Latha renders through the bundled Latha-metric face (fonts.css);
   // Vijaya and missing Tamil names lay out as Vijaya on Word for Mac (probe

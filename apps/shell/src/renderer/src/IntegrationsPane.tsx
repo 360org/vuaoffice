@@ -1,7 +1,7 @@
-import { mcpLaunch, type McpLaunch } from '@genoffice/cli/mcp-launch'
 import { useCallback, useEffect, useState } from 'react'
 import type { TFunc } from './locale'
 import { McpServerSection } from './McpServerSection'
+import { mcpLaunch, type McpLaunch } from '../../shared/mcp-launch'
 import {
   SKILL_NAME,
   type AgentId,
@@ -29,7 +29,7 @@ interface Pending {
   agentId?: AgentId
 }
 
-export const NPX_INSTALL_COMMAND = 'npx skills add genspark-ai/genoffice'
+export const NPX_INSTALL_COMMAND = 'npx skills add 360org/vuaoffice'
 
 /** some detected assistant holds an older copy of the skill than the bundled one */
 export const skillUpdateDue = (s: IntegrationsStatus): boolean =>

@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.0.62",
+    "date": "23/10/2026",
+    "highlight": "Kéo cập nhật mới nhất từ upstream (Mailings, so sánh tài liệu, ẩn ô khỏi AI), giữ nguyên toàn bộ tính năng 360 CORP và sửa các lỗi phát sinh sau hợp nhất.",
+    "features": [
+      {
+        "title": "Cập nhật upstream mới nhất",
+        "desc": "Tab Mailings trộn dữ liệu vào tài liệu, so sánh hai tài liệu ra bản redline theo dõi thay đổi, ẩn ô khỏi mô hình AI trong Sheets, mở OpenDocument (.odt/.ods/.odp) dưới dạng bản sao có thể chỉnh sửa."
+      },
+      {
+        "title": "Liên kết mở tệp OpenDocument",
+        "desc": "Bộ cài khai báo đủ .odt/.ott/.ods/.ots/.odp/.otp để hệ điều hành gửi các tệp này tới VuaOffice từ Finder/Explorer."
+      },
+      {
+        "title": "Ổn định sau hợp nhất",
+        "desc": "Tab VuaOffice Mail tương thích cơ chế ngủ tab mới; Cài đặt → Tích hợp không còn nạp mã CLI vào giao diện; khử khoá trùng trong bản dịch tiếng Việt Slides."
+      }
+    ]
+  },
+  {
     "version": "1.0.61",
     "date": "19/10/2026",
     "highlight": "Kéo cập nhật chính thức từ upstream, hợp nhất Native Slide Pipeline, kích hoạt Local AI Egress Proxy chống mass-ban và tự động hủy phiên khi thu hồi thiết bị.",

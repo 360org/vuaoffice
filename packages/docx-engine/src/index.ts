@@ -2,6 +2,14 @@
 export { REDACT_EL, REDACT_NS, REDACT_PREFIX } from '@genoffice/agent-core/redact-range'
 export * from './types'
 export {
+  resolveCtxOf,
+  resolveParagraphPropsXml,
+  resolveRunProps,
+  type EffectivePPr,
+  type EffectiveRPr,
+  type ResolveCtx,
+} from './resolve-props'
+export {
   deobfuscateOdttf,
   isSfnt,
   parseFontTable,

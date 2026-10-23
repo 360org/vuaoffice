@@ -87,6 +87,11 @@ const { FakeWindow, detachedWindows } = vi.hoisted(() => {
 })
 
 vi.mock('electron', () => ({
+  app: {
+    getPath: vi.fn(() => '/tmp'),
+    isPackaged: false,
+    on: vi.fn(),
+  },
   BrowserWindow: class extends FakeWindow {
     constructor(opts: { title?: string; show?: boolean; x?: number; y?: number } = {}) {
       super()

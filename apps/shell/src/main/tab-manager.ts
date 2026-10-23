@@ -96,7 +96,7 @@ const HOME_ID = 'home'
  */
 export class TabManager {
   private readonly tabs: TabRecord[] = [
-    { id: HOME_ID, kind: 'home', view: null, title: 'GenOffice', lastActiveAt: Date.now() },
+    { id: HOME_ID, kind: 'home', view: null, title: 'VuaOffice', lastActiveAt: Date.now() },
   ]
   private activeId: string = HOME_ID
   private nextId = 1
@@ -355,7 +355,7 @@ export class TabManager {
       id,
       kind: 'help',
       view,
-      title: this.untitled('help', 'GenOffice Help'),
+      title: this.untitled('help', 'VuaOffice Help'),
       lastActiveAt: Date.now(),
     })
     this.activateTab(id)
@@ -378,7 +378,7 @@ export class TabManager {
       lastActiveAt: Date.now(),
       kind: 'docs',
       view,
-      title: openPath ? basename(openPath) : this.untitled('docs', 'GenOffice Docs'),
+      title: openPath ? basename(openPath) : this.untitled('docs', 'VuaOffice Docs'),
       filePath: openPath,
     })
     this.activateTab(id)
@@ -530,7 +530,8 @@ export class TabManager {
       id,
       kind: 'mail',
       view,
-      title: 'GenOffice Mail',
+      title: 'VuaOffice Mail',
+      lastActiveAt: Date.now(),
     })
     this.activateTab(id)
     return id

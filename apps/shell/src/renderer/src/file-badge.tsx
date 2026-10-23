@@ -24,6 +24,22 @@ const FILE_ICONS: Record<string, string> = {
 }
 
 export function FileBadge({ ext, size }: { ext: string; size: number }) {
+  // 360: VuaOffice Mail .eml badge
+  if (ext === 'eml') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 240 240" aria-hidden="true">
+        <rect width="240" height="240" rx="48" fill="#0078D4" />
+        <path
+          d="M52 76L120 128L188 76"
+          stroke="#ffffff"
+          strokeWidth="14"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <rect x="52" y="76" width="136" height="88" rx="8" stroke="#ffffff" strokeWidth="14" fill="none" />
+      </svg>
+    )
+  }
   const icon = FILE_ICONS[ext]
   if (icon) {
     return <img src={icon} width={size} height={size} alt="" aria-hidden="true" />
