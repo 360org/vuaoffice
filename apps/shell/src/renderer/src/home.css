@@ -1309,7 +1309,8 @@ body.vib .home {
   color: var(--text);
 }
 
-/* fixed-position popup anchored via inline top/right (set at open time) so it
+/* fixed-position popup; left/top are set in a layout effect (placeFolderMenu) so it
+   opens to the right of the pointer and stays inside the viewport, and it
    escapes the scrollable tree without the tree losing overflow-y */
 .folder-menu {
   position: fixed;
