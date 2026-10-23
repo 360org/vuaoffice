@@ -440,8 +440,8 @@ if (!app.isPackaged) {
     // moves once — it sits on the same volume as appData, so the rename is
     // atomic, and a concurrent dev instance keeps its open file handles.
     const appData = app.getPath('appData')
-    const devDir = join(appData, 'VuaOffice-Dev')
-    const oldDevDir = join(appData, 'VuaOffice Dev')
+    const devDir = join(appData, 'GenOffice-Dev')
+    const oldDevDir = join(appData, 'GenOffice Dev')
     let userData = devDir
     if (existsSync(oldDevDir) && !existsSync(devDir)) {
       try {
@@ -779,7 +779,7 @@ let cachedGithubStars: number | null = null
 async function fetchGithubStars(): Promise<number | null> {
   if (cachedGithubStars !== null) return cachedGithubStars
   try {
-    const response = await fetch('https://api.github.com/repos/360org/vuaoffice', {
+    const response = await fetch('https://api.github.com/repos/genspark-ai/genoffice', {
       headers: { Accept: 'application/vnd.github+json' },
       signal: AbortSignal.timeout(5000),
     })
@@ -3959,7 +3959,7 @@ function createShellWindow(): void {
     ...(restored ? { x: restored.x, y: restored.y } : {}),
     minWidth: SHELL_WINDOW_MIN_WIDTH,
     minHeight: SHELL_WINDOW_MIN_HEIGHT,
-    title: 'VuaOffice',
+    title: 'GenOffice',
     // vibrancy: editor modules punch translucent regions (e.g. the slides
     // thumbnail pane) through to the desktop
     ...(process.platform === 'darwin'
@@ -4452,7 +4452,7 @@ function newDocTab(): void {
 
 /** MCP: open a blank docs tab and return its webContents id, for the visible-editor bridge */
 function openBlankDocsTabForMcp(): number {
-  if (!tabManager) throw new Error('VuaOffice is not ready')
+  if (!tabManager) throw new Error('GenOffice is not ready')
   const tabId = tabManager.openDocsTab(undefined, { newBlank: true })
   const view = tabManager.docsTabs().find((t) => t.id === tabId)
   if (!view) throw new Error('the new document tab could not be opened')
@@ -4469,7 +4469,7 @@ function openBlankDocsTabForMcp(): number {
  * marking is skipped, the file name is the agent's business.
  */
 async function openBlankSheetsTabForMcp(): Promise<number> {
-  if (!tabManager) throw new Error('VuaOffice is not ready')
+  if (!tabManager) throw new Error('GenOffice is not ready')
   const filePath = uniquePathIn(defaultSaveDir(), `${tm('untitledSheet')}.xlsx`)
   await atomicWriteFile(filePath, await blankXlsxBuffer())
   const tabId = tabManager.openSheetsTab(filePath)
@@ -4540,7 +4540,7 @@ function abandonBlankTabForMcp(
 
 /** MCP: open a blank slides tab and return its webContents id, for the visible-deck bridge */
 function openBlankSlidesTabForMcp(): number {
-  if (!tabManager) throw new Error('VuaOffice is not ready')
+  if (!tabManager) throw new Error('GenOffice is not ready')
   const tabId = tabManager.openSlidesTab()
   const view = tabManager.slidesTabs().find((t) => t.id === tabId)
   if (!view) throw new Error('the new presentation tab could not be opened')
@@ -7093,7 +7093,7 @@ registerUserSkillsIpc({ cliRunner: makeUserCliRunner })
 setSessionPathResolver(resolveSheetsSessionPath)
 
 /** Dev-only pid marker for the takeover below; scoped to userData like the lock itself. */
-app.name = 'VuaOffice'
+app.name = 'GenOffice'
 const devPidFile = () => join(app.getPath('userData'), 'dev-instance.pid')
 
 /** Hidden-window exporters, one per editor module (HEADLESS_TARGETS says which formats each takes). */

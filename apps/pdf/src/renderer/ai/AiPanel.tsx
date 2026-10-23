@@ -793,7 +793,7 @@ export function AiPanel({
       <header className="ai-panel-header">
         <span className="ai-panel-title">
           <GensparkMark size={22} />
-          VuaAI Pro
+          Genspark
         </span>
         <div className="ai-panel-header-actions">
           <AiPanelSideButton

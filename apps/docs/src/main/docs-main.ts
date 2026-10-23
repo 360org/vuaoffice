@@ -216,7 +216,7 @@ const tMain = createI18n({
     filterWord: 'Word 文档',
     odtImportMsg: '转换 .{ext} 文档？',
     odtImportDetail:
-      'VuaOffice 只编辑 .docx，不编辑 ODF。正文、标题、列表、表格和图片会转换过来；脚注、批注和文本框不会完整保留。原文件不会被修改，转换出的 .docx 是一份独立副本，之后的保存都写入它。', // public-hygiene: allow
+      'GenOffice 只编辑 .docx，不编辑 ODF。正文、标题、列表、表格和图片会转换过来；脚注、批注和文本框不会完整保留。原文件不会被修改，转换出的 .docx 是一份独立副本，之后的保存都写入它。', // public-hygiene: allow
     odtImportConvertBtn: '转换并打开',
     dlgSaveAs: '另存为',
     closeUnsavedMsg: '此文档有未保存的更改。',
@@ -252,7 +252,7 @@ const tMain = createI18n({
     errParseFailed: '文件解析失败',
     errImageNoText: '图片附件不提供文本,已作为图像随用户消息发送,直接看图即可',
     errNotImage: '不是支持的图片类型',
-    errGskNotLoggedIn: '未登录 VuaOffice:请点击下方「登录 VuaOffice」完成登录后重试',
+    errGskNotLoggedIn: '未登录 Genspark:请点击下方「登录 Genspark」完成登录后重试',
     errNoApiKey: '未配置 {provider} 的 API Key',
     errAiRegion: '该模型的厂商不向当前地区提供服务，请换一个模型或切换网络',
     errAiBusy: 'AI 服务当前繁忙，请稍后重试',
@@ -354,7 +354,7 @@ const tMain = createI18n({
     filterWord: 'Word Documents',
     odtImportMsg: 'Convert this .{ext} document?',
     odtImportDetail:
-      'VuaOffice edits .docx, not ODF. Body text, headings, lists, tables and images carry over; footnotes, comments and text boxes are not fully preserved. The original file is never changed; the converted .docx is a separate copy that later saves write to.',
+      'GenOffice edits .docx, not ODF. Body text, headings, lists, tables and images carry over; footnotes, comments and text boxes are not fully preserved. The original file is never changed; the converted .docx is a separate copy that later saves write to.',
     odtImportConvertBtn: 'Convert and open',
     dlgSaveAs: 'Save As',
     closeUnsavedMsg: 'This document has unsaved changes.',
@@ -393,7 +393,7 @@ const tMain = createI18n({
     errImageNoText: 'Image attachments have no text; the image is sent along with the user message',
     errNotImage: 'not a supported image type',
     errGskNotLoggedIn:
-      'Not signed in to VuaOffice: click “Sign in to VuaOffice” below, sign in, then retry',
+      'Not signed in to GenOffice: click “Sign in to Genspark” below, sign in, then retry',
     errNoApiKey: 'No API key configured for {provider}',
     errAiRegion:
       "This model's provider does not serve your current region — pick another model or change your network",
@@ -496,7 +496,7 @@ const tMain = createI18n({
     filterWord: 'Tài liệu Word',
     odtImportMsg: 'Chuyển đổi tài liệu .{ext} này?',
     odtImportDetail:
-      'VuaOffice chỉnh sửa .docx chứ không chỉnh sửa ODF. Nội dung, tiêu đề, danh sách, bảng và hình ảnh được chuyển đổi; chú thích cuối trang, bình luận và hộp văn bản không được giữ đầy đủ. Tệp gốc không bao giờ bị sửa; bản .docx sau chuyển đổi là một bản sao độc lập để tiếp tục chỉnh sửa và lưu.',
+      'GenOffice chỉnh sửa .docx chứ không chỉnh sửa ODF. Nội dung, tiêu đề, danh sách, bảng và hình ảnh được chuyển đổi; chú thích cuối trang, bình luận và hộp văn bản không được giữ đầy đủ. Tệp gốc không bao giờ bị sửa; bản .docx sau chuyển đổi là một bản sao độc lập để tiếp tục chỉnh sửa và lưu.',
     odtImportConvertBtn: 'Chuyển đổi và mở',
     dlgSaveAs: 'Lưu dưới dạng',
     closeUnsavedMsg: 'Tài liệu này có những thay đổi chưa được lưu.',
@@ -639,7 +639,7 @@ const tMain = createI18n({
     filterWord: 'Word 文書',
     odtImportMsg: 'この .{ext} 文書を変換しますか？',
     odtImportDetail:
-      'VuaOffice は ODF ではなく .docx を編集します。本文・見出し・リスト・表・画像は変換されますが、脚注・コメント・テキストボックスは完全には保持されません。元のファイルは変更されず、変換後の .docx は独立したコピーとして以後の保存先になります。',
+      'GenOffice は ODF ではなく .docx を編集します。本文・見出し・リスト・表・画像は変換されますが、脚注・コメント・テキストボックスは完全には保持されません。元のファイルは変更されず、変換後の .docx は独立したコピーとして以後の保存先になります。',
     odtImportConvertBtn: '変換して開く',
     dlgSaveAs: '名前を付けて保存',
     closeUnsavedMsg: 'このドキュメントに未保存の変更があります。',
@@ -678,7 +678,7 @@ const tMain = createI18n({
       '画像の添付ファイルはテキストを提供しません。画像としてユーザーメッセージと一緒に送信されるため、そのまま画像をご確認ください',
     errNotImage: 'サポートされていない画像形式です',
     errGskNotLoggedIn:
-      'VuaOffice にサインインしていません。下の「VuaOffice にサインイン」からサインインして再試行してください',
+      'Genspark にサインインしていません。下の「Genspark にサインイン」からサインインして再試行してください',
     errNoApiKey: '{provider} の API キーが設定されていません',
     errAiRegion:
       'このモデルの提供元は現在の地域ではサービスを提供していません。別のモデルを選ぶか、ネットワークを切り替えてください',
@@ -781,7 +781,7 @@ const tMain = createI18n({
     filterWord: 'Word 문서',
     odtImportMsg: '이 .{ext} 문서를 변환할까요?',
     odtImportDetail:
-      'VuaOffice은 ODF가 아니라 .docx를 편집합니다. 본문, 제목, 목록, 표, 이미지는 변환되지만 각주, 메모, 텍스트 상자는 완전히 유지되지 않습니다. 원본 파일은 변경되지 않으며, 변환된 .docx는 이후 저장이 기록되는 독립적인 사본입니다.',
+      'GenOffice은 ODF가 아니라 .docx를 편집합니다. 본문, 제목, 목록, 표, 이미지는 변환되지만 각주, 메모, 텍스트 상자는 완전히 유지되지 않습니다. 원본 파일은 변경되지 않으며, 변환된 .docx는 이후 저장이 기록되는 독립적인 사본입니다.',
     odtImportConvertBtn: '변환 후 열기',
     dlgSaveAs: '다른 이름으로 저장',
     closeUnsavedMsg: '이 문서에 저장하지 않은 변경 사항이 있습니다.',
@@ -821,7 +821,7 @@ const tMain = createI18n({
       '이미지 첨부 파일은 텍스트를 제공하지 않으며, 이미지 형태로 사용자 메시지와 함께 전송되므로 이미지를 직접 확인하면 됩니다',
     errNotImage: '지원되지 않는 이미지 형식입니다',
     errGskNotLoggedIn:
-      'VuaOffice에 로그인되어 있지 않습니다. 아래 "VuaOffice 로그인"을 눌러 로그인한 뒤 다시 시도하세요',
+      'GenOffice에 로그인되어 있지 않습니다. 아래 "Genspark 로그인"을 눌러 로그인한 뒤 다시 시도하세요',
     errNoApiKey: '{provider}의 API 키가 설정되지 않았습니다',
     errAiRegion:
       '이 모델의 제공업체는 현재 지역에서 서비스를 제공하지 않습니다. 다른 모델을 선택하거나 네트워크를 변경하세요',
@@ -924,7 +924,7 @@ const tMain = createI18n({
     filterWord: 'Documents Word',
     odtImportMsg: 'Convertir ce document .{ext} ?',
     odtImportDetail:
-      'VuaOffice modifie des .docx, pas de l’ODF. Le texte, les titres, les listes, les tableaux et les images sont convertis ; les notes de bas de page, les commentaires et les zones de texte ne sont pas entièrement conservés. Le fichier d’origine n’est jamais modifié ; le .docx converti est une copie distincte où s’effectuent les enregistrements suivants.',
+      'GenOffice modifie des .docx, pas de l’ODF. Le texte, les titres, les listes, les tableaux et les images sont convertis ; les notes de bas de page, les commentaires et les zones de texte ne sont pas entièrement conservés. Le fichier d’origine n’est jamais modifié ; le .docx converti est une copie distincte où s’effectuent les enregistrements suivants.',
     odtImportConvertBtn: 'Convertir et ouvrir',
     dlgSaveAs: 'Enregistrer sous',
     closeUnsavedMsg: 'Ce document contient des modifications non enregistrées.',
@@ -965,7 +965,7 @@ const tMain = createI18n({
       "Les pièces jointes image ne fournissent pas de texte ; l'image est envoyée avec le message de l'utilisateur, consultez-la directement",
     errNotImage: "type d'image non pris en charge",
     errGskNotLoggedIn:
-      'Non connecté à VuaOffice : cliquez sur « Se connecter à VuaOffice » ci-dessous, connectez-vous puis réessayez',
+      'Non connecté à GenOffice : cliquez sur « Se connecter à Genspark » ci-dessous, connectez-vous puis réessayez',
     errNoApiKey: 'Aucune clé API configurée pour {provider}',
     errAiRegion:
       'Le fournisseur de ce modèle ne dessert pas votre région actuelle — choisissez un autre modèle ou changez de réseau',
@@ -1068,7 +1068,7 @@ const tMain = createI18n({
     filterWord: 'Word-Dokumente',
     odtImportMsg: 'Dieses .{ext}-Dokument konvertieren?',
     odtImportDetail:
-      'VuaOffice bearbeitet .docx, nicht ODF. Text, Überschriften, Listen, Tabellen und Bilder werden übernommen; Fußnoten, Kommentare und Textfelder werden nicht vollständig bewahrt. Die Originaldatei bleibt unverändert; die konvertierte .docx-Kopie ist eigenständig, und spätere Speicherungen landen in ihr.',
+      'GenOffice bearbeitet .docx, nicht ODF. Text, Überschriften, Listen, Tabellen und Bilder werden übernommen; Fußnoten, Kommentare und Textfelder werden nicht vollständig bewahrt. Die Originaldatei bleibt unverändert; die konvertierte .docx-Kopie ist eigenständig, und spätere Speicherungen landen in ihr.',
     odtImportConvertBtn: 'Konvertieren und öffnen',
     dlgSaveAs: 'Speichern unter',
     closeUnsavedMsg: 'Dieses Dokument enthält ungespeicherte Änderungen.',
@@ -1109,7 +1109,7 @@ const tMain = createI18n({
       'Bildanlagen liefern keinen Text; das Bild wird mit der Benutzernachricht gesendet und kann direkt betrachtet werden',
     errNotImage: 'kein unterstütztes Bildformat',
     errGskNotLoggedIn:
-      'Nicht bei VuaOffice angemeldet: Klicken Sie unten auf „Bei VuaOffice anmelden“, melden Sie sich an und versuchen Sie es erneut',
+      'Nicht bei GenOffice angemeldet: Klicken Sie unten auf „Bei Genspark anmelden“, melden Sie sich an und versuchen Sie es erneut',
     errNoApiKey: 'Kein API-Schlüssel für {provider} konfiguriert',
     errAiRegion:
       'Der Anbieter dieses Modells bedient Ihre aktuelle Region nicht — wählen Sie ein anderes Modell oder wechseln Sie das Netzwerk',
@@ -1212,7 +1212,7 @@ const tMain = createI18n({
     filterWord: 'Documentos de Word',
     odtImportMsg: '¿Convertir este documento .{ext}?',
     odtImportDetail:
-      'VuaOffice edita .docx, no ODF. El texto, los títulos, las listas, las tablas y las imágenes se convierten; las notas al pie, los comentarios y los cuadros de texto no se conservan por completo. El archivo original nunca se modifica; el .docx convertido es una copia independiente en la que se guardan los cambios posteriores.',
+      'GenOffice edita .docx, no ODF. El texto, los títulos, las listas, las tablas y las imágenes se convierten; las notas al pie, los comentarios y los cuadros de texto no se conservan por completo. El archivo original nunca se modifica; el .docx convertido es una copia independiente en la que se guardan los cambios posteriores.',
     odtImportConvertBtn: 'Convertir y abrir',
     dlgSaveAs: 'Guardar como',
     closeUnsavedMsg: 'Este documento tiene cambios sin guardar.',
@@ -1252,7 +1252,7 @@ const tMain = createI18n({
       'Las imágenes adjuntas no proporcionan texto; la imagen se envía junto con el mensaje del usuario, puedes verla directamente',
     errNotImage: 'no es un tipo de imagen compatible',
     errGskNotLoggedIn:
-      'No has iniciado sesión en VuaOffice: pulsa «Iniciar sesión en VuaOffice» abajo, inicia sesión y vuelve a intentarlo',
+      'No has iniciado sesión en GenOffice: pulsa «Iniciar sesión en Genspark» abajo, inicia sesión y vuelve a intentarlo',
     errNoApiKey: 'No hay clave de API configurada para {provider}',
     errAiRegion:
       'El proveedor de este modelo no da servicio en tu región actual — elige otro modelo o cambia de red',
@@ -1356,7 +1356,7 @@ const tMain = createI18n({
     filterWord: 'เอกสาร Word',
     odtImportMsg: 'แปลงเอกสาร .{ext} นี้ไหม?',
     odtImportDetail:
-      'VuaOffice แก้ไข .docx ไม่ใช่ ODF ข้อความ หัวข้อ รายการ ตาราง และรูปภาพจะถูกแปลง ส่วนเชิงอรรถ ความคิดเห็น และกล่องข้อความจะไม่ถูกเก็บไว้ทั้งหมด ไฟล์ต้นทางจะไม่ถูกแก้ไข และไฟล์ .docx ที่แปลงแล้วเป็นสำเนาแยกต่างหากที่การบันทึกครั้งต่อไปจะเขียนลง',
+      'GenOffice แก้ไข .docx ไม่ใช่ ODF ข้อความ หัวข้อ รายการ ตาราง และรูปภาพจะถูกแปลง ส่วนเชิงอรรถ ความคิดเห็น และกล่องข้อความจะไม่ถูกเก็บไว้ทั้งหมด ไฟล์ต้นทางจะไม่ถูกแก้ไข และไฟล์ .docx ที่แปลงแล้วเป็นสำเนาแยกต่างหากที่การบันทึกครั้งต่อไปจะเขียนลง',
     odtImportConvertBtn: 'แปลงแล้วเปิด',
     dlgSaveAs: 'บันทึกเป็น',
     closeUnsavedMsg: 'เอกสารนี้มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก',
@@ -1395,7 +1395,7 @@ const tMain = createI18n({
       'สิ่งที่แนบเป็นรูปภาพไม่มีข้อความ รูปจะถูกส่งไปพร้อมข้อความของผู้ใช้ ดูรูปได้โดยตรง',
     errNotImage: 'ไม่ใช่ชนิดรูปภาพที่รองรับ',
     errGskNotLoggedIn:
-      'ยังไม่ได้ลงชื่อเข้าใช้ VuaOffice: แตะ “ลงชื่อเข้าใช้ VuaOffice” ด้านล่าง แล้วลองอีกครั้ง',
+      'ยังไม่ได้ลงชื่อเข้าใช้ Genspark: แตะ “ลงชื่อเข้าใช้ Genspark” ด้านล่าง แล้วลองอีกครั้ง',
     errNoApiKey: 'ยังไม่ได้ตั้งค่า API Key ของ {provider}',
     errAiRegion:
       'ผู้ให้บริการของโมเดลนี้ไม่ให้บริการในภูมิภาคปัจจุบันของคุณ — โปรดเลือกโมเดลอื่นหรือเปลี่ยนเครือข่าย',
@@ -1498,7 +1498,7 @@ const tMain = createI18n({
     filterWord: 'Dokumen Word',
     odtImportMsg: 'Konversi dokumen .{ext} ini?',
     odtImportDetail:
-      'VuaOffice mengedit .docx, bukan ODF. Teks isi, judul, daftar, tabel, dan gambar ikut dikonversi; catatan kaki, komentar, dan kotak teks tidak sepenuhnya dipertahankan. File asli tidak pernah diubah; salinan .docx hasil konversi berdiri sendiri dan penyimpanan berikutnya ditulis ke sana.',
+      'GenOffice mengedit .docx, bukan ODF. Teks isi, judul, daftar, tabel, dan gambar ikut dikonversi; catatan kaki, komentar, dan kotak teks tidak sepenuhnya dipertahankan. File asli tidak pernah diubah; salinan .docx hasil konversi berdiri sendiri dan penyimpanan berikutnya ditulis ke sana.',
     odtImportConvertBtn: 'Konversi dan buka',
     dlgSaveAs: 'Simpan Sebagai',
     closeUnsavedMsg: 'Dokumen ini memiliki perubahan yang belum disimpan.',
@@ -1538,7 +1538,7 @@ const tMain = createI18n({
       'Lampiran gambar tidak menyediakan teks; gambar dikirim bersama pesan pengguna dan dapat dilihat langsung',
     errNotImage: 'bukan jenis gambar yang didukung',
     errGskNotLoggedIn:
-      'Belum masuk ke VuaOffice: klik “Masuk ke VuaOffice” di bawah, lalu coba lagi',
+      'Belum masuk ke GenOffice: klik “Masuk ke Genspark” di bawah, lalu coba lagi',
     errNoApiKey: 'API Key untuk {provider} belum dikonfigurasi',
     errAiRegion:
       'Penyedia model ini tidak melayani wilayah Anda saat ini — pilih model lain atau ganti jaringan',
@@ -1641,7 +1641,7 @@ const tMain = createI18n({
     filterWord: 'Документы Word',
     odtImportMsg: 'Преобразовать этот документ .{ext}?',
     odtImportDetail:
-      'VuaOffice редактирует .docx, а не ODF. Текст, заголовки, списки, таблицы и изображения переносятся; сноски, примечания и надписи сохраняются не полностью. Исходный файл никогда не изменяется; преобразованный .docx — отдельная копия, в которую записывается дальнейшее сохранение.',
+      'GenOffice редактирует .docx, а не ODF. Текст, заголовки, списки, таблицы и изображения переносятся; сноски, примечания и надписи сохраняются не полностью. Исходный файл никогда не изменяется; преобразованный .docx — отдельная копия, в которую записывается дальнейшее сохранение.',
     odtImportConvertBtn: 'Преобразовать и открыть',
     dlgSaveAs: 'Сохранить как',
     closeUnsavedMsg: 'В этом документе есть несохранённые изменения.',
@@ -1681,7 +1681,7 @@ const tMain = createI18n({
       'Вложенные изображения не содержат текста; изображение отправляется вместе с сообщением пользователя, смотрите его напрямую',
     errNotImage: 'неподдерживаемый тип изображения',
     errGskNotLoggedIn:
-      'Вы не вошли в VuaOffice: нажмите «Войти в VuaOffice» ниже, войдите и повторите попытку',
+      'Вы не вошли в GenOffice: нажмите «Войти в Genspark» ниже, войдите и повторите попытку',
     errNoApiKey: 'API-ключ для {provider} не настроен',
     errAiRegion:
       'Поставщик этой модели не обслуживает ваш текущий регион — выберите другую модель или смените сеть',
@@ -1784,7 +1784,7 @@ const tMain = createI18n({
     filterWord: 'مستندات Word',
     odtImportMsg: 'تحويل مستند .{ext} هذا؟',
     odtImportDetail:
-      'يحرّر VuaOffice ملفات ‎.docx ولا يحرّر ODF. يُحوَّل النص والعناوين والقوائم والجداول والصور؛ أما الحواشي السفلية والتعليقات ومربعات النص فلا تُحفظ بالكامل. لا يتغيّر الملف الأصلي أبدًا؛ والملف ‎.docx المحوَّل نسخة مستقلة تُكتب فيها عمليات الحفظ اللاحقة.',
+      'يحرّر GenOffice ملفات ‎.docx ولا يحرّر ODF. يُحوَّل النص والعناوين والقوائم والجداول والصور؛ أما الحواشي السفلية والتعليقات ومربعات النص فلا تُحفظ بالكامل. لا يتغيّر الملف الأصلي أبدًا؛ والملف ‎.docx المحوَّل نسخة مستقلة تُكتب فيها عمليات الحفظ اللاحقة.',
     odtImportConvertBtn: 'تحويل وفتح',
     dlgSaveAs: 'حفظ باسم',
     closeUnsavedMsg: 'يحتوي هذا المستند على تغييرات غير محفوظة.',
@@ -1824,7 +1824,7 @@ const tMain = createI18n({
       'مرفقات الصور لا توفر نصًا؛ تُرسل الصورة مع رسالة المستخدم ويمكن الاطلاع عليها مباشرة',
     errNotImage: 'ليس نوع صورة مدعومًا',
     errGskNotLoggedIn:
-      'لم تسجّل الدخول إلى VuaOffice: انقر على «تسجيل الدخول إلى VuaOffice» أدناه ثم أعد المحاولة',
+      'لم تسجّل الدخول إلى GenOffice: انقر على «تسجيل الدخول إلى Genspark» أدناه ثم أعد المحاولة',
     errNoApiKey: 'لم يتم تكوين مفتاح API لـ {provider}',
     errAiRegion:
       'مزوّد هذا النموذج لا يقدم الخدمة في منطقتك الحالية — اختر نموذجًا آخر أو غيّر الشبكة',
@@ -1927,7 +1927,7 @@ const tMain = createI18n({
     filterWord: 'Documentos do Word',
     odtImportMsg: 'Converter este documento .{ext}?',
     odtImportDetail:
-      'O VuaOffice edita .docx, não ODF. Texto, títulos, listas, tabelas e imagens são convertidos; notas de rodapé, comentários e caixas de texto não são preservados por completo. O arquivo original nunca é alterado; o .docx convertido é uma cópia independente em que os salvamentos seguintes são gravados.',
+      'O GenOffice edita .docx, não ODF. Texto, títulos, listas, tabelas e imagens são convertidos; notas de rodapé, comentários e caixas de texto não são preservados por completo. O arquivo original nunca é alterado; o .docx convertido é uma cópia independente em que os salvamentos seguintes são gravados.',
     odtImportConvertBtn: 'Converter e abrir',
     dlgSaveAs: 'Salvar Como',
     closeUnsavedMsg: 'Este documento tem alterações não salvas.',
@@ -1967,7 +1967,7 @@ const tMain = createI18n({
       'Anexos de imagem não fornecem texto; a imagem é enviada junto com a mensagem do usuário, basta vê-la diretamente',
     errNotImage: 'não é um tipo de imagem suportado',
     errGskNotLoggedIn:
-      'Não conectado ao VuaOffice: clique em “Entrar no VuaOffice” abaixo, entre e tente novamente',
+      'Não conectado ao GenOffice: clique em “Entrar no Genspark” abaixo, entre e tente novamente',
     errNoApiKey: 'Nenhuma chave de API configurada para {provider}',
     errAiRegion:
       'O fornecedor deste modelo não atende à sua região atual — escolha outro modelo ou mude de rede',
@@ -2070,7 +2070,7 @@ const tMain = createI18n({
     filterWord: 'Documenti Word',
     odtImportMsg: 'Convertire questo documento .{ext}?',
     odtImportDetail:
-      'VuaOffice modifica .docx, non ODF. Testo, titoli, elenchi, tabelle e immagini vengono convertiti; note a piè di pagina, commenti e caselle di testo non sono conservati completamente. Il file originale non viene mai modificato; il .docx convertito è una copia indipendente su cui vengono salvate le modifiche successive.',
+      'GenOffice modifica .docx, non ODF. Testo, titoli, elenchi, tabelle e immagini vengono convertiti; note a piè di pagina, commenti e caselle di testo non sono conservati completamente. Il file originale non viene mai modificato; il .docx convertito è una copia indipendente su cui vengono salvate le modifiche successive.',
     odtImportConvertBtn: 'Converti e apri',
     dlgSaveAs: 'Salva con nome',
     closeUnsavedMsg: 'Questo documento contiene modifiche non salvate.',
@@ -2110,7 +2110,7 @@ const tMain = createI18n({
       "Gli allegati immagine non forniscono testo; l'immagine viene inviata insieme al messaggio dell'utente, basta guardarla direttamente",
     errNotImage: 'tipo di immagine non supportato',
     errGskNotLoggedIn:
-      'Accesso a VuaOffice non effettuato: fai clic su “Accedi a VuaOffice” qui sotto, accedi e riprova',
+      'Accesso a GenOffice non effettuato: fai clic su “Accedi a Genspark” qui sotto, accedi e riprova',
     errNoApiKey: 'Nessuna chiave API configurata per {provider}',
     errAiRegion:
       'Il fornitore di questo modello non serve la tua regione attuale — scegli un altro modello o cambia rete',
@@ -2213,7 +2213,7 @@ const tMain = createI18n({
     filterWord: 'Dokumenty programu Word',
     odtImportMsg: 'Skonwertować ten dokument .{ext}?',
     odtImportDetail:
-      'VuaOffice edytuje .docx, a nie ODF. Tekst, nagłówki, listy, tabele i obrazy są konwertowane; przypisy, komentarze i pola tekstowe nie są zachowywane w całości. Plik oryginalny nigdy nie jest zmieniany; skonwertowany .docx to niezależna kopia, do której trafiają kolejne zapisy.',
+      'GenOffice edytuje .docx, a nie ODF. Tekst, nagłówki, listy, tabele i obrazy są konwertowane; przypisy, komentarze i pola tekstowe nie są zachowywane w całości. Plik oryginalny nigdy nie jest zmieniany; skonwertowany .docx to niezależna kopia, do której trafiają kolejne zapisy.',
     odtImportConvertBtn: 'Konwertuj i otwórz',
     dlgSaveAs: 'Zapisz jako',
     closeUnsavedMsg: 'Ten dokument zawiera niezapisane zmiany.',
@@ -2253,7 +2253,7 @@ const tMain = createI18n({
       'Załączniki graficzne nie zawierają tekstu; obraz jest wysyłany razem z wiadomością użytkownika, wystarczy na niego spojrzeć',
     errNotImage: 'nieobsługiwany typ obrazu',
     errGskNotLoggedIn:
-      'Nie zalogowano do VuaOffice: kliknij „Zaloguj się do VuaOffice” poniżej, zaloguj się i spróbuj ponownie',
+      'Nie zalogowano do GenOffice: kliknij „Zaloguj się do Genspark” poniżej, zaloguj się i spróbuj ponownie',
     errNoApiKey: 'Nie skonfigurowano klucza API dla {provider}',
     errAiRegion:
       'Dostawca tego modelu nie obsługuje Twojego obecnego regionu — wybierz inny model lub zmień sieć',
@@ -2356,7 +2356,7 @@ const tMain = createI18n({
     filterWord: 'Dokumenty Wordu',
     odtImportMsg: 'Převést tento dokument .{ext}?',
     odtImportDetail:
-      'VuaOffice upravuje .docx, nikoli ODF. Text, nadpisy, seznamy, tabulky a obrázky se převedou; poznámky pod čarou, komentáře a textová pole se nepřevezmou úplně. Původní soubor se nikdy nemění; převedený .docx je samostatná kopie, do níž se dalším ukládáním zapisuje.',
+      'GenOffice upravuje .docx, nikoli ODF. Text, nadpisy, seznamy, tabulky a obrázky se převedou; poznámky pod čarou, komentáře a textová pole se nepřevezmou úplně. Původní soubor se nikdy nemění; převedený .docx je samostatná kopie, do níž se dalším ukládáním zapisuje.',
     odtImportConvertBtn: 'Převést a otevřít',
     dlgSaveAs: 'Uložit jako',
     closeUnsavedMsg: 'Tento dokument obsahuje neuložené změny.',
@@ -2499,7 +2499,7 @@ const tMain = createI18n({
     filterWord: 'Word-documenten',
     odtImportMsg: 'Dit .{ext}-document converteren?',
     odtImportDetail:
-      'VuaOffice bewerkt .docx, niet ODF. Tekst, koppen, lijsten, tabellen en afbeeldingen worden omgezet; voetnoten, opmerkingen en tekstvakken niet volledig. Het oorspronkelijke bestand wordt nooit gewijzigd; de omgezette .docx is een zelfstandige kopie waarin volgende opslaan-acties terechtkomen.',
+      'GenOffice bewerkt .docx, niet ODF. Tekst, koppen, lijsten, tabellen en afbeeldingen worden omgezet; voetnoten, opmerkingen en tekstvakken niet volledig. Het oorspronkelijke bestand wordt nooit gewijzigd; de omgezette .docx is een zelfstandige kopie waarin volgende opslaan-acties terechtkomen.',
     odtImportConvertBtn: 'Converteren en openen',
     dlgSaveAs: 'Opslaan als',
     closeUnsavedMsg: 'Dit document bevat niet-opgeslagen wijzigingen.',
@@ -2539,7 +2539,7 @@ const tMain = createI18n({
       'Afbeeldingsbijlagen bevatten geen tekst; de afbeelding wordt samen met het gebruikersbericht verzonden en kan direct worden bekeken',
     errNotImage: 'geen ondersteund afbeeldingstype',
     errGskNotLoggedIn:
-      'Niet aangemeld bij VuaOffice: klik hieronder op “Aanmelden bij VuaOffice”, meld u aan en probeer het opnieuw',
+      'Niet aangemeld bij GenOffice: klik hieronder op “Aanmelden bij Genspark”, meld u aan en probeer het opnieuw',
     errNoApiKey: 'Geen API-sleutel geconfigureerd voor {provider}',
     errAiRegion:
       'De aanbieder van dit model bedient uw huidige regio niet — kies een ander model of wissel van netwerk',
@@ -2642,7 +2642,7 @@ const tMain = createI18n({
     filterWord: 'Dokumen Word',
     odtImportMsg: 'Tukar dokumen .{ext} ini?',
     odtImportDetail:
-      'VuaOffice menyunting .docx, bukan ODF. Teks kandungan, tajuk, senarai, jadual dan imej ditukar; nota kaki, komen dan kotak teks tidak dikekalkan sepenuhnya. Fail asal tidak pernah diubah; salinan .docx yang ditukar ialah salinan berasingan tempat simpanan seterusnya ditulis.',
+      'GenOffice menyunting .docx, bukan ODF. Teks kandungan, tajuk, senarai, jadual dan imej ditukar; nota kaki, komen dan kotak teks tidak dikekalkan sepenuhnya. Fail asal tidak pernah diubah; salinan .docx yang ditukar ialah salinan berasingan tempat simpanan seterusnya ditulis.',
     odtImportConvertBtn: 'Tukar dan buka',
     dlgSaveAs: 'Simpan Sebagai',
     closeUnsavedMsg: 'Dokumen ini mempunyai perubahan yang belum disimpan.',
@@ -2682,7 +2682,7 @@ const tMain = createI18n({
       'Lampiran imej tidak menyediakan teks; imej dihantar bersama mesej pengguna dan boleh dilihat terus',
     errNotImage: 'bukan jenis imej yang disokong',
     errGskNotLoggedIn:
-      'Belum log masuk ke VuaOffice: klik “Log masuk ke VuaOffice” di bawah, kemudian cuba lại',
+      'Belum log masuk ke GenOffice: klik “Log masuk ke Genspark” di bawah, kemudian cuba lại',
     errNoApiKey: 'Kunci API untuk {provider} belum dikonfigurasikan',
     errAiRegion:
       'Penyedia model ini tidak memberi perkhidmatan di rantau semasa anda — pilih model lain atau tukar rangkaian',
@@ -2785,7 +2785,7 @@ const tMain = createI18n({
     filterWord: 'מסמכי Word',
     odtImportMsg: 'להמיר את מסמך ה‑.{ext} הזה?',
     odtImportDetail:
-      'VuaOffice עורך קבצי ‎.docx ולא ODF. טקסט, כותרות, רשימות, טבלאות ותמונות מומרים; הערות שוליים, תגובות ותיבות טקסט לא נשמרים במלואם. קובץ המקור לעולם אינו משתנה; קובץ ה‑.docx שהומר הוא עותק נפרד שאליו נכתבות השמירות הבאות.',
+      'GenOffice עורך קבצי ‎.docx ולא ODF. טקסט, כותרות, רשימות, טבלאות ותמונות מומרים; הערות שוליים, תגובות ותיבות טקסט לא נשמרים במלואם. קובץ המקור לעולם אינו משתנה; קובץ ה‑.docx שהומר הוא עותק נפרד שאליו נכתבות השמירות הבאות.',
     odtImportConvertBtn: 'המר ופתח',
     dlgSaveAs: 'שמירה בשם',
     closeUnsavedMsg: 'במסמך זה יש שינויים שלא נשמרו.',
@@ -2823,7 +2823,7 @@ const tMain = createI18n({
     errImageNoText:
       'קבצים מצורפים מסוג תמונה אינם מספקים טקסט; התמונה נשלחת יחד עם הודעת המשתמש וניתן לצפות בה ישירות',
     errNotImage: 'סוג תמונה שאינו נתמך',
-    errGskNotLoggedIn: 'לא מחובר ל-VuaOffice: לחץ על "התחבר ל-VuaOffice" למטה, התחבר ונסה שוב',
+    errGskNotLoggedIn: 'לא מחובר ל-GenOffice: לחץ על "התחבר ל-Genspark" למטה, התחבר ונסה שוב',
     errNoApiKey: 'לא הוגדר מפתח API עבור {provider}',
     errAiRegion: 'ספק המודל הזה אינו פועל באזור הנוכחי שלך — בחרו מודל אחר או החליפו רשת',
     errAiBusy: 'שירות ה-AI עמוס כרגע — נסו שוב בעוד רגע',
@@ -2925,7 +2925,7 @@ const tMain = createI18n({
     filterWord: 'Word दस्तावेज़',
     odtImportMsg: 'इस .{ext} दस्तावेज़ को बदलें?',
     odtImportDetail:
-      'VuaOffice .docx संपादित करता है, ODF नहीं। मुख्य पाठ, शीर्षक, सूचियाँ, तालिकाएँ और चित्र बदल दिए जाते हैं; फुटनोट, टिप्पणियाँ और टेक्स्ट बॉक्स पूरी तरह नहीं रखे जाते। मूल फ़ाइल कभी नहीं बदलती; बदली हुई .docx एक स्वतंत्र प्रति है जिसमें आगे के सेव लिखे जाते हैं।',
+      'GenOffice .docx संपादित करता है, ODF नहीं। मुख्य पाठ, शीर्षक, सूचियाँ, तालिकाएँ और चित्र बदल दिए जाते हैं; फुटनोट, टिप्पणियाँ और टेक्स्ट बॉक्स पूरी तरह नहीं रखे जाते। मूल फ़ाइल कभी नहीं बदलती; बदली हुई .docx एक स्वतंत्र प्रति है जिसमें आगे के सेव लिखे जाते हैं।',
     odtImportConvertBtn: 'बदलकर खोलें',
     dlgSaveAs: 'इस रूप में सहेजें',
     closeUnsavedMsg: 'इस दस्तावेज़ में सहेजे नहीं गए परिवर्तन हैं।',
@@ -2965,7 +2965,7 @@ const tMain = createI18n({
       'छवि अनुलग्नक टेक्स्ट प्रदान नहीं करते; छवि उपयोगकर्ता संदेश के साथ भेजी जाती है, उसे सीधे देखें',
     errNotImage: 'समर्थित छवि प्रकार नहीं है',
     errGskNotLoggedIn:
-      'VuaOffice में साइन इन नहीं है: नीचे “VuaOffice में साइन इन करें” पर क्लिक करें, साइन इन करें और फिर से कोशिश करें',
+      'GenOffice में साइन इन नहीं है: नीचे “Genspark में साइन इन करें” पर क्लिक करें, साइन इन करें और फिर से कोशिश करें',
     errNoApiKey: '{provider} के लिए कोई API कुंजी कॉन्फ़िगर नहीं है',
     errAiRegion:
       'इस मॉडल का प्रदाता आपके वर्तमान क्षेत्र में सेवा नहीं देता — कोई दूसरा मॉडल चुनें या नेटवर्क बदलें',
@@ -3068,7 +3068,7 @@ const tMain = createI18n({
     filterWord: 'Word 文件',
     odtImportMsg: '轉換這個 .{ext} 文件？',
     odtImportDetail:
-      'VuaOffice 只編輯 .docx，不編輯 ODF。內文、標題、清單、表格與圖片會轉換過來；註腳、註解與文字方塊不會完整保留。原始檔案不會被修改，轉換後的 .docx 是獨立副本，之後的儲存都寫入它。', // public-hygiene: allow
+      'GenOffice 只編輯 .docx，不編輯 ODF。內文、標題、清單、表格與圖片會轉換過來；註腳、註解與文字方塊不會完整保留。原始檔案不會被修改，轉換後的 .docx 是獨立副本，之後的儲存都寫入它。', // public-hygiene: allow
     odtImportConvertBtn: '轉換並開啟',
     dlgSaveAs: '另存新檔',
     closeUnsavedMsg: '此文件有未儲存的變更。',
@@ -3104,7 +3104,7 @@ const tMain = createI18n({
     errParseFailed: '檔案解析失敗',
     errImageNoText: '圖片附件不提供文字,已作為影像隨使用者訊息傳送,直接看圖即可',
     errNotImage: '不是支援的圖片類型',
-    errGskNotLoggedIn: '未登入 VuaOffice:請點擊下方「登入 VuaOffice」完成登入後重試',
+    errGskNotLoggedIn: '未登入 Genspark:請點擊下方「登入 Genspark」完成登入後重試',
     errNoApiKey: '未設定 {provider} 的 API Key',
     errAiRegion: '該模型的廠商不向目前地區提供服務，請換一個模型或切換網路',
     errAiBusy: 'AI 服務目前繁忙，請稍後重試',
@@ -4650,7 +4650,7 @@ export function registerDocsIpc(): void {
   void app.whenReady().then(registerLazyMediaProtocol)
   // Node fetch (undici) direct connections get reset under VPN/tun setups; retry over Chromium's stack
   setRescueFetch((url, init) => net.fetch(url, init))
-  setAiUserAgent(`VuaOffice/${app.getVersion()}`)
+  setAiUserAgent(`GenOffice/${app.getVersion()}`)
 
   // shared with the other editor modules — last (identical) registration wins
   ipcMain.removeHandler('app:get-language')
@@ -6266,7 +6266,7 @@ export function createDocsWindow(openPath?: string): BrowserWindow {
     height: 900,
     minWidth: 720,
     minHeight: 550,
-    title: 'VuaOffice Docs',
+    title: 'GenOffice Docs',
     // Word-like custom title bar (document name centered, quick-access buttons)
     ...(process.platform === 'darwin'
       ? { titleBarStyle: 'hiddenInset' as const }
@@ -6555,8 +6555,8 @@ export function startDocsStandalone(): void {
     // "GenOffice Docs Dev" carried a space, against the XDG one-token
     // convention (genoffice#1817); move the old profile once, as the shell does.
     const appData = app.getPath('appData')
-    const devDir = join(appData, 'VuaOffice-Docs-Dev')
-    const oldDevDir = join(appData, 'VuaOffice Docs Dev')
+    const devDir = join(appData, 'GenOffice-Docs-Dev')
+    const oldDevDir = join(appData, 'GenOffice Docs Dev')
     let userData = devDir
     if (existsSync(oldDevDir) && !existsSync(devDir)) {
       try {
