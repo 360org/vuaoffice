@@ -1,8 +1,7 @@
-import { mcpLaunch, type McpLaunch } from '../../shared/mcp-launch'
+import { mcpLaunch, type McpLaunch } from '@genoffice/cli/mcp-launch'
 import { useCallback, useEffect, useState } from 'react'
 import type { TFunc } from './locale'
 import { McpServerSection } from './McpServerSection'
-import { FoundSkills } from './FoundSkills'
 import {
   SKILL_NAME,
   type AgentId,
@@ -445,8 +444,6 @@ export function IntegrationsPane({
         {examples}
         <div className="set-field-desc set-intg-lead">{t('intgMcpTryNote')}</div>
       </section>
-
-      <FoundSkills t={t} />
     </>
   )
 }
