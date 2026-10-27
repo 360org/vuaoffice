@@ -43,6 +43,11 @@ vi.mock('../../html/src/main/html-main', () => ({
   requestHtmlClose: (...args: unknown[]) => requestHtmlClose(...(args as [])),
 }))
 
+const requestScreenshotsClose = vi.fn(() => Promise.resolve(true))
+vi.mock('../../../360/screenshots/src/main/screenshots-main', () => ({
+  requestScreenshotsClose: (...args: unknown[]) => requestScreenshotsClose(...(args as [])),
+}))
+
 interface TabStub {
   id: string
   webContents: { id: number }
@@ -87,7 +92,7 @@ class FakeWindow {
   }
 }
 
-type DirtyKinds = 'sheets' | 'pdf' | 'markdown' | 'html' | 'slides' | 'docs'
+type DirtyKinds = 'sheets' | 'pdf' | 'markdown' | 'html' | 'slides' | 'screenshots' | 'docs'
 
 function fakeManager(dirty: Partial<Record<DirtyKinds, TabStub[]>> = {}) {
   return {
@@ -97,6 +102,7 @@ function fakeManager(dirty: Partial<Record<DirtyKinds, TabStub[]>> = {}) {
     dirtyMarkdownTabs: () => dirty.markdown ?? [],
     dirtyHtmlTabs: () => dirty.html ?? [],
     dirtySlidesTabs: () => dirty.slides ?? [],
+    dirtyScreenshotsTabs: () => dirty.screenshots ?? [],
     docsTabs: () => dirty.docs ?? [],
   }
 }
@@ -192,6 +198,19 @@ describe('dirty close', () => {
     // a denied close vetoes the quit that was in flight, so the sheets guard
     // has to prompt again on the next close
     expect(resetSheetsShuttingDown).toHaveBeenCalled()
+    expect(win.destroyed).toBe(false)
+  })
+
+  it('a Screenshots tab with unsaved annotations is prompted, and Cancel keeps the window', async () => {
+    requestScreenshotsClose.mockResolvedValueOnce(false)
+    const win = new FakeWindow()
+    const tab = { id: 'shot-1', webContents: { id: 11 } }
+    const manager = fakeManager({ screenshots: [tab] })
+    install(win as never, manager as never, fakeQuit())
+    expect(win.requestClose()).toBe(true)
+    await flush()
+    expect(manager.activateTab).toHaveBeenCalledWith('shot-1')
+    expect(requestScreenshotsClose).toHaveBeenCalledWith(tab.webContents, win)
     expect(win.destroyed).toBe(false)
   })
 

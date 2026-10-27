@@ -46,6 +46,11 @@ import {
   slidesIsDirty,
 } from '../../../slides/src/main/slides-main'
 import { createMailView } from '../../../mail/src/main/mail-main'
+import {
+  createScreenshotsView,
+  requestScreenshotsClose,
+  screenshotsIsDirty,
+} from '../../../../360/screenshots/src/main/screenshots-main'
 import { rendererUrl, safeExternalUrl } from '@genoffice/electron-utils'
 
 import type { DocumentTabKind, OpenDocumentTab, TabKind, TabSummary } from '../shared/tabs-api'
@@ -326,6 +331,8 @@ export class TabManager {
         return slidesIsDirty(wc.id)
       case 'docs':
         return docsQueryDirty(wc)
+      case 'screenshots':
+        return screenshotsIsDirty(wc.id)
       default:
         return false
     }
@@ -513,6 +520,35 @@ export class TabManager {
     })
     this.activateTab(id)
     return id
+  }
+
+  /** 360 Screenshots: one editor tab, focused again instead of stacking copies */
+  openScreenshotsTab(): WebContents {
+    const existing = this.tabs.find((t) => t.kind === 'screenshots')
+    if (existing?.view) {
+      this.activateTab(existing.id)
+      return existing.view.webContents
+    }
+    const view = createScreenshotsView()
+    const id = `t${this.nextId++}`
+    this.shellWindow.contentView.addChildView(view)
+    view.setVisible(false)
+    this.tabs.push({
+      id,
+      kind: 'screenshots',
+      view,
+      title: this.untitled('screenshots', 'Screenshots'),
+      lastActiveAt: Date.now(),
+    })
+    this.activateTab(id)
+    return view.webContents
+  }
+
+  /** screenshots tabs holding annotations not yet saved or copied (shell-close guard) */
+  dirtyScreenshotsTabs(): Array<{ id: string; webContents: WebContents }> {
+    return this.tabs
+      .filter((t) => t.kind === 'screenshots' && t.view && screenshotsIsDirty(t.view.webContents.id))
+      .map((t) => ({ id: t.id, webContents: t.view!.webContents }))
   }
 
   openMailTab(): string {
@@ -727,7 +763,9 @@ export class TabManager {
               ? requestHtmlClose
               : tab.kind === 'slides' && slidesIsDirty(tab.view.webContents.id)
                 ? requestSlidesClose
-                : null)
+                : tab.kind === 'screenshots' && screenshotsIsDirty(tab.view.webContents.id)
+                  ? requestScreenshotsClose
+                  : null)
     // docs dirty state lives in the renderer and needs an async query; skip the guard when clean (avoids a flash activation)
     if (!closeGuard && tab.kind === 'docs' && tab.view) {
       this.closingIds.add(id)

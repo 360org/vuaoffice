@@ -259,6 +259,16 @@ vi.mock('../../html/src/main/html-main', () => ({
   requestHtmlClose: (...args: unknown[]) => requestHtmlClose(...(args as [])),
 }))
 
+const createScreenshotsView = vi.fn(() => makeView())
+const requestScreenshotsClose = vi.fn(() => Promise.resolve(true))
+const screenshotsIsDirty = vi.fn(() => false)
+
+vi.mock('../../../360/screenshots/src/main/screenshots-main', () => ({
+  createScreenshotsView: (...args: unknown[]) => createScreenshotsView(...(args as [])),
+  requestScreenshotsClose: (...args: unknown[]) => requestScreenshotsClose(...(args as [])),
+  screenshotsIsDirty: (...args: unknown[]) => screenshotsIsDirty(...(args as [])),
+}))
+
 import { TabManager } from '../src/main/tab-manager'
 import { createDetachedEditorWindow } from '../src/main/detached-windows'
 

@@ -21,6 +21,7 @@ Mỗi khi **merge upstream**, **sửa lỗi** hoặc **chuẩn bị release phi�
 | **9** | **Động Cơ Whitelabel Song Ánh** | `360/brand-config.json`, `scripts/360-brand.js` | Quy tắc song ánh `apply(restore(apply(x))) === apply(x)`, selftest 1234 tệp | Đảm bảo chuyển đổi sạch giữa upstream và VuaOffice trước/sau khi merge, không rò rỉ tên gốc trên giao diện. |
 | **10** | **Website & Trình Sinh Changelog Tự Động** | `tools/sync-site-updates.mjs`, `docs/updates.json`, `docs/index.html` | Cổng `site:check`, tự động đồng bộ theo version `package.json` | Website giới thiệu sản phẩm và lịch sử phiên bản trên `vuaoffice.com` luôn đồng bộ tự động 100%. |
 | **11** | **VuaOffice Egress Tunnel Native Core** | `360/tunnel/` | `apps/shell/src/main/ai-handshake.ts`, `360/tunnel/index.ts` | 100% Core Native Node.js/Electron stdlib; ghép kênh TCP qua HTTP Upgrade/WSS, mượn card mạng dân cư của máy khách làm cổng ra chống mass ban. |
+| **12** | **VuaOffice Screenshots & Photo Editor** | `360/screenshots/` | `apps/shell/src/main/tab-manager.ts`, `apps/shell/src/main/index.ts`, `screenshots.html` | Chụp màn hình (vùng chọn, cửa sổ, toàn màn hình) kèm trình biên tập ảnh vector: mũi tên, hình khối, bút vẽ, dạ quang, văn bản, làm mờ (pixelate), đánh số bước, cắt ảnh, sao chép/lưu. |
 
 ---
 
@@ -38,3 +39,4 @@ Trước khi tag và release bất kỳ phiên bản nào, kỹ sư phụ trách
 - [ ] **Bước 8 (Kiểm tra PDF OCR / Scan)**: Mở 1 file PDF dạng ảnh quét trên macOS, chọn chuyển đổi sang văn bản hoặc tìm kiếm. Xác nhận tiến trình Apple Vision OCR hoạt động bình thường.
 - [ ] **Bước 9 (Kiểm tra Theme Sáng / Tối)**: Chuyển đổi giữa Light Mode, Dark Mode và System. Xác nhận màu nền semantic tokens đổi mượt, không lỗi hiển thị tương phản.
 - [ ] **Bước 10 (Kiểm tra Website & Changelog)**: Kiểm tra `docs/index.html` và `docs/changelog.html` đã được cập nhật đúng số phiên bản mới nhất qua `npm run site:sync`.
+- [ ] **Bước 11 (Kiểm tra VuaOffice Screenshots)**: Mở tab **Screenshots** (từ thẻ mới trên màn hình Home hoặc menu Chụp màn hình). Thử chụp vùng chọn / cửa sổ / toàn màn hình hoặc dán ảnh từ clipboard; vẽ mũi tên, hình khối, văn bản, làm mờ (pixelate) và đánh số bước. Xác nhận sao chép vào bộ nhớ tạm (⌘C) và lưu ảnh (⌘S) hoạt động chính xác; khi đóng tab có ghi chú chưa lưu phải xuất hiện hộp thoại xác nhận.

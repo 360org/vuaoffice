@@ -344,6 +344,8 @@ export interface HomeApi {
   newPdf(opts?: NewFileOpts): Promise<void>
   /** open VuaOffice Mail tab */
   newMail(): Promise<void>
+  /** open VuaOffice Screenshots tab */
+  newScreenshots(opts?: NewFileOpts): Promise<void>
 
   /** drop entries from the recent list (does not touch the files) */
   removeRecent(paths: string[]): Promise<void>
@@ -740,6 +742,7 @@ export const HOME_CHANNELS = {
   newHtml: 'home:new-html',
   newPdf: 'home:new-pdf',
   newMail: 'home:new-mail',
+  newScreenshots: 'home:new-screenshots',
   removeRecent: 'home:remove-recent',
   revealPath: 'home:reveal-path',
   renameFile: 'home:rename-file',

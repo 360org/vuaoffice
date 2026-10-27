@@ -6,6 +6,7 @@ import { requestSlidesClose } from '../../../slides/src/main/slides-main'
 import { requestPdfClose } from '../../../pdf/src/main/pdf-main'
 import { requestMarkdownClose } from '../../../markdown/src/main/markdown-main'
 import { requestHtmlClose } from '../../../html/src/main/html-main'
+import { requestScreenshotsClose } from '../../../../360/screenshots/src/main/screenshots-main'
 import type { TabManager } from './tab-manager'
 
 /**
@@ -94,6 +95,7 @@ export function installShellCloseGuard(
     const dirtyMarkdown = manager.dirtyMarkdownTabs()
     const dirtyHtml = manager.dirtyHtmlTabs()
     const dirtySlides = manager.dirtySlidesTabs()
+    const dirtyScreenshots = manager.dirtyScreenshotsTabs()
     const docsTabs = manager.docsTabs()
     // Nothing to protect, so let this close event through untouched. Cancelling
     // it and re-issuing win.close() would also cancel an in-flight app.quit();
@@ -106,6 +108,7 @@ export function installShellCloseGuard(
       dirtyMarkdown.length === 0 &&
       dirtyHtml.length === 0 &&
       dirtySlides.length === 0 &&
+      dirtyScreenshots.length === 0 &&
       docsTabs.length === 0
     ) {
       return
@@ -144,6 +147,10 @@ export function installShellCloseGuard(
           for (const tab of dirtySlides) {
             manager.activateTab(tab.id)
             if (!(await requestSlidesClose(tab.webContents, win))) return true
+          }
+          for (const tab of dirtyScreenshots) {
+            manager.activateTab(tab.id)
+            if (!(await requestScreenshotsClose(tab.webContents, win))) return true
           }
           for (const tab of docsTabs) {
             if (!(await docsQueryDirty(tab.webContents))) continue

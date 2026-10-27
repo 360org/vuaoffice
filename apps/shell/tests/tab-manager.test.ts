@@ -173,6 +173,16 @@ vi.mock('../../html/src/main/html-main', () => ({
   requestHtmlClose: (...args: unknown[]) => requestHtmlClose(...(args as [])),
 }))
 
+const createScreenshotsView = vi.fn(() => makeFakeView())
+const requestScreenshotsClose = vi.fn(() => Promise.resolve(true))
+const screenshotsIsDirty = vi.fn(() => false)
+
+vi.mock('../../../360/screenshots/src/main/screenshots-main', () => ({
+  createScreenshotsView: (...args: unknown[]) => createScreenshotsView(...(args as [])),
+  requestScreenshotsClose: (...args: unknown[]) => requestScreenshotsClose(...(args as [])),
+  screenshotsIsDirty: (...args: unknown[]) => screenshotsIsDirty(...(args as [])),
+}))
+
 import { TabManager } from '../src/main/tab-manager'
 import type { TabKind } from '../src/shared/tabs-api'
 
@@ -823,7 +833,7 @@ describe('file path bookkeeping', () => {
     }
     // file-less tabs (the in-app manual) have no path to rename, so they are
     // opened by the enumeration but must not demand a RENAMABLE case
-    const fileless = new Set(['help', 'mail'])
+    const fileless = new Set(['help', 'mail', 'screenshots'])
     expect([...new Set(opened.filter((k) => !fileless.has(k)))].sort()).toEqual(
       RENAMABLE.map((c) => c.kind).sort(),
     )

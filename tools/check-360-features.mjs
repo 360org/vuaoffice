@@ -77,6 +77,14 @@ const checks = [
                 fs.existsSync(path.join(ROOT, '360/tunnel/protocol.ts')) &&
                 fs.existsSync(path.join(ROOT, '360/tunnel/allowlist.ts')) &&
                 fs.existsSync(path.join(ROOT, '360/tunnel/local-proxy.ts')),
+  },
+  {
+    name: '12. VuaOffice Screenshots & Photo Editor Core (360/screenshots/)',
+    test: () => fs.existsSync(path.join(ROOT, '360/screenshots/src/index.ts')) &&
+                fs.existsSync(path.join(ROOT, '360/screenshots/src/shared/types.ts')) &&
+                fs.existsSync(path.join(ROOT, '360/screenshots/src/main/screenshots-main.ts')) &&
+                fs.existsSync(path.join(ROOT, '360/screenshots/src/renderer/render.ts')) &&
+                fs.existsSync(path.join(ROOT, '360/screenshots/src/renderer/ScreenshotsEditor.tsx')),
   }
 ];
 
@@ -100,4 +108,4 @@ if (!allPassed) {
   process.exit(1);
 }
 
-console.log('\n🎉 [360-Features] ĐẠT — Toàn bộ 11/11 tính năng độc quyền của 360 CORP được bảo toàn đầy đủ 100%!\n');
+console.log('\n🎉 [360-Features] ĐẠT — Toàn bộ 12/12 tính năng độc quyền của 360 CORP được bảo toàn đầy đủ 100%!\n');

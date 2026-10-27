@@ -31,7 +31,17 @@ export const DOCX_MEDIA_SCHEME_PRIVILEGE: CustomScheme = {
   },
 }
 
-export type RendererHost = 'docs' | 'sheets' | 'slides' | 'pdf' | 'markdown' | 'html' | 'help' | 'mail'
+export type RendererHost =
+  | 'docs'
+  | 'sheets'
+  | 'slides'
+  | 'pdf'
+  | 'markdown'
+  | 'html'
+  | 'help'
+  | 'mail'
+  // 360: the Screenshots tab, served from the shell's own renderer build
+  | 'screenshots'
 
 
 export const MAX_RENDERER_QUERY_ENTRIES = 20

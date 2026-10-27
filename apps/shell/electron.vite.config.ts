@@ -30,6 +30,8 @@ export default defineConfig({
           update: resolve(__dirname, 'src/preload/update.ts'),
           // dedicated preload for the PDF password prompt window
           'pdf-password': resolve(__dirname, 'src/preload/pdf-password.ts'),
+          // 360: Screenshots tab (module source in 360/screenshots)
+          screenshots: resolve(__dirname, '../../360/screenshots/src/preload/index.ts'),
         },
       },
     },
@@ -45,6 +47,8 @@ export default defineConfig({
           update: resolve(__dirname, 'src/renderer/update.html'),
           // PDF password prompt window (see src/main/pdf-password-dialog.ts)
           'pdf-password': resolve(__dirname, 'src/renderer/pdf-password.html'),
+          // 360: Screenshots tab (see src/main/tab-manager.ts openScreenshotsTab)
+          screenshots: resolve(__dirname, 'src/renderer/screenshots.html'),
         },
       },
     },

@@ -3297,6 +3297,14 @@ export function Home() {
 
   const NEW_ITEMS = [
     {
+      ext: 'png',
+      title: 'Screenshots',
+      sub: 'Chụp & Biên tập ảnh',
+      action: () => void window.aiOffice.newScreenshots?.(),
+      badge: '360',
+    },
+
+    {
       ext: 'docx',
       title: t('newDoc'),
       sub: '.docx',

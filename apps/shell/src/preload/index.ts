@@ -252,6 +252,9 @@ const homeApi: HomeApi = {
   async newMail() {
     await ipcRenderer.invoke(HOME_CHANNELS.newMail)
   },
+  async newScreenshots(opts) {
+    await ipcRenderer.invoke(HOME_CHANNELS.newScreenshots, opts)
+  },
   async newPdf(opts) {
     await ipcRenderer.invoke(HOME_CHANNELS.newPdf, opts)
   },

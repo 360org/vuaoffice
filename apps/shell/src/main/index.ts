@@ -274,6 +274,13 @@ import {
   setHtmlProvisionalTitleHook,
 } from '../../../html/src/main/html-main'
 import { configureMailRuntime } from '../../../mail/src/main/mail-main'
+import {
+  configureScreenshotsRuntime,
+  registerScreenshotsHotkeys,
+  registerScreenshotsIpc,
+  unregisterScreenshotsHotkeys,
+} from '../../../../360/screenshots/src/main/screenshots-main'
+import { screenshotsStrings } from '../../../../360/screenshots/src/shared/i18n'
 import type {
   AccountLoginEvent,
   AccountStatus,
@@ -565,6 +572,20 @@ configureMailRuntime({
   rendererUrl: process.env.MAIL_RENDERER_URL,
   rendererFile: join(MAIL_OUT, 'renderer', 'index.html'),
   openDocumentPath: (path) => openDocumentPath(path),
+})
+// 360 Screenshots: page + preload ship inside the shell's own renderer build
+configureScreenshotsRuntime({
+  preloadPath: join(__dirname, '../preload/screenshots.js'),
+  rendererUrl: process.env.ELECTRON_RENDERER_URL,
+  lang: () => currentLang(),
+  showTab: () => {
+    if (!tabManager || !shellWindow || shellWindow.isDestroyed()) return null
+    if (shellWindow.isMinimized()) shellWindow.restore()
+    shellWindow.show()
+    shellWindow.focus()
+    return tabManager.openScreenshotsTab()
+  },
+  windowsToHide: () => BrowserWindow.getAllWindows(),
 })
 // privileged-scheme registration is only legal before app ready
 registerPrivilegedSchemes()
@@ -3914,6 +3935,7 @@ function applyMenuFor(kind: TabKind): void {
       buildHtmlMenu()
       break
     case 'mail':
+    case 'screenshots':
       buildHomeMenu()
       break
     default:
@@ -4093,6 +4115,8 @@ function createShellWindow(): void {
     (kind) =>
       kind === 'help'
         ? tm('menuUserGuide')
+        : kind === 'screenshots'
+          ? screenshotsStrings(currentLang()).title
         : kind === 'docs'
           ? tm('untitledDoc')
           : kind === 'slides'
@@ -5048,6 +5072,10 @@ function registerHomeIpc(): void {
     tabManager?.openMailTab()
   })
 
+  ipcMain.handle(HOME_CHANNELS.newScreenshots, () => {
+    tabManager?.openScreenshotsTab()
+  })
+
   ipcMain.handle(HOME_CHANNELS.newPdf, (_event, opts?: NewFileOpts) => {
     rememberPendingDir('pdf', opts)
     void newPdfTab()
@@ -5674,6 +5702,7 @@ const TAB_MENU_ICON: Record<TabKind, keyof MenuIconSet> = {
   html: 'html',
   help: 'home',
   mail: 'home',
+  screenshots: 'home',
 }
 
 // tab views see neither DOM events nor a focus change when the user clicks the
@@ -7192,6 +7221,7 @@ ipcMain.handle('ai:open-skills-settings', () => openHomeSettings('skills'))
 registerProjectIpc()
 registerDocsIpc()
 registerHomeIpc()
+registerScreenshotsIpc()
 registerIntegrationsIpc({
   settingsPath: APP_SETTINGS_PATH,
   window: () => shellWindow,
@@ -7289,6 +7319,7 @@ app.whenReady().then(async () => {
     html: join(HTML_OUT, 'renderer'),
     help: join(__dirname, '../renderer'),
     mail: join(MAIL_OUT, 'renderer'),
+    screenshots: join(__dirname, '../renderer'),
   })
   if (headlessArgv.kind !== 'none') {
     await runHeadlessExportEntry(headlessArgv)
@@ -7331,6 +7362,9 @@ app.whenReady().then(async () => {
     app.quit()
     return
   }
+  // 360 Screenshots: system-wide capture hotkeys (⌥⇧⌘1/2/3), only in the instance that owns the lock
+  const takenHotkeys = registerScreenshotsHotkeys()
+  if (takenHotkeys.length > 0) console.warn('[screenshots] hotkeys held by another app:', takenHotkeys)
   // another GenOffice-family app re-logging in rotates the shared key; the
   // home page re-reads its account status. A logout that leaves only the
   // gsk CLI fallback key is not a login
@@ -7543,6 +7577,7 @@ app.on('before-quit', () => {
 
 // after every window has closed, so the shell window's own 'closed' republish cannot revive the file
 app.on('will-quit', () => {
+  unregisterScreenshotsHotkeys()
   fileIndexer?.stop()
   fileIndexStore?.close()
   stopAuthWatch?.()

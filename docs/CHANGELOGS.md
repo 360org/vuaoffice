@@ -3,6 +3,23 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.62] - 2026-10-24
+
+### [SCREENSHOTS/360] Mô-đun Chụp Màn Hình & Trình Biên Tập Ảnh Vector Độc Quyền
+
+- **[SCREENSHOTS/CORE] Trình biên tập ảnh vector VuaOffice Screenshots (`360/screenshots`)**:
+  - Tích hợp công cụ chụp màn hình (vùng chọn, cửa sổ, toàn màn hình) trên macOS (`/usr/sbin/screencapture`) và Windows/Linux (`desktopCapturer`).
+  - Hỗ trợ đầy đủ bộ công cụ vẽ vector: Mũi tên (Arrow), Khung chữ nhật (Rect), Hình elip (Ellipse), Đường kẻ (Line), Bút vẽ tự do (Pen), Bút dạ quang bán trong suốt (Highlighter), Văn bản tương phản cao (Text), Huy hiệu đánh số bước tự động (Step Counter), Làm mờ che thông tin nhạy cảm (Pixelate), và Cắt ảnh (Crop).
+  - 100% icon công cụ tự vẽ dạng vector SVG, tự động đồng bộ theo Semantic Tokens của VuaOffice (hỗ trợ Light / Dark / System mode).
+  - Hệ thống phím tắt toàn hệ thống: `⌥⇧⌘1` (vùng chọn), `⌥⇧⌘2` (cửa sổ), `⌥⇧⌘3` (toàn màn hình) tránh xung đột phím tắt mặc định của OS.
+  - Tích hợp sâu vào Shell: Thẻ Screenshots trên Home, tab riêng trên thanh tiêu đề, phím tắt chụp ảnh hoạt động ngay cả khi VuaOffice chạy nền, và cơ chế bảo vệ đóng tab khi có chú thích chưa lưu.
+- **[UPSTREAM/SYNC] Hợp nhất bản cập nhật Upstream**:
+  - Hợp nhất tính năng Mailings trộn dữ liệu vào tài liệu Docs, so sánh văn bản ra bản redline theo dõi thay đổi, ẩn ô khỏi mô hình AI trong Sheets, mở tệp OpenDocument (.odt/.ods/.odp).
+  - Sửa lỗi tương thích cơ chế ngủ tab cho module VuaOffice Mail (`lastActiveAt`).
+  - Cập nhật bộ nhận diện thương hiệu: Thêm favicon.ico và og-image chuẩn 1200x630 cho website `vuaoffice.com`.
+
+---
+
 ## [1.0.61] - 2026-10-19
 
 ### [CORE/UPSTREAM] Hợp nhất Bản cập nhật Upstream, Native Slide Engine & Local AI Proxy
