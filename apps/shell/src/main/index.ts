@@ -31,6 +31,7 @@ import {
 } from 'electron'
 import type { MenuItemConstructorOptions, NativeImage, WebContents } from 'electron'
 import { atomicCopyFile, atomicWriteFile } from './atomic-write'
+import { registerAiNamingIpc } from './ai-naming-service'
 import { tabStripOverlay } from './title-bar-overlay'
 import { handshakeOdooAiConfig, getAiHandshakeStatus } from './ai-handshake'
 import { shellWindowBackground } from './window-background'
@@ -86,6 +87,8 @@ import {
   readAuthorNameSetting,
   sanitizeAuthorName,
   systemAuthorName,
+  readLegacyImportPrompt,
+  writeLegacyImportPrompt,
 } from '@genoffice/electron-utils'
 import { createMainProcessProxyDispatcher } from '@genoffice/electron-utils/main-proxy'
 import {
@@ -95,6 +98,12 @@ import {
   writeAppSettingThen,
 } from './app-settings'
 import { OPEN_DOCUMENTS_FILE, clearOpenDocuments, publishOpenDocuments } from './open-documents'
+import {
+  LAST_SESSION_DOCUMENTS_KEY,
+  RESTORE_LAST_SESSION_KEY,
+  launchPathsWithLastSession,
+  restoreLastSessionEnabled,
+} from './last-session'
 import { startControlServer, type ControlServer } from './control-server'
 import { controlHandler } from './control-handlers'
 import { installCliLinkBestEffort } from './cli-link'
@@ -203,6 +212,7 @@ import {
   authorizeMcpSheetWrite,
   sendSheetsMenuAction,
   sheetsFileRenamed,
+  setSheetsActivateTabHook,
   setSheetsCloseTabHook,
   setSheetsExtraFileMenuItems,
   setSheetsHostWindowHook,
@@ -450,8 +460,8 @@ if (!app.isPackaged) {
     // moves once — it sits on the same volume as appData, so the rename is
     // atomic, and a concurrent dev instance keeps its open file handles.
     const appData = app.getPath('appData')
-    const devDir = join(appData, 'GenOffice-Dev')
-    const oldDevDir = join(appData, 'GenOffice Dev')
+    const devDir = join(appData, 'VuaOffice-Dev')
+    const oldDevDir = join(appData, 'VuaOffice Dev')
     let userData = devDir
     if (existsSync(oldDevDir) && !existsSync(devDir)) {
       try {
@@ -644,6 +654,20 @@ function currentUpdateChannel(): UpdateChannel {
   return cachedUpdateChannel
 }
 
+let cachedAutoUpdateCheck: boolean | null = null
+
+function autoUpdateCheckEnabled(): boolean {
+  cachedAutoUpdateCheck ??= readAppSettings(APP_SETTINGS_PATH()).autoUpdateCheck !== false
+  return cachedAutoUpdateCheck
+}
+
+let cachedSilentInstallUpdate: boolean | null = null
+
+function silentInstallUpdateEnabled(): boolean {
+  cachedSilentInstallUpdate ??= readAppSettings(APP_SETTINGS_PATH()).silentInstallUpdate === true
+  return cachedSilentInstallUpdate
+}
+
 let cachedTheme: UiTheme | null = null
 
 function currentTheme(): UiTheme {
@@ -812,7 +836,7 @@ let cachedGithubStars: number | null = null
 async function fetchGithubStars(): Promise<number | null> {
   if (cachedGithubStars !== null) return cachedGithubStars
   try {
-    const response = await fetch('https://api.github.com/repos/genspark-ai/genoffice', {
+    const response = await fetch('https://api.github.com/repos/360org/vuaoffice', {
       headers: { Accept: 'application/vnd.github+json' },
       signal: AbortSignal.timeout(5000),
     })
@@ -1222,6 +1246,140 @@ const tMain = createI18n({
     menuDeveloperMode: 'Bật chế độ nhà phát triển',
     menuDiagnosticReport: 'Tạo nhật ký và báo cáo chẩn đoán…',
     menuCheckForUpdates: 'Kiểm tra cập nhật…',
+  },
+  tr: {
+    menuTabSave: 'Kaydet',
+    menuTabSaveAs: 'Farklı Kaydet…',
+    menuTabPrint: 'Yazdır…',
+    menuTabRename: 'Yeniden Adlandır',
+    menuTabDuplicate: 'Çoğalt (kayıtlı dosyayı kopyala)',
+    menuTabSplitBeside: 'Yan yana böl',
+    menuTabCopyPath: 'Yolu kopyala',
+    menuTabCopyName: 'Dosya adını kopyala',
+    menuTabReveal: 'Klasörde göster',
+    menuTabOpenDefault: 'Varsayılan uygulamayla aç',
+    menuTabMoveLeft: 'Sola taşı',
+    menuTabMoveRight: 'Sağa taşı',
+    menuTabCloseOthers: 'Diğer sekmeleri kapat',
+    menuTabCloseRight: 'Sağdaki sekmeleri kapat',
+    menuTabCloseAll: 'Tüm sekmeleri kapat',
+    menuTabReopen: 'Kapatılan sekmeyi yeniden aç',
+    menuTabPin: 'Sekmeyi sabitle (yüklü tut)',
+    menuTabUnpin: 'Sekme sabitlemesini kaldır',
+    dlgAddFolderRoot: 'Ana Sayfaya Klasör Ekle',
+    watchdogTitle: 'Belge çok fazla kaynak kullanıyor',
+    watchdogBody:
+      '"{title}" birkaç dakikadır çok fazla bellek veya CPU kullanıyor ({memory} MB, %{cpu} CPU). Beklemeye devam edebilir ya da belgeyi kapatabilirsiniz (önce kaydedilmemiş değişiklikleri kaydetmeniz istenecek). Tanılama bilgileri kaydedildi.',
+    watchdogWait: 'Beklemeye Devam Et',
+    watchdogClose: 'Belgeyi Kapat',
+    watchdogIgnore: 'Bir Daha Hatırlatma',
+    errFolderRootUnusable: 'Seçilen klasör okunamıyor',
+    menuFile: 'Dosya',
+    menuSectionNew: 'Yeni',
+    menuView: 'Görünüm',
+    menuUiZoomIn: 'Arayüzü Yakınlaştır',
+    menuUiZoomOut: 'Arayüzü Uzaklaştır',
+    menuUiZoomReset: 'Arayüz Yakınlaştırmasını Sıfırla',
+    menuOpenInNewWindow: 'Yeni Pencerede Aç',
+    menuNewDoc: 'AI Docs',
+    menuNewSheet: 'AI Sheets',
+    untitledSheet: 'Adsız Elektronik Tablo',
+    untitledDoc: 'Adsız Belge',
+    untitledDeck: 'Adsız Sunu',
+    untitledMarkdown: 'Adsız Markdown',
+    untitledHtml: 'Adsız HTML',
+    untitledPdf: 'Adsız PDF',
+    menuNewSlide: 'AI Slides',
+    menuNewMarkdown: 'AI Markdown',
+    menuNewHtml: 'AI HTML',
+    menuNewPdf: 'AI PDF',
+    menuExportPdf: 'PDF Olarak Dışa Aktar…',
+    menuExportImages: 'Görüntü Olarak Dışa Aktar…',
+    menuExportHtml: 'Tek Dosyalı HTML Olarak Dışa Aktar…',
+    menuOpenInDocs: 'Dönüştür ve Docs ile Aç',
+    menuPrint: 'Yazdır…',
+    menuOpen: 'Aç…',
+    menuSave: 'Kaydet',
+    menuSaveAs: 'Farklı Kaydet…',
+    menuClose: 'Kapat',
+    menuEdit: 'Düzenle',
+    menuWindow: 'Pencere',
+    menuHome: 'Ana Sayfa',
+    backToHome: 'Ana Sayfaya Dön',
+    dlgOpenTitle: 'Dosya Aç',
+    filterSupported: 'Desteklenen Dosyalar',
+    filterWord: 'Word Belgeleri',
+    filterExcel: 'Excel Çalışma Kitapları',
+    filterPpt: 'PowerPoint Sunuları',
+    filterMarkdown: 'Metin Dosyaları (Markdown, TXT, JSON)',
+    filterHtml: 'HTML Belgeleri',
+    filterPdf: 'PDF Belgeleri',
+    errBadArgs: 'Geçersiz bağımsız değişkenler',
+    errBadName: 'Geçersiz dosya adı',
+    errBadExtension: 'Bu uzantı desteklenmiyor ve dosya bir daha açılamaz',
+    errMissing: 'Dosya bulunamadı',
+    errExists: 'Bu adda bir dosya zaten var',
+    errRenameFailed: 'Yeniden adlandırma başarısız oldu',
+    errPdfSaveAsFailed: 'PDF kopyası kaydedilemedi',
+    errNewTabFailed: 'Yeni belge oluşturulamadı',
+    errDuplicateFailed: 'Dosya çoğaltılamadı',
+    errUnsupportedExt: '.{ext} dosyaları desteklenmiyor',
+    copySuffix: 'kopya',
+    menuHelp: 'Yardım',
+    menuUserGuide: 'Kullanım Kılavuzu',
+    thirdPartyNotices: 'Üçüncü Taraf Bildirimleri',
+    menuExportDocx: 'Word Olarak Dışa Aktar…',
+    btnCancel: 'İptal',
+    pdfDocxFailedMsg: 'Word olarak dışa aktarma başarısız oldu',
+    pdfConvertFailedMsg: 'Markdown / HTML olarak dışa aktarma başarısız oldu',
+    pdfDocxBusyMsg: 'Zaten bir Word dışa aktarma işlemi sürüyor. Lütfen bitmesini bekleyin.',
+    menuExportPptx: 'PowerPoint Olarak Dışa Aktar…',
+    pdfPptxFailedMsg: 'PowerPoint olarak dışa aktarma başarısız oldu',
+    pdfPptxBusyMsg: 'Zaten bir dışa aktarma işlemi sürüyor. Lütfen bitmesini bekleyin.',
+    pdfPptxLocalScannedDetail:
+      'Her sayfa tam sayfa görüntü olarak dışa aktarıldı; slaytlardaki metin düzenlenemez.',
+    menuExportXlsx: 'Excel Olarak Dışa Aktar…',
+    pdfXlsxFailedMsg: 'Excel olarak dışa aktarma başarısız oldu',
+    pdfXlsxBusyMsg: 'Zaten bir dışa aktarma işlemi sürüyor. Lütfen bitmesini bekleyin.',
+    pdfXlsxLocalScannedDetail:
+      'Taranmış sayfalar hücrelere dönüştürülemez; bunun yerine her sayfanın çalışma sayfasında bir bildirim satırı bulunur.',
+    pdfXlsxLocalSkippedMsg: 'Bazı sayfalar hücrelere dönüştürülmedi',
+    pdfXlsxLocalSkippedDetail:
+      '{pages} numaralı sayfalar hücrelere dönüştürülemedi; bunun yerine çalışma sayfalarında bir bildirim satırı bulunur.',
+    pdfDocxLocalScannedMsg: 'Taranmış belge algılandı',
+    pdfMdLocalMissingMsg: 'Markdown dosyasında bazı içerikler eksik',
+    pdfMdLocalScannedDetail:
+      'Düzenlenebilir metin tanınamadığından Markdown dosyasında kullanılabilir içerik yok.',
+    pdfMdLocalDroppedDetail:
+      '{pages} numaralı sayfa(lar) güvenilir biçimde yeniden oluşturulamadı; Markdown görüntü taşıyamadığından içerikleri eksik.',
+    pdfDocxLocalScannedDetail:
+      'Sayfalar görünümlerini korumak için görüntü olarak dışa aktarıldı; düzenlenebilir metin tanınamadı.',
+    pdfDocxLocalDegradedMsg: 'Bazı sayfalar görüntü olarak dışa aktarıldı',
+    pdfDocxLocalDegradedDetail:
+      '{pages} numaralı sayfa(lar) güvenilir biçimde yeniden oluşturulamadı ve tam sayfa görüntü olarak dışa aktarıldı.',
+    pdfDocxLocalOcrMsg: 'Taranmış sayfalar düzenlenebilir metne dönüştürüldü',
+    pdfDocxLocalOcrDetail:
+      '{pages} numaralı sayfa(lar) taramaydı; metinleri cihaz üzerinde OCR ile kurtarıldı. Lütfen sonucu gözden geçirin.',
+    pdfDocxLocalEncryptedDetail: 'Bu PDF şifreli ve doğru parola olmadan açılamadı.',
+    pdfDocxLocalUnsupportedEncDetail:
+      'Bu PDF sertifika tabanlı veya desteklenmeyen başka bir şifreleme kullanıyor ve dönüştürülemez.',
+    pdfPwdTitle: 'Parola Girin',
+    pdfPwdPrompt: 'Bu PDF şifreli. Açmak için parolayı girin:',
+    pdfPwdRetryPrompt: 'Parola yanlış. Lütfen yeniden deneyin.',
+    pdfPwdOk: 'Tamam',
+    pdfPwdVerifying: 'Parola doğrulanıyor…',
+    pdfPwdLabel: 'Parola',
+    pdfPwdPlaceholder: 'Açma parolasını girin',
+    pdfPwdShow: 'Parolayı göster',
+    pdfPwdHide: 'Parolayı gizle',
+    pdfDocxLocalCorruptDetail: 'Dosya bozuk veya geçerli bir PDF değil ve dönüştürülemez.',
+    dlgPickSaveDir: 'Varsayılan Kayıt Konumunu Seçin',
+    errSaveDirUnusable:
+      'Seçilen klasör yazılabilir değil ve varsayılan kayıt konumu olarak kullanılamaz',
+    menuTroubleshooting: 'Troubleshooting',
+    menuDeveloperMode: 'Enable Developer Mode',
+    menuDiagnosticReport: 'Generate Log, Diagnostic Report…',
+    menuCheckForUpdates: 'Check for Updates…',
   },
   ja: {
     menuTabSave: '保存',
@@ -3838,7 +3996,7 @@ function ensureFileIndexer(): FileIndexer | null {
 }
 
 const SEARCH_EXT_FAMILY: Record<string, readonly string[]> = {
-  docx: ['docx', 'doc', 'odt', 'ott'],
+  docx: ['docx', 'doc', 'dot', 'odt', 'ott', 'hwpx', 'hwp'],
   xlsx: ['xlsx', 'xlsm', 'xls', 'csv', 'tsv', 'ods', 'ots'],
   pptx: ['pptx', 'ppt', 'odp', 'otp'],
   md: ['md', 'markdown', 'txt', 'json'],
@@ -4056,7 +4214,7 @@ function createShellWindow(): void {
     ...(restored ? { x: restored.x, y: restored.y } : {}),
     minWidth: SHELL_WINDOW_MIN_WIDTH,
     minHeight: SHELL_WINDOW_MIN_HEIGHT,
-    title: 'GenOffice',
+    title: 'VuaOffice',
     // Paint the theme's surface before the renderer's first frame so the window
     // does not flash white in dark mode. nativeTheme.themeSource is already set
     // from the saved theme in app.whenReady, before this window is created.
@@ -4165,6 +4323,11 @@ function createShellWindow(): void {
   setSheetsShellWindow(win)
   setDocsHostWindowHook((wc) => detachedWindowForWebContents(wc.id))
   setSheetsHostWindowHook((wc) => detachedWindowForWebContents(wc.id))
+  // the cross-workbook range picker returns focus to the editing tab
+  setSheetsActivateTabHook((wcId) => {
+    const tabId = tabManager?.tabIdForWebContents(wcId)
+    if (tabId !== undefined) tabManager?.activateTab(tabId)
+  })
   setSlidesShellWindow(win)
   setSlidesHostWindowHook((wc) => detachedWindowForWebContents(wc.id))
   setSlidesShowBleed((wc, on) => manager.setContentBleed(wc, on))
@@ -4299,6 +4462,16 @@ function createShellWindow(): void {
   win.on('closed', () => {
     if (shellWindow === win) shellWindow = null
     if (tabManager === manager) {
+      // the close guard has already settled every unsaved tab, so the tabs left are the session
+      if (restoreLastSessionEnabled(readAppSettings(APP_SETTINGS_PATH()))) {
+        try {
+          writeAppSettings(APP_SETTINGS_PATH(), {
+            [LAST_SESSION_DOCUMENTS_KEY]: [...new Set(manager.openFilePaths())],
+          })
+        } catch (err) {
+          console.warn('[shell] could not save the session documents:', err)
+        }
+      }
       tabManager = null
       setDockHost(null)
       publishAllOpenDocuments()
@@ -4316,13 +4489,15 @@ function createShellWindow(): void {
 
 
 /**
- * Single source of truth for the open-dialog filter. Includes the
- * legacy .doc/.ppt binaries so they are selectable and surface the explicit
- * "not supported" dialog via openDocumentPath instead of being grayed out.
+ * Single source of truth for the open-dialog filter. Includes the still-legacy
+ * .ppt binary so it is selectable and surfaces the explicit "not supported"
+ * dialog via openDocumentPath instead of being grayed out; .doc/.dot route into
+ * the docs import filter.
  */
 const OPEN_DIALOG_EXTENSIONS = [
   'docx',
   'doc',
+  'dot',
   'xlsx',
   'xlsm',
   'xls',
@@ -4333,6 +4508,8 @@ const OPEN_DIALOG_EXTENSIONS = [
   'pptx',
   'ppt',
   'odt',
+  'hwpx',
+  'hwp',
   'odp',
   'otp',
   'pdf',
@@ -4560,7 +4737,7 @@ function newDocTab(): void {
 
 /** MCP: open a blank docs tab and return its webContents id, for the visible-editor bridge */
 function openBlankDocsTabForMcp(): number {
-  if (!tabManager) throw new Error('GenOffice is not ready')
+  if (!tabManager) throw new Error('VuaOffice is not ready')
   const tabId = tabManager.openDocsTab(undefined, { newBlank: true })
   const view = tabManager.docsTabs().find((t) => t.id === tabId)
   if (!view) throw new Error('the new document tab could not be opened')
@@ -4577,7 +4754,7 @@ function openBlankDocsTabForMcp(): number {
  * marking is skipped, the file name is the agent's business.
  */
 async function openBlankSheetsTabForMcp(): Promise<number> {
-  if (!tabManager) throw new Error('GenOffice is not ready')
+  if (!tabManager) throw new Error('VuaOffice is not ready')
   const filePath = uniquePathIn(defaultSaveDir(), `${tm('untitledSheet')}.xlsx`)
   await atomicWriteFile(filePath, await blankXlsxBuffer())
   const tabId = tabManager.openSheetsTab(filePath)
@@ -4648,7 +4825,7 @@ function abandonBlankTabForMcp(
 
 /** MCP: open a blank slides tab and return its webContents id, for the visible-deck bridge */
 function openBlankSlidesTabForMcp(): number {
-  if (!tabManager) throw new Error('GenOffice is not ready')
+  if (!tabManager) throw new Error('VuaOffice is not ready')
   const tabId = tabManager.openSlidesTab()
   const view = tabManager.slidesTabs().find((t) => t.id === tabId)
   if (!view) throw new Error('the new presentation tab could not be opened')
@@ -5028,7 +5205,7 @@ function registerHomeIpc(): void {
       title: tm('dlgOpenTitle'),
       filters: [
         { name: tm('filterSupported'), extensions: OPEN_DIALOG_EXTENSIONS },
-        { name: tm('filterWord'), extensions: ['docx', 'doc', 'odt', 'ott'] },
+        { name: tm('filterWord'), extensions: ['docx', 'doc', 'dot', 'odt', 'ott', 'hwpx', 'hwp'] },
         {
           name: tm('filterExcel'),
           extensions: ['xlsx', 'xlsm', 'xls', 'csv', 'tsv', 'ods', 'ots'],
@@ -5184,6 +5361,22 @@ function registerHomeIpc(): void {
     applyUpdateChannel(channel)
   })
 
+  ipcMain.handle(HOME_CHANNELS.getAutoUpdateCheck, () => autoUpdateCheckEnabled())
+
+  ipcMain.handle(HOME_CHANNELS.setAutoUpdateCheck, (_event, on: unknown) => {
+    if (typeof on !== 'boolean') return
+    writeAppSetting(APP_SETTINGS_PATH(), 'autoUpdateCheck', on)
+    cachedAutoUpdateCheck = on
+  })
+
+  ipcMain.handle(HOME_CHANNELS.getSilentInstallUpdate, () => silentInstallUpdateEnabled())
+
+  ipcMain.handle(HOME_CHANNELS.setSilentInstallUpdate, (_event, on: unknown) => {
+    if (typeof on !== 'boolean') return
+    writeAppSetting(APP_SETTINGS_PATH(), 'silentInstallUpdate', on)
+    cachedSilentInstallUpdate = on
+  })
+
   ipcMain.handle(
     HOME_CHANNELS.onboardingSeen,
     (): boolean => readAppSettings(APP_SETTINGS_PATH()).onboardingSeen === true,
@@ -5247,6 +5440,14 @@ function registerHomeIpc(): void {
     return authorNameSetting()
   })
 
+  ipcMain.handle(HOME_CHANNELS.getLegacyImportPrompt, (): boolean =>
+    readLegacyImportPrompt(APP_SETTINGS_PATH()),
+  )
+  ipcMain.handle(HOME_CHANNELS.setLegacyImportPrompt, (_event, prompt: unknown): boolean => {
+    writeLegacyImportPrompt(APP_SETTINGS_PATH(), prompt !== false)
+    return readLegacyImportPrompt(APP_SETTINGS_PATH())
+  })
+
   ipcMain.handle(HOME_CHANNELS.getAutoSaveDefault, (): AutoSaveDefault => currentAutoSaveDefault())
   ipcMain.handle('app:get-auto-save-default', (): AutoSaveDefault => currentAutoSaveDefault())
 
@@ -5267,6 +5468,18 @@ function registerHomeIpc(): void {
     if (typeof on !== 'boolean') return
     cachedTabSleepEnabled = on
     writeAppSettings(APP_SETTINGS_PATH(), { tabSleepEnabled: on })
+  })
+
+  ipcMain.handle(HOME_CHANNELS.getRestoreLastSession, () =>
+    restoreLastSessionEnabled(readAppSettings(APP_SETTINGS_PATH())),
+  )
+  ipcMain.handle(HOME_CHANNELS.setRestoreLastSession, (_event, on: unknown) => {
+    if (typeof on !== 'boolean') return
+    // turning it off forgets the stored paths instead of keeping them around
+    writeAppSettings(APP_SETTINGS_PATH(), {
+      [RESTORE_LAST_SESSION_KEY]: on,
+      ...(on ? {} : { [LAST_SESSION_DOCUMENTS_KEY]: undefined }),
+    })
   })
 
   ipcMain.handle(HOME_CHANNELS.getMcpStatus, () => mcpStatus())
@@ -7218,6 +7431,9 @@ const openHomeSettings = (section: 'aiModel' | 'skills'): void => {
 }
 ipcMain.handle('ai:open-model-settings', () => openHomeSettings('aiModel'))
 ipcMain.handle('ai:open-skills-settings', () => openHomeSettings('skills'))
+// Model file naming. Registered here beside the other AI wiring so every
+// window type can reach it.
+registerAiNamingIpc(() => currentLang())
 registerProjectIpc()
 registerDocsIpc()
 registerHomeIpc()
@@ -7251,7 +7467,7 @@ registerUserSkillsIpc({
 setSessionPathResolver(resolveSheetsSessionPath)
 
 /** Dev-only pid marker for the takeover below; scoped to userData like the lock itself. */
-app.name = 'GenOffice'
+app.name = 'VuaOffice'
 const devPidFile = () => join(app.getPath('userData'), 'dev-instance.pid')
 
 /** Hidden-window exporters, one per editor module (HEADLESS_TARGETS says which formats each takes). */
@@ -7511,7 +7727,12 @@ app.whenReady().then(async () => {
   setUpdateCheckInvoker(() => void checkForUpdatesNow())
   // every app's Settings entry (⌘, / Ctrl+,) lands on the shell's Settings view
   setSettingsInvoker(() => openSettingsView())
-  initAutoUpdater(() => shellWindow, currentUpdateChannel())
+  initAutoUpdater(
+    () => shellWindow,
+    currentUpdateChannel(),
+    autoUpdateCheckEnabled,
+    silentInstallUpdateEnabled,
+  )
   // resource watchdog: a renderer that stays hot for minutes gets diagnostics
   // recorded and the user an offer to close the document (headless exports
   // are short-lived and unattended)
@@ -7528,12 +7749,24 @@ app.whenReady().then(async () => {
     })
   }
 
+  // 360: a vuaoffice:// deep link that arrived before the window existed
   if (pendingProtocolUrl) {
     handleVuaOfficeUrl(pendingProtocolUrl)
     pendingProtocolUrl = undefined
   }
 
-  openLaunchPaths(pendingLaunchPaths)
+  const launchSettings = readAppSettings(APP_SETTINGS_PATH())
+  const launchPaths = launchPathsWithLastSession(launchSettings, pendingLaunchPaths)
+  if (launchSettings[LAST_SESSION_DOCUMENTS_KEY] !== undefined) {
+    // consumed before opening: a document that crashes the app during restore
+    // must not be restored again at the next launch
+    try {
+      writeAppSettings(APP_SETTINGS_PATH(), { [LAST_SESSION_DOCUMENTS_KEY]: undefined })
+    } catch (err) {
+      console.warn('[shell] could not clear the session documents:', err)
+    }
+  }
+  openLaunchPaths(launchPaths)
   pendingLaunchPaths = []
   for (const recoverAs of pendingUnsavedNewRecoveries()) void newSheetTab(recoverAs)
 

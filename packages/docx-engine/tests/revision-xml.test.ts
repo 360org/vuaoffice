@@ -160,8 +160,45 @@ describe('applyTrackedChangesXml', () => {
     expect(out.xml).toMatch(/<w:ins w:id="3"/)
   })
 
+  it('rejecting an empty-old format change on a paragraph mark keeps the mark’s other markers', () => {
+    const body =
+      p(
+        r('x'),
+        `<w:pPr><w:rPr><w:ins w:id="1" ${AT}/><w:caps/><w:rPrChange w:id="2" ${AT}><w:rPr/></w:rPrChange></w:rPr></w:pPr>`,
+      ) + p(r('y'))
+    const only = applyTrackedChangesXml(hdr(body), 'reject', { type: 'formatting' })
+    expect(only.applied).toBe(1)
+    expect(only.remaining).toBe(1)
+    expect(only.xml).toMatch(/<w:rPr><w:ins w:id="1"[^>]*\/><\/w:rPr>/)
+    expect(only.xml).not.toMatch(/rPrChange|caps/)
+    // one pass rejects the mark's insertion too: the paragraphs join and no holder lingers
+    const all = applyTrackedChangesXml(hdr(body), 'reject')
+    expect(all.remaining).toBe(0)
+    expect(all.xml).not.toMatch(/rPrChange|caps|<w:ins\b|<w:rPr>/)
+    expect(texts(all.xml)).toEqual(['xy'])
+  })
+
   it('leaves a part without revisions byte-identical', () => {
     const xml = hdr(p(r('plain')))
     expect(applyTrackedChangesXml(xml, 'accept')).toEqual({ xml, applied: 0, remaining: 0 })
+  })
+})
+
+describe('applyTrackedChangesXml move pairs', () => {
+  it('an author filter resolves both sides of a move together', () => {
+    const xml = hdr(
+      p(
+        `<w:moveFromRangeStart w:id="1" ${AT} w:name="m"/><w:moveFrom w:id="2" ${AT}>${dr('MOVED')}</w:moveFrom><w:moveFromRangeEnd w:id="1"/>` +
+          `<w:ins w:id="5" w:author="Other">${r('keep')}</w:ins>`,
+      ) +
+        p(
+          `<w:moveToRangeStart w:id="3" ${AT} w:name="m"/><w:moveTo w:id="4" ${AT}>${r('MOVED')}</w:moveTo><w:moveToRangeEnd w:id="3"/>`,
+        ),
+    )
+    const out = applyTrackedChangesXml(xml, 'reject', { author: 'x' })
+    expect(out.applied).toBe(2)
+    expect(out.remaining).toBe(1)
+    expect(out.xml).not.toMatch(/moveFrom|moveTo/)
+    expect(texts(out.xml)).toEqual(['MOVEDkeep', ''])
   })
 })

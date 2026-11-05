@@ -33,6 +33,7 @@ import type {
   TransitionKind,
 } from '../shared/ipc'
 import { baseName } from '../shared/base-name'
+import { mergeBroadcastUpdate, mergeSlideUpdate, setDeckRefresh } from '../shared/slide-update'
 import { SlideCanvas, selectionChromeColor, type SlideCanvasHandle } from './SlideCanvas'
 import { tableCellOverlayBox } from './table-hit'
 import { ZOOM_PREVIEW_EVENT } from './zoom-preview'
@@ -55,7 +56,8 @@ import { runHeadlessPdfExport } from './headless-export'
 import { syncPrivateFonts } from './doc-fonts'
 import { toPickerHex } from './color-input'
 import { InkOverlay } from './InkOverlay'
-import { inkNodesOf, type InkPenSettings, type InkStroke, type InkTool } from './ink'
+import { inkNodesOf, type InkStroke, type InkTool } from './ink'
+import { loadInkPresets, saveInkPresets, type InkPreset } from './ink-presets'
 import type { SlideThemePreset } from './themes'
 import { Ribbon, type FormatCmd, type SlidesViewMode } from './components/Ribbon'
 import {
@@ -97,6 +99,8 @@ import { AnimPreviewOverlay } from './components/AnimatedSlide'
 import { EquationDialog, HeaderFooterDialog, LinkDialog } from './components/InsertDialogs'
 import { RedactDialog } from './components/RedactDialog'
 import { ZoomDialog } from './components/ZoomDialog'
+import { SlideSizeDialog } from './components/SlideSizeDialog'
+import { defaultNewSlideSize } from './slide-size'
 import { CutoutDialog } from './components/CutoutDialog'
 import {
   createWheelPager,
@@ -523,11 +527,13 @@ export function App() {
   /** Ribbon hover preview: the hovered effect played on the selection without applying */
   const [hoverAnim, setHoverAnim] = useState<{ nonce: number; items: AnimationItem[] } | null>(null)
   const [inkTool, setInkTool] = useState<InkTool>('select')
-  const [inkPen, setInkPen] = useState<InkPenSettings>({ color: 'C00000', width: 2 })
-  const [inkHighlighter, setInkHighlighter] = useState<InkPenSettings>({
-    color: 'FFFF00',
-    width: 10,
-  })
+  const [inkPresets, setInkPresets] = useState<InkPreset[]>(loadInkPresets)
+  const [inkActiveId, setInkActiveId] = useState(() => loadInkPresets()[0]!.id)
+  const inkActive = inkPresets.find((p) => p.id === inkActiveId) ?? inkPresets[0]!
+  const onInkPresets = useCallback((next: InkPreset[]) => {
+    setInkPresets(next)
+    saveInkPresets(next)
+  }, [])
   const [ctxMenu, setCtxMenu] = useState<CtxMenuState>(null)
   /** "Change Shape" gallery popover: anchor point + the shape it retargets */
   const [shapeGalleryAt, setShapeGalleryAt] = useState<{
@@ -620,6 +626,8 @@ export function App() {
   const [hfDialog, setHfDialog] = useState<HfDialogState | null>(null)
   const [eqDialogOpen, setEqDialogOpen] = useState(false)
   const [zoomDialog, setZoomDialog] = useState<zoomActions.ZoomMode | null>(null)
+  /** Design › Slide Size › Custom Size… open, with the deck size it opened on */
+  const [slideSizeDialog, setSlideSizeDialog] = useState<{ cx: number; cy: number } | null>(null)
   const recorderRef = useRef<{ rec: MediaRecorder; stream: MediaStream } | null>(null)
   const [recording, setRecording] = useState(false)
   // ── Layout picking: layout list + slide size (loaded after the file opens) ─────────────────
@@ -963,16 +971,32 @@ export function App() {
   // Shared session (a second window on the same file): apply the other window's
   // edits without touching local selection or an open editor — the ids are stable,
   // so the selection stays valid; a same-element conflict resolves last-write-wins.
+  const refreshDeck = useCallback(() => {
+    void window.slidesApi
+      .getRenderSlides()
+      .then((slides) => {
+        if (slides) setSlides(slides)
+      })
+      .catch((error) => console.error('Failed to refresh deck:', error))
+  }, [])
+  useEffect(() => {
+    setDeckRefresh(refreshDeck)
+    return () => setDeckRefresh(null)
+  }, [refreshDeck])
   useEffect(
     () =>
-      window.slidesApi.onDeckChanged?.(({ slides: all }) => {
-        setSlides(all)
-        setCurrent((c) => Math.min(c, Math.max(0, all.length - 1)))
+      window.slidesApi.onDeckChanged?.(({ slides: all, order }) => {
+        setSlides((current) =>
+          order
+            ? (mergeBroadcastUpdate(current, { slides: all, order }, refreshDeck) ?? current)
+            : all,
+        )
+        setCurrent((c) => Math.min(c, Math.max(0, (order?.length ?? all.length) - 1)))
         // The broadcast also fires for undo back to a clean state — ask the
         // session instead of assuming the change dirtied it
         void window.slidesApi.isDirty?.().then((d) => setDirty(!!d))
       }),
-    [],
+    [refreshDeck],
   )
 
   // Auto-save (off by default): when on and a file path exists, silently write back every 30s + on blur.
@@ -1014,7 +1038,11 @@ export function App() {
   }, [autoSave, path, editing, editingCell, save])
 
   const saveAs = useCallback(() => fileActions.saveAs(() => ctxRef.current), [])
-  const exportImages = useCallback(() => fileActions.exportImages(ctxRef.current), [])
+  const nameWithAi = useCallback(() => fileActions.nameWithAi(() => ctxRef.current), [])
+  const exportImages = useCallback(
+    (format: 'png' | 'jpg' = 'png') => fileActions.exportImages(ctxRef.current, format),
+    [],
+  )
   const exportPdf = useCallback(() => void fileActions.exportPdf(ctxRef.current), [])
 
   // Headless export mode (--headless-export): this renderer lives in a hidden
@@ -1232,7 +1260,7 @@ export function App() {
   }, [hasDoc, viewMode, previewZoom, slides.length])
 
   const newBlank = useCallback(async () => {
-    const r = await window.slidesApi.newBlank(FIT_WIDTH)
+    const r = await window.slidesApi.newBlank(FIT_WIDTH, defaultNewSlideSize() ?? undefined)
     applyOpen(r)
     return r
   }, [applyOpen])
@@ -2321,9 +2349,11 @@ export function App() {
       if (cmd === 'open') void openDialog()
       else if (cmd === 'save') void save()
       else if (cmd === 'save-as') void saveAs()
+      else if (cmd === 'name-with-ai') void nameWithAi()
       // macOS has no File ribbon tab, so these only exist in the menu
       else if (cmd === 'export-pdf') void exportPdf()
-      else if (cmd === 'export-images') void exportImages()
+      else if (cmd === 'export-images') void exportImages('png')
+      else if (cmd === 'export-images-jpg') void exportImages('jpg')
       else if (cmd === 'print') setPrintDlgOpen(true)
       // Through the preview path so the zoom pivots on the viewport center, not the scroll origin
       else if (cmd === 'zoom-in') previewZoom(nextPreset)
@@ -2348,6 +2378,7 @@ export function App() {
     openDialog,
     save,
     saveAs,
+    nameWithAi,
     exportPdf,
     exportImages,
     undo,
@@ -3218,18 +3249,13 @@ export function App() {
 
   // ---- Draw (freehand ink): one stroke = one transparent PNG picture element; undo/save use the existing pipeline ----
 
-  const onInkTool = useCallback(
-    (tool: InkTool) => {
-      // Clicking the currently active tool again = cancel (back to select mode)
-      const next = tool !== 'select' && inkTool === tool ? 'select' : tool
-      setInkTool(next)
-      if (next !== 'select') {
-        setSelectedIds([])
-        setEditing(null)
-      }
-    },
-    [inkTool],
-  )
+  const onInkTool = useCallback((tool: InkTool) => {
+    setInkTool(tool)
+    if (tool !== 'select') {
+      setSelectedIds([])
+      setEditing(null)
+    }
+  }, [])
 
   const commitInk = useCallback(
     (stroke: InkStroke) => arrangeActions.commitInk(ctxRef.current, stroke),
@@ -3258,6 +3284,17 @@ export function App() {
       })
   })
 
+  const applySlideSize = (cx: number, cy: number) =>
+    void window.slidesApi.setSlideSize({ cx, cy }).then((all) => {
+      if (all) {
+        setSlides(all)
+        // Every slide re-materializes with fresh element ids
+        setSelectedIds([])
+        setEditing(null)
+        setDirty(true)
+      }
+    })
+
   return (
     <div className="app">
       <ToastHost />
@@ -3275,9 +3312,11 @@ export function App() {
         onUndo={() => void undo()}
         onRedo={() => void redo()}
         onSaveAs={() => void saveAs()}
+        onNameWithAi={() => void nameWithAi()}
         onExportPdf={() => void exportPdf()}
         onPrint={() => setPrintDlgOpen(true)}
-        onExportImages={() => void exportImages()}
+        onExportImages={() => void exportImages('png')}
+        onExportImagesJpg={() => void exportImages('jpg')}
         onFormat={onFormat}
         zoom={zoom}
         onZoom={previewZoom}
@@ -3327,25 +3366,12 @@ export function App() {
           void slideActions.setSlideLayoutAt(ctxRef.current, current, layoutPath)
         }
         onResetLayout={() => void slideActions.setSlideLayoutAt(ctxRef.current, current)}
-        onSlideSize={(cx, cy) =>
-          void window.slidesApi.setSlideSize({ cx, cy }).then((all) => {
-            if (all) {
-              setSlides(all)
-              // Every slide re-materializes with fresh element ids
-              setSelectedIds([])
-              setEditing(null)
-              setDirty(true)
-            }
+        onSlideSize={applySlideSize}
+        getSlideSize={() => window.slidesApi.getSlideSize()}
+        onCustomSlideSize={() =>
+          void window.slidesApi.getSlideSize().then((size) => {
+            if (size) setSlideSizeDialog(size)
           })
-        }
-        slideSizeKey={
-          slide
-            ? Math.abs(slide.widthPx / slide.heightPx - 16 / 9) < 0.02
-              ? '16:9'
-              : Math.abs(slide.widthPx / slide.heightPx - 4 / 3) < 0.02
-                ? '4:3'
-                : null
-            : null
         }
         onParagraphFormat={onParagraphFormat}
         onDirection={onDirection}
@@ -3388,10 +3414,10 @@ export function App() {
         onToggleHidden={() => void toggleHidden()}
         inkTool={inkTool}
         onInkTool={onInkTool}
-        inkPen={inkPen}
-        onInkPen={setInkPen}
-        inkHighlighter={inkHighlighter}
-        onInkHighlighter={setInkHighlighter}
+        inkPresets={inkPresets}
+        inkActiveId={inkActive.id}
+        onInkPresets={onInkPresets}
+        onInkActivate={setInkActiveId}
         inkCount={inkCount}
         onInkClearAll={() => void clearInk()}
         viewMode={viewMode}
@@ -3995,7 +4021,7 @@ export function App() {
                               onClick={toggleAi}
                             >
                               <GensparkMark size={14} />
-                              <span>Genspark AI</span>
+                              <span>VuaAI Pro</span>
                             </button>
                             {/* Same one-click presets as the Home tab; hidden instead of
                         disabled while the deck has no real content */}
@@ -4354,12 +4380,8 @@ export function App() {
                               <InkOverlay
                                 slide={slide}
                                 tool={inkTool}
-                                color={
-                                  inkTool === 'highlighter' ? inkHighlighter.color : inkPen.color
-                                }
-                                width={
-                                  inkTool === 'highlighter' ? inkHighlighter.width : inkPen.width
-                                }
+                                color={inkActive.color}
+                                width={inkActive.width}
                                 onCommit={(stroke) => void commitInk(stroke)}
                                 onErase={(ids) => void eraseInk(ids)}
                               />
@@ -4599,6 +4621,18 @@ export function App() {
         />
       )}
 
+      {slideSizeDialog && (
+        <SlideSizeDialog
+          initial={slideSizeDialog}
+          defaultUnit={rulerUnit}
+          onApply={(cx, cy) => {
+            setSlideSizeDialog(null)
+            applySlideSize(cx, cy)
+          }}
+          onClose={() => setSlideSizeDialog(null)}
+        />
+      )}
+
       {cutoutTarget && (
         <CutoutDialog
           dataUrl={cutoutTarget.dataUrl}
@@ -4634,8 +4668,8 @@ export function App() {
             setCurrent(si)
             setSelectedIds([id])
           }}
-          onReplaced={(all) => {
-            setSlides(all)
+          onReplaced={(update) => {
+            setSlides((current) => mergeSlideUpdate(current, update))
             setDirty(true)
           }}
           onClose={() => setFindOpen(false)}

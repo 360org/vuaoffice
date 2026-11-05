@@ -6,11 +6,19 @@ import {
   AiSkillChips,
   AiSkillsMenu,
 } from '@genoffice/ui'
+import {
+  AI_PANEL_WIDTH_DEFAULT,
+  clampAiPanelWidth,
+  formatAttachmentSize,
+  loadAiPanelWidth,
+  saveAiPanelWidth,
+} from '@genoffice/ui'
 import { useEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent, ReactElement, ReactNode } from 'react'
 import { AgentLoop, composeSkills, withAttachedSkills } from '@genoffice/agent-core'
 import type { AgentImage } from '@genoffice/agent-core'
 import type { AiSettings } from '@genoffice/ai-provider/browser'
+import { imageGenerationAvailable } from '@genoffice/ai-provider/browser'
 import { ATTACHMENT_IMAGE_EXTS } from '../../shared/ipc'
 import type { AttachmentAddResult, AttachmentMeta } from '../../shared/ipc'
 import {
@@ -110,12 +118,6 @@ const ATTACHMENT_CARD_ICONS: Record<string, string> = Object.fromEntries(
 )
 const MAX_IMAGES_PER_MESSAGE = 20
 
-function formatAttachmentSize(bytes: number): string {
-  return bytes >= 1024 * 1024
-    ? `${(bytes / (1024 * 1024)).toFixed(2)} MB`
-    : `${(bytes / 1024).toFixed(2)} KB`
-}
-
 /** composer chips (removable) and the read-only echo on a sent message share one renderer */
 function AttachmentList({
   atts,
@@ -181,26 +183,8 @@ function AttachmentList({
 }
 
 const PANEL_WIDTH_KEY = 'html-ai-panel-width'
-const PANEL_WIDTH_DEFAULT = 360
-const PANEL_WIDTH_MIN = 280
 const MAX_SNAPSHOTS = 20
 const TOOL_OUTPUT_MAX_CHARS = 2000
-
-function clampPanelWidth(w: number): number {
-  // The viewport can be transiently tiny (a WebContentsView is 0×0 until the
-  // shell lays it out), so never let the ceiling drop below the minimum
-  const max = Math.max(PANEL_WIDTH_MIN, Math.min(720, Math.round(window.innerWidth * 0.6)))
-  return Math.min(Math.max(w, PANEL_WIDTH_MIN), max)
-}
-
-function loadPanelWidth(): number {
-  const saved = Number(localStorage.getItem(PANEL_WIDTH_KEY))
-  // static bounds only — clamping against the window here would bake a
-  // transiently small viewport into the restored preference
-  return Number.isFinite(saved) && saved > 0
-    ? Math.min(Math.max(saved, PANEL_WIDTH_MIN), 720)
-    : PANEL_WIDTH_DEFAULT
-}
 
 interface ToolActivity {
   name: string
@@ -526,8 +510,8 @@ export function AiPanel({
   // preferred = the user's chosen width (the only value persisted); panelWidth =
   // what fits the current window. Deriving the display width from the preference
   // means a transiently small window never permanently shrinks the panel.
-  const preferredWidthRef = useRef(loadPanelWidth())
-  const [panelWidth, setPanelWidth] = useState(() => clampPanelWidth(preferredWidthRef.current))
+  const preferredWidthRef = useRef(loadAiPanelWidth(PANEL_WIDTH_KEY) ?? AI_PANEL_WIDTH_DEFAULT)
+  const [panelWidth, setPanelWidth] = useState(() => clampAiPanelWidth(preferredWidthRef.current))
   const [resizing, setResizing] = useState(false)
   const asideRef = useRef<HTMLElement>(null)
   const mountedRef = useRef(true)
@@ -538,6 +522,25 @@ export function AiPanel({
   }, [panelWidth])
 
   const settingsRef = useRef<AiSettings | null>(null)
+  /** gsk login state for the generate_image gate (refreshed on mount and window focus) */
+  const gskLoggedInRef = useRef(false)
+  useEffect(() => {
+    let alive = true
+    const refresh = () => {
+      void window.htmlApi
+        .aiGskStatus()
+        .then((s) => {
+          if (alive) gskLoggedInRef.current = !!s?.loggedIn
+        })
+        .catch(() => {})
+    }
+    refresh()
+    window.addEventListener('focus', refresh)
+    return () => {
+      alive = false
+      window.removeEventListener('focus', refresh)
+    }
+  }, [])
   const langRef = useRef(lang)
   langRef.current = lang
   const depsRef = useRef(deps)
@@ -712,32 +715,35 @@ export function AiPanel({
     loopRef.current = new AgentLoop<DocSnapshot>({
       transport: transportRef.current,
       skill: composeSkills('html+search', '', [
-        createDocumentSkill({
-          getText: () => depsRef.current.access.getText(),
-          getVersion: () => depsRef.current.access.getVersion(),
-          getMap: () => depsRef.current.access.getMap(),
-          getLastManualVersion: () => depsRef.current.access.getLastManualVersion(),
-          getFilePath: () => depsRef.current.access.getFilePath(),
-          getSelectedSid: () =>
-            queueRunRef.current ? null : depsRef.current.access.getSelectedSid(),
-          applyOps: (ops, label) => depsRef.current.access.applyOps(ops, label),
-          replaceAll: (html, label) => depsRef.current.access.replaceAll(html, label),
-          askClarification: (questions) =>
-            new Promise((resolve) => {
-              clarifyResolverRef.current = resolve
-              setActiveClarify(questions)
-            }),
-          confirmBrief: (brief) =>
-            new Promise((resolve) => {
-              briefResolverRef.current = resolve
-              setActiveBrief(brief)
-            }),
-          writePage: (spec, signal) => runPageWriterRef.current(spec, signal),
-          planBrief: (spec, signal) => runBriefWriterRef.current(spec, signal),
-          getInstruction: () => runInstructionRef.current,
-          resolveAttachmentSrc: (ref) => resolveAttachmentSrc(ref),
-          listAttachmentNames: () => availableAttachments().map((a) => a.name),
-        }),
+        createDocumentSkill(
+          {
+            getText: () => depsRef.current.access.getText(),
+            getVersion: () => depsRef.current.access.getVersion(),
+            getMap: () => depsRef.current.access.getMap(),
+            getLastManualVersion: () => depsRef.current.access.getLastManualVersion(),
+            getFilePath: () => depsRef.current.access.getFilePath(),
+            getSelectedSid: () =>
+              queueRunRef.current ? null : depsRef.current.access.getSelectedSid(),
+            applyOps: (ops, label) => depsRef.current.access.applyOps(ops, label),
+            replaceAll: (html, label) => depsRef.current.access.replaceAll(html, label),
+            askClarification: (questions) =>
+              new Promise((resolve) => {
+                clarifyResolverRef.current = resolve
+                setActiveClarify(questions)
+              }),
+            confirmBrief: (brief) =>
+              new Promise((resolve) => {
+                briefResolverRef.current = resolve
+                setActiveBrief(brief)
+              }),
+            writePage: (spec, signal) => runPageWriterRef.current(spec, signal),
+            planBrief: (spec, signal) => runBriefWriterRef.current(spec, signal),
+            getInstruction: () => runInstructionRef.current,
+            resolveAttachmentSrc: (ref) => resolveAttachmentSrc(ref),
+            listAttachmentNames: () => availableAttachments().map((a) => a.name),
+          },
+          () => imageGenerationAvailable(settingsRef.current, gskLoggedInRef.current),
+        ),
         createSearchSkill(),
         createFilesSkill(availableAttachments),
         createIntentSkill(
@@ -1152,7 +1158,7 @@ export function AiPanel({
   // Re-derive the display width on window resize (max is 60% of the window);
   // growing the window back restores the preferred width
   useEffect(() => {
-    const onResize = (): void => setPanelWidth(clampPanelWidth(preferredWidthRef.current))
+    const onResize = (): void => setPanelWidth(clampAiPanelWidth(preferredWidthRef.current))
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
@@ -1168,7 +1174,7 @@ export function AiPanel({
     document.body.style.cursor = 'col-resize'
     document.body.style.userSelect = 'none'
     const onMove = (ev: PointerEvent): void => {
-      const w = clampPanelWidth(aiPanelWidthAtPointer(ev.clientX))
+      const w = clampAiPanelWidth(aiPanelWidthAtPointer(ev.clientX))
       preferredWidthRef.current = w
       setPanelWidth(w)
     }
@@ -1184,7 +1190,7 @@ export function AiPanel({
       document.body.style.cursor = ''
       document.body.style.userSelect = ''
       setResizing(false)
-      localStorage.setItem(PANEL_WIDTH_KEY, String(Math.round(preferredWidthRef.current)))
+      saveAiPanelWidth(PANEL_WIDTH_KEY, preferredWidthRef.current)
     }
     resizeCleanupRef.current = cleanup
     window.addEventListener('pointermove', onMove)
@@ -1224,7 +1230,7 @@ export function AiPanel({
       <header className="ai-panel-header">
         <span className="ai-panel-title">
           <GensparkMark size={22} />
-          Genspark
+          VuaAI Pro
         </span>
         <div className="ai-panel-header-actions">
           <AiPanelSideButton

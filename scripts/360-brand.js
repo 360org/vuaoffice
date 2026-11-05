@@ -101,12 +101,13 @@ function run(direction, { dryRun }) {
 
   for (const full of files) {
     const original = fs.readFileSync(full, 'utf8')
-    const ranges = core.excludedRanges(original, cfg)
-
     let content = original
     let fileCount = 0
     for (const { from, to } of pairs) {
-      const res = core.replaceOutsideExcluded(content, from, to, ranges)
+      // recompute per pair: every earlier replacement shifts the offsets, and
+      // ranges taken from the original text would then guard the wrong spans
+      // (a real UI string next to a comment was skipped — "GenOffice Docs" v1.0.62)
+      const res = core.replaceOutsideExcluded(content, from, to, core.excludedRanges(content, cfg))
       content = res.text
       fileCount += res.count
     }

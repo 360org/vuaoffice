@@ -26,8 +26,11 @@
  * users can still install local font files.
  */
 
+// Buffer comes from node:buffer, not the global: this file is evaluated
+// inside a vm sandbox (the packaging tests) that has no Buffer global.
+const { Buffer } = require('node:buffer')
 const { execFileSync } = require('node:child_process')
-const { existsSync, readFileSync, rmSync } = require('node:fs')
+const { closeSync, existsSync, openSync, readFileSync, readSync, rmSync } = require('node:fs')
 const { join } = require('node:path')
 
 function normalizeHttpsBaseUrl(name, value) {
@@ -74,33 +77,49 @@ if (winArm64 && !process.env.ELECTRON_BUILDER_7Z_FILTER) {
   process.env.ELECTRON_BUILDER_7Z_FILTER = 'BCJ'
 }
 const winArch = winArm64 ? 'arm64' : 'x64'
-function resolveWinSidecar() {
-  const target = process.env.XLSX_SIDECAR_TARGET || (winArm64 ? 'aarch64-pc-windows-msvc' : 'x86_64-pc-windows-msvc')
-  const candidates = [
-    `../sheets/native/xlsx-engine/target/${target}/release/xlsx-sidecar.exe`,
-    `../sheets/native/xlsx-engine/target/release/xlsx-sidecar.exe`,
-    '../sheets/native/xlsx-engine/target/x86_64-pc-windows-msvc/release/xlsx-sidecar.exe',
-    '../sheets/native/xlsx-engine/target/i686-pc-windows-msvc/release/xlsx-sidecar.exe',
-    '../sheets/native/xlsx-engine/target/x86_64-pc-windows-gnu/release/xlsx-sidecar.exe',
-  ]
-  for (const c of candidates) {
-    if (existsSync(join(__dirname, c))) return { path: c, target }
-  }
-  return { path: candidates[0], target }
-}
-const { path: WIN_SIDECAR, target: winSidecarTarget } = resolveWinSidecar()
+const winSidecarTarget = winArm64 ? 'aarch64-pc-windows-msvc' : 'x86_64-pc-windows-gnu'
+// Where the release pipeline puts the sidecar: an explicit cross-compilation
+// triple (CI builds it that way). A Windows contributor's plain
+// `npm run build:all` instead leaves it in cargo's host-native target/release
+// (MSVC, statically linked per native/xlsx-engine/.cargo/config.toml), so that
+// output is accepted too — but only when the host arch really matches the
+// packaged one: an x64 host build must never be shipped inside an arm64
+// installer, which has to come from a cross build.
+const winSidecarCandidates = [
+  `../sheets/native/xlsx-engine/target/${winSidecarTarget}/release/xlsx-sidecar.exe`,
+  ...(process.platform === 'win32' && (process.arch === 'arm64') === winArm64
+    ? ['../sheets/native/xlsx-engine/target/release/xlsx-sidecar.exe']
+    : []),
+]
+const WIN_SIDECAR =
+  winSidecarCandidates.find((rel) => existsSync(join(__dirname, rel))) ?? winSidecarCandidates[0]
 
-function harfbuzzWasmSource() {
-  for (const rel of [
-    '../../node_modules/harfbuzzjs/dist/harfbuzz-subset.wasm',
-    '../../node_modules/harfbuzzjs/hb-subset.wasm',
-    '../pdf/node_modules/harfbuzzjs/dist/harfbuzz-subset.wasm',
-    '../pdf/node_modules/harfbuzzjs/hb-subset.wasm',
-  ]) {
-    if (existsSync(join(__dirname, rel))) return rel
-  }
-  return '../../node_modules/harfbuzzjs/dist/harfbuzz-subset.wasm'
-}
+// GENOFFICE_LINUX_ARM64=1 — package the arm64 Linux artifacts instead of x64.
+// Config support only: no CI job runs a second Linux pass yet, and whether
+// Linux arm64 joins the release matrix is decided on the maintainers' side.
+// With the flag set the AppImage/deb/rpm targets switch to arm64, and the
+// sidecar has to be an aarch64 build — cargo's host-native target/release when
+// the build host is arm64 Linux itself (a native ubuntu-arm64 runner needs no
+// cross toolchain), or an explicit cross-compilation triple otherwise.
+// beforePack checks the ELF machine type either way, because
+// electron-builder exits 0 on a missing/odd extraResources source and would
+// otherwise ship Sheets dead on every install.
+const linuxArm64 = process.env.GENOFFICE_LINUX_ARM64 === '1'
+const linuxSidecarTarget = linuxArm64 ? 'aarch64-unknown-linux-gnu' : 'x86_64-unknown-linux-gnu'
+// Mirrors the Windows candidate list above: the explicit triple first, then
+// cargo's plain host-native output — but only when the host really is the
+// packaged architecture, so an arm64 host can never hand its native sidecar
+// to an x64 package (and the other way round). The x64 pass therefore keeps
+// the historical host-native source on an x64 Linux host.
+const linuxSidecarCandidates = [
+  `../sheets/native/xlsx-engine/target/${linuxSidecarTarget}/release/xlsx-sidecar`,
+  ...(process.platform === 'linux' && (process.arch === 'arm64') === linuxArm64
+    ? ['../sheets/native/xlsx-engine/target/release/xlsx-sidecar']
+    : []),
+]
+const LINUX_SIDECAR =
+  linuxSidecarCandidates.find((rel) => existsSync(join(__dirname, rel))) ??
+  linuxSidecarCandidates[0]
 
 function assertExtraResourceSources() {
   for (const rel of [
@@ -109,13 +128,43 @@ function assertExtraResourceSources() {
     '../../node_modules/ws',
     '../../node_modules/electron/dist/LICENSES.chromium.html',
     '../../node_modules/@embedpdf/pdfium/dist/pdfium.wasm',
-    harfbuzzWasmSource(),
+    '../pdf/node_modules/harfbuzzjs/hb-subset.wasm',
+    '../../node_modules/@rhwp/core/rhwp_bg.wasm',
   ]) {
     if (!existsSync(join(__dirname, rel))) {
       throw new Error(
         `electron-builder extraResources source missing: ${rel} (npm hoisting changed?)`,
       )
     }
+  }
+}
+
+/** ELF e_machine check (little-endian header): refuse a sidecar whose
+ *  architecture does not match the package being built. 0x3E = EM_X86_64,
+ *  0xB7 = EM_AARCH64. */
+function assertLinuxSidecarArch(sidecarPath, wantArm64) {
+  const fd = openSync(sidecarPath, 'r')
+  try {
+    const header = Buffer.alloc(20)
+    if (
+      readSync(fd, header, 0, 20, 0) < 20 ||
+      header.subarray(0, 4).toString('latin1') !== '\x7fELF'
+    ) {
+      throw new Error(`not an ELF binary: ${sidecarPath}`)
+    }
+    const machine = header.readUInt16LE(18)
+    const got = machine === 0xb7 ? 'aarch64' : machine === 0x3e ? 'x86_64' : `e_machine=${machine}`
+    const want = wantArm64 ? 'aarch64' : 'x86_64'
+    if (got !== want) {
+      throw new Error(
+        `linux sidecar is ${got} but this package ships ${want}: ${sidecarPath} — ` +
+          (wantArm64
+            ? 'cross-build it (cargo zigbuild --target aarch64-unknown-linux-gnu) or build natively on an arm64 host'
+            : 'rebuild it for x64'),
+      )
+    }
+  } finally {
+    closeSync(fd)
   }
 }
 
@@ -319,7 +368,13 @@ function ensureThirdPartyNotices() {
   }
 }
 
-const WIN_OPEN_WITH_ONLY_EXTS = new Set(['txt', 'json'])
+/** @type {import('electron-builder').Configuration} */
+// NSIS makes every declared ProgId the extension's default opener; for the
+// office types that is the point, for plain text/JSON and the legacy Word
+// 97-2003 .doc/.dot it would hijack the system editor, so Windows leaves those
+// out (mac/Linux still declare them for Open With). GenOffice opens .doc/.dot
+// through its own Open dialog on every platform.
+const WIN_OPEN_WITH_ONLY_EXTS = new Set(['txt', 'json', 'doc', 'dot'])
 const FILE_ASSOCIATIONS = [
   {
     ext: 'docx',
@@ -328,6 +383,22 @@ const FILE_ASSOCIATIONS = [
     role: 'Editor',
     icon: 'docx',
     mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  },
+  {
+    // import-only: opens as a converted .docx copy, GenOffice never writes .doc
+    ext: 'doc',
+    name: 'Word 97-2003 Document',
+    role: 'Editor',
+    icon: 'docx',
+    mimeType: 'application/msword',
+  },
+  {
+    // import-only: the template opens as a converted .docx copy
+    ext: 'dot',
+    name: 'Word 97-2003 Template',
+    role: 'Editor',
+    icon: 'docx',
+    mimeType: 'application/msword',
   },
   {
     ext: 'xlsx',
@@ -367,6 +438,7 @@ const FILE_ASSOCIATIONS = [
     mimeType: 'text/csv',
   },
   {
+    // opens as a converted copy and saves as .xlsx (genoffice#1146)
     ext: 'tsv',
     name: 'TSV Document',
     role: 'Editor',
@@ -402,6 +474,22 @@ const FILE_ASSOCIATIONS = [
     role: 'Editor',
     icon: 'docx',
     mimeType: 'application/vnd.oasis.opendocument.text-template',
+  },
+  {
+    // import-only: opens as a converted .docx copy, GenOffice never writes HWPX
+    ext: 'hwpx',
+    name: 'Hancom HWPX Document',
+    role: 'Editor',
+    icon: 'docx',
+    mimeType: 'application/hwp+zip',
+  },
+  {
+    // import-only, like .hwpx: HWP binaries are read through rhwp into HWPX first
+    ext: 'hwp',
+    name: 'Hancom HWP Document',
+    role: 'Editor',
+    icon: 'docx',
+    mimeType: 'application/x-hwp',
   },
   {
     // import-only: opens as a converted .pptx copy, GenOffice never writes ODF
@@ -471,13 +559,12 @@ const FILE_ASSOCIATIONS = [
   },
 ]
 
-/** @type {import('electron-builder').Configuration} */
 const config = {
-  appId: 'com.genspark.genoffice',
-  productName: 'GenOffice',
+  appId: 'com.vuahethong.vuaoffice',
+  productName: 'VuaOffice',
   protocols: [
     {
-      name: 'GenOffice Deep Link',
+      name: 'VuaOffice Deep Link',
       schemes: ['vuaoffice'],
       role: 'Viewer',
     },
@@ -534,8 +621,13 @@ const config = {
       to: 'wasm/pdfium.wasm',
     },
     {
-      from: harfbuzzWasmSource(),
+      from: '../pdf/node_modules/harfbuzzjs/hb-subset.wasm',
       to: 'wasm/hb-subset.wasm',
+    },
+    // .hwp import (packages/hwp2docx/src/hwp.ts): rhwp reads HWP binaries into HWPX
+    {
+      from: '../../node_modules/@rhwp/core/rhwp_bg.wasm',
+      to: 'wasm/rhwp_bg.wasm',
     },
     // platform system-OCR helpers for scanned-page recovery (each exists only
     // on its own build platform; electron-builder skips absent sources and the
@@ -578,6 +670,10 @@ const config = {
       from: '../../skills/vuaoffice/SKILL.md',
       to: 'cli/skills/vuaoffice/SKILL.md',
     },
+    {
+      from: '../../skills/recommended',
+      to: 'cli/skills/recommended',
+    },
     // runtime deps the genoffice bundle leaves external (jsdom for the Word/Markdown
     // paths); collected by packages/cli/collect-deps.mjs during its build
     {
@@ -607,7 +703,7 @@ const config = {
   fileAssociations: FILE_ASSOCIATIONS,
   npmRebuild: false,
   mac: {
-    artifactName: 'GenOffice-${version}-macOS-${arch}.${ext}',
+    artifactName: 'VuaOffice-${version}-macOS-${arch}.${ext}',
     // Two separate arch packages (NOT universal): arm64 keeps the exact
     // artifact names and update-feed entries it always had, x64 (opt-in via
     // GENOFFICE_MAC_X64=1, see includeMacX64 above) adds Intel support with
@@ -624,6 +720,12 @@ const config = {
     gatekeeperAssess: false,
     entitlements: 'build/entitlements.mac.plist',
     entitlementsInherit: 'build/entitlements.mac.plist',
+    // Slides' Slide Show > Record: the hardened runtime refuses the microphone without the
+    // audio-input entitlement, and macOS asks for it with this text
+    extendInfo: {
+      NSMicrophoneUsageDescription:
+        'VuaOffice records your narration when you record a slide show.',
+    },
     notarize: true,
     extraResources: [
       {
@@ -633,12 +735,12 @@ const config = {
     ],
   },
   win: {
-    fileAssociations: FILE_ASSOCIATIONS.filter((entry) => !WIN_OPEN_WITH_ONLY_EXTS.has(entry.ext)),
-    artifactName: 'GenOffice-${version}-Windows-${arch}-Setup.${ext}',
+    artifactName: 'VuaOffice-${version}-Windows-${arch}-Setup.${ext}',
     // No `arch` here on purpose: computeArchToTargetNamesMap() ignores the CLI
     // arch flag whenever a target declares its own `arch`, so `--win --x64`
     // would still queue an ia32 pass too. Each release job passes --x64 / --ia32.
     target: ['nsis'],
+    fileAssociations: FILE_ASSOCIATIONS.filter((a) => !WIN_OPEN_WITH_ONLY_EXTS.has(a.ext)),
     extraResources: [
       {
         from: WIN_SIDECAR,
@@ -653,21 +755,25 @@ const config = {
   },
   // Unlike win (which cross-compiles the sidecar to an explicit target
   // triple), linux takes it from cargo's host-native target/release/ — the
-  // same source mac uses. So no `arch` is pinned here: electron-builder
-  // defaults to the build host's architecture, which is the only one the
-  // sidecar was actually built for. Packaging arm64 on an x64 host, or the
-  // reverse, needs a matching `cargo build --target` first.
+  // same source mac uses. So no `arch` is pinned here beyond the flag below:
+  // electron-builder defaults to the build host's architecture, which is the
+  // only one the sidecar was actually built for — and GENOFFICE_LINUX_ARM64=1
+  // switches every target to arm64, where the sidecar must come from a native
+  // arm64 host or an explicit cross build (see linuxSidecarCandidates and the
+  // ELF check). That flag is config support only: no second Linux pass runs
+  // anywhere yet, so the arm64 artifacts are not produced by this repo.
   linux: {
     // AppImage (self-contained, any distro) + deb (apt install, pulls in the
     // GTK/NSS runtime deps) + rpm (dnf/zypper install on Fedora / RHEL /
     // openSUSE). Default artifact names are kept on purpose —
     // GenOffice-<v>.AppImage / genoffice_<v>_amd64.deb — because the public
     // README download links and the already-published linux-v0.5.149 release
-    // use them.
+    // use them. The arm64 targets reuse the ${arch}-templated deb/rpm names
+    // (genoffice_<v>_arm64.deb).
     target: [
-      { target: 'AppImage', arch: ['x64'] },
-      { target: 'deb', arch: ['x64'] },
-      { target: 'rpm', arch: ['x64'] },
+      { target: 'AppImage', arch: [linuxArm64 ? 'arm64' : 'x64'] },
+      { target: 'deb', arch: [linuxArm64 ? 'arm64' : 'x64'] },
+      { target: 'rpm', arch: [linuxArm64 ? 'arm64' : 'x64'] },
     ],
     // deb control metadata; values match the manually published 0.5.149 deb
     // so apt sees the new packages as the same lineage. Homepage comes from
@@ -698,8 +804,18 @@ const config = {
     syncDesktopName: true,
     extraResources: [
       {
-        from: '../sheets/native/xlsx-engine/target/release/xlsx-sidecar',
+        from: LINUX_SIDECAR,
         to: 'native/xlsx-sidecar',
+      },
+      // Same blank templates the Windows installer registers for Explorer's
+      // "New" menu. The deb/rpm post-install step copies them into
+      // /usr/share/templates, which KDE Plasma's Dolphin "Create New" menu
+      // scans (genoffice#2384). AppImage gets the payload too but runs no
+      // install script, so it adds no templates.
+      {
+        from: 'build/shell-new',
+        to: 'shell-new',
+        filter: ['*.docx', '*.xlsx', '*.pptx'],
       },
     ],
   },
@@ -738,7 +854,7 @@ const config = {
     // rpmbuild links every packaged ELF file into /usr/lib/.build-id/<hash>.
     // Two Electron apps built on the same Electron release ship identical
     // binaries, so the links are identical too and dnf refuses the install
-    // with a file conflict against the other app (#1145). The links exist only
+    // with a file conflict against the other app (genoffice#1145). The links exist only
     // to locate detached debuginfo, which this package does not ship, so turn
     // them off. rpm-level `fpm` (not linux-level) keeps it away from the deb.
     fpm: ['--rpm-rpmbuild-define=_build_id_links none'],
@@ -759,8 +875,25 @@ const config = {
     }
     if (context.electronPlatformName === 'win32' && !existsSync(join(__dirname, WIN_SIDECAR))) {
       throw new Error(
-        `win extraResources source missing: ${WIN_SIDECAR} (cargo build --target ${winSidecarTarget} first)`,
+        `win extraResources source missing: ${winSidecarCandidates.join(' or ')} ` +
+          `(run "npm run native:build -w @genoffice/sheets", or cargo build --target ${winSidecarTarget})`,
       )
+    }
+    if (context.electronPlatformName === 'linux') {
+      const sidecar = join(__dirname, LINUX_SIDECAR)
+      if (!existsSync(sidecar)) {
+        // The candidate list is picked by the flag, so the x64 pass never
+        // points at an aarch64 build (and the arm64 pass never at an x64 one).
+        const hint = linuxArm64
+          ? 'cross-build with "cargo zigbuild --release --target aarch64-unknown-linux-gnu", ' +
+            'or build natively on an arm64 Linux host'
+          : 'run "npm run native:build -w @genoffice/sheets" on an x64 Linux host, ' +
+            'or cross-build with "cargo zigbuild --release --target x86_64-unknown-linux-gnu"'
+        throw new Error(
+          `linux extraResources source missing: ${linuxSidecarCandidates.join(' or ')} (${hint})`,
+        )
+      }
+      assertLinuxSidecarArch(sidecar, linuxArm64)
     }
   },
   dmg: {

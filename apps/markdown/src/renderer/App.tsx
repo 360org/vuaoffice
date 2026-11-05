@@ -22,6 +22,7 @@ import type { Editor } from '@tiptap/core'
 import { TextSelection } from '@tiptap/pm/state'
 import { exportImages } from './export/imageExport'
 import type { StringKey } from './i18n/locale'
+import { countWords } from '../../../docs/src/renderer/word-count'
 import { t as translate, useI18n } from './i18n/locale'
 import {
   buildFrontmatterRaw,
@@ -41,10 +42,13 @@ import { tiptapFindTarget } from './editor/findTarget'
 import { collectOutline, type OutlineItem } from './editor/outline'
 import { buildSlashItems } from './editor/slashCommand'
 import type { SlashController, SlashMenuState } from './editor/slashCommand'
-import { wikiFragmentPosition } from './editor/wikilink'
+import { wikiFragmentPosition, wikiTargetOf } from './editor/wikilink'
 import type { WikiSuggestController, WikiSuggestState } from './editor/wikiSuggest'
+import { invalidateWikiHeads } from './editor/wikiSuggest'
 import { dirOf, setImageBaseDir, VIEW_IMAGE_EVENT } from './editor/localImage'
 import { Ribbon } from './components/Ribbon'
+import { deriveAutoFileName } from './auto-file-name'
+import { modelSaveAsName, proposedSaveName } from './file-naming'
 import type { MarkdownTheme } from '../shared/markdown-theme'
 import { ImageHostDialog } from './components/ImageHostDialog'
 import { RedactMenu } from './components/RedactMenu'
@@ -53,6 +57,7 @@ import { SourcePane } from './components/SourcePane'
 import { SlashMenu, type SlashMenuHandle } from './components/SlashMenu'
 import { WikiSuggestMenu, type WikiSuggestMenuHandle } from './components/WikiSuggestMenu'
 import { BacklinksPane } from './components/BacklinksPane'
+import { TagsPane } from './components/TagsPane'
 import { GraphView } from './components/GraphView'
 import { ToastHost } from './components/toast'
 import { showToast } from './components/toast-bus'
@@ -126,18 +131,7 @@ function applyImageRewrites(
 }
 
 /** Measure a document image via the DOM (the editor already displays it) */
-/** File name for an AI-generated untitled document: first heading, else first words */
-export function deriveAutoFileName(editor: Editor): string {
-  const doc = editor.state.doc
-  for (let i = 0; i < doc.childCount; i++) {
-    const node = doc.child(i)
-    const text = node.textContent.replace(/\s+/g, ' ').trim()
-    if (!text) continue
-    if (node.type.name === 'heading') return text.slice(0, 60)
-    return text.split(' ').slice(0, 8).join(' ').slice(0, 60)
-  }
-  return ''
-}
+export { deriveAutoFileName } from './auto-file-name'
 
 export default function App() {
   const { lang, t } = useI18n()
@@ -181,6 +175,7 @@ export default function App() {
     () => Number(localStorage.getItem('mdapp.outlineWidth')) || undefined,
   )
   const [backlinksOpen, setBacklinksOpen] = useState(false)
+  const [tagsOpen, setTagsOpen] = useState(false)
   const [graphOpen, setGraphOpen] = useState(false)
   const [sourceViewOpen, setSourceViewOpen] = useState(false)
   const [sourceText, setSourceText] = useState('')
@@ -302,6 +297,32 @@ export default function App() {
     })
   }, [])
 
+  /**
+   * Close an unresolved `[[link]]` the Obsidian way: create the note it names
+   * and open it. Main decides where the file lands (beside this document, or
+   * under the vault root when the target carries a directory) and never
+   * overwrites; the answer carries the `#fragment`, so opening rides the same
+   * path every resolved link takes and no document text has to change.
+   */
+  const createWikiNoteAndOpen = useCallback(
+    (target: string): void => {
+      // The browser test harness stubs markdownApi without the Electron-only
+      // wiki channels; a missing API leaves the link as written.
+      if (typeof window.markdownApi.createWikiNote !== 'function') return
+      void window.markdownApi.createWikiNote({ target }).then((result) => {
+        if (!result.ok) {
+          showToast(translate('wikiLinkUnresolved', { target }), 'error')
+          return
+        }
+        void window.markdownApi.rememberWikiFragment(result.path, result.fragment)
+        void window.markdownApi.openSourcePath(result.path)
+        // a link into the note already on screen opens no tab; jump here
+        if (filePathRef.current === result.path) jumpToWikiFragment(result.path)
+      })
+    },
+    [jumpToWikiFragment],
+  )
+
   const extensions = useMemo(() => {
     const controller: SlashController = {
       onOpen: setSlashState,
@@ -330,10 +351,31 @@ export default function App() {
         },
         // the module-level `t`, not the hook's: this memo holds the closure for
         // the life of the editor, and the hook's `t` is a new function each render
-        onUnresolved: (target) => showToast(translate('wikiLinkUnresolved', { target }), 'error'),
+        onUnresolved: (target, embed) => {
+          // an embed of a missing file usually names a picture, which an empty
+          // note cannot stand in for; only a link creates its note
+          if (embed) {
+            showToast(translate('wikiLinkUnresolved', { target }), 'error')
+            return
+          }
+          createWikiNoteAndOpen(wikiTargetOf(target))
+        },
+      },
+      blockLink: {
+        getDocumentPath: () => filePathRef.current ?? '',
+        onCopied: (link) => showToast(translate('blockLinkCopied', { link })),
+        onNothing: () => showToast(translate('blockLinkNone'), 'error'),
       },
     })
-  }, [insertImage, jumpToWikiFragment])
+  }, [createWikiNoteAndOpen, insertImage, jumpToWikiFragment])
+
+  // status-bar text statistics: Word's CJK counting rule (asian chars count
+  // one by one, non-asian words by whitespace) shared with the docs status bar
+  const [docStats, setDocStats] = useState<{ words: number; chars: number } | null>(null)
+  const statsOf = (text: string) => ({
+    words: countWords(text),
+    chars: Array.from(text).length,
+  })
 
   const editor = useEditor({
     extensions,
@@ -344,6 +386,7 @@ export default function App() {
     onUpdate: ({ editor: updated, transaction }) => {
       if (!transaction.getMeta('uiOnly')) markDirty()
       setOutlineItems(collectOutline(updated))
+      setDocStats(statsOf(updated.getText()))
       syncSourceFromEditorRef.current()
     },
   })
@@ -389,6 +432,7 @@ export default function App() {
         const { text, format } = readSourceText(raw)
         sourceTextRef.current = text
         sourceFormatRef.current = format
+        setDocStats(statsOf(text))
         setFilePath(path)
         setFmText('')
         setFmOpen(false)
@@ -573,6 +617,7 @@ export default function App() {
     (text: string) => {
       setSourceText(text)
       pendingSourceRef.current = text
+      setDocStats(statsOf(text))
       markDirty()
       if (sourceApplyTimerRef.current) clearTimeout(sourceApplyTimerRef.current)
       sourceApplyTimerRef.current = setTimeout(flushSource, SOURCE_APPLY_DEBOUNCE_MS)
@@ -603,7 +648,7 @@ export default function App() {
 
   /** Serialize and write to disk; false when canceled/failed (caller keeps the tab open) */
   const doSave = useCallback(
-    async (mode: SaveMode, suggestedName?: string): Promise<boolean> => {
+    async (mode: SaveMode, suggestedName?: string, proposedName?: string): Promise<boolean> => {
       if (sourceMode) return doSaveSource(mode)
       flushSource()
       const current = editorRef.current
@@ -628,17 +673,30 @@ export default function App() {
           sourceAtSave,
         )
         const imageSources = imageSourcesFromEditor(current)
+        // A never-saved document is offered a name derived from its own
+        // content: its first heading, else its first words. It prefills the
+        // save dialog rather than replacing it — the reader still chooses where
+        // the file goes, and a save never waits on a model. A name the caller
+        // proposed outright (the ribbon's "Name with AI") wins over both.
+        const defaultName = await proposedSaveName(current, {
+          filePath: filePathRef.current,
+          suggestedName,
+          proposedName,
+        })
         const result = await window.markdownApi.save({
           text,
           imageSources,
           mode,
           suggestedName,
           overwrite: overwriteRef.current,
+          ...(defaultName ? { defaultName } : {}),
         })
         if (result.ok && 'path' in result) {
           diskTextRef.current = result.writtenText ?? text
           overwriteRef.current = false
           setDiskNotice(null)
+          // what this note offers `[[...#` has just changed on disk
+          invalidateWikiHeads()
           const unchanged =
             editorRef.current?.state.doc === docAtSave &&
             envelopeRef.current.frontmatter === fmAtSave
@@ -762,6 +820,24 @@ export default function App() {
     overwriteRef.current = true
     setDiskNotice(null)
     void doSave('save')
+  }, [doSave])
+
+  /**
+   * Ask the model to name this document, on request, then open Save As with its
+   * answer prefilled.
+   *
+   * The stem goes into the dialog rather than renaming the file on disk: a file
+   * that may be open elsewhere, referenced from a note, or synced is not
+   * something to move behind the reader's back. A declined or empty answer
+   * leaves the dialog on the document's current name, so this is a no-op
+   * rather than a failure.
+   */
+  const nameWithAi = useCallback(async () => {
+    const current = editorRef.current
+    if (!current || statusRef.current !== 'ready' || savingRef.current) return
+    const stem = await modelSaveAsName(current)
+    if (!stem) return
+    await doSave('saveAs', undefined, stem)
   }, [doSave])
 
   /** `outPath` (headless export only) skips the save dialog; resolves true when a file was written. */
@@ -1272,6 +1348,7 @@ export default function App() {
         dirty={dirty}
         onSave={() => void doSave('save')}
         onSaveAs={() => void doSave('saveAs')}
+        onNameWithAi={() => void nameWithAi()}
         onFind={() => openFind(false)}
         autoSave={autoSave}
         onToggleAutoSave={setAutoSave}
@@ -1288,8 +1365,11 @@ export default function App() {
         onToggleOutline={() => setOutlineOpen((v) => !v)}
         hasOutline={outlineItems.length > 0}
         backlinksOpen={backlinksOpen}
+        tagsOpen={tagsOpen}
         onToggleBacklinks={() => setBacklinksOpen((v) => !v)}
+        onToggleTags={() => setTagsOpen((v) => !v)}
         onOpenGraph={() => setGraphOpen(true)}
+        onCopyBlockLink={() => editor?.commands.copyBlockLink()}
         spellcheck={spellcheck}
         onToggleSpellcheck={() => setSpellcheck((v) => !v)}
         sourceMode={sourceMode}
@@ -1352,6 +1432,9 @@ export default function App() {
             path={filePath}
             onOpen={(path) => void window.markdownApi.openSourcePath(path)}
           />
+        )}
+        {tagsOpen && !sourceMode && (
+          <TagsPane onOpen={(path) => void window.markdownApi.openSourcePath(path)} />
         )}
         <div className="app-content">
           {diskNotice && (
@@ -1421,6 +1504,14 @@ export default function App() {
                 </span>
               )}
               {fileName && <span className="status-item status-file">{fileName}</span>}
+              {fileName && docStats && (
+                <span className="status-item status-stats">
+                  {t('statusWords', { n: docStats.words })} ·{' '}
+                  {t('statusChars', {
+                    n: docStats.chars,
+                  })}
+                </span>
+              )}
             </div>
             <div className="status-right">
               {statusText && (

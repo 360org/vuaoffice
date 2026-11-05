@@ -34,6 +34,7 @@ import { INTEGRATIONS_CHANNELS } from '../shared/integrations-api'
 import type {
   IntegrationsApi,
   IntegrationsStatus,
+  LegacySweepResult,
   SkillInstallState,
 } from '../shared/integrations-api'
 import type { FoundSkill, RecommendedSkill } from '../shared/found-skill'
@@ -62,6 +63,7 @@ const UI_LANGUAGES: readonly UiLanguage[] = [
   'hi',
   'zh-TW',
   'vi',
+  'tr',
 ]
 
 function isUiLanguage(value: unknown): value is UiLanguage {
@@ -345,6 +347,22 @@ const homeApi: HomeApi = {
     if (channel !== 'stable' && channel !== 'beta') throw new Error('Invalid update channel.')
     await ipcRenderer.invoke(HOME_CHANNELS.setUpdateChannel, channel)
   },
+  async getAutoUpdateCheck() {
+    const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.getAutoUpdateCheck)
+    return result !== false
+  },
+  async setAutoUpdateCheck(on) {
+    if (typeof on !== 'boolean') throw new Error('Invalid update check setting.')
+    await ipcRenderer.invoke(HOME_CHANNELS.setAutoUpdateCheck, on)
+  },
+  async getSilentInstallUpdate() {
+    const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.getSilentInstallUpdate)
+    return result === true
+  },
+  async setSilentInstallUpdate(on) {
+    if (typeof on !== 'boolean') throw new Error('Invalid silent install setting.')
+    await ipcRenderer.invoke(HOME_CHANNELS.setSilentInstallUpdate, on)
+  },
   async accountStatus() {
     const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.accountStatus)
     return (result ?? { loggedIn: false }) as AccountStatus
@@ -429,6 +447,14 @@ const homeApi: HomeApi = {
     if (typeof on !== 'boolean') throw new Error('Invalid tab sleep setting.')
     await ipcRenderer.invoke(HOME_CHANNELS.setTabSleepEnabled, on)
   },
+  async getRestoreLastSession() {
+    const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.getRestoreLastSession)
+    return result === true
+  },
+  async setRestoreLastSession(on) {
+    if (typeof on !== 'boolean') throw new Error('Invalid restore session setting.')
+    await ipcRenderer.invoke(HOME_CHANNELS.setRestoreLastSession, on)
+  },
   async setAutoSaveDefault(on) {
     if (typeof on !== 'boolean') throw new Error('Invalid AutoSave default.')
     await ipcRenderer.invoke(HOME_CHANNELS.setAutoSaveDefault, on)
@@ -506,6 +532,12 @@ const homeApi: HomeApi = {
     if (typeof enabled !== 'boolean') throw new Error('Invalid analytics consent.')
     const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.setAnalyticsEnabled, enabled)
     return result === true
+  },
+  async getLegacyImportPrompt() {
+    return (await ipcRenderer.invoke(HOME_CHANNELS.getLegacyImportPrompt)) !== false
+  },
+  async setLegacyImportPrompt(prompt) {
+    return (await ipcRenderer.invoke(HOME_CHANNELS.setLegacyImportPrompt, prompt)) !== false
   },
   async getAuthorName() {
     return normalizeAuthorNameSetting(await ipcRenderer.invoke(HOME_CHANNELS.getAuthorName))
@@ -716,6 +748,24 @@ function asCloudProjectsSnapshot(result: unknown): CloudProjectsSnapshot | null 
 
 contextBridge.exposeInMainWorld('aiOffice', homeApi)
 
+/**
+ * Model file naming.
+ *
+ * The same channel the editor apps expose under this name, so the shared
+ * client (`@genoffice/ui`) finds one bridge wherever it runs.
+ *
+ * A global of its own rather than part of `aiOffice`: `aiOffice` is the
+ * shell's home API, and an editor window that reused the name would shadow it
+ * there — `window.aiOffice.setTheme` would vanish with it.
+ */
+const aiNamingApi = {
+  suggestFileName(input: { content: string }) {
+    return ipcRenderer.invoke('ai:suggest-file-name', input)
+  },
+}
+
+contextBridge.exposeInMainWorld('aiNamingApi', aiNamingApi)
+
 // The same project:* channels the editor preloads use; the home screen's
 // knowledge-base ask panel keeps its thread through them. The handlers are
 // registered once by the docs main process in shell mode (registerProjectIpc).
@@ -745,6 +795,11 @@ const integrationsApi: IntegrationsApi = {
       INTEGRATIONS_CHANNELS.uninstallSkill,
       agentId,
     )) as SkillInstallState
+  },
+  async sweepLegacySkillCopies() {
+    return (await ipcRenderer.invoke(
+      INTEGRATIONS_CHANNELS.sweepLegacySkillCopies,
+    )) as LegacySweepResult
   },
   async pickSkillDir(title) {
     const r: unknown = await ipcRenderer.invoke(INTEGRATIONS_CHANNELS.pickSkillDir, title)

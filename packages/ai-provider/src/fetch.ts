@@ -11,6 +11,8 @@
  * server errors (HTTP 429, 502, 503, 504).
  */
 
+import { nativeAdmission } from './native-admission'
+
 type FetchLike = (url: string, init?: RequestInit) => Promise<Response>
 
 let rescueFetch: FetchLike | null = null
@@ -58,7 +60,8 @@ function isBlockPage(response: Response): boolean {
 }
 
 async function singleFetch(url: string, rawInit: RequestInit): Promise<Response> {
-  const init = withUserAgent(rawInit)
+  // upstream: edge admission challenge before the request; 360: aiFetch below adds retries
+  const init = await nativeAdmission.prepare(url, withUserAgent(rawInit), (u, i) => fetch(u, i))
   const signal = init.signal as AbortSignal | null | undefined
   let response: Response
   try {

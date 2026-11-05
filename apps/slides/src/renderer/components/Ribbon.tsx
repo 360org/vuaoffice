@@ -21,7 +21,11 @@ import {
   THEME_COLOR_SHADES,
   STANDARD_COLORS,
 } from '@genoffice/ui'
-import { getRecentColors, pushRecentColor } from '../recent-colors'
+import {
+  createRecentColorSession,
+  getRecentColors,
+  type RecentColorSession,
+} from '../recent-colors'
 import { ICON_COLORS } from '../insert-presets'
 import { THEME_PRESETS, type SlideThemePreset } from '../themes'
 import { restoreEditSelection } from '../TextEditOverlay'
@@ -29,14 +33,13 @@ import { armColorInput, toPickerHex } from '../color-input'
 import { nextPreset, prevPreset } from '../zoom-steps'
 import { TABLE_SHADING_COLORS } from './table-shading-colors'
 import { useI18n, type StringKey } from '../i18n/locale'
+import { RibbonDrawTab, type PenPanel } from './DrawTab'
 import {
   IconSlideMaster,
   IconBullets,
   IconArrangeAll,
   IconComment,
-  IconCursor,
   IconCustomShow,
-  IconEraser,
   IconHideSlide,
   IconNavPane,
   IconOutlineView,
@@ -126,6 +129,13 @@ import { RibbonInsertTab } from './RibbonInsertTab'
 import { ShapeGalleryContent } from './ShapeGalleryPopover'
 import { autoContextTabForElement, contextTabForElement, type ContextTab } from './context-tabs'
 import { MODEL3D_VIEWS } from '../model3d/views'
+import {
+  defaultNewSlideSize,
+  isPortrait,
+  matchSlideSizePreset,
+  presetSize,
+  saveDefaultNewSlideSize,
+} from '../slide-size'
 import { NO_ROTATION } from '@genoffice/pptx-engine/model3d'
 
 const IS_MAC = navigator.platform.toLowerCase().includes('mac')
@@ -219,56 +229,6 @@ const TRANSLATE_TARGETS: StringKey[] = [
 
 /** One-time "AI rewrites the whole document" acknowledgement */
 const AI_REWRITE_ACK_KEY = 'slides-ai-rewrite-ack'
-
-// Draw tab palettes/pen widths (same as apps/docs DrawTab)
-const INK_COLORS = [
-  '000000',
-  'C00000',
-  'FF0000',
-  'FFC000',
-  'FFFF00',
-  '92D050',
-  '00B050',
-  '00B0F0',
-  '0070C0',
-  '7030A0',
-]
-const PEN_WIDTHS = [1, 2, 3.5, 5]
-const HIGHLIGHTER_WIDTHS = [6, 10, 16]
-
-/** Draw-tab pen gallery presets (tray of ready pens) */
-interface PenPreset {
-  kind: 'pen' | 'highlighter'
-  color: string
-  width: number
-}
-
-const DEFAULT_PEN_PRESETS: PenPreset[] = [
-  { kind: 'pen', color: '000000', width: 2 },
-  { kind: 'pen', color: 'FF0000', width: 2 },
-  { kind: 'pen', color: '0070C0', width: 2 },
-  { kind: 'highlighter', color: 'FFFF00', width: 10 },
-  { kind: 'highlighter', color: '00B050', width: 10 },
-]
-
-/** Pen thumbnail hanging tip-down in the tray */
-function PenThumb({ kind, color }: { kind: PenPreset['kind']; color: string }) {
-  const c = `#${color}`
-  return kind === 'pen' ? (
-    <svg width="24" height="56" viewBox="0 0 24 56" aria-hidden="true">
-      <rect x="5" y="0" width="14" height="34" rx="2.5" fill={c} />
-      <path d="M5 34h14l-3.5 8h-7Z" fill={c} opacity="0.85" />
-      <rect x="8.6" y="41" width="6.8" height="3.4" rx="1.2" fill="#fff" opacity="0.9" />
-      <path d="M8.5 44.5h7L12 55Z" fill={c} />
-    </svg>
-  ) : (
-    <svg width="26" height="56" viewBox="0 0 26 56" aria-hidden="true">
-      <rect x="3" y="0" width="20" height="36" rx="2.5" fill={c} />
-      <path d="M6 36h14l-2.5 9h-8Z" fill={c} opacity="0.8" />
-      <path d="M9 45h8l-1.5 8h-5Z" fill={c} />
-    </svg>
-  )
-}
 
 const TRANSITIONS: Array<{ kind: TransitionKind; label: StringKey; icon: React.ReactElement }> = [
   { kind: 'none', label: 'ribbonNone', icon: <IconTransNone size={BIG} /> },
@@ -888,9 +848,16 @@ function ShapeFillMenu({
     })
   }
   useEffect(() => cancelFlyoutClose, [])
+  // The native input previews a color per drag movement of the OS panel;
+  // recording each one would flood the whole recents row with the drag trail
+  // of a single pick (gendesk #279). The session records only the final value,
+  // on whichever path closes the menu.
+  const recentSession = useRef<RecentColorSession | null>(null)
+  if (recentSession.current === null) recentSession.current = createRecentColorSession()
+  useEffect(() => () => recentSession.current?.close(), [])
   const pickHex = (hex: string) => {
     onClose()
-    pushRecentColor(hex)
+    recentSession.current?.commit(hex)
     onPickFill(hex)
   }
   const swatch = (bare: string, title: string, key?: string) => (
@@ -955,7 +922,7 @@ function ShapeFillMenu({
             defaultValue={(current ?? '#ffffff').toLowerCase()}
             onPointerDown={(e) => armColorInput(e.currentTarget)}
             onChange={(e) => {
-              pushRecentColor(e.target.value)
+              recentSession.current?.preview(e.target.value)
               onPickFill(e.target.value)
             }}
           />
@@ -1112,9 +1079,11 @@ export function Ribbon({
   onUndo,
   onRedo,
   onSaveAs,
+  onNameWithAi,
   onExportPdf,
   onPrint,
   onExportImages,
+  onExportImagesJpg,
   onFormat,
   zoom,
   onZoom,
@@ -1164,7 +1133,8 @@ export function Ribbon({
   onSetLayout,
   onResetLayout,
   onSlideSize,
-  slideSizeKey,
+  getSlideSize,
+  onCustomSlideSize,
   onParagraphFormat,
   onInsertTable,
   transition,
@@ -1192,10 +1162,10 @@ export function Ribbon({
   onToggleHidden,
   inkTool,
   onInkTool,
-  inkPen,
-  onInkPen,
-  inkHighlighter,
-  onInkHighlighter,
+  inkPresets,
+  inkActiveId,
+  onInkPresets,
+  onInkActivate,
   inkCount,
   onInkClearAll,
   viewMode,
@@ -1273,6 +1243,7 @@ export function Ribbon({
   const [paraOpen, setParaOpen] = useState(false)
   const [layoutPickOpen, setLayoutPickOpen] = useState(false)
   const [slideSizeOpen, setSlideSizeOpen] = useState(false)
+  const [deckSize, setDeckSize] = useState<{ cx: number; cy: number } | null>(null)
   const [transparencyOpen, setTransparencyOpen] = useState(false)
   const [pictureBorderOpen, setPictureBorderOpen] = useState(false)
   const [changeShapeOpen, setChangeShapeOpen] = useState(false)
@@ -1328,11 +1299,7 @@ export function Ribbon({
   >(null)
   // Chart design: dropdown panels (add chart element / change colors, at most one open at a time)
   const [chartDrop, setChartDrop] = useState<'elements' | 'colors' | null>(null)
-  // Draw tab pen gallery: per-preset customisations live for the session;
-  // clicking the already-selected pen opens its color/width flyout
-  const [penPresets, setPenPresets] = useState<PenPreset[]>(DEFAULT_PEN_PRESETS)
-  const [selectedPen, setSelectedPen] = useState(0)
-  const [penFlyout, setPenFlyout] = useState<{ index: number; x: number; y: number } | null>(null)
+  const [penPanel, setPenPanel] = useState<PenPanel | null>(null)
   const [chartTypeDlgOpen, setChartTypeDlgOpen] = useState(false)
   const chartTitleRef = useRef<HTMLInputElement>(null)
   const catAxisRef = useRef<HTMLInputElement>(null)
@@ -1365,7 +1332,7 @@ export function Ribbon({
     if (!keep.includes('insert')) setInsertDrop(null)
     if (!keep.includes('chart')) setChartDrop(null)
     if (!keep.includes('collapse')) setCollapseOpen(null)
-    if (!keep.includes('pen')) setPenFlyout(null)
+    if (!keep.includes('pen')) setPenPanel(null)
     if (!keep.includes('slideShow')) setSlideShowOpen(false)
     if (!keep.includes('record')) setRecordOpen(false)
   }, [])
@@ -1394,7 +1361,8 @@ export function Ribbon({
     transparencyOpen ||
     lineSpacingOpen ||
     recordOpen ||
-    collapseOpen != null
+    collapseOpen != null ||
+    penPanel != null
 
   // Clicking elsewhere collapses every popup (the font color palette uses
   // onMouseDown without stealing focus, collapsing naturally when the edit
@@ -1791,6 +1759,15 @@ export function Ribbon({
                   disabled={!hasDoc}
                   onClick={() => {
                     setFileOpen(false)
+                    onNameWithAi()
+                  }}
+                >
+                  {t('aiNameFile')}
+                </button>
+                <button
+                  disabled={!hasDoc}
+                  onClick={() => {
+                    setFileOpen(false)
                     onExportPdf()
                   }}
                 >
@@ -1813,6 +1790,15 @@ export function Ribbon({
                   }}
                 >
                   {t('ribbonFileExportImages')}
+                </button>
+                <button
+                  disabled={!hasDoc}
+                  onClick={() => {
+                    setFileOpen(false)
+                    onExportImagesJpg()
+                  }}
+                >
+                  {t('ribbonFileExportImagesJpg')}
                 </button>
               </div>
             )}
@@ -1908,171 +1894,20 @@ export function Ribbon({
         ) : tab === 'insert' ? (
           <RibbonInsertTab rb={tabCtx} />
         ) : tab === 'draw' ? (
-          (() => {
-            // Draw tab: tool buttons, then a tray of ready pens.
-            // Clicking a pen picks it up; clicking the held pen opens its
-            // color/width flyout; customisations stick to that pen preset.
-            const applyPenPreset = (preset: PenPreset) => {
-              // onInkTool toggles back to 'select' when the active tool is re-picked;
-              // only switch when it actually differs so editing color/width (or swapping
-              // to another pen of the same kind) never drops the pen
-              if (inkTool !== preset.kind) onInkTool(preset.kind)
-              if (preset.kind === 'pen')
-                onInkPen({ ...inkPen, color: preset.color, width: preset.width })
-              else onInkHighlighter({ ...inkHighlighter, color: preset.color, width: preset.width })
-            }
-            const updatePenPreset = (
-              index: number,
-              patch: Partial<Pick<PenPreset, 'color' | 'width'>>,
-            ) => {
-              const next = penPresets.map((p, i) => (i === index ? { ...p, ...patch } : p))
-              setPenPresets(next)
-              applyPenPreset(next[index])
-            }
-            // Color swatches + width dots editing one pen preset (same controls as
-            // apps/docs DrawTab); shown inline for the selected pen and reused by the
-            // held-pen flyout
-            const renderInkSettings = (index: number) => {
-              const preset = penPresets[index]!
-              const widths = preset.kind === 'highlighter' ? HIGHLIGHTER_WIDTHS : PEN_WIDTHS
-              return (
-                <div className="ink-settings">
-                  <div className="ink-swatches">
-                    {INK_COLORS.map((hex) => (
-                      <button
-                        key={hex}
-                        className={`ink-swatch ${preset.color === hex ? 'active' : ''}`}
-                        style={{ background: `#${hex}` }}
-                        data-tip={`#${hex}`}
-                        aria-label={`#${hex}`}
-                        disabled={!hasDoc}
-                        onClick={() => updatePenPreset(index, { color: hex })}
-                      />
-                    ))}
-                  </div>
-                  <div className="ink-widths">
-                    {widths.map((w) => (
-                      <button
-                        key={w}
-                        className={`ink-width ${preset.width === w ? 'active' : ''}`}
-                        data-tip={t('ribbonInkWidthTip', { w })}
-                        aria-label={t('ribbonInkWidthTip', { w })}
-                        disabled={!hasDoc}
-                        onClick={() => updatePenPreset(index, { width: w })}
-                      >
-                        <span
-                          className="ink-width-dot"
-                          style={{
-                            width: Math.min(16, w * 2 + 2),
-                            height: Math.min(16, w * 2 + 2),
-                            background: `#${preset.color}`,
-                          }}
-                        />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )
-            }
-            return (
-              <>
-                <Group label={t('ribbonGroupDrawTools')}>
-                  <button
-                    className={`rb-big ${inkTool === 'select' ? 'active' : ''}`}
-                    disabled={!hasDoc}
-                    data-tip={t('ribbonSelectTip')}
-                    onClick={() => {
-                      setPenFlyout(null)
-                      onInkTool('select')
-                    }}
-                  >
-                    <span className="rb-big-icon">
-                      <IconCursor size={BIG} />
-                    </span>
-                    <span>{t('ribbonGroupSelect')}</span>
-                  </button>
-                  <button
-                    className={`rb-big ${inkTool === 'eraser' ? 'active' : ''}`}
-                    disabled={!hasDoc}
-                    data-tip={t('ribbonEraserTip')}
-                    onClick={() => {
-                      setPenFlyout(null)
-                      onInkTool('eraser')
-                    }}
-                  >
-                    <span className="rb-big-icon">
-                      <IconEraser size={BIG} />
-                    </span>
-                    <span>{t('ribbonEraser')}</span>
-                  </button>
-                </Group>
-                <div className="ribbon-sep" />
-                <Group label={t('ribbonGroupPenStyle')}>
-                  <div className="pen-tray">
-                    {penPresets.map((preset, i) => {
-                      const held = selectedPen === i && inkTool === preset.kind
-                      return (
-                        <button
-                          key={i}
-                          className={`pen-btn ${held ? 'down' : ''}`}
-                          disabled={!hasDoc}
-                          data-tip={
-                            preset.kind === 'pen' ? t('ribbonPenTip') : t('ribbonHighlighterTip')
-                          }
-                          aria-label={
-                            preset.kind === 'pen' ? t('ribbonPenTip') : t('ribbonHighlighterTip')
-                          }
-                          onClick={(event) => {
-                            if (held) {
-                              const rect = event.currentTarget.getBoundingClientRect()
-                              setPenFlyout(
-                                penFlyout?.index === i
-                                  ? null
-                                  : {
-                                      index: i,
-                                      x: Math.round(rect.left),
-                                      y: Math.round(rect.bottom + 6),
-                                    },
-                              )
-                            } else {
-                              setSelectedPen(i)
-                              setPenFlyout(null)
-                              applyPenPreset(preset)
-                            }
-                          }}
-                        >
-                          <PenThumb kind={preset.kind} color={preset.color} />
-                        </button>
-                      )
-                    })}
-                  </div>
-                  {renderInkSettings(selectedPen)}
-                </Group>
-                <div className="ribbon-sep" />
-                <Group label={t('ribbonGroupClear')}>
-                  <button
-                    className="rb-big"
-                    disabled={!hasDoc || inkCount === 0}
-                    data-tip={t('ribbonEraseAllTip')}
-                    onClick={onInkClearAll}
-                  >
-                    <span className="rb-big-icon">
-                      <IconEraser size={BIG} />
-                    </span>
-                    <span>{t('ribbonEraseAll')}</span>
-                  </button>
-                </Group>
-                {penFlyout && (
-                  <>
-                    <div className="pen-flyout-backdrop" onClick={() => setPenFlyout(null)} />
-                    <div className="pen-flyout" style={{ left: penFlyout.x, top: penFlyout.y }}>
-                      {renderInkSettings(penFlyout.index)}
-                    </div>
-                  </>
-                )}
-              </>
-            )
-          })()
+          <RibbonDrawTab
+            hasDoc={hasDoc}
+            tool={inkTool}
+            onTool={onInkTool}
+            presets={inkPresets}
+            activeId={inkActiveId}
+            onPresets={onInkPresets}
+            onActivate={onInkActivate}
+            inkCount={inkCount}
+            onClearAll={onInkClearAll}
+            panel={penPanel}
+            setPanel={setPenPanel}
+            closePanels={closePanels}
+          />
         ) : tab === 'design' ? (
           <>
             <Group label={t('ribbonGroupThemes')}>
@@ -2127,7 +1962,10 @@ export function Ribbon({
                     e.stopPropagation()
                     closeSiblingPanels(e, closePanels, 'slideSize')
                   }}
-                  onClick={() => setSlideSizeOpen((v) => !v)}
+                  onClick={() => {
+                    if (!slideSizeOpen) void getSlideSize().then(setDeckSize)
+                    setSlideSizeOpen((v) => !v)
+                  }}
                   data-tip={t('ribbonSlideSizeTip')}
                 >
                   <span className="rb-big-icon">
@@ -2140,21 +1978,72 @@ export function Ribbon({
                   <div className="rb-drop rb-menu" onMouseDown={(e) => e.stopPropagation()}>
                     {(
                       [
-                        ['16:9', t('ribbonSlideSize169'), 12192000, 6858000],
-                        ['4:3', t('ribbonSlideSize43'), 9144000, 6858000],
+                        ['16:9', t('ribbonSlideSize169')],
+                        ['4:3', t('ribbonSlideSize43')],
+                        ['A4', t('ribbonSlideSizeA4')],
+                        ['A3', t('ribbonSlideSizeA3')],
                       ] as const
-                    ).map(([key, label, cx, cy]) => (
+                    ).map(([key, label]) => (
                       <button
                         key={key}
-                        className={slideSizeKey === key ? 'on' : ''}
+                        className={
+                          deckSize && matchSlideSizePreset(deckSize) === key ? 'active' : ''
+                        }
                         onClick={() => {
                           setSlideSizeOpen(false)
+                          // a preset keeps the deck's orientation
+                          const { cx, cy } = presetSize(key, !!deckSize && isPortrait(deckSize))
                           onSlideSize(cx, cy)
                         }}
                       >
                         {label}
                       </button>
                     ))}
+                    <div className="rb-menu-sep" />
+                    {(
+                      [
+                        [false, t('ribbonSlideSizeLandscape')],
+                        [true, t('ribbonSlideSizePortrait')],
+                      ] as const
+                    ).map(([portrait, label]) => (
+                      <button
+                        key={label}
+                        className={deckSize && isPortrait(deckSize) === portrait ? 'active' : ''}
+                        disabled={!deckSize}
+                        onClick={() => {
+                          setSlideSizeOpen(false)
+                          if (deckSize && isPortrait(deckSize) !== portrait)
+                            onSlideSize(deckSize.cy, deckSize.cx)
+                        }}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                    <div className="rb-menu-sep" />
+                    <button
+                      onClick={() => {
+                        setSlideSizeOpen(false)
+                        onCustomSlideSize()
+                      }}
+                    >
+                      {t('ribbonSlideSizeCustom')}
+                    </button>
+                    <button
+                      className={
+                        deckSize &&
+                        defaultNewSlideSize()?.cx === deckSize.cx &&
+                        defaultNewSlideSize()?.cy === deckSize.cy
+                          ? 'active'
+                          : ''
+                      }
+                      disabled={!deckSize}
+                      onClick={() => {
+                        setSlideSizeOpen(false)
+                        if (deckSize) saveDefaultNewSlideSize(deckSize)
+                      }}
+                    >
+                      {t('ribbonSlideSizeUseForNew')}
+                    </button>
                   </div>
                 )}
               </div>

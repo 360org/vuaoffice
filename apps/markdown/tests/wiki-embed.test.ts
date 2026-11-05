@@ -129,8 +129,9 @@ describe('syntax', () => {
 
 describe('resolution', () => {
   it('a picture the asset handler refuses falls back to its card, not an empty box', async () => {
-    // the resolver walks the whole vault but md-asset only serves files under
-    // an open document's own directory, so this one resolves and then 403s
+    // the md-asset handler serves under the vault root the resolver walks, but
+    // a refusal stays possible (symlink escape, deleted file), so the embed
+    // has to degrade to its card when the <img> errors
     const { editor } = open('![[diagram.png]]', {
       answers: { 'diagram.png': { path: '/vault/assets/diagram.png', fragment: '', found: true } },
     })
@@ -188,7 +189,8 @@ describe('resolution', () => {
       return handled
     })
     expect(handled).toBe(true)
-    expect(onUnresolved).toHaveBeenCalledWith('Nowhere')
+    // an embed reports flagged, so a caller can decline to create from it
+    expect(onUnresolved).toHaveBeenCalledWith('Nowhere', true)
   })
 
   it('a resolved picture renders an image widget beside the hidden literal', async () => {

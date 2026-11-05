@@ -9,7 +9,17 @@ import {
   unlinkSync,
   writeFileSync,
 } from 'node:fs'
-import { copyFile, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import {
+  copyFile,
+  mkdir,
+  mkdtemp,
+  open,
+  readFile,
+  readdir,
+  rm,
+  stat,
+  writeFile,
+} from 'node:fs/promises'
 import { refreshCsvDigest } from './csv-digest'
 import { createServer } from 'node:http'
 import { basename, dirname, isAbsolute, join } from 'node:path'
@@ -39,6 +49,10 @@ import type {
 import { z } from 'zod'
 import {
   abortOnDestroyed,
+  decryptOoxml,
+  encryptOoxml,
+  isCfbFile,
+  isEncryptedOoxml,
   appMenuLabels,
   appMenuTemplate,
   buildPrintableHtml,
@@ -62,8 +76,11 @@ import {
   writeJsonAtomic,
   recoveryCopyDiskNewer,
   configuredAuthorName,
+  readLegacyImportSkip,
+  writeLegacyImportSkip,
 } from '@genoffice/electron-utils'
 import { createMainProcessProxyDispatcher } from '@genoffice/electron-utils/main-proxy'
+import { fetchRemoteTable } from '@genoffice/electron-utils/remote-table'
 import { createI18n, getUiLang, type Lang, normalizeLang, setUiLang } from '@genoffice/i18n'
 import { ProjectStore } from '@genoffice/project-store'
 
@@ -110,10 +127,18 @@ import {
 import { parseFileToText } from '@genoffice/file-parse'
 import type { CellEdit, SheetStructuralOps } from '@genoffice/xlsx-gateway/gateway/xlsx-gateway'
 import {
+  readArchiveEntriesText,
   readArchiveEntryText,
   saveWorkbookViaSidecar,
+  type ArchiveClient,
 } from '@genoffice/xlsx-gateway/gateway/xlsx-package-io'
+import {
+  connectionSourceOf,
+  refreshableQueriesOf,
+} from '@genoffice/xlsx-gateway/gateway/xlsx-connection-refresh'
+import type { PartReader } from '@genoffice/xlsx-gateway/gateway/xlsx-connections'
 import { parsePivotDefinition } from '@genoffice/xlsx-gateway/gateway/xlsx-pivot'
+import { listWorkbookQueries } from '@genoffice/xlsx-gateway/gateway/xlsx-connections'
 import type { SheetEditPlan } from '@genoffice/xlsx-gateway/gateway/xlsx-sheets'
 import { readWorkbookRedactionPart } from './workbook-redactions'
 import type {
@@ -136,11 +161,22 @@ import {
   workbookFindCellsResultSchema,
   workbookRecalcRequestSchema,
   workbookRecalcResultSchema,
+  workbookPickSelectionSchema,
+  externalLinksRequestSchema,
+  externalLinksResultSchema,
+  externalLinksUpdateResultSchema,
+  externalLinkRevealRequestSchema,
   workbookMediaRequestSchema,
   workbookMediaResultSchema,
+  workbookConnectionsRequestSchema,
+  workbookConnectionsResultSchema,
   workbookPivotRequestSchema,
+  workbookRefreshRequestSchema,
+  workbookRefreshResultSchema,
   workbookRedactionsRequestSchema,
   workbookRedactionsResultSchema,
+  workbookQueriesRequestSchema,
+  workbookQueriesResultSchema,
   localImageRequestSchema,
   localImageResultSchema,
   screenCaptureRequestSchema,
@@ -194,8 +230,9 @@ const tMain = createI18n({
     filterXlsm: 'Excel 启用宏的工作簿',
     odsImportMsg: '转换 .{ext} 工作簿？',
     odsImportDetail:
-      'GenOffice 只编辑 .xlsx，不编辑 ODF。数值、公式和日期会被转换过来（公式改写为 Excel 语法，无法安全改写的只保留它的当前结果）；样式、列宽和图表不会保留。原文件不会被修改，转换出的副本首次保存时另存为 .xlsx。', // public-hygiene: allow
+      'VuaOffice 只编辑 .xlsx，不编辑 ODF。数值、公式和日期会被转换过来（公式改写为 Excel 语法，无法安全改写的只保留它的当前结果）；图片、合并单元格和列宽行高会一并带过来；边框等样式和图表不会保留。原文件不会被修改，转换出的副本首次保存时另存为 .xlsx。', // public-hygiene: allow
     odsImportConvertBtn: '转换并打开',
+    importSkipConfirm: '下次直接转换，不再提示',
     dlgAddAttachment: '添加附件',
     filterSupported: '支持的文件',
     filterAll: '所有文件',
@@ -208,7 +245,7 @@ const tMain = createI18n({
     errParseFailed: '文件解析失败',
     errImageNoText: '图片附件不提供文本,已作为图像随用户消息发送,直接看图即可',
     errNotImage: '不是支持的图片类型',
-    errGskNotLoggedIn: '未登录 Genspark:请点击下方「登录 Genspark」完成登录后重试',
+    errGskNotLoggedIn: '未登录 VuaOffice:请点击下方「登录 VuaOffice」完成登录后重试',
     errNoApiKey: '未配置 {provider} 的 API Key',
     errAiRegion: '该模型的厂商不向当前地区提供服务，请换一个模型或切换网络',
     errAiBusy: 'AI 服务当前繁忙，请稍后重试',
@@ -257,8 +294,9 @@ const tMain = createI18n({
     filterXlsm: 'Excel Macro-Enabled Workbooks',
     odsImportMsg: 'Convert this .{ext} workbook?',
     odsImportDetail:
-      'GenOffice edits .xlsx, not ODF. Values, formulas and dates carry over (formulas are rewritten into Excel syntax, and any that cannot be rewritten safely keeps its current result). Styles, column widths and charts are not carried over. The original file is never changed; the converted copy saves as .xlsx the first time you save.',
+      'VuaOffice edits .xlsx, not ODF. Values, formulas and dates carry over (formulas are rewritten into Excel syntax, and any that cannot be rewritten safely keeps its current result). Pictures, merged cells, column widths and row heights come along too; other styling such as borders, and charts, are not carried over. The original file is never changed; the converted copy saves as .xlsx the first time you save.',
     odsImportConvertBtn: 'Convert and open',
+    importSkipConfirm: 'Convert without asking next time',
     dlgAddAttachment: 'Add Attachments',
     filterSupported: 'Supported Files',
     filterAll: 'All Files',
@@ -272,7 +310,7 @@ const tMain = createI18n({
     errImageNoText: 'Image attachments have no text; the image is sent along with the user message',
     errNotImage: 'not a supported image type',
     errGskNotLoggedIn:
-      'Not signed in to GenOffice: click “Sign in to Genspark” below, sign in, then retry',
+      'Not signed in to VuaOffice: click “Sign in to VuaOffice” below, sign in, then retry',
     errNoApiKey: 'No API key configured for {provider}',
     errAiRegion:
       "This model's provider does not serve your current region — pick another model or change your network",
@@ -325,8 +363,9 @@ const tMain = createI18n({
     filterXlsm: 'Sổ làm việc Excel hỗ trợ Macro',
     odsImportMsg: 'Chuyển đổi sổ làm việc .{ext} này?',
     odsImportDetail:
-      'GenOffice chỉnh sửa .xlsx chứ không chỉnh sửa ODF. Giá trị, công thức và ngày tháng sẽ được chuyển đổi (công thức viết lại theo cú pháp Excel, công thức không viết lại an toàn được sẽ giữ kết quả hiện tại). Kiểu dáng, độ rộng cột và biểu đồ không được chuyển. Tệp gốc không bao giờ bị sửa; bản sau chuyển đổi sẽ lưu thành .xlsx khi lưu lần đầu.',
+      'VuaOffice chỉnh sửa .xlsx chứ không chỉnh sửa ODF. Giá trị, công thức và ngày tháng sẽ được chuyển đổi (công thức viết lại theo cú pháp Excel, công thức không viết lại an toàn được sẽ giữ kết quả hiện tại). Hình ảnh, ô đã gộp, độ rộng cột và chiều cao hàng cũng được chuyển sang; các định dạng khác như đường viền, và biểu đồ, thì không. Tệp gốc không bao giờ bị sửa; bản sau chuyển đổi sẽ lưu thành .xlsx khi lưu lần đầu.',
     odsImportConvertBtn: 'Chuyển đổi và mở',
+    importSkipConfirm: 'Lần sau chuyển đổi ngay, không hỏi lại',
     dlgAddAttachment: 'Thêm tệp đính kèm',
     filterSupported: 'Các tệp được hỗ trợ',
     filterAll: 'Tất cả các tệp',
@@ -389,14 +428,86 @@ const tMain = createI18n({
     csvKeepFormatDetail:
       'CSV chỉ giữ các giá trị thuần của một trang tính duy nhất — các công thức, định dạng và mọi trang tính bổ sung sẽ không được lưu vào tệp .csv.',
   },
+  tr: {
+    filterSpreadsheets: 'Elektronik Tablolar',
+    filterXlsx: 'Excel Çalışma Kitapları',
+    filterXlsm: 'Excel Makro İçerebilen Çalışma Kitapları',
+    odsImportMsg: 'Bu .{ext} çalışma kitabı dönüştürülsün mü?',
+    odsImportDetail:
+      'VuaOffice ODF değil, .xlsx düzenler. Değerler, formüller ve tarihler aktarılır (formüller Excel söz dizimine yeniden yazılır; güvenle yeniden yazılamayanlar mevcut sonucunu korur). Resimler, birleştirilmiş hücreler, sütun genişlikleri ve satır yükseklikleri de aktarılır; kenarlıklar gibi diğer biçimlendirmeler ve grafikler aktarılmaz. Özgün dosya asla değiştirilmez; dönüştürülen kopya ilk kaydettiğinizde .xlsx olarak kaydedilir.',
+    odsImportConvertBtn: 'Dönüştür ve aç',
+    importSkipConfirm: 'Bir dahaki sefere sormadan dönüştür',
+    dlgAddAttachment: 'Ek Ekle',
+    filterSupported: 'Desteklenen Dosyalar',
+    filterAll: 'Tüm Dosyalar',
+    errUnsupportedExt: '.{ext} dosyaları desteklenmiyor',
+    errNotFile: 'bir dosya değil',
+    errTooLarge: '{mb}MB sınırını aşıyor',
+    errImageTooLarge: 'görsel 5MB sınırını aşıyor',
+    errUnreadable: 'okunamıyor',
+    errFileTooLarge: 'Dosya boyut sınırını aşıyor',
+    errParseFailed: 'Dosya ayrıştırılamadı',
+    errImageNoText: 'Görsel eklerin metni yoktur; görsel kullanıcı mesajıyla birlikte gönderilir',
+    errNotImage: 'desteklenen bir görsel türü değil',
+    errGskNotLoggedIn:
+      'Genspark oturumu açılmamış: aşağıdaki “Genspark’ta oturum aç” düğmesine tıklayın, oturum açın ve yeniden deneyin',
+    errNoApiKey: '{provider} için API anahtarı yapılandırılmamış',
+    errAiRegion:
+      'Bu modelin sağlayıcısı bulunduğunuz bölgeye hizmet vermiyor — başka bir model seçin veya ağınızı değiştirin',
+    errAiBusy: 'AI hizmeti şu anda meşgul — lütfen birazdan yeniden deneyin',
+    errNoModel: 'Model adı yapılandırılmamış',
+    errImgAbsPath: 'Görsel yolu mutlak olmalıdır.',
+    errImgNotFound: 'Görsel dosyası bulunamadı: {path}',
+    errImgTooLarge20: 'Görsel 20MB’ı aşıyor ve eklenemez.',
+    errImgBadType: 'Dosya bir PNG/JPEG/GIF görseli değil.',
+    errDiskChanged:
+      'Çalışma kitabı açıldıktan sonra diskte değişti — bunun yerine Farklı Kaydet kullanın.',
+    autosaveFoundTitle: 'Kurtarılan sürüm bulundu',
+    autosaveDiskNewer:
+      'Not: diskteki dosya bu kurtarma kopyası kaydedildikten sonra değiştirilmiş. Geri yüklemek bu yeni değişikliklerin yerini alır.',
+    autosaveFoundBody:
+      'Son oturumunuzdan kaydedilmemiş değişiklikler var. Otomatik kaydedilen sürüm geri yüklensin mi? Geri yüklemeden sonra kaydetmek özgün dosyanın üzerine yazar.',
+    autosaveRestore: 'Geri Yükle',
+    autosaveDiscard: 'Vazgeç',
+    menuFile: 'Dosya',
+    menuOpenWorkbook: 'Çalışma Kitabı Aç…',
+    menuSave: 'Kaydet',
+    menuSaveAs: 'Farklı Kaydet…',
+    menuExportPdf: 'PDF Olarak Dışa Aktar…',
+    menuPrint: 'Yazdır…',
+    menuClose: 'Kapat',
+    menuQuit: 'Çık',
+    menuEdit: 'Düzenle',
+    menuUndo: 'Geri Al',
+    menuRedo: 'Yinele',
+    closeUnsavedMsg: '{count} kaydedilmemiş değişiklik',
+    closeUnsavedDetail: 'Kaydetmeden kapatırsanız değişiklikleriniz kaybolur.',
+    btnDontSave: 'Kaydetme',
+    btnCancel: 'İptal',
+    csvSaveAsNotice:
+      'CSV dosyaları biçimlendirmeyi koruyamaz — .xlsx olarak kaydetmek tüm değişikliklerinizi korur.',
+    menuExportCsv: 'CSV Olarak Dışa Aktar…',
+    filterCsv: 'CSV (Virgülle ayrılmış)',
+    csvFormulaLossMsg: 'Bu sayfa, CSV’nin koruyamayacağı formüller içeriyor.',
+    csvFormulaLossDetail:
+      'CSV yalnızca düz değerleri korur — formüller mevcut sonuçlarına indirgenir ve biçimlendirme kaybolur.',
+    csvKeepXlsxBtn: '.xlsx olarak kaydet',
+    csvContinueBtn: 'CSV olarak devam et',
+    csvActiveSheetOnlyNotice:
+      'CSV dosyaları tek bir sayfa tutar — yalnızca etkin sayfa "{name}" dışa aktarılacak.',
+    csvKeepFormatMsg: 'CSV biçiminde kaydetmeye devam edilsin mi?',
+    csvKeepFormatDetail:
+      'CSV yalnızca tek bir sayfanın düz değerlerini korur — formüller, biçimlendirme ve ek sayfalar .csv dosyasına kaydedilmez.',
+  },
   ja: {
     filterSpreadsheets: 'スプレッドシート',
     filterXlsx: 'Excel ブック',
     filterXlsm: 'Excel マクロ有効ブック',
     odsImportMsg: 'この .{ext} ワークブックを変換しますか？',
     odsImportDetail:
-      'GenOffice は ODF ではなく .xlsx を編集します。値・数式・日付は変換されます（数式は Excel の構文に書き換えられ、安全に書き換えられないものは現在の値だけが残ります）。スタイル、列の幅、グラフは引き継がれません。元のファイルは変更されず、変換後のコピーは最初に保存する際 .xlsx として保存されます。',
+      'VuaOffice は ODF ではなく .xlsx を編集します。値・数式・日付は変換されます（数式は Excel の構文に書き換えられ、安全に書き換えられないものは現在の値だけが残ります）。画像、結合セル、列の幅と行の高さも引き継がれますが、罫線などその他の書式とグラフは引き継がれません。元のファイルは変更されず、変換後のコピーは最初に保存する際 .xlsx として保存されます。',
     odsImportConvertBtn: '変換して開く',
+    importSkipConfirm: '次回から確認せずに変換する',
     dlgAddAttachment: '添付ファイルを追加',
     filterSupported: 'サポートされているファイル',
     filterAll: 'すべてのファイル',
@@ -411,7 +522,7 @@ const tMain = createI18n({
       '画像添付にはテキストがありません。画像はユーザー メッセージと一緒に送信されるため、そのまま画像をご確認ください',
     errNotImage: 'サポートされていない画像形式です',
     errGskNotLoggedIn:
-      'Genspark にサインインしていません。下の「Genspark にサインイン」からサインインして再試行してください',
+      'VuaOffice にサインインしていません。下の「VuaOffice にサインイン」からサインインして再試行してください',
     errNoApiKey: '{provider} の API キーが設定されていません',
     errAiRegion:
       'このモデルの提供元は現在の地域ではサービスを提供していません。別のモデルを選ぶか、ネットワークを切り替えてください',
@@ -466,8 +577,9 @@ const tMain = createI18n({
     filterXlsm: 'Excel 매크로 사용 통합 문서',
     odsImportMsg: '이 .{ext} 워크북을 변환할까요?',
     odsImportDetail:
-      'GenOffice은 ODF가 아니라 .xlsx를 편집합니다. 값, 수식, 날짜는 변환됩니다(수식은 Excel 구문으로 다시 쓰이며, 안전하게 다시 쓸 수 없는 수식은 현재 값만 남습니다). 스타일, 열 너비, 차트는 옮겨지지 않습니다. 원본 파일은 변경되지 않으며, 변환된 사본은 처음 저장할 때 .xlsx로 저장됩니다.',
+      'VuaOffice은 ODF가 아니라 .xlsx를 편집합니다. 값, 수식, 날짜는 변환됩니다(수식은 Excel 구문으로 다시 쓰이며, 안전하게 다시 쓸 수 없는 수식은 현재 값만 남습니다). 그림, 병합된 셀, 열 너비와 행 높이도 함께 옮겨지지만 테두리 등 그 밖의 서식과 차트는 옮겨지지 않습니다. 원본 파일은 변경되지 않으며, 변환된 사본은 처음 저장할 때 .xlsx로 저장됩니다.',
     odsImportConvertBtn: '변환 후 열기',
+    importSkipConfirm: '다음부터 묻지 않고 변환',
     dlgAddAttachment: '첨부 파일 추가',
     filterSupported: '지원되는 파일',
     filterAll: '모든 파일',
@@ -482,7 +594,7 @@ const tMain = createI18n({
       '이미지 첨부에는 텍스트가 없습니다. 이미지는 사용자 메시지와 함께 전송되므로 이미지를 직접 확인하세요',
     errNotImage: '지원되는 이미지 형식이 아닙니다',
     errGskNotLoggedIn:
-      'GenOffice에 로그인되어 있지 않습니다. 아래 "Genspark 로그인"을 눌러 로그인한 뒤 다시 시도하세요',
+      'VuaOffice에 로그인되어 있지 않습니다. 아래 "VuaOffice 로그인"을 눌러 로그인한 뒤 다시 시도하세요',
     errNoApiKey: '{provider}의 API 키가 설정되지 않았습니다',
     errAiRegion:
       '이 모델의 제공업체는 현재 지역에서 서비스를 제공하지 않습니다. 다른 모델을 선택하거나 네트워크를 변경하세요',
@@ -537,8 +649,9 @@ const tMain = createI18n({
     filterXlsm: 'Classeurs Excel prenant en charge les macros',
     odsImportMsg: 'Convertir ce classeur .{ext} ?',
     odsImportDetail:
-      'GenOffice modifie des .xlsx, pas de l’ODF. Les valeurs, les formules et les dates sont converties (les formules sont réécrites en syntaxe Excel ; celles qui ne peuvent pas l’être en sécurité gardent leur résultat actuel). Les styles, les largeurs de colonne et les graphiques ne sont pas repris. Le fichier d’origine n’est jamais modifié ; la copie convertie s’enregistre en .xlsx lors du premier enregistrement.',
+      'VuaOffice modifie des .xlsx, pas de l’ODF. Les valeurs, les formules et les dates sont converties (les formules sont réécrites en syntaxe Excel ; celles qui ne peuvent pas l’être en sécurité gardent leur résultat actuel). Les images, les cellules fusionnées, les largeurs de colonne et les hauteurs de ligne sont également reprises ; les autres mises en forme, comme les bordures, et les graphiques ne le sont pas. Le fichier d’origine n’est jamais modifié ; la copie convertie s’enregistre en .xlsx lors du premier enregistrement.',
     odsImportConvertBtn: 'Convertir et ouvrir',
+    importSkipConfirm: 'La prochaine fois, convertir sans demander',
     dlgAddAttachment: 'Ajouter des pièces jointes',
     filterSupported: 'Fichiers pris en charge',
     filterAll: 'Tous les fichiers',
@@ -553,7 +666,7 @@ const tMain = createI18n({
       "Les images jointes n'ont pas de texte ; l'image est envoyée avec le message de l'utilisateur",
     errNotImage: "type d'image non pris en charge",
     errGskNotLoggedIn:
-      'Non connecté à GenOffice : cliquez sur « Se connecter à Genspark » ci-dessous, connectez-vous puis réessayez',
+      'Non connecté à VuaOffice : cliquez sur « Se connecter à VuaOffice » ci-dessous, connectez-vous puis réessayez',
     errNoApiKey: 'Aucune clé API configurée pour {provider}',
     errAiRegion:
       'Le fournisseur de ce modèle ne dessert pas votre région actuelle — choisissez un autre modèle ou changez de réseau',
@@ -609,8 +722,9 @@ const tMain = createI18n({
     filterXlsm: 'Excel-Arbeitsmappen mit Makros',
     odsImportMsg: 'Diese .{ext}-Arbeitsmappe konvertieren?',
     odsImportDetail:
-      'GenOffice bearbeitet .xlsx, nicht ODF. Werte, Formeln und Datumsangaben werden konvertiert (Formeln werden in Excel-Syntax umgeschrieben; was sich nicht sicher umschreiben lässt, behält seinen aktuellen Wert). Formatierungen, Spaltenbreiten und Diagramme entfallen. Die Originaldatei bleibt unverändert; die konvertierte Kopie wird beim ersten Speichern als .xlsx angelegt.',
+      'VuaOffice bearbeitet .xlsx, nicht ODF. Werte, Formeln und Datumsangaben werden konvertiert (Formeln werden in Excel-Syntax umgeschrieben; was sich nicht sicher umschreiben lässt, behält seinen aktuellen Wert). Bilder, verbundene Zellen, Spaltenbreiten und Zeilenhöhen werden ebenfalls übernommen; andere Formatierungen wie Rahmen sowie Diagramme entfallen. Die Originaldatei bleibt unverändert; die konvertierte Kopie wird beim ersten Speichern als .xlsx angelegt.',
     odsImportConvertBtn: 'Konvertieren und öffnen',
+    importSkipConfirm: 'Nächstes Mal ohne Nachfrage konvertieren',
     dlgAddAttachment: 'Anlagen hinzufügen',
     filterSupported: 'Unterstützte Dateien',
     filterAll: 'Alle Dateien',
@@ -625,7 +739,7 @@ const tMain = createI18n({
       'Bildanlagen enthalten keinen Text; das Bild wird zusammen mit der Benutzernachricht gesendet',
     errNotImage: 'kein unterstützter Bildtyp',
     errGskNotLoggedIn:
-      'Nicht bei GenOffice angemeldet: Klicken Sie unten auf „Bei Genspark anmelden“, melden Sie sich an und versuchen Sie es erneut',
+      'Nicht bei VuaOffice angemeldet: Klicken Sie unten auf „Bei VuaOffice anmelden“, melden Sie sich an und versuchen Sie es erneut',
     errNoApiKey: 'Kein API-Schlüssel für {provider} konfiguriert',
     errAiRegion:
       'Der Anbieter dieses Modells bedient Ihre aktuelle Region nicht — wählen Sie ein anderes Modell oder wechseln Sie das Netzwerk',
@@ -680,8 +794,9 @@ const tMain = createI18n({
     filterXlsm: 'Libros de Excel habilitados para macros',
     odsImportMsg: '¿Convertir este libro .{ext}?',
     odsImportDetail:
-      'GenOffice edita .xlsx, no ODF. Los valores, las fórmulas y las fechas se convierten (las fórmulas se reescriben con sintaxis de Excel; las que no se pueden reescribir con seguridad conservan su resultado actual). Los estilos, el ancho de columna y los gráficos no se conservan. El archivo original nunca se modifica; la copia convertida se guarda como .xlsx la primera vez que se guarda.',
+      'VuaOffice edita .xlsx, no ODF. Los valores, las fórmulas y las fechas se convierten (las fórmulas se reescriben con sintaxis de Excel; las que no se pueden reescribir con seguridad conservan su resultado actual). Las imágenes, las celdas combinadas, el ancho de columna y el alto de fila también se conservan; otros formatos, como los bordes, y los gráficos no. El archivo original nunca se modifica; la copia convertida se guarda como .xlsx la primera vez que se guarda.',
     odsImportConvertBtn: 'Convertir y abrir',
+    importSkipConfirm: 'La próxima vez, convertir sin preguntar',
     dlgAddAttachment: 'Agregar datos adjuntos',
     filterSupported: 'Archivos compatibles',
     filterAll: 'Todos los archivos',
@@ -696,7 +811,7 @@ const tMain = createI18n({
       'Las imágenes adjuntas no tienen texto; la imagen se envía junto con el mensaje del usuario',
     errNotImage: 'no es un tipo de imagen compatible',
     errGskNotLoggedIn:
-      'No has iniciado sesión en GenOffice: pulsa «Iniciar sesión en Genspark» abajo, inicia sesión y vuelve a intentarlo',
+      'No has iniciado sesión en VuaOffice: pulsa «Iniciar sesión en VuaOffice» abajo, inicia sesión y vuelve a intentarlo',
     errNoApiKey: 'No hay clave de API configurada para {provider}',
     errAiRegion:
       'El proveedor de este modelo no da servicio en tu región actual — elige otro modelo o cambia de red',
@@ -751,8 +866,9 @@ const tMain = createI18n({
     filterXlsm: 'เวิร์กบุ๊ก Excel ที่เปิดใช้งานแมโคร',
     odsImportMsg: 'แปลงเวิร์กบุ๊ก .{ext} นี้ไหม?',
     odsImportDetail:
-      'GenOffice แก้ไข .xlsx ไม่ใช่ ODF ค่า สูตร และวันที่จะถูกแปลง (สูตรเขียนใหม่เป็นไวยากรณ์ Excel และสูตรที่เขียนใหม่อย่างปลอดภัยไม่ได้จะคงค่าปัจจุบันไว้) สไตล์ ความกว้างคอลัมน์ และแผนภูมิจะไม่ถูกโอนมา ไฟล์ต้นทางจะไม่ถูกแก้ไข และสำเนาที่แปลงแล้วจะบันทึกเป็น .xlsx ในการบันทึกครั้งแรก',
+      'VuaOffice แก้ไข .xlsx ไม่ใช่ ODF ค่า สูตร และวันที่จะถูกแปลง (สูตรเขียนใหม่เป็นไวยากรณ์ Excel และสูตรที่เขียนใหม่อย่างปลอดภัยไม่ได้จะคงค่าปัจจุบันไว้) รูปภาพ เซลล์ที่ผสาน ความกว้างคอลัมน์ และความสูงแถวจะถูกโอนมาด้วย ส่วนการจัดรูปแบบอื่น เช่น เส้นขอบ และแผนภูมิจะไม่ถูกโอนมา ไฟล์ต้นทางจะไม่ถูกแก้ไข และสำเนาที่แปลงแล้วจะบันทึกเป็น .xlsx ในการบันทึกครั้งแรก',
     odsImportConvertBtn: 'แปลงแล้วเปิด',
+    importSkipConfirm: 'ครั้งถัดไปแปลงทันทีโดยไม่ต้องถาม',
     dlgAddAttachment: 'เพิ่มสิ่งที่แนบ',
     filterSupported: 'ไฟล์ที่รองรับ',
     filterAll: 'ไฟล์ทั้งหมด',
@@ -767,7 +883,7 @@ const tMain = createI18n({
       'รูปภาพแนบไม่มีข้อความ รูปภาพจะถูกส่งไปพร้อมข้อความของผู้ใช้ ให้ดูที่รูปภาพโดยตรง',
     errNotImage: 'ไม่ใช่ชนิดรูปภาพที่รองรับ',
     errGskNotLoggedIn:
-      'ยังไม่ได้ลงชื่อเข้าใช้ Genspark: แตะ “ลงชื่อเข้าใช้ Genspark” ด้านล่าง แล้วลองอีกครั้ง',
+      'ยังไม่ได้ลงชื่อเข้าใช้ VuaOffice: แตะ “ลงชื่อเข้าใช้ VuaOffice” ด้านล่าง แล้วลองอีกครั้ง',
     errNoApiKey: 'ยังไม่ได้ตั้งค่า API Key ของ {provider}',
     errAiRegion:
       'ผู้ให้บริการของโมเดลนี้ไม่ให้บริการในภูมิภาคปัจจุบันของคุณ — โปรดเลือกโมเดลอื่นหรือเปลี่ยนเครือข่าย',
@@ -821,8 +937,9 @@ const tMain = createI18n({
     filterXlsm: 'Buku kerja Excel dengan makro aktif',
     odsImportMsg: 'Konversi buku kerja .{ext} ini?',
     odsImportDetail:
-      'GenOffice mengedit .xlsx, bukan ODF. Nilai, rumus, dan tanggal ikut terkonversi (rumus ditulis ulang ke sintaks Excel; rumus yang tidak bisa ditulis ulang dengan aman mempertahankan hasilnya). Gaya, lebar kolom, dan grafik tidak ikut dibawa. File asli tidak pernah diubah; hasil konversi disimpan sebagai .xlsx saat penyimpanan pertama.',
+      'VuaOffice mengedit .xlsx, bukan ODF. Nilai, rumus, dan tanggal ikut terkonversi (rumus ditulis ulang ke sintaks Excel; rumus yang tidak bisa ditulis ulang dengan aman mempertahankan hasilnya). Gambar, sel gabungan, lebar kolom, dan tinggi baris juga ikut dibawa; gaya lain seperti garis tepi, serta grafik, tidak. File asli tidak pernah diubah; hasil konversi disimpan sebagai .xlsx saat penyimpanan pertama.',
     odsImportConvertBtn: 'Konversi dan buka',
+    importSkipConfirm: 'Lain kali langsung konversi tanpa bertanya',
     dlgAddAttachment: 'Tambahkan lampiran',
     filterSupported: 'File yang didukung',
     filterAll: 'Semua file',
@@ -836,7 +953,7 @@ const tMain = createI18n({
     errImageNoText: 'Lampiran gambar tidak memiliki teks; gambar dikirim bersama pesan pengguna',
     errNotImage: 'bukan jenis gambar yang didukung',
     errGskNotLoggedIn:
-      'Belum masuk ke GenOffice: klik “Masuk ke Genspark” di bawah, lalu coba lagi',
+      'Belum masuk ke VuaOffice: klik “Masuk ke VuaOffice” di bawah, lalu coba lagi',
     errNoApiKey: 'API Key untuk {provider} belum dikonfigurasi',
     errAiRegion:
       'Penyedia model ini tidak melayani wilayah Anda saat ini — pilih model lain atau ganti jaringan',
@@ -890,8 +1007,9 @@ const tMain = createI18n({
     filterXlsm: 'Книги Excel с поддержкой макросов',
     odsImportMsg: 'Преобразовать эту книгу .{ext}?',
     odsImportDetail:
-      'GenOffice редактирует .xlsx, а не ODF. Значения, формулы и даты переносятся (формулы переписываются в синтаксис Excel; те, что нельзя переписать безопасно, сохраняют текущий результат). Стили, ширина столбцов и диаграммы не переносятся. Исходный файл никогда не изменяется; преобразованная копия при первом сохранении записывается как .xlsx.',
+      'VuaOffice редактирует .xlsx, а не ODF. Значения, формулы и даты переносятся (формулы переписываются в синтаксис Excel; те, что нельзя переписать безопасно, сохраняют текущий результат). Изображения, объединённые ячейки, ширина столбцов и высота строк тоже переносятся; прочее оформление, например границы, и диаграммы — нет. Исходный файл никогда не изменяется; преобразованная копия при первом сохранении записывается как .xlsx.',
     odsImportConvertBtn: 'Преобразовать и открыть',
+    importSkipConfirm: 'В следующий раз конвертировать без запроса',
     dlgAddAttachment: 'Добавить вложения',
     filterSupported: 'Поддерживаемые файлы',
     filterAll: 'Все файлы',
@@ -906,7 +1024,7 @@ const tMain = createI18n({
       'Вложенные изображения не содержат текста; изображение отправляется вместе с сообщением пользователя',
     errNotImage: 'неподдерживаемый тип изображения',
     errGskNotLoggedIn:
-      'Вы не вошли в GenOffice: нажмите «Войти в Genspark» ниже, войдите и повторите попытку',
+      'Вы не вошли в VuaOffice: нажмите «Войти в VuaOffice» ниже, войдите и повторите попытку',
     errNoApiKey: 'API-ключ для {provider} не настроен',
     errAiRegion:
       'Поставщик этой модели не обслуживает ваш текущий регион — выберите другую модель или смените сеть',
@@ -960,8 +1078,9 @@ const tMain = createI18n({
     filterXlsm: 'مصنفات Excel ممكّنة بوحدات الماكرو',
     odsImportMsg: 'تحويل دفتر عمل .{ext} هذا؟',
     odsImportDetail:
-      'يحرّر GenOffice ملفات ‎.xlsx ولا يحرّر ODF. تُحوَّل القيم والصيغ والتواريخ (تُعاد كتابة الصيغ بصيغة Excel، والصيغ التي لا يمكن إعادة كتابتها بأمان تحتفظ بنتيجتها الحالية). لا تُنقل الأنماط وعرض الأعمدة والرسوم البيانية. لا يتغيّر الملف الأصلي أبدًا؛ والنسخة المحوّلة تُحفظ بصيغة ‎.xlsx عند أول حفظ.',
+      'يحرّر VuaOffice ملفات ‎.xlsx ولا يحرّر ODF. تُحوَّل القيم والصيغ والتواريخ (تُعاد كتابة الصيغ بصيغة Excel، والصيغ التي لا يمكن إعادة كتابتها بأمان تحتفظ بنتيجتها الحالية). تُنقل أيضًا الصور والخلايا المدمجة وعرض الأعمدة وارتفاع الصفوف؛ أما التنسيقات الأخرى مثل الحدود، والرسوم البيانية، فلا تُنقل. لا يتغيّر الملف الأصلي أبدًا؛ والنسخة المحوّلة تُحفظ بصيغة ‎.xlsx عند أول حفظ.',
     odsImportConvertBtn: 'تحويل وفتح',
+    importSkipConfirm: 'في المرة القادمة، حوّل دون سؤال',
     dlgAddAttachment: 'إضافة مرفقات',
     filterSupported: 'الملفات المدعومة',
     filterAll: 'كل الملفات',
@@ -975,7 +1094,7 @@ const tMain = createI18n({
     errImageNoText: 'مرفقات الصور لا تحتوي على نص؛ تُرسل الصورة مع رسالة المستخدم',
     errNotImage: 'نوع صورة غير مدعوم',
     errGskNotLoggedIn:
-      'لم تسجّل الدخول إلى GenOffice: انقر على «تسجيل الدخول إلى Genspark» أدناه ثم أعد المحاولة',
+      'لم تسجّل الدخول إلى VuaOffice: انقر على «تسجيل الدخول إلى VuaOffice» أدناه ثم أعد المحاولة',
     errNoApiKey: 'لم يتم تكوين مفتاح API لـ {provider}',
     errAiRegion:
       'مزوّد هذا النموذج لا يقدم الخدمة في منطقتك الحالية — اختر نموذجًا آخر أو غيّر الشبكة',
@@ -1027,8 +1146,9 @@ const tMain = createI18n({
     filterXlsm: 'Pastas de Trabalho Habilitadas para Macro do Excel',
     odsImportMsg: 'Converter este livro .{ext}?',
     odsImportDetail:
-      'O GenOffice edita .xlsx, não ODF. Valores, fórmulas e datas são convertidos (as fórmulas são reescritas na sintaxe do Excel; as que não podem ser reescritas com segurança mantêm o resultado atual). Estilos, largura de coluna e gráficos não são mantidos. O arquivo original nunca é alterado; a cópia convertida é salva como .xlsx no primeiro salvamento.',
+      'O VuaOffice edita .xlsx, não ODF. Valores, fórmulas e datas são convertidos (as fórmulas são reescritas na sintaxe do Excel; as que não podem ser reescritas com segurança mantêm o resultado atual). Imagens, células mescladas, largura de coluna e altura de linha também são mantidas; outras formatações, como bordas, e gráficos não são. O arquivo original nunca é alterado; a cópia convertida é salva como .xlsx no primeiro salvamento.',
     odsImportConvertBtn: 'Converter e abrir',
+    importSkipConfirm: 'Da próxima vez, converter sem perguntar',
     dlgAddAttachment: 'Adicionar Anexos',
     filterSupported: 'Arquivos Compatíveis',
     filterAll: 'Todos os Arquivos',
@@ -1043,7 +1163,7 @@ const tMain = createI18n({
       'Anexos de imagem não têm texto; a imagem é enviada junto com a mensagem do usuário',
     errNotImage: 'não é um tipo de imagem suportado',
     errGskNotLoggedIn:
-      'Não conectado ao GenOffice: clique em “Entrar no Genspark” abaixo, entre e tente novamente',
+      'Não conectado ao VuaOffice: clique em “Entrar no VuaOffice” abaixo, entre e tente novamente',
     errNoApiKey: 'Nenhuma chave de API configurada para {provider}',
     errAiRegion:
       'O fornecedor deste modelo não atende à sua região atual — escolha outro modelo ou mude de rede',
@@ -1097,8 +1217,9 @@ const tMain = createI18n({
     filterXlsm: 'Cartelle di lavoro di Excel con attivazione macro',
     odsImportMsg: 'Convertire questa cartella di lavoro .{ext}?',
     odsImportDetail:
-      'GenOffice modifica .xlsx, non ODF. Valori, formule e date vengono convertiti (le formule sono riscritte nella sintassi di Excel; quelle che non possono essere riscritte in sicurezza mantengono il risultato attuale). Stili, larghezza colonne e grafici non vengono riportati. Il file originale non viene mai modificato; la copia convertita si salva come .xlsx al primo salvataggio.',
+      'VuaOffice modifica .xlsx, non ODF. Valori, formule e date vengono convertiti (le formule sono riscritte nella sintassi di Excel; quelle che non possono essere riscritte in sicurezza mantengono il risultato attuale). Immagini, celle unite, larghezza colonne e altezza righe vengono riportate; altre formattazioni, come i bordi, e i grafici no. Il file originale non viene mai modificato; la copia convertita si salva come .xlsx al primo salvataggio.',
     odsImportConvertBtn: 'Converti e apri',
+    importSkipConfirm: 'La prossima volta converti senza chiedere',
     dlgAddAttachment: 'Aggiungi allegati',
     filterSupported: 'File supportati',
     filterAll: 'Tutti i file',
@@ -1113,7 +1234,7 @@ const tMain = createI18n({
       "Gli allegati immagine non hanno testo; l'immagine viene inviata insieme al messaggio dell'utente",
     errNotImage: 'tipo di immagine non supportato',
     errGskNotLoggedIn:
-      'Accesso a GenOffice non effettuato: fai clic su “Accedi a Genspark” qui sotto, accedi e riprova',
+      'Accesso a VuaOffice non effettuato: fai clic su “Accedi a VuaOffice” qui sotto, accedi e riprova',
     errNoApiKey: 'Nessuna chiave API configurata per {provider}',
     errAiRegion:
       'Il fornitore di questo modello non serve la tua regione attuale — scegli un altro modello o cambia rete',
@@ -1168,8 +1289,9 @@ const tMain = createI18n({
     filterXlsm: 'Skoroszyty programu Excel z obsługą makr',
     odsImportMsg: 'Skonwertować ten skoroszyt .{ext}?',
     odsImportDetail:
-      'GenOffice edytuje .xlsx, a nie ODF. Wartości, formuły i daty są konwertowane (formuły są przepisywane na składnię Excela; te, których nie można przepisać bezpiecznie, zachowują bieżący wynik). Style, szerokości kolumn i wykresy nie są przenoszone. Plik oryginalny nigdy nie jest zmieniany; skonwertowana kopia zapisuje się jako .xlsx przy pierwszym zapisaniu.',
+      'VuaOffice edytuje .xlsx, a nie ODF. Wartości, formuły i daty są konwertowane (formuły są przepisywane na składnię Excela; te, których nie można przepisać bezpiecznie, zachowują bieżący wynik). Obrazy, scalone komórki, szerokości kolumn i wysokości wierszy również są przenoszone; inne formatowanie, np. obramowania, oraz wykresy nie. Plik oryginalny nigdy nie jest zmieniany; skonwertowana kopia zapisuje się jako .xlsx przy pierwszym zapisaniu.',
     odsImportConvertBtn: 'Konwertuj i otwórz',
+    importSkipConfirm: 'Następnym razem konwertuj bez pytania',
     dlgAddAttachment: 'Dodaj załączniki',
     filterSupported: 'Obsługiwane pliki',
     filterAll: 'Wszystkie pliki',
@@ -1184,7 +1306,7 @@ const tMain = createI18n({
       'Załączniki graficzne nie zawierają tekstu; obraz jest wysyłany razem z wiadomością użytkownika',
     errNotImage: 'nieobsługiwany typ obrazu',
     errGskNotLoggedIn:
-      'Nie zalogowano do GenOffice: kliknij „Zaloguj się do Genspark” poniżej, zaloguj się i spróbuj ponownie',
+      'Nie zalogowano do VuaOffice: kliknij „Zaloguj się do VuaOffice” poniżej, zaloguj się i spróbuj ponownie',
     errNoApiKey: 'Nie skonfigurowano klucza API dla {provider}',
     errAiRegion:
       'Dostawca tego modelu nie obsługuje Twojego obecnego regionu — wybierz inny model lub zmień sieć',
@@ -1238,8 +1360,9 @@ const tMain = createI18n({
     filterXlsm: 'Sešity Excelu s podporou maker',
     odsImportMsg: 'Převést tento sešit .{ext}?',
     odsImportDetail:
-      'GenOffice upravuje .xlsx, nikoli ODF. Hodnoty, vzorce a data se převedou (vzorce se přepíší do syntaxe Excelu; ty, které nelze přepsat bezpečně, ponechají si aktuální výsledek). Styly, šířky sloupců a grafy se nepřenesou. Původní soubor se nikdy nemění; převedená kopie se při prvním uložení uloží jako .xlsx.',
+      'VuaOffice upravuje .xlsx, nikoli ODF. Hodnoty, vzorce a data se převedou (vzorce se přepíší do syntaxe Excelu; ty, které nelze přepsat bezpečně, ponechají si aktuální výsledek). Obrázky, sloučené buňky, šířky sloupců a výšky řádků se přenesou také; ostatní formátování, například ohraničení, a grafy se nepřenesou. Původní soubor se nikdy nemění; převedená kopie se při prvním uložení uloží jako .xlsx.',
     odsImportConvertBtn: 'Převést a otevřít',
+    importSkipConfirm: 'Příště převést bez ptaní',
     dlgAddAttachment: 'Přidat přílohy',
     filterSupported: 'Podporované soubory',
     filterAll: 'Všechny soubory',
@@ -1308,8 +1431,9 @@ const tMain = createI18n({
     filterXlsm: "Excel-werkmappen met macro's",
     odsImportMsg: 'Deze .{ext}-werkmap converteren?',
     odsImportDetail:
-      'GenOffice bewerkt .xlsx, niet ODF. Waarden, formules en datums worden geconverteerd (formules worden herschreven in Excel-syntaxis; formules die niet veilig herschreven kunnen worden houden hun huidige resultaat). Stijlen, kolombreedtes en diagrammen worden niet overgenomen. Het oorspronkelijke bestand wordt nooit gewijzigd; de geconverteerde kop slaat bij het eerste opslaan op als .xlsx.',
+      'VuaOffice bewerkt .xlsx, niet ODF. Waarden, formules en datums worden geconverteerd (formules worden herschreven in Excel-syntaxis; formules die niet veilig herschreven kunnen worden houden hun huidige resultaat). Afbeeldingen, samengevoegde cellen, kolombreedtes en rijhoogten worden ook overgenomen; andere opmaak zoals randen, en diagrammen, niet. Het oorspronkelijke bestand wordt nooit gewijzigd; de geconverteerde kop slaat bij het eerste opslaan op als .xlsx.',
     odsImportConvertBtn: 'Converteren en openen',
+    importSkipConfirm: 'Volgende keer converteren zonder te vragen',
     dlgAddAttachment: 'Bijlagen toevoegen',
     filterSupported: 'Ondersteunde bestanden',
     filterAll: 'Alle bestanden',
@@ -1324,7 +1448,7 @@ const tMain = createI18n({
       'Afbeeldingsbijlagen bevatten geen tekst; de afbeelding wordt samen met het gebruikersbericht verzonden',
     errNotImage: 'geen ondersteund afbeeldingstype',
     errGskNotLoggedIn:
-      'Niet aangemeld bij GenOffice: klik hieronder op “Aanmelden bij Genspark”, meld u aan en probeer het opnieuw',
+      'Niet aangemeld bij VuaOffice: klik hieronder op “Aanmelden bij VuaOffice”, meld u aan en probeer het opnieuw',
     errNoApiKey: 'Geen API-sleutel geconfigureerd voor {provider}',
     errAiRegion:
       'De aanbieder van dit model bedient uw huidige regio niet — kies een ander model of wissel van netwerk',
@@ -1379,8 +1503,9 @@ const tMain = createI18n({
     filterXlsm: 'Buku Kerja Excel Didayakan Makro',
     odsImportMsg: 'Tukar buku kerja .{ext} ini?',
     odsImportDetail:
-      'GenOffice menyunting .xlsx, bukan ODF. Nilai, formula dan tarikh ditukar (formula ditulis semula dalam sintaks Excel; yang tidak dapat ditulis semula dengan selamat mengekalkan hasil semasanya). Gaya, lebar lajur dan carta tidak dibawa. Fail asal tidak pernah diubah; salinan yang ditukar disimpan sebagai .xlsx pada simpanan pertama.',
+      'VuaOffice menyunting .xlsx, bukan ODF. Nilai, formula dan tarikh ditukar (formula ditulis semula dalam sintaks Excel; yang tidak dapat ditulis semula dengan selamat mengekalkan hasil semasanya). Gambar, sel bercantum, lebar lajur dan tinggi baris turut dibawa; gaya lain seperti sempadan, serta carta, tidak. Fail asal tidak pernah diubah; salinan yang ditukar disimpan sebagai .xlsx pada simpanan pertama.',
     odsImportConvertBtn: 'Tukar dan buka',
+    importSkipConfirm: 'Lain kali terus tukar tanpa bertanya',
     dlgAddAttachment: 'Tambah Lampiran',
     filterSupported: 'Fail yang Disokong',
     filterAll: 'Semua Fail',
@@ -1394,7 +1519,7 @@ const tMain = createI18n({
     errImageNoText: 'Lampiran imej tiada teks; imej dihantar bersama mesej pengguna',
     errNotImage: 'bukan jenis imej yang disokong',
     errGskNotLoggedIn:
-      'Belum log masuk ke GenOffice: klik “Log masuk ke Genspark” di bawah, kemudian cuba lại',
+      'Belum log masuk ke VuaOffice: klik “Log masuk ke VuaOffice” di bawah, kemudian cuba lại',
     errNoApiKey: 'Kunci API untuk {provider} belum dikonfigurasikan',
     errAiRegion:
       'Penyedia model ini tidak memberi perkhidmatan di rantau semasa anda — pilih model lain atau tukar rangkaian',
@@ -1449,8 +1574,9 @@ const tMain = createI18n({
     filterXlsm: 'חוברות עבודה של Excel מותאמות מאקרו',
     odsImportMsg: 'להמיר חוברת עבודה .{ext} זו?',
     odsImportDetail:
-      'GenOffice עורך קבצי .xlsx ולא ODF. ערכים, נוסחאות ותאריכים מומרים (נוסחאות נכתבות מחדש בתחביר Excel; כאלה שאי אפשר לכתוב מחדש בבטחה שומרות על התוצאה הנוכחית). עיצוב, רוחב עמודות ותרשימים לא עוברים. קובץ המקור לעולם אינו משתנה; העותק שהומר נשמר כקובץ .xlsx בשמירה הראשונה.',
+      'VuaOffice עורך קבצי .xlsx ולא ODF. ערכים, נוסחאות ותאריכים מומרים (נוסחאות נכתבות מחדש בתחביר Excel; כאלה שאי אפשר לכתוב מחדש בבטחה שומרות על התוצאה הנוכחית). תמונות, תאים ממוזגים, רוחב עמודות וגובה שורות עוברים גם הם; עיצוב אחר כגון גבולות, ותרשימים, לא עוברים. קובץ המקור לעולם אינו משתנה; העותק שהומר נשמר כקובץ .xlsx בשמירה הראשונה.',
     odsImportConvertBtn: 'המר ופתח',
+    importSkipConfirm: 'בפעם הבאה להמיר בלי לשאול',
     dlgAddAttachment: 'הוספת קבצים מצורפים',
     filterSupported: 'קבצים נתמכים',
     filterAll: 'כל הקבצים',
@@ -1463,7 +1589,7 @@ const tMain = createI18n({
     errParseFailed: 'ניתוח הקובץ נכשל',
     errImageNoText: 'קבצים מצורפים מסוג תמונה אינם מכילים טקסט; התמונה נשלחת יחד עם הודעת המשתמש',
     errNotImage: 'סוג תמונה שאינו נתמך',
-    errGskNotLoggedIn: 'לא מחובר ל-GenOffice: לחץ על "התחבר ל-Genspark" למטה, התחבר ונסה שוב',
+    errGskNotLoggedIn: 'לא מחובר ל-VuaOffice: לחץ על "התחבר ל-VuaOffice" למטה, התחבר ונסה שוב',
     errNoApiKey: 'לא הוגדר מפתח API עבור {provider}',
     errAiRegion: 'ספק המודל הזה אינו פועל באזור הנוכחי שלך — בחרו מודל אחר או החליפו רשת',
     errAiBusy: 'שירות ה-AI עמוס כרגע — נסו שוב בעוד רגע',
@@ -1514,8 +1640,9 @@ const tMain = createI18n({
     filterXlsm: 'Excel मैक्रो-सक्षम कार्यपुस्तिकाएँ',
     odsImportMsg: 'इस .{ext} वर्कबुक को बदलें?',
     odsImportDetail:
-      'GenOffice .xlsx संपादित करता है, ODF नहीं। मान, सूत्र और तारीखें बदल दी जाती हैं (सूत्र Excel सिंटैक्स में फिर से लिखे जाते हैं; जिन्हें सुरक्षित रूप से नहीं लिखा जा सका वे अपना वर्तमान मान रखते हैं)। स्टाइल, कॉलम चौड़ाई और चार्ट नहीं आते। मूल फ़ाइल कभी नहीं बदलती; बदली हुई प्रति पहली बार सहेजते समय .xlsx के रूप में सहेजी जाती है।',
+      'VuaOffice .xlsx संपादित करता है, ODF नहीं। मान, सूत्र और तारीखें बदल दी जाती हैं (सूत्र Excel सिंटैक्स में फिर से लिखे जाते हैं; जिन्हें सुरक्षित रूप से नहीं लिखा जा सका वे अपना वर्तमान मान रखते हैं)। चित्र, मर्ज की गई सेल, कॉलम चौड़ाई और पंक्ति ऊँचाई भी साथ आती हैं; बॉर्डर जैसी अन्य स्टाइलिंग और चार्ट नहीं आते। मूल फ़ाइल कभी नहीं बदलती; बदली हुई प्रति पहली बार सहेजते समय .xlsx के रूप में सहेजी जाती है।',
     odsImportConvertBtn: 'बदलकर खोलें',
+    importSkipConfirm: 'अगली बार बिना पूछे बदलें',
     dlgAddAttachment: 'अनुलग्नक जोड़ें',
     filterSupported: 'समर्थित फ़ाइलें',
     filterAll: 'सभी फ़ाइलें',
@@ -1529,7 +1656,7 @@ const tMain = createI18n({
     errImageNoText: 'छवि अनुलग्नक में टेक्स्ट नहीं होता; छवि उपयोगकर्ता संदेश के साथ भेजी जाती है',
     errNotImage: 'समर्थित छवि प्रकार नहीं है',
     errGskNotLoggedIn:
-      'GenOffice में साइन इन नहीं है: नीचे “Genspark में साइन इन करें” पर क्लिक करें, साइन इन करें और फिर से कोशिश करें',
+      'VuaOffice में साइन इन नहीं है: नीचे “VuaOffice में साइन इन करें” पर क्लिक करें, साइन इन करें और फिर से कोशिश करें',
     errNoApiKey: '{provider} के लिए कोई API कुंजी कॉन्फ़िगर नहीं है',
     errAiRegion:
       'इस मॉडल का प्रदाता आपके वर्तमान क्षेत्र में सेवा नहीं देता — कोई दूसरा मॉडल चुनें या नेटवर्क बदलें',
@@ -1584,8 +1711,9 @@ const tMain = createI18n({
     filterXlsm: 'Excel 啟用巨集的活頁簿',
     odsImportMsg: '轉換這個 .{ext} 工作簿？',
     odsImportDetail:
-      'GenOffice 只編輯 .xlsx，不編輯 ODF。數值、公式與日期會被轉換（公式改寫為 Excel 語法，無法安全改寫的僅保留其目前結果）；樣式、欄寬與圖表不會帶入。原始檔案不會被修改，轉換後的複本第一次儲存時會另存為 .xlsx。', // public-hygiene: allow
+      'VuaOffice 只編輯 .xlsx，不編輯 ODF。數值、公式與日期會被轉換（公式改寫為 Excel 語法，無法安全改寫的僅保留其目前結果）；圖片、合併儲存格與欄寬列高會一併帶入；框線等其他樣式與圖表不會保留。原始檔案不會被修改，轉換後的複本第一次儲存時會另存為 .xlsx。', // public-hygiene: allow
     odsImportConvertBtn: '轉換並開啟',
+    importSkipConfirm: '下次直接轉換，不再提示',
     dlgAddAttachment: '新增附件',
     filterSupported: '支援的檔案',
     filterAll: '所有檔案',
@@ -1598,7 +1726,7 @@ const tMain = createI18n({
     errParseFailed: '檔案解析失敗',
     errImageNoText: '圖片附件不提供文字,已作為影像隨使用者訊息傳送,直接看圖即可',
     errNotImage: '不是支援的圖片類型',
-    errGskNotLoggedIn: '未登入 Genspark:請點擊下方「登入 Genspark」完成登入後重試',
+    errGskNotLoggedIn: '未登入 VuaOffice:請點擊下方「登入 VuaOffice」完成登入後重試',
     errNoApiKey: '未設定 {provider} 的 API Key',
     errAiRegion: '該模型的廠商不向目前地區提供服務，請換一個模型或切換網路',
     errAiBusy: 'AI 服務目前繁忙，請稍後重試',
@@ -1651,6 +1779,9 @@ interface SessionInfo {
   /// overwrite of the file can never corrupt the save base — and Save As
   /// stays usable after one. Removed when the session closes.
   readonly snapshotPath: string
+  /// Present only for an Office-encrypted workbook; saves re-encrypt the
+  /// patched OOXML package with this password before replacing the source.
+  readonly password?: string
   /// Digest of the snapshot (== the file at open time).
   readonly sha256: string
   readonly sheetNames: ReadonlyMap<string, string>
@@ -1769,7 +1900,7 @@ async function createStandaloneSheetsDocument(
   request: SheetsAiHostDocumentRequest,
 ): Promise<WorkbookCreateDocumentResult> {
   if (request.type === 'docx') {
-    return { ok: false, error: 'Creating DOCX files requires the GenOffice shell or Docs app.' }
+    return { ok: false, error: 'Creating DOCX files requires the VuaOffice shell or Docs app.' }
   }
   const title = sanitizeGeneratedFileBase(request.title)
   try {
@@ -1811,6 +1942,13 @@ export function setSheetsHostWindowHook(
   hostWindowHook = fn
 }
 
+/// The shell registers how to bring a tab (by webContents id) to the front —
+/// the cross-workbook picker re-activates the editing tab after a pick.
+let activateTabHook: ((wcId: number) => void) | null = null
+export function setSheetsActivateTabHook(fn: ((wcId: number) => void) | null): void {
+  activateTabHook = fn
+}
+
 function hostWindowFor(wc: WebContents): BrowserWindow | undefined {
   const own = hostWindowHook?.(wc) ?? BrowserWindow.fromWebContents(wc)
   if (own && !own.isDestroyed()) return own
@@ -1824,6 +1962,10 @@ interface SheetsTabSession {
   readonly aiStreams: Map<string, AbortController>
   /// Chunked uploads of large saves' cell edits, pending their save request.
   readonly saveTransfers: SaveEditsTransferStore
+  /// The file this tab currently shows (merge sources excluded) — what the
+  /// cross-workbook picker matches external links against. null until the
+  /// first open lands; Save As keeps it current.
+  currentPath: string | null
 }
 
 /** per-tab session state, keyed by webContents.id — replaces the old single-window closures
@@ -1848,6 +1990,39 @@ function sessionFor(event: IpcMainInvokeEvent): SheetsTabSession {
   const entry = sheetsTabs.get(event.sender.id)
   if (!entry) throw new Error('Untrusted IPC sender.')
   return entry
+}
+
+/**
+ * Parts the connection walk reads: the connections part, the workbook and its
+ * relationships, sheet relationship parts, tables and query tables. Worksheet
+ * cell data is never read, so the prefetch stays small even for a big sheet.
+ */
+function isConnectionWalkPart(name: string): boolean {
+  return (
+    name === 'xl/connections.xml' ||
+    name === 'xl/workbook.xml' ||
+    name === 'xl/_rels/workbook.xml.rels' ||
+    name.startsWith('xl/tables/') ||
+    name.startsWith('xl/queryTables/') ||
+    /^xl\/worksheets\/_rels\/[^/]+\.rels$/.test(name)
+  )
+}
+
+/**
+ * A part reader over a session snapshot for the connection walk. The walk asks
+ * for parts by path, so every part it can ask for is fetched in one sidecar
+ * round trip; a part the manifest does not list reads as undefined.
+ */
+async function connectionPartReader(
+  client: ArchiveClient,
+  snapshotPath: string,
+): Promise<PartReader> {
+  const manifest = z
+    .object({ entries: z.array(z.object({ name: z.string() })) })
+    .parse(await client.archiveManifest(snapshotPath))
+  const wanted = manifest.entries.map((entry) => entry.name).filter(isConnectionWalkPart)
+  const texts = await readArchiveEntriesText(client, snapshotPath, wanted)
+  return async (path) => texts.get(path)
 }
 
 /**
@@ -1886,10 +2061,7 @@ async function openFileDialog(event: IpcMainInvokeEvent, options: OpenDialogOpti
 async function saveFileDialog(event: IpcMainInvokeEvent, options: SaveDialogOptions) {
   // before any pick is remembered, bare-name suggestions anchor in the
   // configurable default save folder instead of Electron's Downloads pin
-  return showSaveDialogWithMemory(
-    dialog,
-    dialogParent(event),
-    options,
+  return showSaveDialogWithMemory(dialog, dialogParent(event), options, () =>
     configuredDefaultSaveDir(app),
   )
 }
@@ -1931,6 +2103,7 @@ function registerSheetsSession(webContents: WebContents, client: XlsxSidecarClie
     sessions: new Map(),
     aiStreams: new Map(),
     saveTransfers: new SaveEditsTransferStore(),
+    currentPath: null,
   })
   activeSheetsWebContents = webContents
   webContents.once('destroyed', () => {
@@ -2096,6 +2269,7 @@ export function nudgeQueuedWorkbook(contents: WebContents): void {
 function userDataPath(...parts: string[]): string {
   return join(app.getPath('userData'), ...parts)
 }
+const APP_SETTINGS_PATH = () => join(app.getPath('userData'), 'app-settings.json')
 
 // ── Crash recovery ──────────────────────────────────────────
 // A dirty renderer asks for a recovery copy every 30s; it is written through the
@@ -2361,6 +2535,7 @@ const sidecarOpenResultSchema = workbookFileSchema.omit({
 export async function createSheetsWindow(
   options: { includeAiHandlers?: boolean } = {},
 ): Promise<BrowserWindow> {
+  await getSessionSnapshotDirectory()
   const client = sidecar ?? new XlsxSidecarClient(resolveSidecarPath())
   sidecar = client
   client.start()
@@ -2370,7 +2545,7 @@ export async function createSheetsWindow(
     minWidth: 720,
     minHeight: 550,
     show: false,
-    title: 'GenOffice Sheets',
+    title: 'VuaOffice Sheets',
     // Traffic lights sit inside the toolbar row.
     ...(process.platform === 'darwin' ? { titleBarStyle: 'hiddenInset' as const } : {}),
     webPreferences: {
@@ -2855,7 +3030,11 @@ export function registerSheetsIpc(): void {
   /// (prepareWorkbookForOpen + openWorkbookSession + the opened hook) as a
   /// user-picked or shell-queued open, so a recovered workbook is a normal
   /// session rather than a merge source.
-  const openSelectedWorkbook = async (event: IpcMainInvokeEvent, explicitPath?: string) => {
+  const openSelectedWorkbook = async (
+    event: IpcMainInvokeEvent,
+    explicitPath?: string,
+    password?: string,
+  ) => {
     const entry = sessionFor(event)
     let path = explicitPath ?? queuedWorkbookPaths.get(event.sender.id) ?? forcedWorkbookPath
     // consume immediately (before the slow session open) so the shell's
@@ -2868,6 +3047,16 @@ export function registerSheetsIpc(): void {
       })
       if (selection.canceled || !selection.filePaths[0]) return null
       path = selection.filePaths[0]
+    }
+    // Password first, recovery prompt second: the prompt's Restore/Discard
+    // choice is consumed by prepareWorkbookForOpen, so asking for the
+    // password (or rejecting a wrong one) must happen before it runs.
+    if (await isCfbWorkbookFile(path)) {
+      const bytes = await readFile(path)
+      if (isEncryptedOoxml(bytes)) {
+        if (password === undefined) return { passwordRequired: true as const, path }
+        await decryptOoxml(bytes, password)
+      }
     }
     const prepared = await prepareWorkbookForOpen(
       entry.client,
@@ -2885,16 +3074,28 @@ export function registerSheetsIpc(): void {
       await discardPreparedOpen(prepared)
       return null
     }
-    const result = await openWorkbookSession(entry.client, prepared.openPath, entry.sessions, {
-      suggestSaveAs: prepared.suggestSaveAs,
-      csvImport: prepared.csvImport,
-      csvSourcePath: prepared.csvSourcePath,
-      emptyCsv: prepared.emptyCsv,
-      importTempDir: prepared.importTempDir,
-      restoreTarget: prepared.restoreTarget,
-      emptySource: prepared.emptySource,
-      unsavedNew: prepared.unsavedNew,
-    })
+    let result: WorkbookFile
+    try {
+      result = await openWorkbookSession(entry.client, prepared.openPath, entry.sessions, {
+        suggestSaveAs: prepared.suggestSaveAs,
+        csvImport: prepared.csvImport,
+        csvSourcePath: prepared.csvSourcePath,
+        emptyCsv: prepared.emptyCsv,
+        importTempDir: prepared.importTempDir,
+        restoreTarget: prepared.restoreTarget,
+        emptySource: prepared.emptySource,
+        unsavedNew: prepared.unsavedNew,
+        password,
+      })
+    } catch (error) {
+      await discardPreparedOpen(prepared)
+      const message = error instanceof Error ? error.message : String(error)
+      if (message.includes('PASSWORD_REQUIRED') && password === undefined) {
+        return { passwordRequired: true as const, path }
+      }
+      throw error
+    }
+    entry.currentPath = path
     // The sidecar open itself can also outlive the tab after the pre-open
     // check. Close the newly registered session instead of stranding it in
     // the detached entry map.
@@ -2919,7 +3120,11 @@ export function registerSheetsIpc(): void {
 
   ipcMain.handle(IPC_CHANNELS.selectWorkbook, async (event) => {
     try {
-      return await openSelectedWorkbook(event)
+      const result = await openSelectedWorkbook(event)
+      if (result !== null && 'passwordRequired' in result) {
+        failHeadlessExport(event.sender.id, 'the input workbook is password-protected')
+      }
+      return result
     } catch (err) {
       // A headless export has no dialog to report a failed open through, and
       // its renderer would poll to the deadline waiting for a workbook that
@@ -2927,6 +3132,42 @@ export function registerSheetsIpc(): void {
       failHeadlessExport(event.sender.id, `the input workbook did not open (${String(err)})`)
       throw err
     }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.openEncryptedWorkbook, async (event, input: unknown) => {
+    const { path, password } = z
+      .object({ path: z.string().min(1), password: z.string().min(1) })
+      .parse(input)
+    if (!existsSync(path)) throw new Error('Workbook file not found.')
+    return openSelectedWorkbook(event, path, password)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.updateWorkbookPassword, async (event, input: unknown) => {
+    const { sessionId, newPassword } = z
+      .object({
+        sessionId: z.string().uuid(),
+        newPassword: z.string().min(1).max(1024),
+      })
+      .strict()
+      .parse(input)
+    const entry = sessionFor(event)
+    const session = entry.sessions.get(sessionId)
+    if (!session) throw new Error('Unknown workbook session.')
+    if (session.password === undefined) {
+      throw new Error('This workbook is not protected by an open password.')
+    }
+
+    const currentSha = await sha256File(session.path).catch(() => undefined)
+    if (currentSha !== undefined && currentSha !== session.sha256) {
+      throw new Error(tm('errDiskChanged'))
+    }
+
+    const encryptedBytes = encryptOoxml(await readFile(session.snapshotPath), newPassword)
+    await atomicWriteFile(session.path, encryptedBytes)
+    const sha256 = createHash('sha256').update(encryptedBytes).digest('hex')
+    entry.sessions.set(sessionId, { ...session, password: newPassword, sha256 })
+    clearWorkbookRecovery(session.path)
+    return { sha256, fileBytes: encryptedBytes.byteLength, passwordProtected: true as const }
   })
 
   ipcMain.handle(IPC_CHANNELS.reopenWorkbook, async (event, path: unknown) => {
@@ -2937,7 +3178,10 @@ export function registerSheetsIpc(): void {
     if (!existsSync(validated)) throw new Error('Workbook file not found.')
     const ext = validated.slice(validated.lastIndexOf('.') + 1).toLowerCase()
     if (!WORKBOOK_EXTS.has(ext)) throw new Error(`Unsupported workbook: ${ext}`)
-    return openSelectedWorkbook(event, validated)
+    const priorSession = [...sessionFor(event).sessions.values()].find(
+      (session) => session.path === validated || session.restoreTarget === validated,
+    )
+    return openSelectedWorkbook(event, validated, priorSession?.password)
   })
 
   // Merge sources: same open pipeline as selectWorkbook, but multi-select,
@@ -3079,6 +3323,127 @@ export function registerSheetsIpc(): void {
       cached: z.boolean().optional(),
     })
     .strict()
+  // The external-links handlers are session-bound like the other workbook
+  // handlers: the renderer names a session, never a filesystem path, and main
+  // resolves the path the session was opened from.
+  ipcMain.handle(IPC_CHANNELS.listExternalLinks, async (event, input: unknown) => {
+    const entry = sessionFor(event)
+    const request = externalLinksRequestSchema.parse(input)
+    const session = entry.sessions.get(request.sessionId)
+    if (!session) throw new Error('Unknown workbook session.')
+    const result = await entry.client.listExternalLinks({ path: session.path })
+    return externalLinksResultSchema.parse(result)
+  })
+  ipcMain.handle(IPC_CHANNELS.updateExternalLinks, async (event, input: unknown) => {
+    const entry = sessionFor(event)
+    const request = externalLinksRequestSchema.parse(input)
+    const session = entry.sessions.get(request.sessionId)
+    if (!session) throw new Error('Unknown workbook session.')
+    // The saved file is what the update must read: the panel saves before it
+    // asks, so the on-disk bytes match the grid the values are applied to.
+    const result = await entry.client.updateExternalLinks({ path: session.path })
+    return externalLinksUpdateResultSchema.parse(result)
+  })
+  // The formula cells referencing each [n] link, with the value a Break would
+  // freeze them at: the file-level usage scan, not the model's view.
+  ipcMain.handle(IPC_CHANNELS.readExternalLinkUsage, async (event, input: unknown) => {
+    const entry = sessionFor(event)
+    const request = externalLinksRequestSchema.parse(input)
+    const session = entry.sessions.get(request.sessionId)
+    if (!session) throw new Error('Unknown workbook session.')
+    return entry.client.readExternalLinkUsage({ path: session.path })
+  })
+  // Change Source's file picker: the host picks the new source file itself, the
+  // renderer only names the link it belongs to.
+  ipcMain.handle(IPC_CHANNELS.selectExternalLinkSource, async (event) => {
+    const selection = await openFileDialog(event, {
+      properties: ['openFile'],
+      filters: [{ name: tm('filterSpreadsheets'), extensions: WORKBOOK_FILTER_EXTENSIONS }],
+    })
+    if (selection.canceled || selection.filePaths.length === 0) return null
+    return selection.filePaths[0] ?? null
+  })
+  // ── cross-workbook range picking (genoffice#2109) ──────────────────────
+  // One pick armed at a time: the tab editing a formula arms it, the user
+  // clicks a range in another workbook's tab, that tab reports the
+  // selection, and main relays it back and re-activates the editor.
+  let pendingWorkbookPick: { pickId: string; sourceWcId: number; targetWcId: number } | null = null
+  const broadcastPickCancelled = (pickId: string, exceptWcId: number): void => {
+    for (const entry of sheetsTabs.values()) {
+      if (entry.webContents.id === exceptWcId || entry.webContents.isDestroyed()) continue
+      entry.webContents.send(IPC_CHANNELS.workbookPickCancelled, { pickId })
+    }
+  }
+  ipcMain.handle(IPC_CHANNELS.listWorkbookTabs, (event) => ({
+    tabs: [...sheetsTabs.values()]
+      .filter(
+        (entry) =>
+          entry.webContents.id !== event.sender.id &&
+          !entry.webContents.isDestroyed() &&
+          entry.currentPath !== null,
+      )
+      .map((entry) => ({
+        wcId: entry.webContents.id,
+        name: basename(entry.currentPath!),
+        path: entry.currentPath!,
+      })),
+  }))
+  ipcMain.handle(IPC_CHANNELS.armWorkbookPick, (event, input: unknown) => {
+    const { wcId } = z.object({ wcId: z.number().int() }).strict().parse(input)
+    const pickId = 'pick-' + randomUUID()
+    if (pendingWorkbookPick) broadcastPickCancelled(pendingWorkbookPick.pickId, event.sender.id)
+    pendingWorkbookPick = { pickId, sourceWcId: event.sender.id, targetWcId: wcId }
+    // only the tab holding the selected link's source workbook is armed
+    const target = sheetsTabs.get(wcId)
+    if (target && wcId !== event.sender.id && !target.webContents.isDestroyed()) {
+      target.webContents.send(IPC_CHANNELS.workbookPickArmed, { pickId })
+    }
+    return { pickId }
+  })
+  ipcMain.handle(IPC_CHANNELS.sendWorkbookPickSelection, (event, input: unknown) => {
+    const selection = workbookPickSelectionSchema.parse(input)
+    const pending = pendingWorkbookPick
+    // only the tab the pick was armed against answers
+    if (!pending || pending.pickId !== selection.pickId || event.sender.id !== pending.targetWcId)
+      return
+    pendingWorkbookPick = null
+    const source = sheetsTabs.get(pending.sourceWcId)
+    if (source && !source.webContents.isDestroyed()) {
+      source.webContents.send(IPC_CHANNELS.workbookPickSelected, selection)
+    }
+    broadcastPickCancelled(pending.pickId, pending.sourceWcId)
+    activateTabHook?.(pending.sourceWcId)
+  })
+  ipcMain.handle(IPC_CHANNELS.cancelWorkbookPick, (event, input: unknown) => {
+    const { pickId } = z
+      .object({ pickId: z.string().min(1) })
+      .strict()
+      .parse(input)
+    if (!pendingWorkbookPick || pendingWorkbookPick.pickId !== pickId) return
+    pendingWorkbookPick = null
+    broadcastPickCancelled(pickId, event.sender.id)
+  })
+  // The preload sends this one (fire-and-forget): handle() would make the
+  // renderer's send() a no-op. The renderer names a link index of its session,
+  // never a path, so Locate resolves the source from the session's own listing.
+  ipcMain.on(IPC_CHANNELS.revealLinkSource, (event, input: unknown) => {
+    void (async () => {
+      const request = externalLinkRevealRequestSchema.safeParse(input)
+      const entry = sheetsTabs.get(event.sender.id)
+      if (!request.success || !entry) return
+      const session = entry.sessions.get(request.data.sessionId)
+      if (!session) return
+      try {
+        const listing = await entry.client.listExternalLinks({ path: session.path })
+        const source = listing.links.find((link) => link.index === request.data.index)?.source
+        // Reveal only real files: a missing source is a silent no-op.
+        if (source === null || source === undefined || !existsSync(source)) return
+        shell.showItemInFolder(source)
+      } catch {
+        // Locate is best-effort: a sidecar failure changes nothing on disk
+      }
+    })()
+  })
   ipcMain.handle(IPC_CHANNELS.recalcWorkbook, async (event, input: unknown) => {
     const entry = sessionFor(event)
     const request = workbookRecalcRequestSchema.parse(input)
@@ -3257,6 +3622,47 @@ export function registerSheetsIpc(): void {
     return workbookPivotDefinitionSchema.parse(parsePivotDefinition(pivotXml, cacheXml))
   })
 
+  // The workbook's refreshable web queries: the walk follows both shapes Excel
+  // writes (a table part's relationship, or a legacy ExternalData_N name) and
+  // returns the sheet and range each query fills. Read from the session
+  // snapshot so the list matches what the renderer shows.
+  ipcMain.handle(IPC_CHANNELS.listWorkbookConnections, async (event, input: unknown) => {
+    const entry = sessionFor(event)
+    const request = workbookConnectionsRequestSchema.parse(input)
+    const session = entry.sessions.get(request.sessionId)
+    if (!session) throw new Error('Unknown workbook session.')
+    const read = await connectionPartReader(entry.client, session.snapshotPath)
+    return workbookConnectionsResultSchema.parse({ connections: await refreshableQueriesOf(read) })
+  })
+
+  // Refreshing a query: the renderer names only the connection id, and the URL
+  // is resolved from the workbook part here — this IPC is not a fetch proxy.
+  // The fetch still goes through the SSRF gate, because a workbook could name
+  // loopback, a cloud metadata endpoint or a UNC share.
+  ipcMain.handle(IPC_CHANNELS.refreshWorkbookConnection, async (event, input: unknown) => {
+    const entry = sessionFor(event)
+    const request = workbookRefreshRequestSchema.parse(input)
+    const session = entry.sessions.get(request.sessionId)
+    if (!session) throw new Error('Unknown workbook session.')
+    // Only this part is needed, and a workbook without connections has no
+    // listed query to refresh: a missing part means "no such connection".
+    const connectionsXml = await readArchiveEntryText(
+      entry.client,
+      session.snapshotPath,
+      'xl/connections.xml',
+    ).catch(() => undefined)
+    const read: PartReader = async (path) =>
+      path === 'xl/connections.xml' ? connectionsXml : undefined
+    const source = await connectionSourceOf(read, request.connectionId)
+    if (!source) throw new Error('This workbook has no refreshable web query with that id.')
+    const table = await fetchRemoteTable(source)
+    if (!table) throw new Error('Could not read a table from that address.')
+    return workbookRefreshResultSchema.parse({
+      headers: [...table.headers],
+      rows: table.rows.map((row) => [...row]),
+    })
+  })
+
   ipcMain.handle(IPC_CHANNELS.readWorkbookRedactions, async (event, input: unknown) => {
     const entry = sessionFor(event)
     const request = workbookRedactionsRequestSchema.parse(input)
@@ -3266,6 +3672,25 @@ export function registerSheetsIpc(): void {
     // "nothing is withheld" would hand the model the values it holds.
     return workbookRedactionsResultSchema.parse(
       await readWorkbookRedactionPart(entry.client, session.snapshotPath),
+    )
+  })
+
+  ipcMain.handle(IPC_CHANNELS.readWorkbookQueries, async (event, input: unknown) => {
+    const entry = sessionFor(event)
+    const request = workbookQueriesRequestSchema.parse(input)
+    const session = entry.sessions.get(request.sessionId)
+    if (!session) throw new Error('Unknown workbook session.')
+    // existence from the manifest, so a missing part reads as absent rather than as a sidecar error
+    const manifest = z
+      .object({ entries: z.array(z.object({ name: z.string() })) })
+      .parse(await entry.client.archiveManifest(session.snapshotPath))
+    const names = new Set(manifest.entries.map((e) => e.name))
+    return workbookQueriesResultSchema.parse(
+      await listWorkbookQueries((path) =>
+        names.has(path)
+          ? readArchiveEntryText(entry.client, session.snapshotPath, path)
+          : Promise.resolve(undefined),
+      ),
     )
   })
 
@@ -3450,12 +3875,18 @@ export function registerSheetsIpc(): void {
         session.suggestSaveAs ?? session.restoreTarget ?? session.path,
       )
       const ext = macroEnabled ? 'xlsm' : 'xlsx'
+      // A name the model proposed for the reader's own request prefills the
+      // dialog rather than replacing it: the reader still chooses where the
+      // file goes, and cancelling still cancels. Without one, the dialog opens
+      // on the name the save would have offered anyway.
+      const fallbackPath =
+        session.suggestSaveAs ??
+        session.csvSourcePath?.replace(/\.[^.]+$/, '.xlsx') ??
+        session.restoreTarget ??
+        session.path
+      const proposed = request.defaultName ? sanitizeAutoRenameBase(request.defaultName) : null
       const selection = await saveFileDialog(event, {
-        defaultPath:
-          session.suggestSaveAs ??
-          session.csvSourcePath?.replace(/\.[^.]+$/, '.xlsx') ??
-          session.restoreTarget ??
-          session.path,
+        defaultPath: proposed ? join(dirname(fallbackPath), `${proposed}.${ext}`) : fallbackPath,
         filters: macroEnabled
           ? [{ name: tm('filterXlsm'), extensions: ['xlsm'] }]
           : [
@@ -3537,11 +3968,8 @@ export function registerSheetsIpc(): void {
       importTempDir: csvInPlace || quietUnsavedNew ? undefined : session.importTempDir,
       closeSidecar: () => client.close(request.sessionId),
     })
-    const file = await openWorkbookSession(
-      client,
-      targetPath,
-      entry.sessions,
-      csvInPlace
+    const file = await openWorkbookSession(client, targetPath, entry.sessions, {
+      ...(csvInPlace
         ? {
             csvImport: true,
             csvSourcePath: session.csvSourcePath,
@@ -3553,8 +3981,12 @@ export function registerSheetsIpc(): void {
               importTempDir: session.importTempDir,
               unsavedNew: true,
             }
-          : undefined,
-    )
+          : {}),
+      ...(session.password === undefined ? {} : { password: session.password }),
+    })
+    // the swap retargets the tab: a Save As renames the file the picker
+    // matches links against
+    entry.currentPath = (csvInPlace ? session.csvSourcePath : undefined) ?? targetPath
     if (quietUnsavedNew && session.suggestSaveAs !== undefined) {
       // the temp path must not reach the title or recents; the recovery copy
       // is what a crash restores from, so it tracks the saved bytes
@@ -3829,7 +4261,7 @@ export function registerSheetsAiIpc(): void {
 
   // Node fetch (undici) direct connections get reset under VPN/tun setups; retry over Chromium's stack
   setRescueFetch((url, init) => net.fetch(url, init))
-  setAiUserAgent(`GenOffice/${app.getVersion()}`)
+  setAiUserAgent(`VuaOffice/${app.getVersion()}`)
 
   ipcMain.handle(IPC_CHANNELS.aiGetSettings, (event): AiSettings => {
     sessionFor(event)
@@ -4455,86 +4887,155 @@ async function writeWorkbookTo(
   // The redaction part is keyed by sheet NAME, so there is nothing to resolve
   // here: the marks arrive under the names the session loaded, which is what
   // the gateway's re-keying against this save's renames and removals expects.
-  const redactionStates = request.redactionStates.map((state) => ({
-    sheetName: state.sheetName,
-    marks: state.marks.map((mark) => ({
-      startRow: mark.startRow,
-      endRow: mark.endRow,
-      startColumn: mark.startColumn,
-      endColumn: mark.endColumn,
-      label: mark.label,
-      // Carried through, not rebuilt from the known fields: this mapping is
-      // the third place a mark passes through (the zod schema, the preload's
-      // hand-rolled check, and here), and only the zod one refuses an unknown
-      // key. The other two drop it silently, which is how a field added to the
-      // mark can vanish between the renderer and the file with nothing failing.
-      // Omitted when absent so an older part's bytes stay identical.
-      ...('previousFill' in mark ? { previousFill: mark.previousFill ?? null } : {}),
-    })),
-  }))
-  const mutation = await saveWorkbookViaSidecar({
-    client,
-    // The snapshot, not the live path: the save base must be the bytes this
-    // session's pending edits were made against, regardless of what other
-    // programs did to the file since.
-    sourcePath: session.snapshotPath,
-    targetPath,
-    edits,
-    bulkConstantFills,
-    structuralOps,
-    chartEdits: request.chartEdits,
-    // Located by package-absolute drawingPath, so no sheet-name mapping.
-    visualEdits: request.visualEdits,
-    sheetPlan,
-    filterStates,
-    hyperlinkEdits,
-    cfStates,
-    dvStates,
-    sheetProtections,
-    tabColorStates,
-    definedNamesState: request.definedNamesState,
-    themeState: request.themeState,
-    workbookProtectionState: request.workbookProtectionState,
-    protectedRangeStates,
-    visualAdditions,
-    cellImageAdditions,
-    pageSetupStates,
-    noteStates,
-    tableAdditions,
-    tableEdits,
-    pivotAdditions,
-    sparklineAdditions,
-    formulaValues,
-    pivotCacheRefreshPaths: request.pivotCacheRefreshPaths,
-    // Output-area expansion from layout growth: sheetId → sheet name; the part
-    // path is resolved by the gateway.
-    pivotRefreshUpdates: request.pivotRefreshUpdates.map((update) => ({
-      cachePath: update.cachePath,
-      sheetName: resolveSheetName(update.sheetId),
-      newOutputRef: update.newOutputRef,
-      ...(update.relayout === undefined
-        ? {}
-        : {
-            relayout: (({ sheetId: _sheetId, sourceSheetId, ...rest }) => ({
-              ...rest,
-              sourceSheetName: resolveSheetName(sourceSheetId),
-            }))(update.relayout),
-          }),
-    })),
-    // The marks ride in a package part of their own; the gateway re-keys them
-    // for the renames and removals `sheetPlan` carries.
-    redactionStates,
-  })
+  const redactionStates =
+    (request.redactionStates ?? null)?.map((state) => ({
+      sheetName: state.sheetName,
+      marks: state.marks.map((mark) => ({
+        startRow: mark.startRow,
+        endRow: mark.endRow,
+        startColumn: mark.startColumn,
+        endColumn: mark.endColumn,
+        label: mark.label,
+        // Carried through, not rebuilt from the known fields: this mapping is
+        // the third place a mark passes through (the zod schema, the preload's
+        // hand-rolled check, and here), and only the zod one refuses an unknown
+        // key. The other two drop it silently, which is how a field added to the
+        // mark can vanish between the renderer and the file with nothing failing.
+        // Omitted when absent so an older part's bytes stay identical.
+        ...('previousFill' in mark ? { previousFill: mark.previousFill ?? null } : {}),
+      })),
+    })) ?? null
+  const encryptedSaveTempDir = session.password
+    ? await mkdtemp(join(app.getPath('temp'), 'genoffice-encrypted-save-'))
+    : undefined
+  const plainTargetPath = encryptedSaveTempDir
+    ? join(encryptedSaveTempDir, 'workbook.xlsx')
+    : targetPath
+  let mutation: Awaited<ReturnType<typeof saveWorkbookViaSidecar>>
+  try {
+    mutation = await saveWorkbookViaSidecar({
+      client,
+      // The snapshot, not the live path: the save base must be the bytes this
+      // session's pending edits were made against, regardless of what other
+      // programs did to the file since.
+      sourcePath: session.snapshotPath,
+      targetPath: plainTargetPath,
+      edits,
+      bulkConstantFills,
+      structuralOps,
+      chartEdits: request.chartEdits,
+      // Located by package-absolute drawingPath, so no sheet-name mapping.
+      visualEdits: request.visualEdits,
+      sheetPlan,
+      filterStates,
+      hyperlinkEdits,
+      cfStates,
+      dvStates,
+      sheetProtections,
+      tabColorStates,
+      definedNamesState: request.definedNamesState,
+      themeState: request.themeState,
+      workbookProtectionState: request.workbookProtectionState,
+      protectedRangeStates,
+      visualAdditions,
+      cellImageAdditions,
+      pageSetupStates,
+      noteStates,
+      tableAdditions,
+      tableEdits,
+      pivotAdditions,
+      sparklineAdditions,
+      formulaValues,
+      pivotCacheRefreshPaths: request.pivotCacheRefreshPaths,
+      // Output-area expansion from layout growth: sheetId → sheet name; the part
+      // path is resolved by the gateway.
+      pivotRefreshUpdates: request.pivotRefreshUpdates.map((update) => ({
+        cachePath: update.cachePath,
+        sheetName: resolveSheetName(update.sheetId),
+        newOutputRef: update.newOutputRef,
+        ...(update.relayout === undefined
+          ? {}
+          : {
+              relayout: (({ sheetId: _sheetId, sourceSheetId, ...rest }) => ({
+                ...rest,
+                sourceSheetName: resolveSheetName(sourceSheetId),
+              }))(update.relayout),
+            }),
+      })),
+      redactionStates,
+      externalLinkOps: request.externalLinkOps,
+    })
+    if (session.password) {
+      const encryptedBytes = encryptOoxml(await readFile(plainTargetPath), session.password)
+      await atomicWriteFile(targetPath, encryptedBytes)
+    }
+  } finally {
+    if (encryptedSaveTempDir) {
+      await rm(encryptedSaveTempDir, { recursive: true, force: true }).catch(() => undefined)
+    }
+  }
   return mutation
 }
 
-/** Copies the workbook into the temp snapshot dir; the copy is the session's
+let sessionSnapshotDirectoryPromise: Promise<string> | undefined
+
+/** Create a private per-process snapshot directory and sweep abandoned sessions. */
+async function createSessionSnapshotDirectory(): Promise<string> {
+  const root = join(app.getPath('temp'), 'genoffice-sheets-sessions')
+  await mkdir(root, { recursive: true, mode: 0o700 })
+  const directory = join(root, `${process.pid}-${randomUUID()}`)
+  await mkdir(directory, { mode: 0o700 })
+
+  const previousDirectories = await readdir(root, { withFileTypes: true })
+  await Promise.all(
+    previousDirectories.map(async (entry) => {
+      if (!entry.isDirectory() || entry.name === directory.slice(root.length + 1)) return
+      const match = /^(\d+)-/.exec(entry.name)
+      if (!match) return
+      const pid = Number(match[1])
+      if (pid !== process.pid) {
+        try {
+          process.kill(pid, 0)
+          return
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== 'ESRCH') return
+        }
+      }
+      await rm(join(root, entry.name), { recursive: true, force: true }).catch(() => undefined)
+    }),
+  )
+  return directory
+}
+
+async function getSessionSnapshotDirectory(): Promise<string> {
+  if (!sessionSnapshotDirectoryPromise) {
+    sessionSnapshotDirectoryPromise = createSessionSnapshotDirectory().catch((error: unknown) => {
+      sessionSnapshotDirectoryPromise = undefined
+      throw error
+    })
+  }
+  return sessionSnapshotDirectoryPromise
+}
+
+/** Header sniff only: an encrypted workbook is a CFB container, a plain one a zip. */
+async function isCfbWorkbookFile(path: string): Promise<boolean> {
+  const handle = await open(path, 'r')
+  try {
+    const header = Buffer.alloc(8)
+    const { bytesRead } = await handle.read(header, 0, header.length, 0)
+    return isCfbFile(header.subarray(0, bytesRead))
+  } finally {
+    await handle.close()
+  }
+}
+
+/** Snapshot bytes in a private temporary directory; this is the session's
  * save base (see SessionInfo.snapshotPath). */
-async function snapshotWorkbook(path: string): Promise<string> {
-  const dir = join(app.getPath('temp'), 'genoffice-sheets-sessions')
-  await mkdir(dir, { recursive: true })
+async function snapshotWorkbook(path: string, bytes?: Buffer): Promise<string> {
+  const dir = await getSessionSnapshotDirectory()
   const snapshotPath = join(dir, `${randomUUID()}.xlsx`)
-  await copyFile(path, snapshotPath)
+  if (bytes) await writeFile(snapshotPath, bytes, { mode: 0o600 })
+  else await copyFile(path, snapshotPath)
   return snapshotPath
 }
 
@@ -4573,6 +5074,7 @@ async function openWorkbookSession(
     restoreTarget?: string | undefined
     emptySource?: boolean | undefined
     unsavedNew?: boolean | undefined
+    password?: string | undefined
   },
 ): Promise<WorkbookFile> {
   const {
@@ -4584,19 +5086,30 @@ async function openWorkbookSession(
     restoreTarget,
     emptySource,
     unsavedNew,
+    password,
   } = options ?? {}
+  // Only a CFB container (the encrypted wrapper) is read into memory; a plain
+  // zip package keeps the streamed copy + file digest so large workbooks do
+  // not double their footprint at open.
+  const sourceBytes = (await isCfbWorkbookFile(path)) ? await readFile(path) : undefined
+  const encryptedBytes = sourceBytes && isEncryptedOoxml(sourceBytes) ? sourceBytes : undefined
+  const encrypted = encryptedBytes !== undefined
+  if (encryptedBytes && password === undefined) {
+    throw new Error('This workbook is password-protected. PASSWORD_REQUIRED')
+  }
+  const snapshotBytes = encryptedBytes ? await decryptOoxml(encryptedBytes, password!) : undefined
   // Snapshot first, then the sidecar opens the snapshot (not the live path):
   // everything the session serves — cell reads, media, recalc, saves — comes
   // from the same bytes, even if the file on disk changes right after the
   // copy. The digest also describes exactly those bytes.
-  const snapshotPath = await snapshotWorkbook(path)
+  const snapshotPath = await snapshotWorkbook(path, snapshotBytes)
   try {
-    const [opened, digest, snapshotStat, restoreTargetSha, csvSourceSha] = await Promise.all([
-      client
-        .open(snapshotPath, getUiLang(), systemShortDate())
-        .then((result) => sidecarOpenResultSchema.parse(result)),
-      sha256File(snapshotPath),
-      stat(snapshotPath),
+    const [rawOpened, digest, fileBytes, restoreTargetSha, csvSourceSha] = await Promise.all([
+      client.open(snapshotPath, getUiLang(), systemShortDate()),
+      sourceBytes
+        ? createHash('sha256').update(sourceBytes).digest('hex')
+        : sha256File(snapshotPath),
+      sourceBytes ? sourceBytes.byteLength : stat(snapshotPath).then((s) => s.size),
       // Missing original (deleted since the crash) is fine: the write-back recreates it.
       restoreTarget === undefined
         ? Promise.resolve(undefined)
@@ -4605,12 +5118,14 @@ async function openWorkbookSession(
         ? Promise.resolve(undefined)
         : sha256File(csvSourcePath).catch(() => undefined),
     ])
+    const opened = sidecarOpenResultSchema.parse(rawOpened)
     sessions.set(opened.sessionId, {
       path,
       snapshotPath,
       sha256: digest,
       sheetNames: new Map(opened.sheets.map((sheet) => [sheet.id, sheet.name])),
       automaticRecoveryDisabled: !allowsAutomaticWorkbookRecovery(opened.sheets),
+      ...(encrypted ? { password: password! } : {}),
       ...(suggestSaveAs === undefined ? {} : { suggestSaveAs }),
       ...(csvImport ? { csvImport } : {}),
       ...(csvSourcePath === undefined ? {} : { csvSourcePath }),
@@ -4628,9 +5143,10 @@ async function openWorkbookSession(
       // recovery copy that is the original file, not the copy under userData.
       path: restoreTarget ?? path,
       sha256: digest,
-      fileBytes: snapshotStat.size,
+      fileBytes,
       readOnly: false,
       needsSaveAs: suggestSaveAs !== undefined,
+      passwordProtected: encrypted,
       ...(unsavedNew ? { unsavedNew: true } : {}),
       ...(csvSourcePath === undefined ? {} : { csvPath: csvSourcePath }),
       ...(emptyCsv ? { emptyCsv: true } : {}),
@@ -4690,6 +5206,7 @@ async function promptOdsImport(
   parent: BrowserWindow | undefined,
   extension: string,
 ): Promise<boolean> {
+  if (readLegacyImportSkip(APP_SETTINGS_PATH(), 'ods')) return true
   const options = {
     type: 'warning' as const,
     message: tm('odsImportMsg', { ext: extension }),
@@ -4698,11 +5215,20 @@ async function promptOdsImport(
     defaultId: 0,
     cancelId: 1,
     noLink: true,
+    checkboxLabel: tm('importSkipConfirm'),
   }
-  const { response } = parent
+  const { response, checkboxChecked } = parent
     ? await dialog.showMessageBox(parent, options)
     : await dialog.showMessageBox(options)
-  return response === 0
+  if (response !== 0) return false
+  if (checkboxChecked) {
+    try {
+      writeLegacyImportSkip(APP_SETTINGS_PATH(), 'ods', true)
+    } catch {
+      /* unwritable settings: ask again next time */
+    }
+  }
+  return true
 }
 
 /// .xls, .tsv and the ODF imports (.ods/.ots) open as a converted copy in the temp dir; the session

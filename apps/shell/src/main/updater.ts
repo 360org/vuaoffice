@@ -90,6 +90,23 @@ const tUpd = createI18n({
     updCheckFailed: 'Không thể kiểm tra bản cập nhật. Kiểm tra mạng của bạn và thử lại.',
     updOpenDownload: 'Mở trang tải xuống',
   },
+  tr: {
+    updTitle: 'Yazılım Güncellemesi',
+    updHeadline: 'Yeni bir sürüm mevcut',
+    updDesc:
+      'Bu güncelleme performans iyileştirmeleri ve hata düzeltmeleri içerir. Şimdi güncellemenizi öneririz.',
+    updDownload: 'Şimdi Güncelle',
+    updLater: 'Simge Durumuna Küçült',
+    updInstall: 'Yeniden Başlat ve Yükle',
+    updDownloading: 'Güncelleme indiriliyor…',
+    updFailed: 'Güncelleme indirilemedi. Ağ bağlantınızı kontrol edip yeniden deneyin.',
+    updRetry: 'Yeniden Dene',
+    updManual:
+      'Otomatik güncelleme başarısız oldu. Lütfen en son sürümü indirme sayfasından alıp elle yükleyin.',
+    updUpToDate: 'Güncel sürümü kullanıyorsunuz (sürüm {version}).',
+    updCheckFailed: 'Güncellemeler denetlenemedi. Ağ bağlantınızı kontrol edip yeniden deneyin.',
+    updOpenDownload: 'İndirme Sayfasını Aç',
+  },
   ja: {
     updTitle: 'ソフトウェアアップデート',
     updHeadline: '新しいバージョンがあります',
@@ -404,7 +421,7 @@ const RECHECK_INTERVAL_MS = 4 * 60 * 60 * 1000
 // code-signing identity (Apple Team ID) change, which Squirrel.Mac rejects
 // on every retry while the error looks like a download failure to the user.
 const MANUAL_FALLBACK_AFTER = 2
-const DEFAULT_UPDATE_URL = 'https://github.com/genspark-ai/genoffice/releases/latest/download'
+const DEFAULT_UPDATE_URL = 'https://github.com/360org/vuaoffice/releases/latest/download'
 const DOWNLOAD_PAGE_URL = 'https://vuahethong.net/#download-desktop-app'
 
 /// Trusted HTTPS base URL baked into resources/app-update.yml. Manual download
@@ -490,6 +507,12 @@ const CHANNEL_FEED: Record<UpdateChannel, string> = { stable: 'latest', beta: 'b
 // that (or in dev runs) must not touch electron-updater
 let updaterActive = false
 
+// The check in flight is quiet when a background timer started it: the package
+// then downloads in the background and the app installs it when it quits
+// (genoffice#2389). A check the user asked for — the Help entry, the About
+// dialog button, a channel switch — opens the update card instead.
+let quietCheck = false
+
 function log(...args: unknown[]): void {
   console.log('[updater]', ...args)
 }
@@ -525,6 +548,8 @@ function initialState(version: string): UpdateUiState {
 export function applyUpdateChannel(channel: UpdateChannel): void {
   if (!updaterActive) return
   resetDownloadFlow?.()
+  // the user asked for this channel: it gets the card, not a quiet download
+  quietCheck = false
   autoUpdater.channel = CHANNEL_FEED[channel]
   // the channel setter unconditionally flips allowDowngrade to true; force it
   // back off since a beta user switching to stable must not downgrade
@@ -562,6 +587,8 @@ export async function checkForUpdatesNow(): Promise<void> {
       return
     }
     dismissedVersion = null
+    // the user asked for it: the card, not a quiet download
+    quietCheck = false
     let result
     try {
       result = await autoUpdater.checkForUpdates()
@@ -597,6 +624,11 @@ export async function checkForUpdatesNow(): Promise<void> {
 export function initAutoUpdater(
   getWindow: () => BrowserWindow | null,
   initialChannel: UpdateChannel = 'stable',
+  /** Settings › "Check for updates automatically"; read at every background check (genoffice#2127) */
+  autoCheckEnabled: () => boolean = () => true,
+  /** Settings › "Install updates silently" (off by default): a background check
+   *  downloads the package quietly and installs it on quit instead of opening the card */
+  silentInstallEnabled: () => boolean = () => false,
 ): void {
   if (started) return
   started = true
@@ -693,19 +725,23 @@ export function initAutoUpdater(
     clearUpdateState()
   }
 
+  /** Download the version on offer. The card's "Update Now" button and the
+   *  quiet background download share this path. */
+  const startDownload = (): void => {
+    if (downloadInFlight || phase === 'downloaded') return
+    downloadInFlight = true
+    setPhase({ phase: 'downloading', percent: 0 })
+    const gen = ++downloadGen
+    downloadToken = new CancellationToken()
+    autoUpdater.downloadUpdate(downloadToken).catch((err) => {
+      if (gen !== downloadGen) return
+      log('download failed:', err?.message ?? err)
+      failDownload()
+    })
+  }
+
   const actions = {
-    onDownload: () => {
-      if (phase === 'downloading' || phase === 'downloaded') return
-      downloadInFlight = true
-      setPhase({ phase: 'downloading', percent: 0 })
-      const gen = ++downloadGen
-      downloadToken = new CancellationToken()
-      autoUpdater.downloadUpdate(downloadToken).catch((err) => {
-        if (gen !== downloadGen) return
-        log('download failed:', err?.message ?? err)
-        failDownload()
-      })
-    },
+    onDownload: startDownload,
     onInstall: () => {
       closeUpdateWindow()
       if (latestSeenVersion === null) return
@@ -797,6 +833,12 @@ export function initAutoUpdater(
     latestSeenVersion = info.version
     manualDownloadUrl = manualDownloadUrlFor(info)
     log('update available:', info.version)
+    if (quietCheck && silentInstallEnabled()) {
+      // quiet path: no card, the package downloads in the background and the
+      // app installs it when it quits (genoffice#2389)
+      startDownload()
+      return
+    }
     // a periodic recheck resolving to the version the open dialog already
     // shows must not reset its phase to 'available' — that would wipe an
     // in-progress download or a terminal 'manual' fallback back to the
@@ -824,6 +866,11 @@ export function initAutoUpdater(
   })
 
   const check = (): void => {
+    // turned off: only an explicit check (Help › Check for Updates…, a channel switch) asks the feed
+    if (!autoCheckEnabled()) return
+    // a background check is quiet: the package downloads in the background and
+    // the app installs it when it quits (genoffice#2389)
+    quietCheck = true
     autoUpdater.checkForUpdates().catch((err) => log('check failed:', err?.message ?? err))
   }
   setTimeout(check, FIRST_CHECK_DELAY_MS)
@@ -838,7 +885,7 @@ export function checkForUpdatesManual(): void {
     dialog.showMessageBox(win as any, {
       type: 'info',
       title: tUpd(getUiLang(), 'updTitle'),
-      message: 'GenOffice (Development Mode)',
+      message: 'VuaOffice (Development Mode)',
       detail: `You are running in development mode (v${app.getVersion()}). Auto-update is only available in packaged release builds.`,
       buttons: ['OK'],
     }).catch(() => {})

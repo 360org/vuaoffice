@@ -36,7 +36,7 @@ function open(
   source: string,
   wiki: {
     onOpen?: (path: string, fragment: string) => void
-    onUnresolved?: (target: string) => void
+    onUnresolved?: (target: string, embed: boolean) => void
     answers?: Record<string, WikiLinkResolved>
     documentPath?: string
     resolve?: (from: string, targets: string[]) => Promise<Record<string, WikiLinkResolved>>
@@ -231,9 +231,11 @@ describe('editing', () => {
     const { editor } = open('[[Alpha]] [[Beta|Bee]] [[Gamma#Section]] [[Alpha|Again]]', { resolve })
     await settled()
     expect(resolve).toHaveBeenLastCalledWith('/notes/Index.md', ['Alpha', 'Beta', 'Gamma#Section'])
-    const resolved = [...editor.view.dom.querySelectorAll('.wiki-link-resolved')].map((el) =>
-      el.getAttribute('data-wiki-target'),
-    )
+    // the alias display pass splits an aliased link's DOM around the hidden
+    // syntax, duplicating the resolver's span; the link is the visible reading
+    const resolved = [
+      ...editor.view.dom.querySelectorAll('.wiki-link-resolved:not(.wiki-alias-hidden)'),
+    ].map((el) => el.getAttribute('data-wiki-target'))
     expect(resolved).toEqual(['[[Alpha]]', '[[Beta|Bee]]', '[[Gamma#Section]]', '[[Alpha|Again]]'])
   })
 
@@ -334,7 +336,18 @@ describe('resolution', () => {
     await settled()
     expect(clickWikiLink(editor, '[[Nowhere]]')).toBe(true)
     expect(onOpen).not.toHaveBeenCalled()
-    expect(onUnresolved).toHaveBeenCalledWith('[[Nowhere]]')
+    expect(onUnresolved).toHaveBeenCalledWith('[[Nowhere]]', false)
+  })
+
+  it('clicking an unresolved embed reports it flagged as an embed', async () => {
+    const onOpen = vi.fn()
+    const onUnresolved = vi.fn()
+    const { editor } = open('![[Nowhere]]', { onOpen, onUnresolved, answers: ANSWERS })
+    await settled()
+    // an embed opens on a plain click, no modifier needed
+    expect(clickWikiLink(editor, 'Nowhere')).toBe(true)
+    expect(onOpen).not.toHaveBeenCalled()
+    expect(onUnresolved).toHaveBeenCalledWith('Nowhere', true)
   })
 
   it('the resolution never becomes document state', async () => {

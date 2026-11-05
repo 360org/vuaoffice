@@ -20,6 +20,7 @@ const SKIP_CLASSES = new Set([
   'doc-protected-sectbreak',
   'doc-move-handle',
   'box-resize-handle',
+  'box-rotate-handle',
 ])
 
 const UNWRAP_CLASSES = new Set([
@@ -97,7 +98,7 @@ const BIDI_KEEP = new Set(['bidi-override', 'isolate-override', 'plaintext', 'em
 /** Review / content-control badges drawn by the editor, not document text. */
 const CHROME_PSEUDO_CONTENT = /attr\(\s*data-(?:ppr-change-label|sdt-alias)\s*\)/
 
-const INTERNAL_FONTS = /,\s*"(?:[A-Za-z ]+ GO|GenOffice [A-Za-z ]+)"/g
+const INTERNAL_FONTS = /,\s*"(?:[A-Za-z ]+ GO|VuaOffice [A-Za-z ]+)"/g
 
 /** tab leaders are an absolutely positioned glyph run clipped to the tab
  *  advance on screen; inline styles cannot clip a pseudo, so export a border */
@@ -272,6 +273,16 @@ function styleDecls(cs: CSSStyleDeclaration, o: StyleOpts): string[] {
   }
   if (cs.verticalAlign && cs.verticalAlign !== 'baseline')
     out.push(`vertical-align:${cs.verticalAlign}`)
+  // paragraphs carry a display-only --doc-lead-shift offset; only raised or
+  // lowered runs (w:position, inline-block when character-scaled) export theirs
+  if (
+    display.startsWith('inline') &&
+    cs.position === 'relative' &&
+    cs.top &&
+    cs.top !== 'auto' &&
+    !isZero(cs.top)
+  )
+    out.push(`position:relative;top:${cs.top}`)
   const sized =
     o.tag === 'img' ||
     o.tag === 'svg' ||

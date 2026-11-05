@@ -25,6 +25,7 @@ export interface AppMenuLabels extends ContextMenuLabels {
   checkUpdates: string
   version: string
   settings: string
+  nameWithAi: string
 }
 
 type Labels = Omit<AppMenuLabels, keyof ContextMenuLabels>
@@ -46,10 +47,11 @@ const EN: Labels = {
   zoomOut: 'Zoom Out',
   fullscreen: 'Full Screen',
   help: 'Help',
-  about: 'About GenOffice',
+  about: 'About VuaOffice',
   checkUpdates: 'Check for Updates…',
   version: 'Version',
   settings: 'Settings…',
+  nameWithAi: 'Name with AI…',
 }
 
 // Shared table, same rationale as context-menu.ts: one copy instead of
@@ -72,9 +74,10 @@ const LABELS: Record<string, Labels> = {
     zoomOut: '缩小',
     fullscreen: '全屏',
     help: '帮助',
-    about: '关于 GenOffice',
+    about: '关于 VuaOffice',
     checkUpdates: '检查更新…',
     version: '版本',
+    nameWithAi: '用 AI 命名…',
     settings: '设置…',
   },
   en: EN,
@@ -95,9 +98,10 @@ const LABELS: Record<string, Labels> = {
     zoomOut: '縮小',
     fullscreen: 'フルスクリーン',
     help: 'ヘルプ',
-    about: 'GenOffice について',
+    about: 'VuaOffice について',
     checkUpdates: '更新を確認…',
     version: 'バージョン',
+    nameWithAi: 'AI で名前を変更…',
     settings: '設定…',
   },
   ko: {
@@ -117,9 +121,10 @@ const LABELS: Record<string, Labels> = {
     zoomOut: '축소',
     fullscreen: '전체 화면',
     help: '도움말',
-    about: 'GenOffice 정보',
+    about: 'VuaOffice 정보',
     checkUpdates: '업데이트 확인…',
     version: '버전',
+    nameWithAi: 'AI로 이름 지정…',
     settings: '설정…',
   },
   fr: {
@@ -139,9 +144,10 @@ const LABELS: Record<string, Labels> = {
     zoomOut: 'Zoom arrière',
     fullscreen: 'Plein écran',
     help: 'Aide',
-    about: 'À propos de GenOffice',
+    about: 'À propos de VuaOffice',
     checkUpdates: 'Rechercher les mises à jour…',
     version: 'Version',
+    nameWithAi: "Nommer avec l'IA…",
     settings: 'Réglages…',
   },
   de: {
@@ -161,9 +167,10 @@ const LABELS: Record<string, Labels> = {
     zoomOut: 'Verkleinern',
     fullscreen: 'Vollbild',
     help: 'Hilfe',
-    about: 'Über GenOffice',
+    about: 'Über VuaOffice',
     checkUpdates: 'Nach Updates suchen…',
     version: 'Version',
+    nameWithAi: 'Mit KI benennen…',
     settings: 'Einstellungen…',
   },
   es: {
@@ -183,9 +190,10 @@ const LABELS: Record<string, Labels> = {
     zoomOut: 'Alejar',
     fullscreen: 'Pantalla completa',
     help: 'Ayuda',
-    about: 'Acerca de GenOffice',
+    about: 'Acerca de VuaOffice',
     checkUpdates: 'Buscar actualizaciones…',
     version: 'Versión',
+    nameWithAi: 'Nombrar con IA…',
     settings: 'Ajustes…',
   },
   th: {
@@ -205,9 +213,10 @@ const LABELS: Record<string, Labels> = {
     zoomOut: 'ย่อ',
     fullscreen: 'เต็มหน้าจอ',
     help: 'วิธีใช้',
-    about: 'เกี่ยวกับ GenOffice',
+    about: 'เกี่ยวกับ VuaOffice',
     checkUpdates: 'ตรวจหาการอัปเดต…',
     version: 'เวอร์ชัน',
+    nameWithAi: 'ตั้งชื่อด้วย AI…',
     settings: 'การตั้งค่า…',
   },
   id: {
@@ -227,9 +236,10 @@ const LABELS: Record<string, Labels> = {
     zoomOut: 'Perkecil',
     fullscreen: 'Layar Penuh',
     help: 'Bantuan',
-    about: 'Tentang GenOffice',
+    about: 'Tentang VuaOffice',
     checkUpdates: 'Periksa Pembaruan…',
     version: 'Versi',
+    nameWithAi: 'Beri nama dengan AI…',
     settings: 'Pengaturan…',
   },
   ru: {
@@ -249,9 +259,10 @@ const LABELS: Record<string, Labels> = {
     zoomOut: 'Уменьшить',
     fullscreen: 'Полноэкранный режим',
     help: 'Справка',
-    about: 'О GenOffice',
+    about: 'О VuaOffice',
     checkUpdates: 'Проверить обновления…',
     version: 'Версия',
+    nameWithAi: 'Назвать с помощью ИИ…',
     settings: 'Настройки…',
   },
   ar: {
@@ -271,9 +282,10 @@ const LABELS: Record<string, Labels> = {
     zoomOut: 'تصغير العرض',
     fullscreen: 'ملء الشاشة',
     help: 'تعليمات',
-    about: 'حول GenOffice',
+    about: 'حول VuaOffice',
     checkUpdates: 'التحقق من التحديثات…',
     version: 'الإصدار',
+    nameWithAi: 'التسمية بالذكاء الاصطناعي…',
     settings: 'الإعدادات…',
   },
   pt: {
@@ -293,9 +305,10 @@ const LABELS: Record<string, Labels> = {
     zoomOut: 'Reduzir',
     fullscreen: 'Tela Cheia',
     help: 'Ajuda',
-    about: 'Sobre o GenOffice',
+    about: 'Sobre o VuaOffice',
     checkUpdates: 'Procurar atualizações…',
     version: 'Versão',
+    nameWithAi: 'Nomear com IA…',
     settings: 'Configurações…',
   },
   it: {
@@ -315,9 +328,10 @@ const LABELS: Record<string, Labels> = {
     zoomOut: 'Riduci',
     fullscreen: 'Schermo intero',
     help: 'Aiuto',
-    about: 'Informazioni su GenOffice',
+    about: 'Informazioni su VuaOffice',
     checkUpdates: 'Controlla aggiornamenti…',
     version: 'Versione',
+    nameWithAi: 'Assegna un nome con IA…',
     settings: 'Impostazioni…',
   },
   pl: {
@@ -337,9 +351,10 @@ const LABELS: Record<string, Labels> = {
     zoomOut: 'Pomniejsz',
     fullscreen: 'Pełny ekran',
     help: 'Pomoc',
-    about: 'O programie GenOffice',
+    about: 'O programie VuaOffice',
     checkUpdates: 'Sprawdź aktualizacje…',
     version: 'Wersja',
+    nameWithAi: 'Nazwij za pomocą AI…',
     settings: 'Ustawienia…',
   },
   cs: {
@@ -359,9 +374,10 @@ const LABELS: Record<string, Labels> = {
     zoomOut: 'Oddálit',
     fullscreen: 'Celá obrazovka',
     help: 'Nápověda',
-    about: 'O aplikaci GenOffice',
+    about: 'O aplikaci VuaOffice',
     checkUpdates: 'Zkontrolovat aktualizace…',
     version: 'Verze',
+    nameWithAi: 'Pojmenovat pomocí AI…',
     settings: 'Nastavení…',
   },
   nl: {
@@ -381,9 +397,10 @@ const LABELS: Record<string, Labels> = {
     zoomOut: 'Uitzoomen',
     fullscreen: 'Volledig scherm',
     help: 'Help',
-    about: 'Over GenOffice',
+    about: 'Over VuaOffice',
     checkUpdates: 'Controleren op updates…',
     version: 'Versie',
+    nameWithAi: 'Naam geven met AI…',
     settings: 'Instellingen…',
   },
   ms: {
@@ -403,9 +420,10 @@ const LABELS: Record<string, Labels> = {
     zoomOut: 'Zum Keluar',
     fullscreen: 'Skrin Penuh',
     help: 'Bantuan',
-    about: 'Perihal GenOffice',
+    about: 'Perihal VuaOffice',
     checkUpdates: 'Semak Kemas Kini…',
     version: 'Versi',
+    nameWithAi: 'Namakan dengan AI…',
     settings: 'Tetapan…',
   },
   he: {
@@ -425,9 +443,10 @@ const LABELS: Record<string, Labels> = {
     zoomOut: 'הקטן',
     fullscreen: 'מסך מלא',
     help: 'עזרה',
-    about: 'אודות GenOffice',
+    about: 'אודות VuaOffice',
     checkUpdates: 'בדוק עדכונים…',
     version: 'גרסה',
+    nameWithAi: 'מתן שם באמצעות AI…',
     settings: 'הגדרות…',
   },
   hi: {
@@ -447,9 +466,10 @@ const LABELS: Record<string, Labels> = {
     zoomOut: 'ज़ूम आउट',
     fullscreen: 'पूर्ण स्क्रीन',
     help: 'सहायता',
-    about: 'GenOffice के बारे में',
+    about: 'VuaOffice के बारे में',
     checkUpdates: 'अपडेट जांचें…',
     version: 'संस्करण',
+    nameWithAi: 'AI से नाम दें…',
     settings: 'सेटिंग्स…',
   },
   vi: {
@@ -469,10 +489,34 @@ const LABELS: Record<string, Labels> = {
     zoomOut: 'Thu nhỏ',
     fullscreen: 'Toàn màn hình',
     help: 'Trợ giúp',
-    about: 'Giới thiệu GenOffice',
+    about: 'Giới thiệu VuaOffice',
     checkUpdates: 'Kiểm tra bản cập nhật…',
     version: 'Phiên bản',
+    nameWithAi: 'Đặt tên bằng AI…',
     settings: 'Cài đặt…',
+  },
+  tr: {
+    window: 'Pencere',
+    minimize: 'Simge Durumuna Küçült',
+    closeWindow: 'Pencereyi Kapat',
+    edit: 'Düzenle',
+    undo: 'Geri Al',
+    redo: 'Yinele',
+    delete: 'Sil',
+    view: 'Görünüm',
+    reload: 'Yeniden Yükle',
+    forceReload: 'Zorla Yeniden Yükle',
+    toggleDevTools: 'Geliştirici Araçları',
+    actualSize: 'Gerçek Boyut',
+    zoomIn: 'Yakınlaştır',
+    zoomOut: 'Uzaklaştır',
+    fullscreen: 'Tam Ekran',
+    help: 'Yardım',
+    about: 'VuaOffice Hakkında',
+    checkUpdates: 'Güncellemeleri Denetle…',
+    version: 'Sürüm',
+    nameWithAi: 'AI ile adlandır…',
+    settings: 'Ayarlar…',
   },
   'zh-TW': {
     window: '視窗',
@@ -491,9 +535,10 @@ const LABELS: Record<string, Labels> = {
     zoomOut: '縮小',
     fullscreen: '全螢幕',
     help: '說明',
-    about: '關於 GenOffice',
+    about: '關於 VuaOffice',
     checkUpdates: '檢查更新…',
     version: '版本',
+    nameWithAi: '用 AI 命名…',
     settings: '設定…',
   },
 }
@@ -644,14 +689,14 @@ export function aboutMenuItem(labels: AppMenuLabels): MenuItemConstructorOptions
       const canCheck = updateCheckInvoker !== null
       const { response } = await dialog.showMessageBox({
         type: 'info',
-        title: 'GenOffice',
-        message: 'GenOffice',
+        title: 'VuaOffice',
+        message: 'VuaOffice',
         detail: `${labels.version} ${version}`,
         buttons: ['OK', labels.copy, ...(canCheck ? [labels.checkUpdates] : [])],
         defaultId: 0,
         cancelId: 0,
       })
-      if (response === 1) clipboard.writeText(`GenOffice ${version}`)
+      if (response === 1) clipboard.writeText(`VuaOffice ${version}`)
       if (response === 2) updateCheckInvoker?.()
     },
   }
@@ -687,7 +732,7 @@ export function appMenuTemplate(
   labels: AppMenuLabels,
   {
     extra = [],
-    appLabel = 'GenOffice',
+    appLabel = 'VuaOffice',
   }: { extra?: MenuItemConstructorOptions[]; appLabel?: string } = {},
 ): MenuItemConstructorOptions | undefined {
   if (platform !== 'darwin') return undefined

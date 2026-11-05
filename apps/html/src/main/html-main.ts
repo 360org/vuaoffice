@@ -74,6 +74,7 @@ import {
 } from './asset-mime'
 import { buildPreviewDocument } from './preview-document'
 import { inlineImagesForSingleFile, singleFileExportBaseName } from './single-file-html'
+import { registerHtmlAiSearchIpc } from './ai-search-ipc'
 import {
   assetBaseHref,
   previewUrlFor,
@@ -172,6 +173,31 @@ const tDlg = createI18n({
     errImageNoText:
       'Tệp đính kèm hình ảnh không có văn bản; hình ảnh được gửi cùng với tin nhắn của người dùng',
     errNotImage: 'loại hình ảnh không được hỗ trợ',
+  },
+  tr: {
+    dlgSaveTitle: 'HTML belgesini kaydet',
+    filterHtml: 'HTML belgeleri',
+    dlgPickImage: 'Bir görsel seçin',
+    filterImages: 'Görseller',
+    untitledFile: 'Adsız',
+    closeUnsavedMsg: 'Bu belge kaydedilmemiş değişiklikler içeriyor.',
+    closeUnsavedDetail: 'Kapatmadan önce değişiklikleri kaydetmek istiyor musunuz?',
+    btnSave: 'Kaydet',
+    btnDontSave: 'Kaydetme',
+    btnCancel: 'İptal',
+    dlgAddAttachment: 'Ek dosya ekle',
+    filterSupported: 'Desteklenen dosyalar',
+    filterAll: 'Tüm dosyalar',
+    errUnsupportedExt: '.{ext} dosyaları desteklenmiyor',
+    errNotFile: 'bir dosya değil',
+    errTooLarge: '{mb}MB sınırını aşıyor',
+    errImageTooLarge: 'görsel 5MB sınırını aşıyor',
+    errUnreadable: 'okunamıyor',
+    errFileTooLarge: 'Dosya boyut sınırını aşıyor',
+    errParseFailed: 'Dosya ayrıştırılamadı',
+    errImageNoText:
+      'Görsel ekleri metin sağlamaz; görsel kullanıcının mesajıyla birlikte gönderilir',
+    errNotImage: 'desteklenmeyen görsel türü',
   },
   ja: {
     dlgSaveTitle: 'HTML ドキュメントを保存',
@@ -1209,9 +1235,21 @@ async function resolveSaveTarget(
   }
   const win =
     BrowserWindow.fromWebContents(e.sender) ?? BrowserWindow.getFocusedWindow() ?? undefined
-  const defaultPath = current
-    ? join(dirname(current), basename(current))
-    : join(configuredDefaultSaveDir(app), `${fileNameBase(defaultName) || tm('untitledFile')}.html`)
+  // A name proposed by the model (or the page's own title) prefills the dialog
+  // rather than replacing it: the reader still chooses the location, and
+  // cancelling still cancels. Without one, the dialog opens on the file's own
+  // name, or on the untitled default for a page that has never been saved.
+  const proposed = fileNameBase(defaultName)
+  const defaultPath = proposed
+    ? // keep the open file's extension: an .html proposal must not offer to
+      // rewrite an opened .htm file, or a Save As on an .html one
+      join(
+        current ? dirname(current) : configuredDefaultSaveDir(app),
+        `${proposed}${current ? extname(current) : '.html'}`,
+      )
+    : current
+      ? join(dirname(current), basename(current))
+      : join(configuredDefaultSaveDir(app), `${tm('untitledFile')}.html`)
   const picked = await showSaveDialogWithMemory(dialog, win, {
     title: tm('dlgSaveTitle'),
     defaultPath,
@@ -1991,6 +2029,8 @@ export function startHtmlStandalone(): void {
   void app.whenReady().then(() => {
     installRendererProtocol({ html: join(__dirname, '../renderer') })
     registerHtmlIpc()
+    // shell mode leaves the shared ai:* search channels to docs-main registerAiIpc
+    registerHtmlAiSearchIpc()
     const win = new BrowserWindow({
       width: 1200,
       height: 850,

@@ -1280,3 +1280,231 @@ describe('applySaveRequest', () => {
     expect(String(needAppearances)).toBe('true')
   })
 })
+
+describe('outline replacement', () => {
+  it('writes a bookmark tree the read path (pdf.js) resolves to pages', async () => {
+    const bytes = await makePdf([
+      [612, 792],
+      [612, 792],
+    ])
+    const saved = await apply(
+      bytes,
+      request({
+        outline: [
+          { title: 'Cover', pageIndex: 0 },
+          {
+            title: 'Part 1',
+            pageIndex: 1,
+            children: [{ title: 'Section', pageIndex: 1, top: 700 }],
+          },
+        ],
+      }),
+    )
+    const loadingTask = getDocument({ data: saved.slice() })
+    try {
+      const pdfJsDoc = await loadingTask.promise
+      const outline = await pdfJsDoc.getOutline()
+      expect(outline).toHaveLength(2)
+      expect(outline![0]!.title).toBe('Cover')
+      expect(outline![1]!.title).toBe('Part 1')
+      expect(outline![1]!.items).toHaveLength(1)
+      expect(outline![1]!.items![0]!.title).toBe('Section')
+      const pageOf = async (dest: unknown): Promise<number> => {
+        const array = dest as Array<{ num: number }>
+        return pdfJsDoc.getPageIndex({ num: array[0]!.num, gen: array[0]!.gen ?? 0 })
+      }
+      expect(await pageOf(outline![0]!.dest)).toBe(0)
+      expect(await pageOf(outline![1]!.dest)).toBe(1)
+      expect(await pageOf(outline![1]!.items![0]!.dest)).toBe(1)
+    } finally {
+      await loadingTask.destroy()
+    }
+  })
+
+  it('rejects entries pointing past the document and empty titles', () => {
+    const bytes = makePdf([[612, 792]])
+    return Promise.all([
+      bytes.then(async (b) => {
+        await expect(
+          apply(b, request({ outline: [{ title: 'x', pageIndex: 5 }] })),
+        ).rejects.toThrow(/points at page/)
+      }),
+      bytes.then(async (b) => {
+        await expect(
+          apply(b, request({ outline: [{ title: '  ', pageIndex: 0 }] })),
+        ).rejects.toThrow(/non-empty title/)
+      }),
+    ]).then(() => undefined)
+  })
+
+  it('drops a bookmark whose page the same save deletes', async () => {
+    const bytes = await makePdf([
+      [612, 792],
+      [612, 792],
+      [612, 792],
+    ])
+    const saved = await apply(
+      bytes,
+      request({
+        outline: [
+          { title: 'Cover', pageIndex: 0 },
+          { title: 'Doomed', pageIndex: 1 },
+        ],
+        deletedPages: [1],
+      }),
+    )
+    const loadingTask = getDocument({ data: saved.slice() })
+    try {
+      const pdfJsDoc = await loadingTask.promise
+      const outline = await pdfJsDoc.getOutline()
+      expect(outline!.map((o) => o.title)).toEqual(['Cover'])
+    } finally {
+      await loadingTask.destroy()
+    }
+  })
+
+  it('drops the children of a bookmark whose page the same save deletes', async () => {
+    const bytes = await makePdf([
+      [612, 792],
+      [612, 792],
+    ])
+    const saved = await apply(
+      bytes,
+      request({
+        outline: [
+          {
+            title: 'Part 1',
+            pageIndex: 0,
+            children: [{ title: 'Section', pageIndex: 1 }],
+          },
+        ],
+        deletedPages: [1],
+      }),
+    )
+    const loadingTask = getDocument({ data: saved.slice() })
+    try {
+      const pdfJsDoc = await loadingTask.promise
+      const outline = await pdfJsDoc.getOutline()
+      expect(outline!.map((o) => o.title)).toEqual(['Part 1'])
+      // the child hung off the dropped entry, so it goes with it
+      expect(outline![0]!.items ?? []).toHaveLength(0)
+    } finally {
+      await loadingTask.destroy()
+    }
+  })
+
+  it('keeps a surviving bookmark on the page it named, even when a page before it goes', async () => {
+    const bytes = await makePdf([
+      [612, 792],
+      [612, 792],
+      [612, 792],
+    ])
+    const saved = await apply(
+      bytes,
+      request({
+        outline: [
+          { title: 'Cover', pageIndex: 0 },
+          { title: 'Back', pageIndex: 2 },
+        ],
+        deletedPages: [1],
+      }),
+    )
+    const loadingTask = getDocument({ data: saved.slice() })
+    try {
+      const pdfJsDoc = await loadingTask.promise
+      const outline = await pdfJsDoc.getOutline()
+      const pageOf = async (dest: unknown): Promise<number> => {
+        const array = dest as Array<{ num: number }>
+        return pdfJsDoc.getPageIndex({ num: array[0]!.num, gen: array[0]!.gen ?? 0 })
+      }
+      expect(outline!.map((o) => o.title)).toEqual(['Cover', 'Back'])
+      // the third page is now the second, and the bookmark still names it
+      expect(await pageOf(outline![1]!.dest)).toBe(1)
+    } finally {
+      await loadingTask.destroy()
+    }
+  })
+
+  it("leaves the file's own bookmarks alone when every edited entry went with a deleted page", async () => {
+    const bytes = await makePdf([
+      [612, 792],
+      [612, 792],
+    ])
+    const withOutline = await apply(bytes, request({ outline: [{ title: 'Keep', pageIndex: 0 }] }))
+    const saved = await apply(
+      withOutline,
+      request({
+        outline: [{ title: 'Doomed', pageIndex: 1 }],
+        deletedPages: [1],
+      }),
+    )
+    const loadingTask = getDocument({ data: saved.slice() })
+    try {
+      const pdfJsDoc = await loadingTask.promise
+      const outline = await pdfJsDoc.getOutline()
+      expect(outline!.map((o) => o.title)).toEqual(['Keep'])
+    } finally {
+      await loadingTask.destroy()
+    }
+  })
+})
+
+describe('link annotations', () => {
+  it('writes a web link the read path (pdf.js) surfaces as url', async () => {
+    const bytes = await makePdf([
+      [612, 792],
+      [612, 792],
+    ])
+    const saved = await apply(
+      bytes,
+      request({
+        drawings: [
+          { kind: 'link', pageIndex: 0, rect: [50, 700, 250, 720], url: 'https://example.com' },
+        ],
+      }),
+    )
+    const doc = await PDFDocument.load(saved)
+    const annots = pageAnnots(doc, 0)
+    expect(annots).toHaveLength(1)
+    expect(subtypeOf(annots[0]!)).toBe('Link')
+    const action = annots[0]!.lookup(PDFName.of('A'), PDFDict)
+    expect(action.lookup(PDFName.of('S'), PDFName).decodeText()).toBe('URI')
+    expect(action.lookup(PDFName.of('URI'), PDFString).decodeText()).toBe('https://example.com')
+    const loadingTask = getDocument({ data: saved.slice() })
+    try {
+      const pdfJsDoc = await loadingTask.promise
+      const annos = await (await pdfJsDoc.getPage(1)).getAnnotations()
+      const links = annos.filter((a) => a.subtype === 'Link')
+      expect(links).toHaveLength(1)
+      // pdf.js normalizes the URL (bare host gains its trailing slash)
+      expect(links[0]!.url).toBe('https://example.com/')
+    } finally {
+      await loadingTask.destroy()
+    }
+  })
+
+  it('writes an in-document jump as a /Dest page array, dropped for missing pages', async () => {
+    const bytes = await makePdf([
+      [612, 792],
+      [612, 792],
+    ])
+    const saved = await apply(
+      bytes,
+      request({
+        drawings: [
+          { kind: 'link', pageIndex: 0, rect: [50, 700, 250, 720], destPage: 2 },
+          // a dest beyond the document is silently dropped, like every other
+          // drawing addressing a missing page
+          { kind: 'link', pageIndex: 0, rect: [50, 100, 250, 120], destPage: 9 },
+        ],
+      }),
+    )
+    const doc = await PDFDocument.load(saved)
+    const annots = pageAnnots(doc, 0)
+    expect(annots).toHaveLength(1)
+    const dest = annots[0]!.lookup(PDFName.of('Dest'), PDFArray)
+    // lookup() would dereference the page ref into its object; get() keeps the ref
+    expect(dest.get(0).toString()).toBe(doc.getPage(1).ref.toString())
+    expect(dest.lookup(1, PDFName).decodeText()).toBe('XYZ')
+  })
+})

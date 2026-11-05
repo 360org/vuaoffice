@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { closeSync, fsyncSync, openSync, readFileSync, writeFileSync } from 'node:fs'
 import { rename, rm } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 
 import JSZip from 'jszip'
 import { assertZipInflatesWithinLimits } from '@genoffice/zip-gate'
@@ -21,6 +21,14 @@ import type {
 import { spillsDynamicArray, withFutureFunctionMarkers } from './future-functions'
 import { decodeXlsxEscapes, encodeXlsxEscapes } from './xlsx-escapes'
 import { MINIMAL_STYLESHEET_XML } from './xlsx-default-styles'
+import {
+  applyWorkbookLinkBreak,
+  orderedExternalLinkParts,
+  retargetExternalLinkRels,
+  transformChartForLinkBreak,
+  transformSheetForLinkBreak,
+  transformWorkbookForLinkBreak,
+} from './xlsx-external-links'
 import { applyChartEdit } from './xlsx-chart'
 import { applyVisualEdits } from './xlsx-drawing-edit'
 import { applyCellImageAdditions } from './xlsx-cell-image-add'
@@ -30,11 +38,24 @@ import {
   type DrawingAnchor,
   type ImageAdd,
   relsPathFor,
+  resolveChartPivotSource,
   resolveRelTarget,
   type ShapeAdd,
 } from './xlsx-drawing-add'
-import { applyTableAdditions, type TableArea, type TableStyleOptions } from './xlsx-table-add'
-import { applyTableEdits, type TableEdit } from './xlsx-table-edit'
+import {
+  applyTableAdditions,
+  areasOverlap,
+  areaToRef,
+  parseRef,
+  type TableArea,
+  type TableStyleOptions,
+} from './xlsx-table-add'
+import {
+  applyTableEdits,
+  sheetTableParts,
+  type LocatedTable,
+  type TableEdit,
+} from './xlsx-table-edit'
 import type { PivotFilterDef } from '../domain/pivot-filters'
 import {
   applyPivotAdditions,
@@ -43,7 +64,12 @@ import {
   type PivotValueSpec,
 } from './xlsx-pivot-add'
 import type { SheetFilterState } from './xlsx-filter'
-import { applyFilterState } from './xlsx-filter'
+import {
+  applyFilterState,
+  applyRowVisibilityState,
+  applyTableFilterState,
+  FilterEditError,
+} from './xlsx-filter'
 import { normalizeOoxmlPartPrefix } from './xlsx-namespace'
 import { escapeRegExp } from './xlsx-sheets'
 import type { SheetAllocation, SheetEditPlan, SheetElement } from './xlsx-sheets'
@@ -563,7 +589,66 @@ export async function readSheetRows(buffer: Buffer, sheetName?: string): Promise
   const sharedStrings = await readSharedStrings(zip)
   const name = sheetName ?? firstSheetName(workbookXml)
   const worksheetXml = await zip.readText(await resolveWorksheetPath(zip, name))
-  return worksheetRows(worksheetXml, sharedStrings)
+  const dateStyles = (await zip.has('xl/styles.xml'))
+    ? dateStyleIndexes(await zip.readText('xl/styles.xml'))
+    : new Set<number>()
+  const date1904 = /<workbookPr\b[^>]*\bdate1904="(?:1|true)"/.test(workbookXml)
+  return worksheetRows(worksheetXml, sharedStrings, { dateStyles, date1904 })
+}
+
+/** how a worksheet's numbers read as text */
+interface RowTextOptions {
+  /** cellXfs indexes whose number format is a date or a time */
+  dateStyles: ReadonlySet<number>
+  date1904: boolean
+}
+
+/** the built-in number formats that are dates or times (ECMA-376 18.8.30) */
+const BUILTIN_DATE_FORMATS = new Set([
+  14, 15, 16, 17, 18, 19, 20, 21, 22, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 45, 46, 47, 50, 51,
+  52, 53, 54, 55, 56, 57, 58,
+])
+
+/** a custom format code is a date when a date token survives the literals and the colour/condition brackets */
+export function isDateFormatCode(code: string): boolean {
+  const bare = code
+    .replace(/"[^"]*"/g, '')
+    .replace(/\[[^\]]*\]/g, '')
+    .replace(/\\./g, '')
+  if (/[#0?@]/.test(bare) && !/[ymdh]/i.test(bare)) return false
+  return /[ymdh]/i.test(bare) || /s/.test(bare)
+}
+
+/** the cellXfs indexes whose number format is a date or a time */
+export function dateStyleIndexes(stylesXml: string): Set<number> {
+  const custom = new Set<number>()
+  for (const m of stylesXml.matchAll(/<numFmt\b([^>]*)\/?>/g)) {
+    const id = Number(readXmlAttribute(m[1] ?? '', 'numFmtId'))
+    const code = decodeXmlText(readXmlAttribute(m[1] ?? '', 'formatCode') ?? '')
+    if (Number.isFinite(id) && isDateFormatCode(code)) custom.add(id)
+  }
+  const out = new Set<number>()
+  const cellXfs = /<cellXfs\b[^>]*>([\s\S]*?)<\/cellXfs>/.exec(stylesXml)?.[1] ?? ''
+  let index = 0
+  for (const m of cellXfs.matchAll(/<xf\b([^>]*)\/?>/g)) {
+    const id = Number(readXmlAttribute(m[1] ?? '', 'numFmtId'))
+    if (BUILTIN_DATE_FORMATS.has(id) || custom.has(id)) out.add(index)
+    index += 1
+  }
+  return out
+}
+
+/** an Excel serial as ISO text: the date, and the time when the serial carries one */
+export function serialDateText(serial: number, date1904: boolean): string {
+  const epoch = date1904 ? Date.UTC(1904, 0, 1) : Date.UTC(1899, 11, 30)
+  const ms = Math.round((serial + (!date1904 && serial < 60 ? 1 : 0)) * 86_400_000)
+  const date = new Date(epoch + ms)
+  if (Number.isNaN(date.getTime())) return String(serial)
+  const iso = date.toISOString()
+  const dayPart = iso.slice(0, 10)
+  const timePart = iso.slice(11, 19)
+  if (serial < 1) return timePart
+  return timePart === '00:00:00' ? dayPart : `${dayPart} ${timePart}`
 }
 
 /** the name of the first sheet in workbook.xml */
@@ -589,6 +674,8 @@ function cellText(
   body: string,
   type: string | undefined,
   sharedStrings: readonly string[],
+  asDate = false,
+  date1904 = false,
 ): string {
   if (type === 'inlineStr') {
     return [...body.matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)]
@@ -600,13 +687,22 @@ function cellText(
   if (type === 's') return sharedStrings[Number(rawValue)] ?? ''
   if (type === 'str') return decodeCellText(rawValue)
   if (type === 'b') return rawValue === '1' ? 'TRUE' : 'FALSE'
-  // a number keeps the file's own spelling: a date column then reads as the
-  // serial the file holds, not as a locale-formatted date
-  return decodeCellText(rawValue)
+  // a number keeps the file's own spelling, except that a date-formatted
+  // cell reads as a date, not as the serial the file holds
+  const text = decodeCellText(rawValue)
+  if (asDate && (type === undefined || type === 'n')) {
+    const serial = Number(text)
+    if (Number.isFinite(serial)) return serialDateText(serial, date1904)
+  }
+  return text
 }
 
 /** the rows of a worksheet, in file order; a row that is not there is empty */
-function worksheetRows(worksheetXml: string, sharedStrings: readonly string[]): string[][] {
+function worksheetRows(
+  worksheetXml: string,
+  sharedStrings: readonly string[],
+  options: RowTextOptions = { dateStyles: new Set(), date1904: false },
+): string[][] {
   const rows: string[][] = []
   const rowPattern = /<row\b([^>]*)>([\s\S]*?)<\/row>/g
   let rowMatch: RegExpExecArray | null
@@ -621,7 +717,14 @@ function worksheetRows(worksheetXml: string, sharedStrings: readonly string[]): 
       const address = readXmlAttribute(attributes, 'r')
       const column = address ? columnIndexOf(address) : cells.length
       if (column < 0) continue
-      const value = cellText(cellMatch[2] ?? '', readXmlAttribute(attributes, 't'), sharedStrings)
+      const style = Number(readXmlAttribute(attributes, 's'))
+      const value = cellText(
+        cellMatch[2] ?? '',
+        readXmlAttribute(attributes, 't'),
+        sharedStrings,
+        options.dateStyles.has(style),
+        options.date1904,
+      )
       while (cells.length < column) cells.push('')
       cells[column] = value
     }
@@ -703,7 +806,7 @@ export async function applyCellEditsToXlsx(
   pageSetupStates: readonly SheetPageSetupState[] = [],
   noteStates: readonly SheetNoteState[] = [],
   formulaValues: readonly SheetFormulaValues[] = [],
-  redactionStates: readonly SheetRedactionState[] = [],
+  redactionStates: readonly SheetRedactionState[] | null = null,
 ): Promise<XlsxMutation> {
   const plan = await planCellEditsToXlsx(
     await createBufferEntrySource(source),
@@ -728,11 +831,12 @@ export async function applyCellEditsToXlsx(
     [],
     formulaValues,
     // The slots between formulaValues and redactionStates (theme, workbook
-    // protection, protected ranges, bulk fills, tab colours, table edits) are
-    // features this wrapper does not expose. They must stay positional:
-    // planCellEditsToXlsx takes one long ordered list, so inserting a
-    // placeholder here shifts nothing — but dropping one would silently
-    // re-target every later argument, a table edit included.
+    // protection, protected ranges, bulk fills, tab colours, table edits,
+    // cell images, external-link ops) are features this wrapper does not
+    // expose. They must stay positional: planCellEditsToXlsx takes one long
+    // ordered list, so inserting a placeholder here shifts nothing — but
+    // dropping one would silently re-target every later argument, a table
+    // edit included.
     null,
     null,
     [],
@@ -740,6 +844,7 @@ export async function applyCellEditsToXlsx(
     [],
     [],
     [],
+    null,
     redactionStates,
   )
   return assembleWithJsZip(source, plan)
@@ -830,6 +935,104 @@ export type { PivotRefreshUpdate } from './xlsx-pivot-expand'
 export { PivotExpandError } from './xlsx-pivot-expand'
 export type { SheetSparklineAddition } from './xlsx-sparkline'
 
+/// Breaks and retargets of the workbook's external links, resolved on the
+/// final entry contents this save produces. `broken` lists the 1-based `[n]`
+/// positions in `<externalReferences>`; their formulas become literals, their
+/// parts disappear, surviving `[m]` indices renumber. A `retargets` entry
+/// repoints one link's source path — formulas, sheet names and cached values
+/// stay, so values keep coming from the cache until the next update. Both
+/// lists are read in original index space (a retarget names the link as it
+/// is before any break of this save).
+export interface ExternalLinkOps {
+  readonly broken: readonly number[]
+  readonly retargets: readonly { readonly index: number; readonly target: string }[]
+}
+
+/// Applies the external-link ops to the patched package: retargets rewrite
+/// one link's own rels; breaks turn the sheets' broken-link formulas into
+/// literals, renumber the surviving links in every carrier (sheets, defined
+/// names, chart ranges), then delete the links' parts, references and
+/// content-type overrides. Runs last, on the final XML — the renderer
+/// journals the broken cells as literals, so the sheet transform usually only
+/// renumbers survivors.
+///
+/// The defined-name and chart transforms are the same ones planExternalLinkBreak
+/// runs for the CLI's `sheet links --break`: a name or a chart range that keeps
+/// `[n]` pointing at a link this save removes has no literal form, so the break
+/// is refused here too instead of writing a dangling index.
+async function applyExternalLinkOps(
+  pkg: PackageEditor,
+  ops: ExternalLinkOps,
+  touchedEntries: Set<string>,
+): Promise<void> {
+  const workbookPath = 'xl/workbook.xml'
+  const relsPath = 'xl/_rels/workbook.xml.rels'
+  let workbookXml = await pkg.readText(workbookPath)
+  let relsXml = await pkg.readText(relsPath)
+  const links = orderedExternalLinkParts(workbookXml, relsXml)
+  for (const retarget of ops.retargets) {
+    const link = links.find((entry) => entry.n === retarget.index)
+    if (link === undefined || link.part === null) {
+      throw new Error(`no external link ${retarget.index} to point at a new source`)
+    }
+    const relsPart = `${link.part.replace(/([^/]+)$/, '_rels/$1')}.rels`
+    pkg.write(relsPart, retargetExternalLinkRels(await pkg.readText(relsPart), retarget.target))
+    touchedEntries.add(relsPart)
+  }
+  const broken = [...new Set(ops.broken)]
+  if (broken.length === 0) return
+  for (const n of broken) {
+    const link = links.find((entry) => entry.n === n)
+    if (link === undefined || link.part === null) {
+      throw new Error(`no external link ${n} to break`)
+    }
+  }
+  // The break plan is computed before any part is written, so a refusal here
+  // leaves the package untouched (the plan is discarded whole either way).
+  const next = applyWorkbookLinkBreak(workbookXml, relsXml, broken)
+  // defined names address links through the same [n] indices, so a surviving
+  // name follows the renumbering and a broken one refuses the break
+  workbookXml = transformWorkbookForLinkBreak(next.workbookXml, broken)
+  relsXml = next.relsXml
+  let contentTypesXml: string | null = null
+  if (await pkg.has('[Content_Types].xml')) {
+    contentTypesXml = await pkg.readText('[Content_Types].xml')
+  }
+  for (const part of next.parts) {
+    pkg.remove(part)
+    const relsPart = `${part.replace(/([^/]+)$/, '_rels/$1')}.rels`
+    if (await pkg.has(relsPart)) pkg.remove(relsPart)
+    if (contentTypesXml !== null) contentTypesXml = removePartOverride(contentTypesXml, part)
+  }
+  for (const path of await pkg.paths()) {
+    if (!/^xl\/worksheets\/[^/]+\.xml$/.test(path)) continue
+    const xml = await pkg.readText(path)
+    const transformed = transformSheetForLinkBreak(xml, broken)
+    if (transformed !== xml) {
+      pkg.write(path, transformed)
+      touchedEntries.add(path)
+    }
+  }
+  // chart ranges reference cells — and thus links — outside the sheet part
+  for (const path of await pkg.paths()) {
+    if (!/^xl\/charts\/[^/]+\.xml$/.test(path)) continue
+    const xml = await pkg.readText(path)
+    const transformed = transformChartForLinkBreak(xml, broken)
+    if (transformed !== xml) {
+      pkg.write(path, transformed)
+      touchedEntries.add(path)
+    }
+  }
+  if (contentTypesXml !== null) {
+    pkg.write('[Content_Types].xml', contentTypesXml)
+    touchedEntries.add('[Content_Types].xml')
+  }
+  pkg.write(workbookPath, workbookXml)
+  pkg.write(relsPath, relsXml)
+  touchedEntries.add(workbookPath)
+  touchedEntries.add(relsPath)
+}
+
 /// Assembler-independent planning: computes the patched entry contents for a
 /// set of edits without materializing the output archive.
 export async function planCellEditsToXlsx(
@@ -861,10 +1064,12 @@ export async function planCellEditsToXlsx(
   tabColorStates: readonly SheetTabColorState[] = [],
   tableEdits: readonly SheetTableEdit[] = [],
   cellImageAdditions: readonly SheetCellImageAddition[] = [],
+  externalLinkOps: ExternalLinkOps | null = null,
   // Last, deliberately: every caller written against an older order would
   // otherwise see `tabColorStates` or a cell image land here and a parsed
-  // table edit parsed as a tab colour.
-  redactionStates: readonly SheetRedactionState[] = [],
+  // table edit parsed as a tab colour. null = the caller does not know the
+  // marks (CLI, the second phase of a split save), so the part stays as it is.
+  redactionStates: readonly SheetRedactionState[] | null = null,
 ): Promise<MutationPlan> {
   // A pending pivot pins final coordinates for its source and output; shifts
   // on either sheet, and sheet renames (worksheetSource@sheet), would desync
@@ -967,8 +1172,12 @@ export async function planCellEditsToXlsx(
     pkg.add(addition.path, cloneXml)
   }
 
+  // Formula caches can be refreshed on a sheet the user did not edit (a
+  // cross-sheet dependent), so those worksheets must be loaded too.
   const sheetNames = new Set([
     ...edits.map((edit) => edit.sheetName),
+    // a cached-value-only save (no cell edits) still patches its sheets
+    ...formulaValues.map((sheet) => sheet.sheetName),
     ...bulkConstantFills.map((fill) => fill.sheetName),
     ...structuralOps.map((sheet) => sheet.sheetName),
     ...filterStates.map((state) => state.sheetName),
@@ -1138,16 +1347,19 @@ export async function planCellEditsToXlsx(
   // Withheld cells travel in a package part of their own, so they are written
   // here rather than with the worksheets. A sheet renamed or removed in this
   // same save takes its marks with it first — see rekeyRedactionStates.
-  // Unconditional, including for an empty list. Clearing the last mark has to
-  // remove the part, and a call guarded on "there is something to write" is
-  // exactly the call that never happens when the reader un-hides everything.
-  const rekeyed = rekeyRedactionStates(
-    redactionStates,
-    sheetPlan?.renames ?? [],
-    sheetPlan?.removals ?? [],
-    structuralOps,
-  )
-  await applyRedactionPart(pkg, touchedEntries, rekeyed)
+  // An empty list clears the part (the reader un-hid everything); null leaves
+  // it untouched, because a caller that never loaded the marks must not drop
+  // them.
+  const rekeyed =
+    redactionStates === null
+      ? null
+      : rekeyRedactionStates(
+          redactionStates,
+          sheetPlan?.renames ?? [],
+          sheetPlan?.removals ?? [],
+          structuralOps,
+        )
+  if (rekeyed !== null) await applyRedactionPart(pkg, touchedEntries, rekeyed)
 
   const editsBySheet = groupBySheet(edits)
   const fillsBySheet = groupBySheet(bulkConstantFills)
@@ -1344,13 +1556,9 @@ export async function planCellEditsToXlsx(
     worksheetXmls.set(state.sheetName, applyPageSetupState(worksheetXml, state))
   }
 
-  // Filter snapshots run after structural replay and cell edits, so their
-  // coordinates and row set match the sheet's final content.
-  for (const state of filterStates) {
-    const worksheetXml = worksheetXmls.get(state.sheetName)
-    if (worksheetXml === undefined) continue
-    worksheetXmls.set(state.sheetName, applyFilterState(worksheetXml, state))
-  }
+  // Filter snapshots used to run here, before the worksheet flush; they now
+  // run after the table edit/add phases (see applyRoutedFilterState below) so
+  // the routing sees the sheets' final table geometry.
 
   for (const [sheetName, worksheetXml] of worksheetXmls) {
     const worksheetPath = worksheetPaths.get(sheetName)
@@ -1391,7 +1599,12 @@ export async function planCellEditsToXlsx(
           additionPaths.get(addition.sheetName) ??
           (await resolveWorksheetPath(pkg, addition.sheetName)),
         anchor: addition.anchor,
-        chart: addition.chart,
+        // A pivot-bound chart resolves its pivotTable part into the
+        // chartSpace pivotSource name here, where the sheet name is known.
+        chart:
+          addition.chart === undefined
+            ? undefined
+            : await resolveChartPivotSource(pkg, addition.sheetName, addition.chart),
         shape: addition.shape,
         image: addition.image,
       })
@@ -1470,6 +1683,21 @@ export async function planCellEditsToXlsx(
       })
     }
     await applyTableAdditions(pkg, resolvedTables, touchedEntries)
+  }
+
+  // Filter snapshots run after structural replay, cell edits, and the table
+  // phases, so their coordinates and row set match the sheet's final content
+  // and the routing sees the final table geometry: a filter range inside an
+  // Excel table lands in the table part (Excel keeps table filters there,
+  // never on the worksheet); every other range keeps the worksheet element.
+  if (filterStates.length > 0) {
+    for (const state of filterStates) {
+      const worksheetPath =
+        additionPaths.get(state.sheetName) ??
+        worksheetPaths.get(state.sheetName) ??
+        (await resolveWorksheetPath(pkg, state.sheetName))
+      await applyRoutedFilterState(pkg, worksheetPath, state, touchedEntries)
+    }
   }
 
   // New sparklines also run on the flushed worksheet XML (extLst is the
@@ -1615,15 +1843,21 @@ export async function planCellEditsToXlsx(
   // the sheet list this save actually produced, not the one it started from.
   // (The part above is the record; this is only what survives a reader that
   // rebuilds the package and drops the part — see applyRedactionNameMirror.)
-  workbookXml = applyRedactionNameMirror(
-    workbookXml,
-    rekeyed,
-    parseSheetElements(workbookXml).map((sheet) => sheet.name),
-  )
+  if (rekeyed !== null) {
+    workbookXml = applyRedactionNameMirror(
+      workbookXml,
+      rekeyed,
+      parseSheetElements(workbookXml).map((sheet) => sheet.name),
+    )
+  }
 
   if (workbookXml !== originalWorkbookXml) {
     pkg.write(workbookPath, workbookXml)
     touchedEntries.add(workbookPath)
+  }
+
+  if (externalLinkOps !== null) {
+    await applyExternalLinkOps(pkg, externalLinkOps, touchedEntries)
   }
 
   return pkg.toPlan(touchedEntries)
@@ -2025,7 +2259,7 @@ export async function syncFileBestEffort(path: string): Promise<void> {
 }
 
 export async function writeXlsxAtomically(path: string, buffer: Buffer): Promise<void> {
-  const temporaryPath = join(dirname(path), `.${crypto.randomUUID()}.tmp.xlsx`)
+  const temporaryPath = join(dirname(path), `${basename(path)}.${crypto.randomUUID()}.tmp`)
   try {
     writeFileSync(temporaryPath, buffer, { flag: 'wx' })
     await syncFileBestEffort(temporaryPath)
@@ -2178,6 +2412,78 @@ function findSheetElement(workbookXml: string, sheetName: string): SheetElement 
 
 function isMissingPartError(error: unknown): boolean {
   return error instanceof Error && /was not found\.|Workbook is missing /.test(error.message)
+}
+
+/// One declarative filter snapshot onto its final home. Excel keeps a
+/// ListObject's filter in the table part; the worksheet only ever carries
+/// row visibility for it (a worksheet autoFilter overlapping a table is
+/// invalid OOXML). Routing is geometric: exactly one table can contain the
+/// range because tables never overlap. A range that straddles a table
+/// boundary cannot be represented in either place, so it fails closed. A
+/// contained range whose table part is gone (Convert to Range in this same
+/// save) falls back to the worksheet element — Excel's own conversion
+/// semantics.
+async function applyRoutedFilterState(
+  pkg: PackageEditor,
+  worksheetPath: string,
+  state: SheetFilterState,
+  touchedEntries: Set<string>,
+): Promise<void> {
+  const match = state.filter?.range ?? state.visibilityRange
+  let routed: { table: LocatedTable; area: TableArea } | undefined
+  for (const table of await sheetTableParts(pkg, worksheetPath)) {
+    const area = tablePartArea(table)
+    if (area === null) continue
+    const contains =
+      area.startRow <= match.startRow &&
+      match.endRow <= area.endRow &&
+      area.startColumn <= match.startColumn &&
+      match.endColumn <= area.endColumn
+    if (contains) {
+      routed = { table, area }
+      continue
+    }
+    if (areasOverlap(area, match)) {
+      throw new FilterEditError(
+        `The filter range overlaps Excel table ${areaToRef(area)} without sitting ` +
+          'inside it — filter within the table, or clear the table first.',
+      )
+    }
+  }
+  const worksheetXml = await pkg.readText(worksheetPath)
+  if (routed === undefined) {
+    pkg.write(worksheetPath, applyFilterState(worksheetXml, state))
+    touchedEntries.add(worksheetPath)
+    return
+  }
+  const { table, area } = routed
+  pkg.write(
+    table.path,
+    applyTableFilterState(table.xml, { area, ...tablePartCounts(table.xml) }, state.filter),
+  )
+  touchedEntries.add(table.path)
+  pkg.write(worksheetPath, applyRowVisibilityState(worksheetXml, state))
+  touchedEntries.add(worksheetPath)
+}
+
+function tablePartArea(table: LocatedTable): TableArea | null {
+  const ref = /<table\b[^>]*\bref="([^"]+)"/.exec(table.xml)?.[1]
+  if (ref === undefined) return null
+  try {
+    return parseRef(ref)
+  } catch {
+    return null
+  }
+}
+
+function tablePartCounts(tableXml: string): {
+  headerRowCount: number
+  totalsRowCount: number
+} {
+  return {
+    headerRowCount: Number(/<table\b[^>]*?\bheaderRowCount="(\d+)"/.exec(tableXml)?.[1] ?? '1'),
+    totalsRowCount: Number(/<table\b[^>]*?\btotalsRowCount="(\d+)"/.exec(tableXml)?.[1] ?? '0'),
+  }
 }
 
 async function resolveWorksheetPath(
@@ -2437,7 +2743,13 @@ function patchFormulaCachedValue(
   // no t (numeric default) otherwise; booleans use t="b" with 1/0. A null
   // result drops the cached value entirely.
   const numeric = typeof value === 'number' && Number.isFinite(value)
-  const stripped = attrs.replace(/\st="[^"]*"/g, '')
+  // Collapse the leftover whitespace too: group1's space before r= survives
+  // the strip, and re-splicing it per rewrite grew one blank per rewrite.
+  const stripped = attrs
+    .replace(/\st="[^"]*"/g, '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .join(' ')
   let typeAttr = ''
   let valueXml = ''
   if (numeric) {
@@ -2454,7 +2766,7 @@ function patchFormulaCachedValue(
   }
   // Keep <f> (and any other children apart from the cached value) verbatim.
   const kept = body.replace(/<v\b[^>]*\/>|<v\b[^>]*>[\s\S]*?<\/v>/g, '')
-  const replacement = `<c r="${address}"${stripped}${typeAttr}>${kept}${valueXml}</c>`
+  const replacement = `<c r="${address}"${stripped ? ` ${stripped}` : ''}${typeAttr}>${kept}${valueXml}</c>`
   return worksheetXml.replace(cellPattern, () => replacement)
 }
 
