@@ -61,7 +61,14 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
   const [tool, setTool] = useState<EditorTool>('arrow')
   const [color, setColor] = useState<string>(DEFAULT_COLOR)
   const [stroke, setStroke] = useState<number>(DEFAULT_STROKE)
-  const [draft, setDraft] = useState<Shape | null>(null)
+  const [draft, setDraftState] = useState<Shape | null>(null)
+  /** the in-progress shape, read synchronously on pointerup: a fast drag can
+   *  release before React re-renders with the last pointermove */
+  const draftRef = useRef<Shape | null>(null)
+  const setDraft = (next: Shape | null | ((d: Shape | null) => Shape | null)) => {
+    draftRef.current = typeof next === 'function' ? next(draftRef.current) : next
+    setDraftState(draftRef.current)
+  }
   const [cropRect, setCropRect] = useState<Rect | null>(null)
   const [textAt, setTextAt] = useState<Point | null>(null)
   const [textValue, setTextValue] = useState('')
@@ -118,9 +125,10 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
         return
       }
       const next: Doc = { src: pngUrl(png), shapes: [] }
-      const fresh = createHistory(next)
       savedDoc.current = next
-      setHistory(fresh)
+      // a new capture (hotkey, paste, open) must not wipe unsaved annotations:
+      // it is one more undo step, ⌘Z brings the previous image + shapes back
+      setHistory((h) => (h.present.src ? commit(h, next) : createHistory(next)))
       setDraft(null)
       setTextAt(null)
       setCropRect(null)
@@ -255,7 +263,8 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
     if (!dragFrom.current) return
     dragFrom.current = null
     if (tool === 'crop') return
-    if (draft && !isDegenerate(draft)) apply({ ...doc, shapes: [...doc.shapes, draft] })
+    const done = draftRef.current
+    if (done && !isDegenerate(done)) apply({ ...doc, shapes: [...doc.shapes, done] })
     setDraft(null)
   }
 
@@ -429,6 +438,9 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
               ref={canvasRef}
               className={`ss-canvas tool-${tool}`}
               onPointerDown={onPointerDown}
+              // the canvas is not focusable: without this the mousedown that follows
+              // pointerdown blurs the text box the same click just opened
+              onMouseDown={(e) => e.preventDefault()}
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
               onPointerCancel={onPointerUp}

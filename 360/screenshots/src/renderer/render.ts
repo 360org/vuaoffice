@@ -105,7 +105,7 @@ export function drawShape(ctx: CanvasRenderingContext2D, s: Shape): void {
 
 /** pixel block grows with the region, so a large redaction is as unreadable as a small one */
 function blockSize(r: { width: number; height: number }): number {
-  return Math.max(8, Math.round(Math.min(r.width, r.height) / 6))
+  return Math.max(12, Math.round(Math.min(r.width, r.height) / 4))
 }
 
 function isLight(hex: string): boolean {

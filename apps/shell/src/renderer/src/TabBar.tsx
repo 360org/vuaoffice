@@ -1,8 +1,14 @@
 function ScreenshotIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-      <circle cx="12" cy="13" r="4" />
+    <svg width="16" height="16" viewBox="0 0 240 240" fill="none" aria-hidden="true">
+      <rect width="240" height="240" rx="48" fill="#0077CD" />
+      <path
+        d="M64 100V76a12 12 0 0 1 12-12h24M140 64h24a12 12 0 0 1 12 12v24M176 140v24a12 12 0 0 1-12 12h-24M100 176H76a12 12 0 0 1-12-12v-24"
+        stroke="#fff"
+        strokeWidth="16"
+        strokeLinecap="round"
+      />
+      <circle cx="120" cy="120" r="20" fill="#fff" />
     </svg>
   )
 }

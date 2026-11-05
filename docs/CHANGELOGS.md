@@ -10,6 +10,8 @@ Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaO
 - **[FIX] Menu "Giới thiệu GenOffice"**: menu ứng dụng nằm trong `packages/electron-utils/src/app-menu.ts` — ngoài phạm vi quét của động cơ whitelabel nên 25 chuỗi (21 ngôn ngữ + hộp thoại About) lọt lưới. Đã thêm tệp vào `scan.extraFiles` của `360/brand-config.json`; cổng `brand:status` giờ chặn được lỗi này.
 - **[FIX] Giao diện Hỏi AI vỡ bố cục**: lần merge `bc0057cf` làm mất 28 khối CSS `.kb-ask-*` và gán nhầm nội dung khối `.account-menu-header-row` vào `.kb-ask` (ô nhập bị đẩy lên góc phải). Khôi phục đúng bản upstream; khôi phục cả khối `prefers-reduced-motion` của Onboarding.
 - **[FIX] Hỏi AI không phản hồi khi chưa gắn sao tệp**: bỏ chặn "Cơ sở tri thức trống" — VuaAI Pro luôn trả lời như trợ lý chung; khi có tệp gắn sao thì tự bật tìm kiếm & trích dẫn.
+- **[FIX] Screenshots**: ô nhập chữ không bị mất focus ngay khi vừa mở; nét vẽ không bị mất khi nhả chuột nhanh; khối làm mờ to hơn để chữ bị che không đọc lại được; chụp/dán ảnh mới không còn xoá chú thích chưa lưu (⌘Z khôi phục được); icon tab đồng bộ kiểu các tab khác; toolbar gọn một dòng ở cửa sổ hẹp.
+- **[TEST] Screenshots e2e trên app thật**: `360/screenshots/tests/app.e2e.mjs` — 24 case (mọi công cụ vẽ, hoàn tác, cắt ảnh, clipboard hệ thống, lưu PNG/JPEG, chặn đóng khi chưa lưu, theme tối, phím tắt toàn cục, IPC từ chối dữ liệu lạ).
 
 ---
 

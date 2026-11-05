@@ -39,7 +39,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 14px;
+  gap: 6px 10px;
   padding: 8px 12px;
   background: var(--chrome-bg, var(--surface));
   border-bottom: 1px solid var(--border);
@@ -80,7 +80,19 @@
 }
 
 .ss-btn {
-  padding: 0 10px;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
+/* a narrow window keeps every control on one row: capture buttons drop their labels */
+@media (max-width: 1480px) {
+  .ss-btn:not(.primary) span {
+    display: none;
+  }
+  .ss-btn:not(.primary) {
+    width: 30px;
+    padding: 0;
+  }
 }
 
 .ss-btn.icon-only,
