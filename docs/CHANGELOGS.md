@@ -3,6 +3,16 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Chưa phát hành] - 2026-11-05
+
+### [FIX] Lỗi thương hiệu menu, giao diện và phản hồi "Hỏi AI" sau lần hợp nhất upstream 2026-10-23
+
+- **[FIX] Menu "Giới thiệu GenOffice"**: menu ứng dụng nằm trong `packages/electron-utils/src/app-menu.ts` — ngoài phạm vi quét của động cơ whitelabel nên 25 chuỗi (21 ngôn ngữ + hộp thoại About) lọt lưới. Đã thêm tệp vào `scan.extraFiles` của `360/brand-config.json`; cổng `brand:status` giờ chặn được lỗi này.
+- **[FIX] Giao diện Hỏi AI vỡ bố cục**: lần merge `bc0057cf` làm mất 28 khối CSS `.kb-ask-*` và gán nhầm nội dung khối `.account-menu-header-row` vào `.kb-ask` (ô nhập bị đẩy lên góc phải). Khôi phục đúng bản upstream; khôi phục cả khối `prefers-reduced-motion` của Onboarding.
+- **[FIX] Hỏi AI không phản hồi khi chưa gắn sao tệp**: bỏ chặn "Cơ sở tri thức trống" — VuaAI Pro luôn trả lời như trợ lý chung; khi có tệp gắn sao thì tự bật tìm kiếm & trích dẫn.
+
+---
+
 ## [1.0.62] - 2026-10-24
 
 ### [SCREENSHOTS/360] Mô-đun Chụp Màn Hình & Trình Biên Tập Ảnh Vector Độc Quyền

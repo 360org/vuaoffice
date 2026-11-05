@@ -620,18 +620,9 @@ export function KbAskPanel({
       // keep the mount snapshot
     }
     if (askSeqRef.current !== seq) return
-    // a question about an attached file needs no starred corpus
-    if (corpusRef.current.length === 0 && availableAttachments().length === 0) {
-      setMessages((prev) => [
-        ...prev,
-        { role: 'user', text: instruction, toolNotes: [], artifacts: [] },
-        { role: 'assistant', text: t('askEmptyCorpus'), toolNotes: [], artifacts: [] },
-      ])
-      persist({ role: 'user', text: instruction })
-      persist({ role: 'assistant', text: t('askEmptyCorpus') })
-      setBusy(false)
-      return
-    }
+    // 360: no starred files is not a dead end — the model still answers as a
+    // general assistant (the knowledge-base skill drops its prompt and tools
+    // when the corpus is empty; files/docs/cli skills stay available)
     setMessages((prev) => [
       ...prev,
       {

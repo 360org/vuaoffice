@@ -244,7 +244,8 @@ describe('checkUpdatesMenuItem / manual update check wiring', () => {
   it('About dialog copy button still copies name + version', async () => {
     electronMock.showMessageBox.mockResolvedValue({ response: 1 })
     await (aboutMenuItem(en) as { click: () => Promise<void> }).click()
-    expect(electronMock.writeText).toHaveBeenCalledWith('GenOffice 1.2.3')
+    // product name follows the whitelabel engine (upstream: GenOffice, 360: VuaOffice)
+    expect(electronMock.writeText).toHaveBeenCalledWith(expect.stringMatching(/^(Gen|Vua)Office 1\.2\.3$/))
   })
 })
 

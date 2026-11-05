@@ -42,9 +42,10 @@
       "release",
       "target"
     ],
-    "_extraFilesDoc": "Tệp nằm ngoài cây includeDirs nhưng vẫn sinh ra chuỗi NGƯỜI DÙNG THẤY. Thiếu mục này, cấu hình đóng gói là ĐIỂM MÙ của cổng kiểm tra: tên tệp cài đặt rpm đã mang thương hiệu upstream (genoffice-<v>.rpm) suốt nhiều bản phát hành mà không cổng nào phát hiện.",
+    "_extraFilesDoc": "Tệp nằm ngoài cây includeDirs nhưng vẫn sinh ra chuỗi NGƯỜI DÙNG THẤY. Thiếu mục này, cấu hình đóng gói là ĐIỂM MÙ của cổng kiểm tra: tên tệp cài đặt rpm đã mang thương hiệu upstream (genoffice-<v>.rpm) suốt nhiều bản phát hành mà không cổng nào phát hiện. Menu ứng dụng (Giới thiệu …, hộp thoại About) nằm trong packages/electron-utils — ngoài cây apps/ — nên cũng phải liệt kê ở đây (lỗi \"Giới thiệu GenOffice\" v1.0.62).",
     "extraFiles": [
-      "apps/shell/electron-builder.cjs"
+      "apps/shell/electron-builder.cjs",
+      "packages/electron-utils/src/app-menu.ts"
     ]
   },
   "replacements": [

@@ -2539,12 +2539,250 @@ html[dir='rtl'] .quick-title-row {
 .kb-ask {
   position: relative;
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: 0 24px 16px;
+  max-width: 860px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 /* has corpus, nothing asked yet: one quiet centered line */
+/* restored from upstream: lost in the 2026-10-23 merge (bc0057cf), used by KbAskPanel / Home drop overlay */
+/* Drag-over affordance while OS files hover anywhere over the window (the
+   open itself is handled by the preload drop bridge, not this overlay) */
+.home-drop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300; /* above modals (100): a drag in progress always leads */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-overlay);
+  /* never intercepts events — the drop must land on the page underneath */
+  pointer-events: none;
+}
+
+.home-drop-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 36px 56px;
+  background: var(--surface);
+  border: 2px dashed var(--accent);
+  border-radius: var(--radius-16);
+  box-shadow: var(--shadow-modal-strong);
+  color: var(--accent);
+  animation: menu-in 0.12s ease;
+}
+
+.home-drop-card h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.home-drop-card p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Extension labels like ".docx" read left-to-right even in the RTL UI */
+html[dir='rtl'] .quick-sub {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/* macOS traffic lights live in the window's top-left corner; under RTL the
+   content column is the leading (left) column and scrolls, so its rows and
+   hover actions would slide under the close/minimize/zoom buttons. LTR never
+   hits this because the left sidebar occupies that corner for its full
+   height — mirror the same clearance on the content column. */
+html[dir='rtl'] body.mac .content {
+  padding-left: 76px;
+}
+
+.kb-ask-headbar {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 14px 2px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 12px;
+}
+
+.kb-ask-headbar b {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.kb-ask-headbar span {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.kb-ask-thread {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 2px;
+}
+
+/* empty-corpus hero: the only useful move is starring files, so the panel
+   says so and offers the jump instead of leaving a bare hint */
+.kb-ask-hero {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding-bottom: 8px;
+}
+
+.kb-ask-hero-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 15px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.kb-ask-hero h3 {
+  margin: 0 0 6px;
+  font-size: 19px;
+  font-weight: 500;
+}
+
+.kb-ask-hero > p {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  max-width: 46ch;
+  line-height: 1.6;
+}
+
+.kb-ask-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  width: 100%;
+  margin: 26px 0 20px;
+}
+
+.kb-ask-step {
+  background: var(--surface-subtle);
+  border-radius: 12px;
+  padding: 13px 14px;
+  text-align: left;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.kb-ask-step-num {
+  flex-shrink: 0;
+  width: 21px;
+  height: 21px;
+  border-radius: 99px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+.kb-ask-step b {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  margin: 1px 0 3px;
+}
+
+.kb-ask-step > div > span {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  display: block;
+}
+
+.kb-ask-cta {
+  appearance: none;
+  border: none;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--accent);
+  color: var(--color-btn-primary-text);
+  border-radius: 10px;
+  padding: 9px 18px;
+  cursor: pointer;
+  transition: background var(--transition-fast, 150ms);
+}
+
+.kb-ask-cta:hover {
+  background: var(--accent-hover);
+}
+
+.kb-ask-nosave svg {
+  flex-shrink: 0;
+}
+
+.kb-ask-msg {
+  font-size: 13.5px;
+  line-height: 1.55;
+  max-width: 92%;
+  white-space: normal;
+}
+
+.kb-ask-user {
+  align-self: flex-end;
+  background: var(--accent-soft);
+  border-radius: 12px 12px 4px 12px;
+  padding: 8px 12px;
+}
+
+.kb-ask-assistant {
+  align-self: flex-start;
+}
+
+.kb-ask-error {
+  color: var(--danger);
+}
+
+.kb-ask-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 7px;
+}
+
+.kb-ask-assistant a:hover {
+  text-decoration: underline;
+}
+
 .kb-ask-hint {
   margin: auto 0;
   text-align: center;
@@ -2660,8 +2898,8 @@ html[dir='rtl'] .quick-title-row {
   font-size: 12px;
   color: var(--text-tertiary);
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 6px;
 }
 
 .account-menu-user-details {
