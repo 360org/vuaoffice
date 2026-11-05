@@ -121,6 +121,18 @@ const LINUX_SIDECAR =
   linuxSidecarCandidates.find((rel) => existsSync(join(__dirname, rel))) ??
   linuxSidecarCandidates[0]
 
+function harfbuzzWasmSource() {
+  for (const rel of [
+    '../../node_modules/harfbuzzjs/dist/harfbuzz-subset.wasm',
+    '../../node_modules/harfbuzzjs/hb-subset.wasm',
+    '../pdf/node_modules/harfbuzzjs/dist/harfbuzz-subset.wasm',
+    '../pdf/node_modules/harfbuzzjs/hb-subset.wasm',
+  ]) {
+    if (existsSync(join(__dirname, rel))) return rel
+  }
+  return '../../node_modules/harfbuzzjs/dist/harfbuzz-subset.wasm'
+}
+
 function assertExtraResourceSources() {
   for (const rel of [
     '../../node_modules/@genspark/cli',
@@ -128,7 +140,7 @@ function assertExtraResourceSources() {
     '../../node_modules/ws',
     '../../node_modules/electron/dist/LICENSES.chromium.html',
     '../../node_modules/@embedpdf/pdfium/dist/pdfium.wasm',
-    '../pdf/node_modules/harfbuzzjs/hb-subset.wasm',
+    harfbuzzWasmSource(),
     '../../node_modules/@rhwp/core/rhwp_bg.wasm',
   ]) {
     if (!existsSync(join(__dirname, rel))) {
@@ -621,7 +633,7 @@ const config = {
       to: 'wasm/pdfium.wasm',
     },
     {
-      from: '../pdf/node_modules/harfbuzzjs/hb-subset.wasm',
+      from: harfbuzzWasmSource(),
       to: 'wasm/hb-subset.wasm',
     },
     // .hwp import (packages/hwp2docx/src/hwp.ts): rhwp reads HWP binaries into HWPX
