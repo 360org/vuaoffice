@@ -5,7 +5,7 @@ export const nl = {
   aiEmptyBuildTitle: 'Laat AI deze werkmap voor je opbouwen',
   aiEmptyBuildBody:
     'Beschrijf de tabel, gegevens of grafiek die je nodig hebt — AI maakt het direct.',
-  aiGskLoginBtn: 'Aanmelden bij VuaOffice',
+  aiGskLoginBtn: 'Aanmelden bij Genspark',
   aiUndelivered: 'Niet verzonden',
   aiRetry: 'Opnieuw proberen',
   aiOpenAssistant: 'AI-assistent openen',
@@ -56,7 +56,7 @@ export const nl = {
   aiLoggedInAs: 'Aangemeld: {email}',
   aiNotLoggedIn: 'Niet aangemeld (AI-functies vereisen een Genspark-account)',
   aiWaitingBrowserLogin: 'Wachten op aanmelding in de browser…',
-  aiLoginGenspark: 'Aanmelden bij VuaOffice',
+  aiLoginGenspark: 'Aanmelden bij Genspark',
   aiModel: 'Model',
   aiCancel: 'Annuleren',
   aiSave: 'Opslaan',

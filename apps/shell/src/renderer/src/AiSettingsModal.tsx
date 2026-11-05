@@ -114,7 +114,7 @@ export function AiSettingsModal({ onClose, initialDevMode = false }: AiSettingsM
         <form className="ai-settings-form" onSubmit={handleSave}>
           <div className="ai-settings-group" style={{ marginBottom: '16px' }}>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-              VuaOffice tự động đồng bộ tài khoản AI của bạn qua vuahethong.net. Nhập mã định tuyến
+              GenOffice tự động đồng bộ tài khoản AI của bạn qua vuahethong.net. Nhập mã định tuyến
               AI Pack của bạn vào ô dưới đây để sử dụng mô hình tùy chỉnh.
             </p>
           </div>

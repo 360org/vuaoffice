@@ -1580,7 +1580,7 @@ export function ViewTab({
                     }}
                   >
                     {w.focused ? '✓ ' : ''}
-                    {w.title || 'VuaOffice Docs'}
+                    {w.title || 'GenOffice Docs'}
                   </button>
                 ))}
               </div>
