@@ -428,6 +428,9 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
           <button className="ss-text-btn" onClick={() => void api.openPermissionSettings()}>
             {s.permissionOpen}
           </button>
+          <button className="ss-text-btn primary" onClick={() => void api.relaunchApp()}>
+            {s.permissionRelaunch}
+          </button>
         </div>
       )}
 

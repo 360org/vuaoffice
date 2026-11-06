@@ -39,6 +39,7 @@ const en = {
   permissionHint:
     'macOS has not allowed VuaOffice to record the screen, so captures show only the desktop. Allow it in System Settings, then restart VuaOffice.',
   permissionOpen: 'Open System Settings',
+  permissionRelaunch: 'Relaunch VuaOffice',
   captureFailed: 'Screen capture failed: {error}',
   cropHint: 'Drag to choose the area to keep, then press Enter.',
   unsavedTitle: 'Save the annotated screenshot?',
@@ -90,6 +91,7 @@ const vi: ScreenshotsStrings = {
   permissionHint:
     'macOS chưa cho phép VuaOffice ghi màn hình nên ảnh chụp chỉ thấy hình nền. Hãy cấp quyền trong Cài đặt hệ thống rồi khởi động lại VuaOffice.',
   permissionOpen: 'Mở Cài đặt hệ thống',
+  permissionRelaunch: 'Khởi động lại VuaOffice',
   captureFailed: 'Chụp màn hình thất bại: {error}',
   cropHint: 'Kéo để chọn vùng cần giữ, rồi nhấn Enter.',
   unsavedTitle: 'Lưu ảnh chụp đã chú thích?',

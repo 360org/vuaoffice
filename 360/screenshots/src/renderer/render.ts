@@ -1,4 +1,4 @@
-import { arrowHead, clampRect, pixelate } from '../shared/geometry'
+import { clampRect, pixelate, taperedArrowPolygon } from '../shared/geometry'
 import type { Shape } from '../shared/types'
 
 /**
@@ -15,19 +15,20 @@ export function drawShape(ctx: CanvasRenderingContext2D, s: Shape): void {
   ctx.lineJoin = 'round'
   switch (s.tool) {
     case 'arrow': {
-      const head = Math.max(12, s.width * 4)
-      const [l, r] = arrowHead(s.from, s.to, head)
+      // Yandex.Disk tapered arrow ("đầu to đuôi nhỏ")
+      const pts = taperedArrowPolygon(s.from, s.to, s.width)
+      if (pts.length < 3) break
+      ctx.lineWidth = 1
+      ctx.lineJoin = 'miter'
+      ctx.miterLimit = 4
       ctx.beginPath()
-      ctx.moveTo(s.from.x, s.from.y)
-      // stop the shaft at the head's base so a thick line does not poke through the tip
-      ctx.lineTo((l.x + r.x) / 2, (l.y + r.y) / 2)
-      ctx.stroke()
-      ctx.beginPath()
-      ctx.moveTo(s.to.x, s.to.y)
-      ctx.lineTo(l.x, l.y)
-      ctx.lineTo(r.x, r.y)
+      ctx.moveTo(pts[0].x, pts[0].y)
+      for (let i = 1; i < pts.length; i++) {
+        ctx.lineTo(pts[i].x, pts[i].y)
+      }
       ctx.closePath()
       ctx.fill()
+      ctx.stroke()
       break
     }
     case 'line':

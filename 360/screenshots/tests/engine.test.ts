@@ -3,6 +3,7 @@ import {
   normalizeRect,
   clampRect,
   arrowHead,
+  taperedArrowPolygon,
   pixelate,
 } from '../src/shared/geometry'
 import {
@@ -46,6 +47,23 @@ describe('VuaOffice Screenshots (360/screenshots)', () => {
       expect(l.x).toBeLessThan(100)
       expect(r.x).toBeLessThan(100)
       expect(l.y).toBeCloseTo(-r.y, 4)
+    })
+
+    it('taperedArrowPolygon generates 7 points with expanding shaft matching Yandex.Disk', () => {
+      const pts = taperedArrowPolygon({ x: 0, y: 0 }, { x: 200, y: 0 }, 4)
+      expect(pts).toHaveLength(7)
+      // Tip is at target
+      expect(pts[0]).toEqual({ x: 200, y: 0 })
+      // Tail width (pts[3] to pts[4])
+      const tailWidth = Math.abs(pts[3].y - pts[4].y)
+      // Neck width (pts[2] to pts[5])
+      const neckWidth = Math.abs(pts[2].y - pts[5].y)
+      // Head barbs width (pts[1] to pts[6])
+      const headWidth = Math.abs(pts[1].y - pts[6].y)
+
+      // "Đầu to đuôi nhỏ": Tail width < Neck width < Head barbs width
+      expect(tailWidth).toBeLessThan(neckWidth)
+      expect(neckWidth).toBeLessThan(headWidth)
     })
 
     it('pixelate averages color blocks destructively in RGBA buffer', () => {

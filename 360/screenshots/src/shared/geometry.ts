@@ -31,6 +31,47 @@ export function arrowHead(from: Point, to: Point, size: number): [Point, Point] 
 }
 
 /**
+ * 7 polygon vertices of a Yandex.Disk-style tapered arrow ("đầu to đuôi nhỏ").
+ * The shaft expands from `tailWidth` at `from` to `neckWidth` at the neck,
+ * where `headWidth` barbs flare out and converge at `to`.
+ */
+export function taperedArrowPolygon(from: Point, to: Point, width: number): Point[] {
+  const dx = to.x - from.x
+  const dy = to.y - from.y
+  const len = Math.hypot(dx, dy)
+  if (len < 1) return [from, to]
+
+  const ux = dx / len
+  const uy = dy / len
+  const nx = -uy
+  const ny = ux
+
+  const headLen = Math.min(len * 0.55, Math.max(16, width * 4.5))
+  const headWidth = Math.max(12, width * 3.8)
+  const neckWidth = Math.max(3.5, width * 1.6)
+  const tailWidth = Math.max(1.5, width * 0.45)
+  const shaftLen = Math.max(0, len - headLen)
+
+  const neckX = from.x + ux * shaftLen
+  const neckY = from.y + uy * shaftLen
+
+  // Aerodynamic recessed barb base
+  const barbIndent = headLen * 0.15
+  const barbX = neckX - ux * barbIndent
+  const barbY = neckY - uy * barbIndent
+
+  return [
+    { x: to.x, y: to.y }, // 1. tip
+    { x: barbX + nx * headWidth, y: barbY + ny * headWidth }, // 2. right barb
+    { x: neckX + nx * (neckWidth / 2), y: neckY + ny * (neckWidth / 2) }, // 3. right neck
+    { x: from.x + nx * (tailWidth / 2), y: from.y + ny * (tailWidth / 2) }, // 4. right tail
+    { x: from.x - nx * (tailWidth / 2), y: from.y - ny * (tailWidth / 2) }, // 5. left tail
+    { x: neckX - nx * (neckWidth / 2), y: neckY - ny * (neckWidth / 2) }, // 6. left neck
+    { x: barbX - nx * headWidth, y: barbY - ny * headWidth }, // 7. left barb
+  ]
+}
+
+/**
  * Pixelate a region of RGBA pixels in place (blocks of `block`×`block` take
  * their average color) — irreversible, unlike a gaussian blur, so redacted
  * text cannot be recovered from the exported image.

@@ -14,6 +14,7 @@ const api: ScreenshotsApi = {
   openImage: () => ipcRenderer.invoke(CH.openImage),
   setDirty: (dirty) => ipcRenderer.send(CH.setDirty, dirty),
   openPermissionSettings: () => ipcRenderer.invoke(CH.openPermissionSettings),
+  relaunchApp: () => ipcRenderer.invoke(CH.relaunchApp),
   onSaveRequest(handler) {
     const listener = () => {
       void handler().then(

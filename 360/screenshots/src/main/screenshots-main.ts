@@ -289,4 +289,8 @@ export function registerScreenshotsIpc(): void {
       ? shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture')
       : undefined,
   )
+  ipcMain.handle(CH.relaunchApp, () => {
+    app.relaunch()
+    app.exit(0)
+  })
 }

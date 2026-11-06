@@ -8,6 +8,7 @@ export const SCREENSHOTS_CHANNELS = {
   openImage: 'screenshots:open-image',
   setDirty: 'screenshots:set-dirty',
   openPermissionSettings: 'screenshots:open-permission-settings',
+  relaunchApp: 'screenshots:relaunch-app',
   /** main → renderer: the close prompt chose Save; renderer answers on saveResult */
   saveRequest: 'screenshots:save-request',
   saveResult: 'screenshots:save-result',
@@ -35,6 +36,7 @@ export interface ScreenshotsApi {
   openImage(): Promise<Uint8Array | null>
   setDirty(dirty: boolean): void
   openPermissionSettings(): Promise<void>
+  relaunchApp(): Promise<void>
   /** the close prompt chose Save: run the save flow and report whether it landed */
   onSaveRequest(handler: () => Promise<boolean>): () => void
 }
