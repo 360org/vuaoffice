@@ -4,8 +4,11 @@ import iconPptx from './assets/file-pptx.svg'
 import iconPdf from './assets/file-pdf.svg'
 import iconMd from './assets/file-md.svg'
 import iconHtml from './assets/file-html.svg'
+import iconScreenshots from './assets/file-screenshots.svg'
 
 const FILE_ICONS: Record<string, string> = {
+  screenshots: iconScreenshots,
+  png: iconScreenshots,
   docx: iconDocx,
   odt: iconDocx,
   ott: iconDocx,

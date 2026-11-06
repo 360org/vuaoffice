@@ -1,0 +1,13 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="240" height="240" rx="48" fill="#0077CD"/>
+<!-- Viewfinder Corner Marks -->
+<path d="M60 92V68C60 63.5817 63.5817 60 68 60H92" stroke="white" stroke-width="12" stroke-linecap="round"/>
+<path d="M148 60H172C176.418 60 180 63.5817 180 68V92" stroke="white" stroke-width="12" stroke-linecap="round"/>
+<path d="M180 148V172C180 176.418 176.418 180 172 180H148" stroke="white" stroke-width="12" stroke-linecap="round"/>
+<path d="M92 180H68C63.5817 180 60 176.418 60 172V148" stroke="white" stroke-width="12" stroke-linecap="round"/>
+<!-- Center Camera Aperture / Lens -->
+<circle cx="120" cy="120" r="32" stroke="white" stroke-width="12"/>
+<circle cx="120" cy="120" r="14" fill="white"/>
+<!-- Top Flash Indicator -->
+<circle cx="152" cy="88" r="6" fill="#00CE2C"/>
+</svg>

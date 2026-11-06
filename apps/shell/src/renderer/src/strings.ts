@@ -81,6 +81,7 @@ export const strings = {
     colSize: '大小',
     // Quick start
     newDoc: 'AI Docs',
+    newScreenshots: 'AI 截图',
     newSheet: 'AI Sheets',
     newSlide: 'AI Slides',
     newMarkdown: 'AI Markdown',
@@ -620,6 +621,7 @@ export const strings = {
     colModified: 'Modified',
     colSize: 'Size',
     newDoc: 'AI Docs',
+    newScreenshots: 'AI Screenshots',
     newSheet: 'AI Sheets',
     newSlide: 'AI Slides',
     newMarkdown: 'AI Markdown',
@@ -1162,6 +1164,7 @@ export const strings = {
     colModified: 'Đã sửa đổi',
     colSize: 'Kích thước',
     newDoc: 'Tài liệu AI',
+    newScreenshots: 'Chụp màn hình AI',
     newSheet: 'Bảng tính AI',
     newSlide: 'Bản trình bày AI',
     newMarkdown: 'AI Markdown',
@@ -1720,6 +1723,7 @@ export const strings = {
     colModified: 'Değiştirilme',
     colSize: 'Boyut',
     newDoc: 'AI Docs',
+    newScreenshots: 'AI Ekran Görüntüsü',
     newSheet: 'AI Sheets',
     newSlide: 'AI Slides',
     newMarkdown: 'AI Markdown',
@@ -2293,6 +2297,7 @@ export const strings = {
     colSize: 'サイズ',
     // Quick start
     newDoc: 'AI Docs',
+    newScreenshots: 'AI スクリーンショット',
     newSheet: 'AI Sheets',
     newSlide: 'AI Slides',
     newMarkdown: 'AI Markdown',
@@ -2861,6 +2866,7 @@ export const strings = {
     colSize: '크기',
     // Quick start
     newDoc: 'AI Docs',
+    newScreenshots: 'AI 스크린샷',
     newSheet: 'AI Sheets',
     newSlide: 'AI Slides',
     newMarkdown: 'AI Markdown',
@@ -3423,6 +3429,7 @@ export const strings = {
     colSize: 'Taille',
     // Quick start
     newDoc: 'AI Docs',
+    newScreenshots: 'Captures AI',
     newSheet: 'AI Sheets',
     newSlide: 'AI Slides',
     newMarkdown: 'AI Markdown',
@@ -4001,6 +4008,7 @@ export const strings = {
     colSize: 'Größe',
     // Quick start
     newDoc: 'AI Docs',
+    newScreenshots: 'KI-Screenshots',
     newSheet: 'AI Sheets',
     newSlide: 'AI Slides',
     newMarkdown: 'AI Markdown',
@@ -4577,6 +4585,7 @@ export const strings = {
     colSize: 'Tamaño',
     // Quick start
     newDoc: 'AI Docs',
+    newScreenshots: 'لقطات شاشة AI',
     newSheet: 'AI Sheets',
     newSlide: 'AI Slides',
     newMarkdown: 'AI Markdown',
@@ -5150,6 +5159,7 @@ export const strings = {
     colSize: 'ขนาด',
     // Quick start
     newDoc: 'AI Docs',
+    newScreenshots: 'ภาพหน้าจอ AI',
     newSheet: 'AI Sheets',
     newSlide: 'AI Slides',
     newMarkdown: 'AI Markdown',
@@ -5706,6 +5716,7 @@ export const strings = {
     colSize: 'Ukuran',
     // Quick start
     newDoc: 'AI Docs',
+    newScreenshots: 'Tangkapan Layar AI',
     newSheet: 'AI Sheets',
     newSlide: 'AI Slides',
     newMarkdown: 'AI Markdown',
@@ -6273,6 +6284,7 @@ export const strings = {
     colSize: 'Размер',
     // Quick start
     newDoc: 'AI Docs',
+    newScreenshots: 'AI Скриншоты',
     newSheet: 'AI Sheets',
     newSlide: 'AI Slides',
     newMarkdown: 'AI Markdown',
@@ -6757,6 +6769,7 @@ export const strings = {
     checkForUpdates: 'Проверить обновления…',
   },
   ar: {
+    newScreenshots: 'لقطات شاشة AI',
 
     defaultProject: "Default Project",
     deleteProject: "Delete Project…",
@@ -7397,6 +7410,7 @@ export const strings = {
     colModified: 'Modificado',
     colSize: 'Tamanho',
     newDoc: 'AI Docs',
+    newScreenshots: 'Capturas de IA',
     newSheet: 'AI Sheets',
     newSlide: 'AI Slides',
     newMarkdown: 'AI Markdown',
@@ -7961,6 +7975,7 @@ export const strings = {
     colModified: 'Modificato',
     colSize: 'Dimensione',
     newDoc: 'AI Docs',
+    newScreenshots: 'Screenshot AI',
     newSheet: 'AI Sheets',
     newSlide: 'AI Slides',
     newMarkdown: 'AI Markdown',
@@ -8523,6 +8538,7 @@ export const strings = {
     colModified: 'Zmodyfikowano',
     colSize: 'Rozmiar',
     newDoc: 'AI Docs',
+    newScreenshots: 'Zrzuty ekranu AI',
     newSheet: 'AI Sheets',
     newSlide: 'AI Slides',
     newMarkdown: 'AI Markdown',
@@ -9082,6 +9098,7 @@ export const strings = {
     colModified: 'Změněno',
     colSize: 'Velikost',
     newDoc: 'AI Docs',
+    newScreenshots: 'AI Snímky obrazovky',
     newSheet: 'AI Sheets',
     newSlide: 'AI Slides',
     newMarkdown: 'AI Markdown',
@@ -9638,6 +9655,7 @@ export const strings = {
     colModified: 'Gewijzigd',
     colSize: 'Grootte',
     newDoc: 'AI Docs',
+    newScreenshots: 'AI Schermafbeeldingen',
     newSheet: 'AI Sheets',
     newSlide: 'AI Slides',
     newMarkdown: 'AI Markdown',
@@ -10197,6 +10215,7 @@ export const strings = {
     colModified: 'Diubah suai',
     colSize: 'Saiz',
     newDoc: 'AI Docs',
+    newScreenshots: 'Tangkapan Skrin AI',
     newSheet: 'AI Sheets',
     newSlide: 'AI Slides',
     newMarkdown: 'AI Markdown',
@@ -10757,6 +10776,7 @@ export const strings = {
     colModified: 'שונה',
     colSize: 'גודל',
     newDoc: 'AI Docs',
+    newScreenshots: 'צילומי מסך AI',
     newSheet: 'AI Sheets',
     newSlide: 'AI Slides',
     newMarkdown: 'AI Markdown',
@@ -11221,6 +11241,7 @@ export const strings = {
     checkForUpdates: 'Check for Updates…',
   },
   hi: {
+    newScreenshots: 'एआई स्क्रीनशॉट',
 
     defaultProject: "Default Project",
     deleteProject: "Delete Project…",
@@ -11855,6 +11876,7 @@ export const strings = {
     colModified: '修改時間',
     colSize: '大小',
     newDoc: 'AI Docs',
+    newScreenshots: 'AI 截圖',
     newSheet: 'AI Sheets',
     newSlide: 'AI Slides',
     newMarkdown: 'AI Markdown',

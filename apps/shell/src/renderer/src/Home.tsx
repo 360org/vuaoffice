@@ -3284,11 +3284,10 @@ export function Home() {
 
   const NEW_ITEMS = [
     {
-      ext: 'png',
-      title: 'Screenshots',
-      sub: 'Chụp & Biên tập ảnh',
+      ext: 'screenshots',
+      title: t('newScreenshots'),
+      sub: '.png',
       action: () => void window.aiOffice.newScreenshots?.(),
-      badge: '360',
     },
 
     {
