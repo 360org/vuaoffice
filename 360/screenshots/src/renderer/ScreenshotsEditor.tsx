@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { CAPTURE_ACCELERATORS } from '../shared/capture-args'
 import type { CaptureOutcome, ScreenshotsApi } from '../shared/channels'
-import { cropHitTest, dragCrop, normalizeRect, type CropHandle } from '../shared/geometry'
+import { cropHitTest, dragCrop, normalizeRect, stepZoom, type CropHandle } from '../shared/geometry'
 import { commit, createHistory, redo, undo, type History } from '../shared/history'
 import { fill, screenshotsStrings } from '../shared/i18n'
 import {
@@ -57,6 +57,11 @@ const TOOLS: Array<{ id: EditorTool; key: string; label: keyof ReturnType<typeof
 ]
 
 const IS_MAC = navigator.platform.toLowerCase().includes('mac')
+
+/** Tooltip spelling of a ⌘/Ctrl shortcut on this platform. */
+const kbd = (key: string, shift = false) => (IS_MAC ? `${shift ? '⇧' : ''}⌘${key}` : `Ctrl+${shift ? 'Shift+' : ''}${key}`)
+const hotkeyLabel = (accel: string) =>
+  IS_MAC ? accel.replace('CommandOrControl+Alt+Shift+', '⌥⇧⌘') : accel.replace('CommandOrControl', 'Ctrl')
 const MAX_IMAGE_BYTES = 100 * 1024 * 1024
 
 function shortcutLabel(accel: string): string {
@@ -90,7 +95,8 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
   const [cropCursor, setCropCursor] = useState('crosshair')
   const [textAt, setTextAt] = useState<Point | null>(null)
   const [textValue, setTextValue] = useState('')
-  const [fit, setFit] = useState(true)
+  /** null = fit the window; otherwise CSS pixels per image pixel */
+  const [zoom, setZoom] = useState<number | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [permissionDenied, setPermissionDenied] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -150,7 +156,7 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
       setDraft(null)
       setTextAt(null)
       setCropRect(null)
-      setFit(true)
+      setZoom(null)
       setTool(needsCrop ? 'crop' : 'arrow')
       if (needsCrop) flash(s.cropHint)
     },
@@ -350,10 +356,29 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
   // ── keyboard & paste ──
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement) return
       const mod = IS_MAC ? e.metaKey : e.ctrlKey
       const k = e.key.toLowerCase()
-      if (mod && k === 'z') {
+      if (e.target instanceof HTMLInputElement) {
+        // the shell menu is bypassed for these keys (screenshots-main), so do its job in the text box
+        if (mod && (k === 'c' || k === 'z')) document.execCommand(k === 'c' ? 'copy' : e.shiftKey ? 'redo' : 'undo')
+        return
+      }
+      if (mod && !e.altKey && (k === '=' || k === '+' || k === '-' || k === '0') && base) {
+        e.preventDefault()
+        const next = k === '0' ? 1 : stepZoom(canvasScale, k === '-' ? -1 : 1)
+        setZoom(next)
+        flash(`${Math.round(next * 100)}%`)
+      } else if (mod && k === 'o') {
+        e.preventDefault()
+        void openImage()
+      } else if (tool === 'crop' && cropRect && base && e.key.startsWith('Arrow')) {
+        e.preventDefault()
+        // same nudge as Yandex.Disk: 1px, 4px with Shift
+        const d = e.shiftKey ? 4 : 1
+        const dx = e.key === 'ArrowLeft' ? -d : e.key === 'ArrowRight' ? d : 0
+        const dy = e.key === 'ArrowUp' ? -d : e.key === 'ArrowDown' ? d : 0
+        setCropRect(dragCrop(cropRect, 'move', dx, dy, base.naturalWidth, base.naturalHeight))
+      } else if (mod && k === 'z') {
         e.preventDefault()
         setHistory((h) => (e.shiftKey ? redo(h) : undo(h)))
       } else if (mod && k === 'y') {
@@ -393,16 +418,17 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
     }
   })
 
-  const canvasScale = base && canvasRef.current ? canvasRef.current.getBoundingClientRect().width / base.naturalWidth : 1
+  const canvasScale =
+    zoom ?? (base && canvasRef.current ? canvasRef.current.getBoundingClientRect().width / base.naturalWidth : 1)
 
   return (
     <div className="ss-root">
       <div className="ss-toolbar" role="toolbar">
         <div className="ss-group">
-          <Btn icon="area" label={s.captureArea} onClick={() => void capture('area')} disabled={busy} primary />
-          <Btn icon="window" label={s.captureWindow} onClick={() => void capture('window')} disabled={busy} />
-          <Btn icon="fullscreen" label={s.captureFullscreen} onClick={() => void capture('fullscreen')} disabled={busy} />
-          <Btn icon="open" label={s.openImage} onClick={() => void openImage()} />
+          <Btn icon="area" label={s.captureArea} shortcut={hotkeyLabel(CAPTURE_ACCELERATORS.area)} onClick={() => void capture('area')} disabled={busy} primary />
+          <Btn icon="window" label={s.captureWindow} shortcut={hotkeyLabel(CAPTURE_ACCELERATORS.window)} onClick={() => void capture('window')} disabled={busy} />
+          <Btn icon="fullscreen" label={s.captureFullscreen} shortcut={hotkeyLabel(CAPTURE_ACCELERATORS.fullscreen)} onClick={() => void capture('fullscreen')} disabled={busy} />
+          <Btn icon="open" label={s.openImage} shortcut={kbd('O')} onClick={() => void openImage()} />
         </div>
         <div className="ss-group" aria-label="tools">
           {TOOLS.map((t) => (
@@ -449,13 +475,18 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
           ))}
         </div>
         <div className="ss-group ss-end">
-          <Btn icon="undo" label={s.undo} onClick={() => setHistory(undo)} disabled={history.past.length === 0} iconOnly />
-          <Btn icon="redo" label={s.redo} onClick={() => setHistory(redo)} disabled={history.future.length === 0} iconOnly />
-          <button className="ss-text-btn" onClick={() => setFit((f) => !f)} disabled={!base}>
-            {fit ? s.zoomActual : s.zoomFit}
+          <Btn icon="undo" label={s.undo} shortcut={kbd('Z')} onClick={() => setHistory(undo)} disabled={history.past.length === 0} iconOnly />
+          <Btn icon="redo" label={s.redo} shortcut={kbd('Z', true)} onClick={() => setHistory(redo)} disabled={history.future.length === 0} iconOnly />
+          <button
+            className="ss-text-btn"
+            onClick={() => setZoom((z) => (z === null ? 1 : null))}
+            disabled={!base}
+            title={`${kbd('0')} · ${kbd('+')} · ${kbd('−')}`}
+          >
+            {zoom === null ? s.zoomActual : s.zoomFit}
           </button>
-          <Btn icon="copy" label={s.copy} onClick={() => void copy()} disabled={!base} />
-          <Btn icon="save" label={s.save} onClick={() => void save()} disabled={!base} primary />
+          <Btn icon="copy" label={s.copy} shortcut={kbd('C')} onClick={() => void copy()} disabled={!base} />
+          <Btn icon="save" label={s.save} shortcut={kbd('S')} onClick={() => void save()} disabled={!base} primary />
         </div>
       </div>
 
@@ -483,7 +514,7 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
         </div>
       )}
 
-      <div className={`ss-stage${fit ? ' fit' : ''}`}>
+      <div className={`ss-stage${zoom === null ? ' fit' : ''}`}>
         {base ? (
           <div
             className="ss-canvas-wrap"
@@ -495,7 +526,10 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
             <canvas
               ref={canvasRef}
               className={`ss-canvas tool-${tool}`}
-              style={tool === 'crop' ? { cursor: cropCursor } : undefined}
+              style={{
+                ...(zoom !== null && base ? { width: base.naturalWidth * zoom } : {}),
+                ...(tool === 'crop' ? { cursor: cropCursor } : {}),
+              }}
               // the canvas is not focusable: without this the mousedown that follows
               // pointerdown blurs the text box the same click just opened
               onMouseDown={(e) => e.preventDefault()}
@@ -575,14 +609,16 @@ function Btn(props: {
   disabled?: boolean
   primary?: boolean
   iconOnly?: boolean
+  shortcut?: string
 }) {
   return (
     <button
       className={`ss-btn${props.primary ? ' primary' : ''}${props.iconOnly ? ' icon-only' : ''}`}
       onClick={props.onClick}
       disabled={props.disabled}
-      title={props.label}
+      title={props.shortcut ? `${props.label} (${props.shortcut})` : props.label}
       aria-label={props.label}
+      aria-keyshortcuts={props.shortcut}
     >
       {ICONS[props.icon]}
       {!props.iconOnly && <span>{props.label}</span>}

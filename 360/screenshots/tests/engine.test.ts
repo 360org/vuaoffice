@@ -6,6 +6,7 @@ import {
   taperedArrowPolygon,
   cropHitTest,
   dragCrop,
+  stepZoom,
   pixelate,
 } from '../src/shared/geometry'
 import {
@@ -17,6 +18,7 @@ import {
 import {
   screencaptureArgs,
   CAPTURE_ACCELERATORS,
+  isEditorShortcut,
 } from '../src/shared/capture-args'
 import {
   screenshotsStrings,
@@ -171,5 +173,31 @@ describe('Crop frame (Yandex.Disk style handles)', () => {
   it('dragCrop clamps to the image and flips cleanly past the opposite edge', () => {
     expect(dragCrop(r, 'nw', -500, -500, 1000, 1000)).toEqual({ x: 0, y: 0, width: 300, height: 200 })
     expect(dragCrop(r, 'e', -300, 0, 1000, 1000)).toEqual({ x: 0, y: 100, width: 100, height: 100 })
+  })
+})
+
+describe('Keyboard shortcuts (Yandex.Disk parity)', () => {
+  const key = (k: string, mods: Partial<{ meta: boolean; control: boolean; alt: boolean }> = {}, type = 'keyDown') =>
+    ({ type, key: k, meta: false, control: false, alt: false, ...mods })
+
+  it('isEditorShortcut keeps editor ⌘ keys from the shell menu', () => {
+    for (const k of ['z', 'Z', 'y', 'c', 's', 'o', '0', '=', '+', '-']) expect(isEditorShortcut(key(k, { meta: true }))).toBe(true)
+    expect(isEditorShortcut(key('s', { control: true }))).toBe(true)
+  })
+
+  it('isEditorShortcut leaves app keys, ⌥ combos, plain keys and keyUp to the menu', () => {
+    for (const k of ['w', 'n', 'q', 'v', ',']) expect(isEditorShortcut(key(k, { meta: true }))).toBe(false)
+    expect(isEditorShortcut(key('=', { meta: true, alt: true }))).toBe(false)
+    expect(isEditorShortcut(key('a'))).toBe(false)
+    expect(isEditorShortcut(key('z', { meta: true }, 'keyUp'))).toBe(false)
+  })
+
+  it('stepZoom walks the zoom steps and clamps at both ends', () => {
+    expect(stepZoom(1, 1)).toBe(1.5)
+    expect(stepZoom(1, -1)).toBe(0.75)
+    expect(stepZoom(0.62, 1)).toBe(0.75)
+    expect(stepZoom(0.62, -1)).toBe(0.5)
+    expect(stepZoom(4, 1)).toBe(4)
+    expect(stepZoom(0.25, -1)).toBe(0.25)
   })
 })

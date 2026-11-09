@@ -191,7 +191,8 @@
   min-height: 0;
   overflow: auto;
   display: grid;
-  place-items: center;
+  /* safe: a zoomed image larger than the stage scrolls instead of clipping its top-left */
+  place-items: safe center;
   padding: 24px;
   background: repeating-conic-gradient(var(--ss-checker-a) 0% 25%, var(--ss-checker-b) 0% 50%) 50% / 20px 20px;
 }

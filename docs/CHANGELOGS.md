@@ -5,6 +5,22 @@ Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaO
 
 ## [Chưa phát hành] - 2026-11-09
 
+### [NEW] Screenshots: bổ sung toàn diện hệ thống phím tắt chuẩn Yandex.Disk
+
+- **[NEW] Đầy đủ phím tắt thao tác & phóng to**:
+  - `⌘+` / `⌘−`: Phóng to / thu nhỏ bàn vẽ theo các nấc 25% → 400%.
+  - `⌘0`: Trở về kích thước thật 100% (bấm nút 'Vừa khung' hoặc ⌘0 lần nữa để fit).
+  - `⌘O`: Mở hộp thoại chọn tệp ảnh để đưa vào bàn vẽ.
+  - `⌘C` / `⌘S`: Sao chép ảnh vào clipboard / Mở hộp thoại lưu ảnh PNG/JPEG.
+  - `⌘Z` / `⇧⌘Z` (hoặc `⌘Y`): Hoàn tác / Làm lại lịch sử vẽ.
+  - `Enter` / `Esc`: Áp dụng hoặc huỷ vùng cắt ảnh.
+  - Các phím mũi tên (`←` `→` `↑` `↓`): Tinh chỉnh vị trí khung cắt 1px, giữ `Shift` bước nhảy 4px chuẩn Yandex.Disk.
+  - Phím chọn công cụ: `A` (Mũi tên), `R` (Khung chữ nhật), `O` (Elip), `L` (Đường thẳng), `P` (Bút vẽ), `H` (Bút dạ quang), `T` (Chữ), `N` (Đánh số bước), `B` (Làm mờ), `C` (Cắt ảnh). Phím `1`-`8` chọn bảng màu.
+  - Phím toàn cục ngoài app: `⌥⇧⌘1` (Vùng chọn), `⌥⇧⌘2` (Cửa sổ), `⌥⇧⌘3` (Toàn màn hình).
+- **[UI] Tooltip gắn nhãn phím tắt**: Mọi nút trên thanh công cụ đều hiển thị phím tắt tương ứng khi rê chuột.
+- **[CORE] Chặn menu ứng dụng nuốt phím**: Sử dụng `before-input-event` + `setIgnoreMenuShortcuts` để các tổ hợp phím ⌘ biên tập đi thẳng vào renderer thay vì bị menu shell nuốt.
+- **[TEST]**: Bổ sung unit test `isEditorShortcut` và `stepZoom` (17/17 PASS), 36/36 case E2E chạy trên Electron thật ổn định.
+
 ### [IMPROVE] Screenshots: khung cắt ảnh kiểu Yandex.Disk
 
 - **[IMPROVE] Khung cắt có sẵn và 8 tay nắm**: bấm Cắt (phím C) là khung phủ toàn ảnh, kéo 4 góc hoặc 4 cạnh để thu lại, kéo bên trong để di chuyển, khung luôn nằm trong ảnh. Con trỏ đổi theo tay nắm. Kéo bên ngoài khung vẫn vẽ vùng mới như trước.

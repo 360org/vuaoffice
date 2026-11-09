@@ -62,7 +62,8 @@ check('3. Dán ảnh từ clipboard (⌘V) vào bàn vẽ', dims.w === 400 && di
 // helpers: image px -> screen px, read a pixel of the live canvas
 const toScreen = async (x, y) => ss.evaluate(([x, y]) => { const c = document.querySelector('canvas.ss-canvas'); const r = c.getBoundingClientRect(); return [r.left + (x * r.width) / c.width, r.top + (y * r.height) / c.height] }, [x, y])
 const px = async (x, y) => ss.evaluate(([x, y]) => [...document.querySelector('canvas.ss-canvas').getContext('2d').getImageData(x, y, 1, 1).data], [x, y])
-const drag = async (a, b, steps = 8) => { const [x1, y1] = await toScreen(...a); const [x2, y2] = await toScreen(...b); await ss.mouse.move(x1, y1); await ss.mouse.down(); await ss.mouse.move(x2, y2, { steps }); await ss.mouse.up(); await ss.waitForTimeout(120) }
+const settle = () => ss.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))))
+const drag = async (a, b, steps = 8) => { await settle(); const [x1, y1] = await toScreen(...a); const [x2, y2] = await toScreen(...b); await ss.mouse.move(x1, y1); await ss.mouse.down(); await ss.mouse.move(x2, y2, { steps }); await ss.mouse.up(); await ss.waitForTimeout(120) }
 const tool = async (label) => { await ss.click(`.ss-toolbar button[aria-label="${label}"]`); await ss.waitForTimeout(60) }
 const shapesCount = () => ss.evaluate(() => document.querySelector('.ss-root') && window.__ssShapes?.())
 const isRed = ([r, g, b]) => r > 180 && g < 90 && b < 90
@@ -173,6 +174,51 @@ await ss.keyboard.press('Meta+z'); await ss.waitForTimeout(400)
 await ss.keyboard.press('c'); await ss.waitForTimeout(150); await ss.keyboard.press('Escape'); await ss.waitForTimeout(150)
 const c6 = await canvasDims()
 check('17i. Esc huỷ cắt, ảnh giữ nguyên', c6.w === 400 && c6.h === 300 && !(await ss.$('.ss-crop')), `${c6.w}x${c6.h}`)
+
+// 17j-17n. keyboard shortcuts (Yandex.Disk parity)
+const cssWidth = () => ss.evaluate(() => Math.round(document.querySelector('canvas.ss-canvas').getBoundingClientRect().width))
+await ss.keyboard.press('Meta+0'); await ss.waitForTimeout(200)
+const w100 = await cssWidth()
+await ss.keyboard.press('Meta+='); await ss.waitForTimeout(200)
+const w150 = await cssWidth()
+await ss.keyboard.press('Meta+-'); await ss.keyboard.press('Meta+-'); await ss.waitForTimeout(200)
+const w75 = await cssWidth()
+check('17j. ⌘0 / ⌘+ / ⌘− đổi mức phóng to', w100 === 400 && w150 === 600 && w75 === 300, `${w100} → ${w150} → ${w75}`)
+await ss.click('.ss-text-btn:has-text("Vừa khung")'); await ss.waitForTimeout(200)
+
+await ss.keyboard.press('c'); await ss.waitForTimeout(150)
+await drag([400, 300], [300, 200])
+await ss.keyboard.press('ArrowRight'); await ss.keyboard.press('Shift+ArrowDown'); await ss.waitForTimeout(150)
+const nudged = await frame()
+check('17k. Phím mũi tên dịch khung cắt 1px, Shift 4px', nudged && nudged.x === 1 && nudged.y === 4 && Math.abs(nudged.w - 300) <= 3, JSON.stringify(nudged))
+await ss.keyboard.press('Escape'); await ss.waitForTimeout(150)
+
+
+await app.evaluate(({ dialog }) => { globalThis.__opened = false; dialog.showOpenDialog = async () => { globalThis.__opened = true; return { canceled: true, filePaths: [] } } })
+await ss.keyboard.press('Meta+o'); await ss.waitForTimeout(400)
+check('17l. ⌘O mở hộp thoại chọn ảnh', await app.evaluate(() => globalThis.__opened))
+
+const tips = await ss.evaluate(() => [...document.querySelectorAll('.ss-toolbar [title]')].map((b) => b.getAttribute('title')))
+const want = ['(⌥⇧⌘1)', '(⌥⇧⌘2)', '(⌥⇧⌘3)', '(⌘O)', '(⌘Z)', '(⇧⌘Z)', '(⌘C)', '(⌘S)', '(A)', '(C)']
+const missing = want.filter((w) => !tips.some((t) => t.includes(w)))
+check('17m. Tooltip hiện phím tắt cho mọi nút', missing.length === 0, missing.join(' '))
+
+const ignored = await app.evaluate(({ webContents }) => {
+  const wc = webContents.getAllWebContents().find((w) => w.getURL().includes('screenshots'))
+  const seen = []
+  const orig = wc.setIgnoreMenuShortcuts.bind(wc)
+  wc.setIgnoreMenuShortcuts = (v) => { seen.push(v); orig(v) }
+  globalThis.__seen = seen
+  return true
+})
+await app.evaluate(async ({ webContents }) => {
+  const wc = webContents.getAllWebContents().find((w) => w.getURL().includes('screenshots'))
+  const send = (keyCode, modifiers = []) => { wc.sendInputEvent({ type: 'keyDown', keyCode, modifiers }); wc.sendInputEvent({ type: 'keyUp', keyCode, modifiers }) }
+  send('z', ['meta']); send('w', ['meta']); send('a')
+  await new Promise((r) => setTimeout(r, 200))
+})
+const seen = await app.evaluate(() => globalThis.__seen)
+check('17n. ⌘Z đi thẳng vào editor, ⌘W và phím thường vẫn để menu xử lý', ignored && seen[0] === true && seen.slice(2).every((v) => v === false), JSON.stringify(seen))
 
 // 17b. a new image (hotkey/paste/open) is undoable: annotations are never wiped
 await tool('Mũi tên'); await drag([60, 200], [160, 240])

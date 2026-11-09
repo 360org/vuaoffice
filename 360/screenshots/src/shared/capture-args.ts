@@ -22,3 +22,11 @@ export const CAPTURE_ACCELERATORS: Record<CaptureMode, string> = {
   window: 'CommandOrControl+Alt+Shift+2',
   fullscreen: 'CommandOrControl+Alt+Shift+3',
 }
+
+/** ⌘/Ctrl + key combos the editor handles itself; the rest (⌘V, ⌘W, ⌘N…) stay with the app menu. */
+const EDITOR_MENU_KEYS = new Set(['z', 'y', 'c', 's', 'o', '0', '=', '+', '-'])
+
+/** True when a keystroke belongs to the editor rather than the shell menu (⌥ combos stay with the menu's UI scale). */
+export function isEditorShortcut(input: { type: string; key: string; meta: boolean; control: boolean; alt: boolean }): boolean {
+  return input.type === 'keyDown' && (input.meta || input.control) && !input.alt && EDITOR_MENU_KEYS.has(input.key.toLowerCase())
+}

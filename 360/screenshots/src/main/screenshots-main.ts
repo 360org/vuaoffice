@@ -18,7 +18,7 @@ import {
   type WebContents,
 } from 'electron'
 import { RENDERER_SCHEME } from '@genoffice/electron-utils'
-import { CAPTURE_ACCELERATORS, screencaptureArgs } from '../shared/capture-args'
+import { CAPTURE_ACCELERATORS, isEditorShortcut, screencaptureArgs } from '../shared/capture-args'
 import { SCREENSHOTS_CHANNELS as CH, type CaptureOutcome, type CapturePermission } from '../shared/channels'
 import { screenshotsStrings } from '../shared/i18n'
 import type { CaptureMode } from '../shared/types'
@@ -63,6 +63,11 @@ export function createScreenshotsView(): WebContentsView {
   })
   view.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   view.webContents.on('will-navigate', (event) => event.preventDefault())
+  // macOS gives menu key equivalents to the menu first: without this the shell's
+  // Edit/File items swallow ⌘Z/⌘C/⌘O and the editor never sees them
+  view.webContents.on('before-input-event', (_e, input) => {
+    view.webContents.setIgnoreMenuShortcuts(isEditorShortcut(input))
+  })
   const id = view.webContents.id
   view.webContents.once('destroyed', () => dirtyViews.delete(id))
   void view.webContents.loadURL(screenshotsUrl(runtime.rendererUrl))

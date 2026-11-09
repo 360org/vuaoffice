@@ -161,3 +161,11 @@ export function dragCrop(start: Rect, handle: CropHandle, dx: number, dy: number
   const clampY = (v: number) => Math.min(Math.max(0, v), h)
   return normalizeRect({ x: clampX(x0), y: clampY(y0) }, { x: clampX(x1), y: clampY(y1) })
 }
+
+export const ZOOM_STEPS = [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4] as const
+
+/** Next zoom step above (dir 1) or below (dir -1) `current`, clamped to the step range. */
+export function stepZoom(current: number, dir: 1 | -1): number {
+  if (dir === 1) return ZOOM_STEPS.find((z) => z > current + 0.01) ?? ZOOM_STEPS[ZOOM_STEPS.length - 1]
+  return [...ZOOM_STEPS].reverse().find((z) => z < current - 0.01) ?? ZOOM_STEPS[0]
+}
