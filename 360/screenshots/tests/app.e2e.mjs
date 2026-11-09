@@ -1,3 +1,4 @@
+/* global document, window, location, getComputedStyle, requestAnimationFrame, DataTransfer, ClipboardEvent -- evaluated inside the page by Playwright */
 /**
  * End-to-end check of the Screenshots tab on the real built shell (23 cases:
  * every tool, undo/redo, crop, clipboard, PNG/JPEG save, close guard, theme,
@@ -16,7 +17,7 @@ import { join } from 'node:path'
 const ud = mkdtempSync(join(tmpdir(), 'vo-ss-'))
 const outDir = mkdtempSync(join(tmpdir(), 'vo-ss-out-'))
 writeFileSync(join(ud, 'app-settings.json'), JSON.stringify({ onboardingSeen: true }))
-const { ELECTRON_RUN_AS_NODE, ...env } = process.env
+const { ELECTRON_RUN_AS_NODE: _runAsNode, ...env } = process.env
 const app = await electron.launch({
   executablePath: require('electron'),
   args: [join(ROOT, 'apps/shell')],
@@ -65,7 +66,6 @@ const px = async (x, y) => ss.evaluate(([x, y]) => [...document.querySelector('c
 const settle = () => ss.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))))
 const drag = async (a, b, steps = 8) => { await settle(); const [x1, y1] = await toScreen(...a); const [x2, y2] = await toScreen(...b); await ss.mouse.move(x1, y1); await ss.mouse.down(); await ss.mouse.move(x2, y2, { steps }); await ss.mouse.up(); await ss.waitForTimeout(120) }
 const tool = async (label) => { await ss.click(`.ss-toolbar button[aria-label="${label}"]`); await ss.waitForTimeout(60) }
-const shapesCount = () => ss.evaluate(() => document.querySelector('.ss-root') && window.__ssShapes?.())
 const isRed = ([r, g, b]) => r > 180 && g < 90 && b < 90
 
 // 4. arrow
@@ -238,11 +238,10 @@ check('17b. Ảnh mới không xoá chú thích cũ: ⌘Z khôi phục ảnh + c
 
 // 18. close guard: dirty tab prompts; Cancel keeps it
 await tool('Mũi tên'); await drag([50, 250], [150, 280])
-let prompted = null
 await app.evaluate(({ dialog }) => { globalThis.__prompts = []; dialog.showMessageBox = async (...a) => { const o = a.length > 1 ? a[1] : a[0]; globalThis.__prompts.push(o.message); return { response: 2, checkboxChecked: false } } })
 await home.evaluate(() => { const t = [...document.querySelectorAll('.tab-item')].find((x) => /Chụp màn hình/.test(x.textContent)); t?.querySelector('.tab-close, button[aria-label]')?.click() })
 await home.waitForTimeout(600)
-prompted = await app.evaluate(() => globalThis.__prompts)
+const prompted = await app.evaluate(() => globalThis.__prompts)
 const stillOpen = await home.evaluate(() => [...document.querySelectorAll('.tab-item')].some((t) => /Chụp màn hình/.test(t.textContent)))
 check('18. Đóng tab chưa lưu hỏi xác nhận, Huỷ giữ tab', prompted.length === 1 && stillOpen, JSON.stringify(prompted))
 

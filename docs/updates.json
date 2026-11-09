@@ -1,5 +1,28 @@
 [
   {
+    "version": "1.0.63",
+    "date": "09/11/2026",
+    "highlight": "Nâng cấp toàn diện bộ công cụ Chụp màn hình AI (mũi tên vector sắc nét, khung cắt 8 điểm neo linh hoạt, bộ phím tắt chuyên nghiệp), hỗ trợ mở tài liệu cũ và cảnh báo hạn gói AI trực quan.",
+    "features": [
+      {
+        "title": "Công cụ Chụp màn hình & Chú thích ảnh chuyên nghiệp",
+        "desc": "Bổ sung mũi tên vector thuôn nhọn tạo điểm nhấn chú thích sắc nét; khung cắt ảnh (Crop) 8 điểm neo trực quan hỗ trợ kéo chỉnh mép, góc và di chuyển khung tự do; tự động ghi nhớ quyền ghi màn hình macOS."
+      },
+      {
+        "title": "Hệ thống phím tắt và thao tác bàn vẽ nhanh",
+        "desc": "Hỗ trợ đầy đủ phím tắt chuyển nhanh công cụ vẽ, phóng to thu nhỏ bàn vẽ (⌘+, ⌘-, ⌘0), tinh chỉnh khung cắt bằng phím mũi tên, dán nhanh ảnh từ bộ nhớ tạm (⌘V), mở tệp (⌘O), sao chép (⌘C) và lưu ảnh (⌘S)."
+      },
+      {
+        "title": "Hỗ trợ mở định dạng tài liệu văn phòng kế thừa",
+        "desc": "Tự động chuyển đổi tài liệu Word cũ (.doc/.dot) và PowerPoint (.ppt) sang bản sao định dạng chuẩn (.docx/.pptx) để chỉnh sửa tức thì; nâng cấp sơ đồ SmartArt và quản lý liên kết ngoài trong Sheets."
+      },
+      {
+        "title": "Đồng bộ nhận diện thẻ Home & Cảnh báo hạn gói AI",
+        "desc": "Hiển thị chính xác ngày hết hạn của gói AI Pack trên thanh công cụ kèm nút gia hạn nhanh; đồng bộ biểu tượng thẻ Chụp màn hình AI sắc nét trên màn hình chính."
+      }
+    ]
+  },
+  {
     "version": "1.0.62",
     "date": "23/10/2026",
     "highlight": "Kéo cập nhật mới nhất từ upstream (Mailings, so sánh tài liệu, ẩn ô khỏi AI), giữ nguyên toàn bộ tính năng 360 CORP và sửa các lỗi phát sinh sau hợp nhất.",
