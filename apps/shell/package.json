@@ -21,7 +21,8 @@
     "dist:win": "npm run notices && electron-vite build && electron-builder --win",
     "dist:win:x64": "npm run notices && electron-vite build && electron-builder --win --x64",
     "dist:win:ia32": "npm run notices && electron-vite build && electron-builder --win --ia32",
-    "dist:linux": "npm run notices && electron-vite build && electron-builder --linux"
+    "dist:linux": "npm run notices && electron-vite build && electron-builder --linux",
+    "install:local:mac": "rm -rf /Applications/VuaOffice.app && cp -R release/mac/VuaOffice.app /Applications/VuaOffice.app && xattr -cr /Applications/VuaOffice.app && codesign -f -s - --deep /Applications/VuaOffice.app && codesign -f -s - -i com.vuahethong.vuaoffice -r='designated => identifier \"com.vuahethong.vuaoffice\"' /Applications/VuaOffice.app"
   },
   "devDependencies": {
     "@genoffice/agent-core": "*",
