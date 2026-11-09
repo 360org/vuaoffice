@@ -9,7 +9,7 @@ export interface MailSkillCallbacks {
   onCreateCalendarEvent: (event: { title: string; dateIso: string; time?: string; location?: string }) => void
 }
 
-const MAIL_SYSTEM_PROMPT = `Bạn là trợ lý AI chuyên nghiệp cho GenOffice Mail (thuộc GenOffice Suite - 360 CORP).
+const MAIL_SYSTEM_PROMPT = `Bạn là trợ lý AI chuyên nghiệp cho VuaOffice Mail (thuộc VuaOffice Suite - 360 CORP).
 Bạn hỗ trợ Sếp/người dùng xử lý email, soạn thư trả lời thông minh, trích xuất việc cần làm (To-Do), lên lịch họp Calendar và tóm tắt thông tin thư.
 
 ## Hướng dẫn sử dụng Công cụ (Tool Usage):
@@ -40,7 +40,7 @@ export function createMailSkill(callbacks: MailSkillCallbacks): AgentSkill {
       },
       {
         name: 'draft_reply',
-        description: 'Soạn thảo nội dung thư trả lời và đưa vào khung soạn thảo của GenOffice Mail.',
+        description: 'Soạn thảo nội dung thư trả lời và đưa vào khung soạn thảo của VuaOffice Mail.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -54,7 +54,7 @@ export function createMailSkill(callbacks: MailSkillCallbacks): AgentSkill {
       },
       {
         name: 'create_todo_task',
-        description: 'Trích xuất hoặc tạo mới một nhiệm vụ công việc vào danh mục To-Do của GenOffice.',
+        description: 'Trích xuất hoặc tạo mới một nhiệm vụ công việc vào danh mục To-Do của VuaOffice.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -68,7 +68,7 @@ export function createMailSkill(callbacks: MailSkillCallbacks): AgentSkill {
       },
       {
         name: 'schedule_calendar_event',
-        description: 'Tạo một sự kiện hoặc lịch họp mới trong Calendar của GenOffice.',
+        description: 'Tạo một sự kiện hoặc lịch họp mới trong Calendar của VuaOffice.',
         inputSchema: {
           type: 'object',
           properties: {

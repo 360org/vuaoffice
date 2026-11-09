@@ -685,11 +685,11 @@ export const BUNDLED_FONTS = new Set([
   'GenOffice Serif KR',
   'GenOffice Gothic KR',
   'GenOffice Poppins',
-  'GenOffice DM Sans',
+  'VuaOffice DM Sans',
   'GenOffice Tamil',
-  'GenOffice Cordia',
-  'GenOffice Sarabun',
-  'GenOffice Bengali',
+  'VuaOffice Cordia',
+  'VuaOffice Sarabun',
+  'VuaOffice Bengali',
   'GenOffice Fullwidth TC',
   'GenOffice Songti SC',
   'GenOffice Songti TC',
@@ -789,7 +789,7 @@ export function unloadedBundledPrimary(chain: string): string | null {
  * while layout later resolves the loaded alias (0.69/0.25em) as primary.
  */
 function isWebFace(family: string): boolean {
-  return isBundledFont(family) || / GO$/.test(family) || /^GenOffice /.test(family)
+  return isBundledFont(family) || / GO$/.test(family) || /^VuaOffice /.test(family)
 }
 
 /** bundled web face a chain resolves to before any installed family or generic */
@@ -1113,11 +1113,11 @@ const STAND_IN_CHAINS: Record<string, [string[], Generic]> = {
   nanummyeongjoextrabold: [KO_SERIF, 'serif'],
   '\ub098\ub214\uba85\uc870 extrabold': [KO_SERIF, 'serif'],
   simsun: [
-    ['GenOffice SimSun Latin', 'GenOffice Songti SC', 'STSong', 'SimSun', CJK_SERIF],
+    ['VuaOffice SimSun Latin', 'GenOffice Songti SC', 'STSong', 'SimSun', CJK_SERIF],
     'serif',
   ],
   '\u5b8b\u4f53': [
-    ['GenOffice SimSun Latin', 'GenOffice Songti SC', 'STSong', 'SimSun', CJK_SERIF],
+    ['VuaOffice SimSun Latin', 'GenOffice Songti SC', 'STSong', 'SimSun', CJK_SERIF],
     'serif',
   ],
   simhei: [['Heiti SC', 'STHeiti', 'SimHei', 'PingFang SC', CJK_SANS], 'sans-serif'],
@@ -1187,7 +1187,7 @@ function latinSlotHead(sub: string): string[] {
   const k = sub.normalize('NFKC').toLowerCase()
   if (k === 'calibri') return ['Carlito GO']
   if (k === 'cambria') return ['KR Theme Latin GO']
-  if (k === 'simsun' || k === '\u5b8b\u4f53') return ['GenOffice SimSun Latin']
+  if (k === 'simsun' || k === '\u5b8b\u4f53') return ['VuaOffice SimSun Latin']
   return latinChainHead(sub)
 }
 
@@ -1256,8 +1256,8 @@ export function cssFontFamily(font: string): string {
   // (tools/build-thai-font.py) lead. On Windows the declared name resolves first.
   if (THAI_FONT_RE.test(font.normalize('NFKC').toLowerCase())) {
     const face = /^th sarabunpsk$/i.test(font.normalize('NFKC'))
-      ? 'GenOffice Sarabun'
-      : 'GenOffice Cordia'
+      ? 'VuaOffice Sarabun'
+      : 'VuaOffice Cordia'
     return `${cssChain(font, face, 'Thonburi')},sans-serif`
   }
   const byFace = standInFontFamily(font) ?? substituteFontFamily(font)

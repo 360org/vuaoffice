@@ -3151,21 +3151,21 @@
  * Thai advances per glyph from hmtx, Regular and Bold; Latin ratio 0.649 regular / 0.643 bold
  * fonts: Cordia New (Word DFonts cordia.ttc); NotoSansThai; LiberationSans */
 @font-face {
-  font-family: 'GenOffice Cordia';
+  font-family: 'VuaOffice Cordia';
   src: url('./GenOfficeCordia-Regular.woff2') format('woff2');
   font-weight: normal;
   font-style: normal;
   font-display: block;
 }
 @font-face {
-  font-family: 'GenOffice Cordia';
+  font-family: 'VuaOffice Cordia';
   src: url('./GenOfficeCordia-Bold.woff2') format('woff2');
   font-weight: bold;
   font-style: normal;
   font-display: block;
 }
 @font-face {
-  font-family: 'GenOffice Cordia';
+  font-family: 'VuaOffice Cordia';
   src: url('./LiberationSans-Regular.ttf');
   size-adjust: 64.9%;
   unicode-range: U+0000-0DFF, U+0E80-10FFFF;
@@ -3174,7 +3174,7 @@
   font-display: block;
 }
 @font-face {
-  font-family: 'GenOffice Cordia';
+  font-family: 'VuaOffice Cordia';
   src: url('./LiberationSans-Bold.ttf');
   size-adjust: 64.3%;
   unicode-range: U+0000-0DFF, U+0E80-10FFFF;
@@ -3213,21 +3213,21 @@
  * Thai advances per glyph from hmtx, Regular and Bold; Latin ratio 0.644 regular / 0.657 bold
  * fonts: TH SarabunPSK (Word DFonts thsarabun.ttf); NotoSansThai; LiberationSans */
 @font-face {
-  font-family: 'GenOffice Sarabun';
+  font-family: 'VuaOffice Sarabun';
   src: url('./GenOfficeSarabun-Regular.woff2') format('woff2');
   font-weight: normal;
   font-style: normal;
   font-display: block;
 }
 @font-face {
-  font-family: 'GenOffice Sarabun';
+  font-family: 'VuaOffice Sarabun';
   src: url('./GenOfficeSarabun-Bold.woff2') format('woff2');
   font-weight: bold;
   font-style: normal;
   font-display: block;
 }
 @font-face {
-  font-family: 'GenOffice Sarabun';
+  font-family: 'VuaOffice Sarabun';
   src: url('./LiberationSans-Regular.ttf');
   size-adjust: 64.4%;
   unicode-range: U+0000-0DFF, U+0E80-10FFFF;
@@ -3236,7 +3236,7 @@
   font-display: block;
 }
 @font-face {
-  font-family: 'GenOffice Sarabun';
+  font-family: 'VuaOffice Sarabun';
   src: url('./LiberationSans-Bold.ttf');
   size-adjust: 65.7%;
   unicode-range: U+0000-0DFF, U+0E80-10FFFF;
@@ -3254,7 +3254,7 @@
  * tabular digits 0.586em (bold 0.617) vs Helvetica 0.556
  * fonts: Microsoft YaHei; Helvetica */
 @font-face {
-  font-family: 'GenOffice YaHei Latin';
+  font-family: 'VuaOffice YaHei Latin';
   src: local('Helvetica'), local('ArialMT'), url('./LiberationSans-Regular.ttf');
   size-adjust: 106%;
   unicode-range: U+0020-007E;
@@ -3263,7 +3263,7 @@
   font-display: block;
 }
 @font-face {
-  font-family: 'GenOffice YaHei Latin';
+  font-family: 'VuaOffice YaHei Latin';
   src: local('Helvetica-Bold'), local('Arial-BoldMT'), url('./LiberationSans-Bold.ttf');
   size-adjust: 108%;
   unicode-range: U+0020-007E;

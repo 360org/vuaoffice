@@ -221,7 +221,7 @@ export const FACE_CHAIN_RULES: ChainRule[] = [
   {
     id: 'dm-sans',
     when: (f) => f.includes('dm sans'),
-    chain: () => [['GenOffice DM Sans', CJK_SANS], 'sans-serif'],
+    chain: () => [['VuaOffice DM Sans', CJK_SANS], 'sans-serif'],
   },
   // Montserrat is an M365 cloud font Word renders real, ignoring its fontTable altName; only the
   // cloud family names qualify: a PostScript-style "Montserrat-Bold" is unknown to Word and keeps the altName
@@ -249,7 +249,7 @@ export const FACE_CHAIN_RULES: ChainRule[] = [
     id: 'simsun',
     when: (f) => /simsun|\u5b8b\u4f53|nsimsun/.test(f),
     chain: () => [
-      ['GenOffice SimSun Latin', 'GenOffice Songti SC', 'STSong', 'SimSun', CJK_SERIF],
+      ['VuaOffice SimSun Latin', 'GenOffice Songti SC', 'STSong', 'SimSun', CJK_SERIF],
       'serif',
     ],
   },
@@ -449,7 +449,7 @@ export const FACE_CHAIN_RULES: ChainRule[] = [
     id: 'dfkai',
     when: (f) => /\u6a19\u6977|dfkai/.test(f),
     chain: () => [
-      ['Microsoft YaHei', 'GenOffice YaHei Latin', 'PingFang SC', CJK_SANS],
+      ['Microsoft YaHei', 'VuaOffice YaHei Latin', 'PingFang SC', CJK_SANS],
       'sans-serif',
     ],
   },
@@ -476,7 +476,7 @@ export const FACE_CHAIN_RULES: ChainRule[] = [
   {
     id: 'nirmala',
     when: (_f, _h, nfkc) => /nirmala/i.test(nfkc),
-    chain: () => [['GenOffice Bengali', 'Kohinoor Bangla', 'Bangla Sangam MN'], 'sans-serif'],
+    chain: () => [['VuaOffice Bengali', 'Kohinoor Bangla', 'Bangla Sangam MN'], 'sans-serif'],
   },
   // Tamil: Latha renders through the bundled Latha-metric face; Vijaya and missing Tamil names lay out as Vijaya on Word for Mac (probe 2026-09-30), whose advances InaiMathi matches within 1 %
   {

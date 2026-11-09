@@ -265,7 +265,7 @@ export const App: React.FC = () => {
     if (!selectedEmail) return
     setIsAiPanelOpen(true)
     setAiSummary(
-      `Tóm tắt nội dung chính:\n• Email thông báo tiến độ cập nhật và vận hành của hệ sinh thái GenOffice Mail.\n• Đã kết nối thành công SQLite Engine và giao diện Fluent UI Outlook 365.\n• Đề xuất Sếp kiểm tra lại và duyệt release.`
+      `Tóm tắt nội dung chính:\n• Email thông báo tiến độ cập nhật và vận hành của hệ sinh thái VuaOffice Mail.\n• Đã kết nối thành công SQLite Engine và giao diện Fluent UI Outlook 365.\n• Đề xuất Sếp kiểm tra lại và duyệt release.`
     )
   }
 
@@ -397,7 +397,7 @@ export const App: React.FC = () => {
         onAiAssist={handleTriggerAiSummary}
         onAiDraft={() => {
           if (!selectedEmail) return
-          handleSmartReply('Kính gửi Quý đối tác/Khách hàng,\n\nTôi đã nhận được thông tin và hoàn toàn nhất trí với đề xuất. Đội ngũ GenOffice sẽ triển khai theo đúng lộ trình.\n\nTrân trọng,')
+          handleSmartReply('Kính gửi Quý đối tác/Khách hàng,\n\nTôi đã nhận được thông tin và hoàn toàn nhất trí với đề xuất. Đội ngũ VuaOffice sẽ triển khai theo đúng lộ trình.\n\nTrân trọng,')
         }}
         onSyncNow={handleSyncNow}
         onManageRules={() => setIsRulesOpen(true)}

@@ -6,7 +6,7 @@ const v360PdfStrings = {
   ocrRunning: 'Recognizing text (OCR)…',
   ocrSuccess: 'Successfully added {count} native text line(s)',
   ocrNoText: 'No text recognized',
-  fileChangedExternally: 'This file changed outside GenOffice since it was last opened or saved. The original was not overwritten; reopen it or use Save As to protect your work.',
+  fileChangedExternally: 'This file changed outside VuaOffice since it was last opened or saved. The original was not overwritten; reopen it or use Save As to protect your work.',
   forensicsOriginalTitle: 'Original File (Unmodified)',
   forensicsModifiedTitle: 'Modified Document',
   forensicsOriginalDesc: 'Structure and revision analysis confirms this is the original exported PDF with no secondary edits or incremental updates.',
