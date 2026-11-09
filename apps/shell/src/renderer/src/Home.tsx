@@ -7,6 +7,7 @@ import type {
 import logoLockup from './assets/genoffice-logo.svg'
 import { KbAskPanel } from './KbAskPanel'
 import { FileBadge } from './file-badge'
+import { aiPackAlert } from './ai-pack-alert'
 import { placeFolderMenu } from './folder-menu-position'
 import type {
   AccountStatus,
@@ -1516,13 +1517,13 @@ function AccountEntry({
                 <div
                   className="account-ai-pack-alert danger"
                   onClick={handleOpenAiProfile}
-                  title="Thiết bị chưa được gán AI Pack. Nhấn để mở hồ sơ AI trên vuahethong.net để kích hoạt."
+                  title={aiPackAlert(aiStatus).title}
                 >
                   <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                     <path d="M8 1L1 14h14L8 1zm0 3l5.2 9H2.8L8 4zm-.8 3v3.2h1.6V7H7.2zm0 4.4v1.6h1.6v-1.6H7.2z" />
                   </svg>
-                  <span className="account-ai-alert-text">Chưa gán AI Pack</span>
-                  <span className="account-ai-alert-link">Gán ngay &rarr;</span>
+                  <span className="account-ai-alert-text">{aiPackAlert(aiStatus).text}</span>
+                  <span className="account-ai-alert-link">{aiPackAlert(aiStatus).link} &rarr;</span>
                 </div>
               ) : aiStatus?.hasPack ? (
                 <div

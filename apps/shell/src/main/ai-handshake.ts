@@ -243,6 +243,8 @@ export async function handshakeOdooAiConfig(
           lastHandshakeResult = {
             ok: false,
             hasPack: false,
+            ...(typeof data.error === 'string' ? { reason: data.error } : {}),
+            ...(typeof data.expiration_date === 'string' ? { expiresOn: data.expiration_date } : {}),
             error: errorMsg,
             setupUrl,
             timestamp: Date.now(),

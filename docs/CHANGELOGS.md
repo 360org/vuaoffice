@@ -3,6 +3,14 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Chưa phát hành] - 2026-11-09
+
+### [FIX] Gói AI hết hạn bị báo nhầm là "Chưa gán AI Pack"
+
+- **[FIX] Cảnh báo gói AI theo đúng lý do máy chủ**: `/api/ai/v1/config` trả `403 account_expired` kèm `expiration_date`, nhưng app gộp mọi lỗi thành "Chưa gán AI Pack". Handshake giờ chuyển `reason` + `expiresOn` sang giao diện; menu tài khoản hiện "Gói AI hết hạn DD/MM/YYYY · Gia hạn". Logic nằm ở `apps/shell/src/renderer/src/ai-pack-alert.ts`, có test kèm.
+- **[FIX] Nút "Khởi động lại VuaOffice" của Screenshots**: `screenshots-main.ts` gọi `app.relaunch()` nhưng chưa import `app` từ electron.
+- **[IMPROVE] Giữ quyền Ghi màn hình qua các lần build local**: script `install:local:mac` ký ad-hoc với designated requirement theo bundle ID, macOS không còn coi mỗi bản build là app mới.
+
 ## [Chưa phát hành] - 2026-11-05
 
 ### [FIX] Lỗi thương hiệu menu, giao diện và phản hồi "Hỏi AI" sau lần hợp nhất upstream 2026-10-23

@@ -52,6 +52,10 @@ export interface AiHandshakeResult {
   ok: boolean
   hasPack: boolean
   isRevoked?: boolean
+  /** Server error code when the handshake failed, e.g. 'account_expired', 'no_pack_assigned'. */
+  reason?: string
+  /** ISO date the AI plan expired, set with reason 'account_expired'. */
+  expiresOn?: string
   model?: string
   packName?: string
   setupUrl?: string
