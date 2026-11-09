@@ -90,7 +90,7 @@ jobs:
   build_mac_x64:
     name: 1. macOS Intel
     needs: version_and_sync
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Fetch private source from GitLab
@@ -145,7 +145,7 @@ jobs:
   build_mac_arm64:
     name: 2. macOS Silicon (arm64)
     needs: version_and_sync
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Fetch private source from GitLab
