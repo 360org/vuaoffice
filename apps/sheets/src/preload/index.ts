@@ -43,6 +43,7 @@ import type {
   WorkbookQueriesResult,
   WorkbookRichRun,
   WorkbookSaveRequest,
+  WorkbookSlicerState,
   WorkbookSaveResult,
   WorkbookVisualObject,
   WebSearchResult,
@@ -106,6 +107,23 @@ const desktopApi: DesktopApi = {
     return () => ipcRenderer.removeListener('app:document-theme-changed', listener)
   },
   getAutoSaveDefault: () => ipcRenderer.invoke('app:get-auto-save-default'),
+  onImportProgress(listener) {
+    const wrapped = (_event: unknown, progress: unknown): void => {
+      // null means the import is over: the bar must go with it, or the next
+      // workbook opens showing the last file's percentage.
+      if (progress === null) {
+        listener(null)
+        return
+      }
+      const value = progress as { phase?: unknown; fraction?: unknown } | null
+      if (!value || (value.phase !== 'read' && value.phase !== 'write')) return
+      if (typeof value.fraction !== 'number' || !Number.isFinite(value.fraction)) return
+      listener({ phase: value.phase, fraction: Math.max(0, Math.min(value.fraction, 1)) })
+    }
+    ipcRenderer.on(IPC_CHANNELS.importProgress, wrapped)
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.importProgress, wrapped)
+  },
+  cancelImport: () => ipcRenderer.invoke(IPC_CHANNELS.cancelImport),
   onAutoSaveDefaultChanged(handler) {
     const listener = (_event: Electron.IpcRendererEvent, value: AutoSaveDefault) => handler(value)
     ipcRenderer.on('app:auto-save-default-changed', listener)
@@ -393,6 +411,16 @@ const desktopApi: DesktopApi = {
       validatedRequest,
     )
     return parsePivotDefinitionResult(result)
+  },
+  async readSlicerState(request) {
+    if (!isRecord(request) || !isUuid(request.sessionId)) {
+      throw new Error('Invalid slicer state request.')
+    }
+    const result: unknown = await ipcRenderer.invoke(IPC_CHANNELS.readSlicerState, {
+      sessionId: request.sessionId,
+    })
+    if (!Array.isArray(result)) throw new Error('Invalid slicer state response.')
+    return result as WorkbookSlicerState
   },
   async readWorkbookRedactions(request) {
     if (!isRecord(request) || !isUuid(request.sessionId)) {
@@ -2598,6 +2626,18 @@ function parseSaveRequest(input: WorkbookSaveRequest): WorkbookSaveRequest {
   )
     invalid('protected-range states: malformed entry')
   if (input.redactionStates !== null) cappedArray('redaction states', input.redactionStates, 1_000)
+  // Slicer state's detailed shape is authoritatively validated by main's zod
+  // schema (like pivot relayouts); the preload guards the envelope only.
+  if (input.slicerState !== null && input.slicerState !== undefined) {
+    if (
+      !isRecord(input.slicerState) ||
+      !Array.isArray(input.slicerState.slicers) ||
+      input.slicerState.slicers.length > 100 ||
+      !Array.isArray(input.slicerState.removals) ||
+      input.slicerState.removals.length > 200
+    )
+      invalid('slicer state')
+  }
   if (
     (input.redactionStates ?? []).some(
       (state) =>
@@ -2647,7 +2687,8 @@ function parseSaveRequest(input: WorkbookSaveRequest): WorkbookSaveRequest {
     input.themeState === null &&
     input.workbookProtectionState === null &&
     input.protectedRangeStates.length === 0 &&
-    (input.redactionStates?.length ?? 0) === 0
+    (input.redactionStates?.length ?? 0) === 0 &&
+    (input.slicerState ?? null) === null
   )
     invalid('no changes to save')
   if (input.sheetOps.length > 0 && input.sheetOrder.length === 0)

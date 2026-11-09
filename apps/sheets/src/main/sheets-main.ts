@@ -21,6 +21,7 @@ import {
   writeFile,
 } from 'node:fs/promises'
 import { refreshCsvDigest } from './csv-digest'
+import { ImportRegistry } from './import-registry'
 import { createServer } from 'node:http'
 import { basename, dirname, isAbsolute, join } from 'node:path'
 
@@ -106,11 +107,12 @@ import {
   type LegacyAiSettings,
 } from '@genoffice/ai-provider'
 import { shutdownCodexAppServers } from '@genoffice/ai-provider/codex-app-server'
+import { decodeCsvBuffer } from '@genoffice/xlsx-gateway/gateway/csv-import'
+import type { CsvImportProgress } from '@genoffice/xlsx-gateway/gateway/csv-import'
 import {
   csvToXlsxBufferForOpen,
-  decodeCsvBuffer,
   sheetCsvToXlsxBuffer,
-} from '@genoffice/xlsx-gateway/gateway/csv-import'
+} from '@genoffice/xlsx-gateway/gateway/csv-import-xlsx'
 import {
   ensureGenofficeLogin,
   noteGskCallFailure,
@@ -138,9 +140,10 @@ import {
 } from '@genoffice/xlsx-gateway/gateway/xlsx-connection-refresh'
 import type { PartReader } from '@genoffice/xlsx-gateway/gateway/xlsx-connections'
 import { parsePivotDefinition } from '@genoffice/xlsx-gateway/gateway/xlsx-pivot'
+import { parseSlicerState } from '@genoffice/xlsx-gateway/gateway/xlsx-slicer'
 import { listWorkbookQueries } from '@genoffice/xlsx-gateway/gateway/xlsx-connections'
 import type { SheetEditPlan } from '@genoffice/xlsx-gateway/gateway/xlsx-sheets'
-import { readWorkbookRedactionPart } from './workbook-redactions'
+import { manifestNamesSchema, readWorkbookRedactionPart } from './workbook-redactions'
 import type {
   AttachmentAddResult,
   AttachmentImageResult,
@@ -194,6 +197,8 @@ import {
   saveEditsChunkArraySchema,
   workbookSaveEditsChunkSchema,
   workbookSaveRequestSchema,
+  workbookSlicerStateRequestSchema,
+  workbookSlicerStateResultSchema,
   type WorkbookCreateDocumentResult,
   type WorkbookSaveRequest,
 } from '../shared/desktop-api'
@@ -1976,6 +1981,13 @@ const MAX_REMOTE_IMAGE_BYTES = 20 * 1024 * 1024
 /** Max .csv/.tsv bytes converted on open: stops a 500MB text file OOMing main before sidecar limits. */
 const MAX_DELIMITED_IMPORT_BYTES = 32 * 1024 * 1024
 
+/**
+ * The delimited import (a .csv/.tsv opened as a workbook) that is running for
+ * a tab, so the renderer can cancel it: a 250 MB file takes a while, and the
+ * user should not have to wait it out.
+ */
+const pendingImports = new ImportRegistry()
+
 const sheetsTabs = new Map<number, SheetsTabSession>()
 let activeSheetsWebContents: WebContents | null = null
 let pastedTempCleanupStarted = false
@@ -3058,12 +3070,56 @@ export function registerSheetsIpc(): void {
         await decryptOoxml(bytes, password)
       }
     }
-    const prepared = await prepareWorkbookForOpen(
-      entry.client,
-      path,
-      event.sender,
-      dialogParent(event),
-    )
+    // A delimited import can take a while on a big file, so the renderer
+    // watches its progress and can cancel it.
+    const owner = event.sender.id
+    // a superseded import may have left its bar standing; this open owns the
+    // tab now, whether or not it will report anything itself
+    const superseded = pendingImports.controllerFor(owner) !== undefined
+    const importController = pendingImports.start(owner)
+    if (superseded && !event.sender.isDestroyed())
+      event.sender.send(IPC_CHANNELS.importProgress, null)
+    // only a delimited import reports progress; a plain .xlsx never does,
+    // and there is no bar to take down for it
+    let reported = false
+    const reportProgress = (progress: CsvImportProgress | null): void => {
+      if (event.sender.isDestroyed()) return
+      // an import that was replaced no longer owns the bar
+      if (pendingImports.controllerFor(owner) !== importController) return
+      if (progress === null) {
+        if (!reported) return
+        reported = false
+      } else {
+        reported = true
+      }
+      event.sender.send(IPC_CHANNELS.importProgress, progress)
+    }
+    let prepared: Awaited<ReturnType<typeof prepareWorkbookForOpen>>
+    try {
+      prepared = await prepareWorkbookForOpen(
+        entry.client,
+        path,
+        event.sender,
+        dialogParent(event),
+        {
+          import: {
+            onProgress: reportProgress,
+            signal: importController.signal,
+          },
+        },
+      )
+    } catch (error) {
+      // The user stopped the import: nothing opens, and it is not a failure
+      // to report. The renderer already knows it asked for this.
+      if (pendingImports.wasCancelled(importController)) return null
+      throw error
+    } finally {
+      // the import is over (done, failed or cancelled): the bar must not
+      // stand into the next open; reportProgress drops this for a
+      // superseded import, so finish comes after
+      reportProgress(null)
+      pendingImports.finish(owner, importController)
+    }
     // a declined import (an .ods the user chose not to convert) opens nothing
     if (!prepared) return null
     // The recovery prompt (or the file dialog / import conversion) can outlive
@@ -3117,6 +3173,12 @@ export function registerSheetsIpc(): void {
     if (!prepared.unsavedNew) workbookOpenedHook?.(event.sender, path)
     return result
   }
+
+  // The renderer cancels a delimited import that is taking too long; the
+  // conversion throws and nothing opens.
+  ipcMain.handle(IPC_CHANNELS.cancelImport, (event) => {
+    pendingImports.cancel(event.sender.id)
+  })
 
   ipcMain.handle(IPC_CHANNELS.selectWorkbook, async (event) => {
     try {
@@ -3620,6 +3682,47 @@ export function registerSheetsIpc(): void {
       readArchiveEntryText(entry.client, session.snapshotPath, request.cachePath),
     ])
     return workbookPivotDefinitionSchema.parse(parsePivotDefinition(pivotXml, cacheXml))
+  })
+
+  ipcMain.handle(IPC_CHANNELS.readSlicerState, async (event, input: unknown) => {
+    const entry = sessionFor(event)
+    const request = workbookSlicerStateRequestSchema.parse(input)
+    const session = entry.sessions.get(request.sessionId)
+    if (!session) throw new Error('Unknown workbook session.')
+    // The slicer parts are read from the session snapshot in one sidecar
+    // extraction; the gateway parser does the rest.
+    const manifest = manifestNamesSchema.parse(
+      await entry.client.archiveManifest(session.snapshotPath),
+    )
+    const names = manifest.entries.map((archiveEntry) => archiveEntry.name)
+    const hasSlicerParts = names.some((name) =>
+      /^xl\/(?:slicers|timelines)\/[^/]+\.xml$/.test(name),
+    )
+    if (!hasSlicerParts) return []
+    // Worksheet parts and their rels are keys/lookups for the parser (host
+    // sheets, pivot binding), so both ride the paths() view; only the XML
+    // texts below are actually extracted.
+    const wanted = names.filter(
+      (name) =>
+        name === 'xl/workbook.xml' ||
+        name === 'xl/_rels/workbook.xml.rels' ||
+        /^xl\/(?:slicers|timelines|slicerCaches|timelineCaches|pivotTables)\/[^/]+\.xml$/.test(
+          name,
+        ) ||
+        /^xl\/pivotCache\/pivotCacheDefinition\d*\.xml$/.test(name) ||
+        /^xl\/worksheets\/(?:_rels\/)?[^/]+\.xml(?:\.rels)?$/.test(name),
+    )
+    const texts = await readArchiveEntriesText(entry.client, session.snapshotPath, wanted)
+    return workbookSlicerStateResultSchema.parse(
+      await parseSlicerState({
+        paths: async () => names,
+        readText: async (path) => {
+          const text = texts.get(path)
+          if (text === undefined) throw new Error(`Workbook is missing ${path}.`)
+          return text
+        },
+      }),
+    )
   })
 
   // The workbook's refreshable web queries: the walk follows both shapes Excel
@@ -4868,6 +4971,18 @@ async function writeWorkbookTo(
     sheetName: resolveSheetName(sheetId),
     ...group,
   }))
+  // Slicer panels: same sheetId → sheet name mapping as the other
+  // additions; part paths stay package-absolute.
+  const slicerState =
+    request.slicerState === null
+      ? null
+      : {
+          slicers: request.slicerState.slicers.map(({ sheetId, ...control }) => ({
+            ...control,
+            sheetName: resolveSheetName(sheetId),
+          })),
+          removals: [...request.slicerState.removals],
+        }
   // Recalculated formula values: sheetId → file sheet name, the same
   // resolution the cell edits use.
   const formulaValuesBySheet = new Map<
@@ -4945,6 +5060,7 @@ async function writeWorkbookTo(
       tableEdits,
       pivotAdditions,
       sparklineAdditions,
+      slicerState,
       formulaValues,
       pivotCacheRefreshPaths: request.pivotCacheRefreshPaths,
       // Output-area expansion from layout growth: sheetId → sheet name; the part
@@ -5239,7 +5355,14 @@ async function prepareWorkbookForOpen(
   path: string,
   contents?: WebContents | undefined,
   parent?: BrowserWindow | undefined,
-  options?: { skipRecoveryPrompt?: boolean },
+  options?: {
+    skipRecoveryPrompt?: boolean
+    /** progress and cancellation for a delimited import */
+    import?: {
+      readonly onProgress?: (progress: CsvImportProgress) => void
+      readonly signal?: AbortSignal
+    }
+  },
 ): Promise<{
   openPath: string
   suggestSaveAs?: string
@@ -5330,6 +5453,7 @@ async function prepareWorkbookForOpen(
         // every row shatters on the comma. A .csv keeps the sniff — the prose
         // guard in resolveImportDelimiter is what that path needs.
         extension === 'tsv' ? '\t' : undefined,
+        options?.import,
       )
       emptyCsv = converted.empty
       await writeFile(openPath, converted.buffer)

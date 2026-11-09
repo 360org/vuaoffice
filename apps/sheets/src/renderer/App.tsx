@@ -211,6 +211,8 @@ import { isSelectionDrag, type Point, type SelectionAskAnchor } from './ai/selec
 import { createAiDocument } from './ai/create-document'
 import { createWorkbookSkill } from './ai/workbook-skill'
 import { findWorkbookCells, selectWorkbookRange } from './ai/workbook-search'
+import { ImportProgressCard } from './ImportProgressCard'
+import { useImportProgress } from './import-progress'
 import {
   a1RangeToTarget,
   planTableRefresh,
@@ -322,6 +324,7 @@ import {
   pivotFieldMembers as pivotFieldMembersImpl,
   pivotFieldOptions as pivotFieldOptionsImpl,
   pivotSelectionKey as pivotSelectionKeyImpl,
+  restoreSlicerPanels,
   type PivotActionContext,
   type PivotEditContext,
   type SlicerPickerState,
@@ -860,6 +863,9 @@ export function App({
     () => createSheetTabActions({ univerRef, lazyWorkbookRef, notify: setMessage }),
     [],
   )
+  /// how far a delimited import (a .csv/.tsv opened as a workbook) is; null
+  /// when no import is running
+  const importProgress = useImportProgress()
   const [openingWorkbook, setOpeningWorkbook] = useState(
     () =>
       queuedWorkbookAtBoot ||
@@ -945,8 +951,8 @@ export function App({
   /// journal size (pendingEdits) alone misses same-target re-edits and the
   /// ribbon echo would go stale.
   const [, setVisualEditTick] = useState(0)
-  /// In-session slicers (OOXML slicer part persistence: see the TODO in
-  /// SlicerPanel).
+  /// In-session slicers (persisted on save through the gateway's slicer
+  /// parts; restored from the file after each open — see restoreSlicerPanels).
   const [slicers, setSlicers] = useState<readonly SlicerUiState[]>([])
   const [watchOpen, setWatchOpen] = useState(false)
   const [linksOpen, setLinksOpen] = useState(false)
@@ -1003,10 +1009,17 @@ export function App({
   const [calcManual, setCalcManual] = useState(false)
   /// Non-null while the "Insert Slicer" field picker is open.
   const [slicerPicker, setSlicerPicker] = useState<SlicerPickerState | null>(null)
-  /// In-session timelines (same session-only model as slicers).
+  /// In-session timelines (session-only: timeline parts are not persisted yet).
   const [timelines, setTimelines] = useState<readonly TimelineUiState[]>([])
   /// Non-null while the "Insert Timeline" field picker is open.
   const [timelinePicker, setTimelinePicker] = useState<TimelinePickerState | null>(null)
+  /// True while slicer panels changed since the last restore (open) and the
+  /// next save should persist the slicers as OOXML parts. Timelines are
+  /// session-only, so they never contribute here.
+  const slicersDirtyRef = useRef(false)
+  /// File-restored controls deleted this session: their parts and references
+  /// are removed on save (nothing else may ever be listed here).
+  const removedSlicerPartsRef = useRef<{ partPath: string; cachePath: string }[]>([])
   const menuActionRef = useRef<(action: MenuAction) => void>(() => {})
   /// Where the user was when a save started: the post-save session swap
   /// reinstalls the workbook, and the install consumes this instead of
@@ -1077,6 +1090,16 @@ export function App({
       timelinePicker,
       setTimelines,
       setTimelinePicker,
+      markSlicersChanged: () => {
+        slicersDirtyRef.current = true
+      },
+      recordSlicerRemoval: (control) => {
+        if (control.partPath === undefined || control.cachePath === undefined) return
+        removedSlicerPartsRef.current.push({
+          partPath: control.partPath,
+          cachePath: control.cachePath,
+        })
+      },
       setMessage,
       setPendingEdits,
     }
@@ -1201,9 +1224,37 @@ export function App({
       openLazyWorkbook,
       setPendingEdits,
       readCells: (addresses, sheetId) => readCellsImpl(readContext(), addresses, sheetId),
-      // null until the part was read: a save in that window must not clear it
+      // null until the file's own part has been read: an empty array means
+      // "clear the part" to the gateway, and a save that lands before the read
+      // would wipe the withheld-cell marks the file already carries.
       redactionStates: () =>
         loadedRedactionStatesRef.current === null ? null : redactionStatesRef.current,
+      slicerState: () => {
+        // Only a session that changed its slicers rides them on the save:
+        // untouched panels keep their parts byte-identical (raw-copied), and
+        // a file without slicers never gains any.
+        if (!slicersDirtyRef.current) return null
+        if (slicers.length === 0 && removedSlicerPartsRef.current.length === 0) {
+          return null
+        }
+        return {
+          slicers: slicers.map((slicer) => ({
+            sheetId: slicer.sheetId,
+            pivotPath: slicer.pivotPath,
+            sourceName: slicer.fieldName,
+            caption: slicer.caption ?? slicer.fieldName,
+            ...(slicer.name === undefined ? {} : { name: slicer.name }),
+            ...(slicer.partPath === undefined ? {} : { partPath: slicer.partPath }),
+            ...(slicer.cachePath === undefined ? {} : { cachePath: slicer.cachePath }),
+            ...(slicer.cacheName === undefined ? {} : { cacheName: slicer.cacheName }),
+            items: slicer.members.map((member) => ({
+              x: member.x,
+              selected: slicer.selected.includes(member.member),
+            })),
+          })),
+          removals: removedSlicerPartsRef.current.map((removal) => ({ ...removal })),
+        }
+      },
       externalLinkOps: () => pendingExternalLinkOpsRef.current,
       stashViewRestore: (view) => {
         viewRestoreRef.current = view
@@ -1320,6 +1371,9 @@ export function App({
   /** The shell can repeat its queued-open nudge while the renderer starts.
    * Only one picker/open request may own the workbook session at a time. */
   const workbookOpeningRef = useRef(false)
+  /** The user stopped the delimited import rather than the file selection:
+   *  the open ends with nothing opened, but it is not a failed open. */
+  const importCancelledRef = useRef(false)
   /** Current session's projectId/chatId (resolved when the workbook opens) */
   const chatRefIdsRef = useRef<{ projectId: string; chatId: string } | null>(null)
 
@@ -2370,7 +2424,7 @@ export function App({
     // Copying in a filtered sheet must skip hidden rows;
     // see filtered-copy.ts for why the built-in hook is not enough.
     const filteredCopyDisposable = installFilteredCopyHook(runtime)
-    // A sorted formula keeps pointing at its own row (sort-formula-refs.ts).
+    // A sort that cuts a shared formula group keeps the rest of the group (sort-formula-refs.ts).
     const sortFormulaRefsDisposable = installSortFormulaRefs(runtime)
     // Excel-compatible TSV plain text (TRUE/FALSE, quoted newlines).
     const tsvClipboardDisposable = installTsvClipboardFix(runtime)
@@ -5093,23 +5147,36 @@ export function App({
       })
     // Pivot definitions load eagerly so refresh (a synchronous apply step)
     // never waits on IPC. Best effort: a failed parse just disables refresh.
+    // Once they are in, the file's own slicer/timeline controls restore
+    // against them (they need the field/member tables to rebuild panels).
+    const pivotDefinitionLoads: Promise<void>[] = []
     for (const sheet of selected.sheets) {
       for (const pivot of sheet.pivotTables) {
         if (pivot.cachePath === null) continue
-        void window.desktopApi
-          .readPivotDefinition({
-            sessionId: selected.sessionId,
-            path: pivot.path,
-            cachePath: pivot.cachePath,
-          })
-          .then((definition) => {
-            if (lazyWorkbookRef.current === state) {
-              state.pivotDefinitions.set(pivot.path, definition)
-            }
-          })
-          .catch(() => undefined)
+        pivotDefinitionLoads.push(
+          window.desktopApi
+            .readPivotDefinition({
+              sessionId: selected.sessionId,
+              path: pivot.path,
+              cachePath: pivot.cachePath,
+            })
+            .then((definition) => {
+              if (lazyWorkbookRef.current === state) {
+                state.pivotDefinitions.set(pivot.path, definition)
+              }
+            })
+            .catch(() => undefined),
+        )
       }
     }
+    void Promise.all(pivotDefinitionLoads)
+      .then(() => window.desktopApi.readSlicerState({ sessionId: selected.sessionId }))
+      .then((entries) => {
+        if (lazyWorkbookRef.current !== state || entries.length === 0) return
+        const restored = restoreSlicerPanels(state, entries)
+        setSlicers(restored)
+      })
+      .catch(() => undefined)
     // Dev-only diagnosis hooks: e2e drivers dump journal state and dispatch
     // Univer commands (drag interactions are hard to synthesize over CDP).
     if (import.meta.env.DEV) {
@@ -5153,11 +5220,14 @@ export function App({
     lazyPreviewRef.current = null
     setPendingEdits(0)
     // Slicers/timelines belong to the previous workbook's session only;
-    // switching files invalidates them.
+    // switching files invalidates them. The file's own controls are restored
+    // below, once the pivot definitions they bind to have loaded.
     setSlicers([])
     setSlicerPicker(null)
     setTimelines([])
     setTimelinePicker(null)
+    slicersDirtyRef.current = false
+    removedSlicerPartsRef.current = []
     disposeVisuals(visualDisposablesRef.current)
     loadWorkbookSkeleton(univerRef.current, selected)
     applyWorkbookNotes(univerRef.current, selected)
@@ -5306,6 +5376,8 @@ export function App({
   // A workbook loaded into an already-mounted view (the prewarmed spare) can
   // leave document focus on a node Univer no longer reads keys from; hand it
   // back to the cell editor unless chrome (AI composer, dialogs) holds it.
+  // The main process reports how far a delimited import is; the overlay shows
+  // it and offers the cancel that stops it (see useImportProgress).
   // Runs from finishOpening, in the same tick that clears openingWorkbook: the
   // <main inert> that guarded the load is still in the DOM until React commits,
   // and an inert subtree refuses focus. The shell also hands webContents focus
@@ -5337,6 +5409,8 @@ export function App({
     if (workbookOpeningRef.current) return
     workbookOpeningRef.current = true
     setOpeningWorkbook(true)
+    // each open starts fresh: a cancel belongs to the open it happened in
+    importCancelledRef.current = false
     const finishOpening = (): void => {
       workbookOpeningRef.current = false
       setOpeningWorkbook(false)
@@ -5348,7 +5422,9 @@ export function App({
       }
       let selected = await window.desktopApi.selectWorkbook()
       if (!selected) {
-        setMessage(t('appOpenCanceled'))
+        // The import was cancelled, not the file selection: the user picked a
+        // file and then stopped the conversion.
+        setMessage(importCancelledRef.current ? t('appImportCanceled') : t('appOpenCanceled'))
         finishOpening()
         return
       }
@@ -5370,7 +5446,7 @@ export function App({
         }
         selected = decryptedWorkbook
         if (!selected) {
-          setMessage(t('appOpenCanceled'))
+          setMessage(importCancelledRef.current ? t('appImportCanceled') : t('appOpenCanceled'))
           finishOpening()
           return
         }
@@ -6060,7 +6136,17 @@ export function App({
       />
       {openingWorkbook && (
         <div className="workbook-opening-screen" role="status" aria-live="polite">
-          {t('appOpeningWorkbook')}
+          <ImportProgressCard
+            progress={importProgress}
+            label={t('appOpeningWorkbook')}
+            cancelLabel={t('appDialogCancel')}
+            onCancel={() => {
+              // the open ends with nothing opened, but it is the user's own
+              // doing: it is not a failed open and not a cancelled selection
+              importCancelledRef.current = true
+              void window.desktopApi?.cancelImport?.()
+            }}
+          />
         </div>
       )}
       {encryptedPasswordPrompt && (
