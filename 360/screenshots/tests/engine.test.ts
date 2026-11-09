@@ -4,6 +4,8 @@ import {
   clampRect,
   arrowHead,
   taperedArrowPolygon,
+  cropHitTest,
+  dragCrop,
   pixelate,
 } from '../src/shared/geometry'
 import {
@@ -141,5 +143,33 @@ describe('VuaOffice Screenshots (360/screenshots)', () => {
       expect(DEFAULT_COLOR).toBe(PALETTE[0])
       expect(DEFAULT_STROKE).toBe(STROKES[1])
     })
+  })
+})
+
+describe('Crop frame (Yandex.Disk style handles)', () => {
+  const r = { x: 100, y: 100, width: 200, height: 100 }
+
+  it('cropHitTest finds corners, edges, inside and outside', () => {
+    expect(cropHitTest(r, { x: 102, y: 98 }, 8)).toBe('nw')
+    expect(cropHitTest(r, { x: 300, y: 200 }, 8)).toBe('se')
+    expect(cropHitTest(r, { x: 200, y: 100 }, 8)).toBe('n')
+    expect(cropHitTest(r, { x: 296, y: 150 }, 8)).toBe('e')
+    expect(cropHitTest(r, { x: 200, y: 150 }, 8)).toBe('move')
+    expect(cropHitTest(r, { x: 20, y: 20 }, 8)).toBeNull()
+  })
+
+  it('dragCrop resizes from a corner and an edge', () => {
+    expect(dragCrop(r, 'se', 50, 20, 1000, 1000)).toEqual({ x: 100, y: 100, width: 250, height: 120 })
+    expect(dragCrop(r, 'w', 30, 999, 1000, 1000)).toEqual({ x: 130, y: 100, width: 170, height: 100 })
+  })
+
+  it('dragCrop moves the frame but keeps it inside the image', () => {
+    expect(dragCrop(r, 'move', -500, 10, 400, 400)).toEqual({ x: 0, y: 110, width: 200, height: 100 })
+    expect(dragCrop(r, 'move', 500, 500, 400, 400)).toEqual({ x: 200, y: 300, width: 200, height: 100 })
+  })
+
+  it('dragCrop clamps to the image and flips cleanly past the opposite edge', () => {
+    expect(dragCrop(r, 'nw', -500, -500, 1000, 1000)).toEqual({ x: 0, y: 0, width: 300, height: 200 })
+    expect(dragCrop(r, 'e', -300, 0, 1000, 1000)).toEqual({ x: 0, y: 100, width: 100, height: 100 })
   })
 })

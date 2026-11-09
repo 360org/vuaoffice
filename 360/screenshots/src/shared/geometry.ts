@@ -113,3 +113,51 @@ export function pixelate(
     }
   }
 }
+
+/** What a pointer grabs on the crop frame: a corner, an edge, or the inside (move). */
+export type CropHandle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'move'
+
+/** Handle under `p`, within `tol` image pixels of a corner/edge; null outside the frame. */
+export function cropHitTest(r: Rect, p: Point, tol: number): CropHandle | null {
+  const x1 = r.x + r.width
+  const y1 = r.y + r.height
+  const inX = p.x >= r.x - tol && p.x <= x1 + tol
+  const inY = p.y >= r.y - tol && p.y <= y1 + tol
+  if (!inX || !inY) return null
+  const w = Math.abs(p.x - r.x) <= tol
+  const e = Math.abs(p.x - x1) <= tol
+  const n = Math.abs(p.y - r.y) <= tol
+  const s = Math.abs(p.y - y1) <= tol
+  if (n && w) return 'nw'
+  if (n && e) return 'ne'
+  if (s && w) return 'sw'
+  if (s && e) return 'se'
+  if (n) return 'n'
+  if (s) return 's'
+  if (w) return 'w'
+  if (e) return 'e'
+  return 'move'
+}
+
+/** `start` dragged by (dx, dy) through `handle`, kept inside a w×h image. */
+export function dragCrop(start: Rect, handle: CropHandle, dx: number, dy: number, w: number, h: number): Rect {
+  if (handle === 'move') {
+    return {
+      x: Math.min(Math.max(0, start.x + dx), w - start.width),
+      y: Math.min(Math.max(0, start.y + dy), h - start.height),
+      width: start.width,
+      height: start.height,
+    }
+  }
+  let x0 = start.x
+  let y0 = start.y
+  let x1 = start.x + start.width
+  let y1 = start.y + start.height
+  if (handle.includes('w')) x0 += dx
+  if (handle.includes('e')) x1 += dx
+  if (handle.includes('n')) y0 += dy
+  if (handle.includes('s')) y1 += dy
+  const clampX = (v: number) => Math.min(Math.max(0, v), w)
+  const clampY = (v: number) => Math.min(Math.max(0, v), h)
+  return normalizeRect({ x: clampX(x0), y: clampY(y0) }, { x: clampX(x1), y: clampY(y1) })
+}

@@ -5,6 +5,11 @@ Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaO
 
 ## [Chưa phát hành] - 2026-11-09
 
+### [IMPROVE] Screenshots: khung cắt ảnh kiểu Yandex.Disk
+
+- **[IMPROVE] Khung cắt có sẵn và 8 tay nắm**: bấm Cắt (phím C) là khung phủ toàn ảnh, kéo 4 góc hoặc 4 cạnh để thu lại, kéo bên trong để di chuyển, khung luôn nằm trong ảnh. Con trỏ đổi theo tay nắm. Kéo bên ngoài khung vẫn vẽ vùng mới như trước.
+- **[TEST]** `cropHitTest` + `dragCrop` trong `360/screenshots/src/shared/geometry.ts` có 4 unit test; bộ E2E Screenshots thêm 7 case thao tác khung cắt trên Electron thật (31/31 đạt).
+
 ### [FIX] Gói AI hết hạn bị báo nhầm là "Chưa gán AI Pack"
 
 - **[FIX] Cảnh báo gói AI theo đúng lý do máy chủ**: `/api/ai/v1/config` trả `403 account_expired` kèm `expiration_date`, nhưng app gộp mọi lỗi thành "Chưa gán AI Pack". Handshake giờ chuyển `reason` + `expiresOn` sang giao diện; menu tài khoản hiện "Gói AI hết hạn DD/MM/YYYY · Gia hạn". Logic nằm ở `apps/shell/src/renderer/src/ai-pack-alert.ts`, có test kèm.

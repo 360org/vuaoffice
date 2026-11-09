@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { CAPTURE_ACCELERATORS } from '../shared/capture-args'
 import type { CaptureOutcome, ScreenshotsApi } from '../shared/channels'
-import { normalizeRect } from '../shared/geometry'
+import { cropHitTest, dragCrop, normalizeRect, type CropHandle } from '../shared/geometry'
 import { commit, createHistory, redo, undo, type History } from '../shared/history'
 import { fill, screenshotsStrings } from '../shared/i18n'
 import {
@@ -27,6 +27,21 @@ interface Doc {
 }
 
 type EditorTool = Tool | 'crop'
+
+/** screen pixels around a crop corner/edge that still grab it */
+const CROP_GRAB_PX = 10
+const CROP_HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'] as const
+const CROP_CURSORS: Record<CropHandle, string> = {
+  nw: 'nwse-resize',
+  se: 'nwse-resize',
+  ne: 'nesw-resize',
+  sw: 'nesw-resize',
+  n: 'ns-resize',
+  s: 'ns-resize',
+  e: 'ew-resize',
+  w: 'ew-resize',
+  move: 'move',
+}
 
 const TOOLS: Array<{ id: EditorTool; key: string; label: keyof ReturnType<typeof screenshotsStrings> }> = [
   { id: 'arrow', key: 'a', label: 'toolArrow' },
@@ -70,6 +85,9 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
     setDraftState(draftRef.current)
   }
   const [cropRect, setCropRect] = useState<Rect | null>(null)
+  /** the crop frame being dragged: which handle, the frame and pointer at grab time */
+  const cropDrag = useRef<{ handle: CropHandle; start: Rect; from: Point } | null>(null)
+  const [cropCursor, setCropCursor] = useState('crosshair')
   const [textAt, setTextAt] = useState<Point | null>(null)
   const [textValue, setTextValue] = useState('')
   const [fit, setFit] = useState(true)
@@ -204,17 +222,18 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
   useEffect(() => api.onSaveRequest(save))
 
   // ── pointer → image coordinates (the canvas may be scaled to fit) ──
-  const toImage = (e: ReactPointerEvent<HTMLCanvasElement>): Point => {
-    const r = e.currentTarget.getBoundingClientRect()
+  const toImage = (e: ReactPointerEvent<HTMLElement>): Point => {
+    const c = canvasRef.current!
+    const r = c.getBoundingClientRect()
     return {
-      x: ((e.clientX - r.left) * e.currentTarget.width) / r.width,
-      y: ((e.clientY - r.top) * e.currentTarget.height) / r.height,
+      x: ((e.clientX - r.left) * c.width) / r.width,
+      y: ((e.clientY - r.top) * c.height) / r.height,
     }
   }
 
   const nextStep = () => doc.shapes.filter((x) => x.tool === 'step').length + 1
 
-  const onPointerDown = (e: ReactPointerEvent<HTMLCanvasElement>) => {
+  const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (!base || e.button !== 0) return
     const p = toImage(e)
     if (tool === 'text') {
@@ -229,18 +248,35 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
     }
     e.currentTarget.setPointerCapture(e.pointerId)
     dragFrom.current = p
-    if (tool === 'crop') setCropRect({ x: p.x, y: p.y, width: 0, height: 0 })
-    else if (tool === 'pen' || tool === 'marker') setDraft({ tool, color, width: stroke, points: [p] })
+    if (tool === 'crop') {
+      // a handle half outside the image is grabbed by the element itself, not by hit-testing
+      const grabbed = (e.target as HTMLElement).dataset.handle as CropHandle | undefined
+      const hit = grabbed ?? (cropRect ? cropHitTest(cropRect, p, CROP_GRAB_PX / canvasScale) : null)
+      // moving a full-image frame does nothing, so a drag inside it draws a new area instead
+      const isFull = !!cropRect && !!base && cropRect.width >= base.naturalWidth && cropRect.height >= base.naturalHeight
+      // outside the frame: start a fresh one from this point, dragged out by its corner
+      cropDrag.current = hit && cropRect && !(hit === 'move' && isFull)
+        ? { handle: hit, start: cropRect, from: p }
+        : { handle: 'se', start: { x: p.x, y: p.y, width: 0, height: 0 }, from: p }
+    } else if (tool === 'pen' || tool === 'marker') setDraft({ tool, color, width: stroke, points: [p] })
   }
 
-  const onPointerMove = (e: ReactPointerEvent<HTMLCanvasElement>) => {
+  const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
     const from = dragFrom.current
-    if (!from) return
-    const p = toImage(e)
-    if (tool === 'crop') {
-      setCropRect(normalizeRect(from, p))
+    if (tool === 'crop' && base) {
+      const p = toImage(e)
+      const d = cropDrag.current
+      if (d) {
+        setCropRect(dragCrop(d.start, d.handle, p.x - d.from.x, p.y - d.from.y, base.naturalWidth, base.naturalHeight))
+      } else {
+        const hit = cropRect ? cropHitTest(cropRect, p, CROP_GRAB_PX / canvasScale) : null
+        const isFull = !!cropRect && cropRect.width >= base.naturalWidth && cropRect.height >= base.naturalHeight
+        setCropCursor(hit && !(hit === 'move' && isFull) ? CROP_CURSORS[hit] : 'crosshair')
+      }
       return
     }
+    if (!from) return
+    const p = toImage(e)
     setDraft((d) => {
       switch (tool) {
         case 'arrow':
@@ -262,7 +298,12 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
   const onPointerUp = () => {
     if (!dragFrom.current) return
     dragFrom.current = null
-    if (tool === 'crop') return
+    if (tool === 'crop') {
+      cropDrag.current = null
+      // a click without a drag leaves no usable frame: fall back to the whole image
+      setCropRect((r) => (r && r.width >= 2 && r.height >= 2 ? r : fullFrame()))
+      return
+    }
     const done = draftRef.current
     if (done && !isDegenerate(done)) apply({ ...doc, shapes: [...doc.shapes, done] })
     setDraft(null)
@@ -293,7 +334,15 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
     setTool('arrow')
   }
 
+  const fullFrame = (): Rect | null => (base ? { x: 0, y: 0, width: base.naturalWidth, height: base.naturalHeight } : null)
+
+  // entering crop mode (button, "c" key, or an area capture) starts with the whole image framed
+  useEffect(() => {
+    if (tool === 'crop' && base && !cropRect) setCropRect({ x: 0, y: 0, width: base.naturalWidth, height: base.naturalHeight })
+  }, [tool, base, cropRect])
+
   const cancelCrop = () => {
+    cropDrag.current = null
     setCropRect(null)
     setTool('arrow')
   }
@@ -436,17 +485,20 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
 
       <div className={`ss-stage${fit ? ' fit' : ''}`}>
         {base ? (
-          <div className="ss-canvas-wrap">
+          <div
+            className="ss-canvas-wrap"
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+          >
             <canvas
               ref={canvasRef}
               className={`ss-canvas tool-${tool}`}
-              onPointerDown={onPointerDown}
+              style={tool === 'crop' ? { cursor: cropCursor } : undefined}
               // the canvas is not focusable: without this the mousedown that follows
               // pointerdown blurs the text box the same click just opened
               onMouseDown={(e) => e.preventDefault()}
-              onPointerMove={onPointerMove}
-              onPointerUp={onPointerUp}
-              onPointerCancel={onPointerUp}
             />
             {tool === 'crop' && cropRect && cropRect.width > 0 && (
               <div
@@ -457,7 +509,11 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
                   width: cropRect.width * canvasScale,
                   height: cropRect.height * canvasScale,
                 }}
-              />
+              >
+                {CROP_HANDLES.map((h) => (
+                  <span key={h} data-handle={h} className={`ss-crop-handle h-${h}`} onMouseDown={(e) => e.preventDefault()} />
+                ))}
+              </div>
             )}
             {textAt && (
               <input

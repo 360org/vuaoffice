@@ -219,10 +219,41 @@
 
 .ss-crop {
   position: absolute;
+  /* the border sits inside the frame so its outer edge is exactly the crop edge */
+  box-sizing: border-box;
   pointer-events: none;
   border: 2px dashed var(--ss-accent);
   box-shadow: 0 0 0 9999px var(--color-bg-overlay);
 }
+
+.ss-crop-handle {
+  position: absolute;
+  /* the frame ignores the pointer so drags inside reach the canvas; handles still grab it */
+  pointer-events: auto;
+  width: 12px;
+  height: 12px;
+  margin: -7px 0 0 -7px;
+  border: 1px solid var(--ss-accent);
+  border-radius: 50%;
+  background: var(--surface);
+}
+
+.ss-crop-handle.h-nw,
+.ss-crop-handle.h-se { cursor: nwse-resize; }
+.ss-crop-handle.h-ne,
+.ss-crop-handle.h-sw { cursor: nesw-resize; }
+.ss-crop-handle.h-n,
+.ss-crop-handle.h-s { cursor: ns-resize; }
+.ss-crop-handle.h-e,
+.ss-crop-handle.h-w { cursor: ew-resize; }
+.ss-crop-handle.h-nw { left: 0; top: 0; }
+.ss-crop-handle.h-n { left: 50%; top: 0; }
+.ss-crop-handle.h-ne { left: 100%; top: 0; }
+.ss-crop-handle.h-e { left: 100%; top: 50%; }
+.ss-crop-handle.h-se { left: 100%; top: 100%; }
+.ss-crop-handle.h-s { left: 50%; top: 100%; }
+.ss-crop-handle.h-sw { left: 0; top: 100%; }
+.ss-crop-handle.h-w { left: 0; top: 50%; }
 
 .ss-text-input {
   position: absolute;

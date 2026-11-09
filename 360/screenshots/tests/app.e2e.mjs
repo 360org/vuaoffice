@@ -30,7 +30,7 @@ const check = (name, ok, detail = '') => { results.push({ name, ok: !!ok, detail
 
 const home = await app.firstWindow({ timeout: 60000 })
 await home.waitForSelector('.quick-cards', { timeout: 30000 })
-await home.locator('.quick-card', { hasText: 'Screenshots' }).first().click()
+await home.locator('.quick-card', { hasText: 'Chụp màn hình AI' }).first().click()
 const findSS = async () => { for (let i = 0; i < 80; i++) { for (const w of app.windows()) if ((await w.evaluate(() => location.href).catch(() => '')).includes('screenshots')) return w; await new Promise((r) => setTimeout(r, 250)) } return null }
 const ss = await findSS()
 check('1. Mở tab Screenshots từ thẻ Home', ss)
@@ -38,7 +38,7 @@ await ss.waitForSelector('.ss-root')
 ss.on('pageerror', (e) => errs.push('pageerror ' + e.message))
 
 // 2. single tab: clicking the card again focuses the same tab
-await home.locator('.quick-card', { hasText: 'Screenshots' }).first().click().catch(() => {})
+await home.locator('.quick-card', { hasText: 'Chụp màn hình AI' }).first().click().catch(() => {})
 await home.waitForTimeout(400)
 const tabCount = await home.evaluate(() => [...document.querySelectorAll('.tab-item')].filter((t) => /Chụp màn hình/.test(t.textContent)).length)
 check('2. Mở lại không nhân đôi tab', tabCount === 1, `${tabCount} tab`)
@@ -141,12 +141,38 @@ const jpgOk = existsSync(jpgPath) && readFileSync(jpgPath).subarray(0, 3).toStri
 check('15. Lưu ⌘S ra PNG và JPEG', pngOk && jpgOk, `png ${pngOk ? statSync(pngPath).size : 0}B, jpg ${jpgOk ? statSync(jpgPath).size : 0}B`)
 
 // 16. crop
-await ss.keyboard.press('c'); await ss.waitForSelector('.ss-cropbar'); await drag([10, 10], [210, 110]); await ss.keyboard.press('Enter'); await ss.waitForTimeout(500)
+await ss.keyboard.press('c'); await ss.waitForSelector('.ss-cropbar'); await drag([30, 30], [230, 130]); await ss.keyboard.press('Enter'); await ss.waitForTimeout(500)
 const cropDims = await ss.evaluate(() => { const c = document.querySelector('canvas.ss-canvas'); return { w: c.width, h: c.height } })
 check('16. Cắt ảnh (C + Enter)', Math.abs(cropDims.w - 200) <= 2 && Math.abs(cropDims.h - 100) <= 2, `${cropDims.w}x${cropDims.h}`)
 await ss.keyboard.press('Meta+z'); await ss.waitForTimeout(400)
 const uncrop = await ss.evaluate(() => { const c = document.querySelector('canvas.ss-canvas'); return { w: c.width, h: c.height } })
 check('17. Hoàn tác phép cắt khôi phục ảnh gốc', uncrop.w === 400 && uncrop.h === 300, `${uncrop.w}x${uncrop.h}`)
+
+// 17c-17g. Yandex.Disk-style crop frame: starts full-image, 8 handles, drag corners/edges, move
+const canvasDims = () => ss.evaluate(() => { const c = document.querySelector('canvas.ss-canvas'); return { w: c.width, h: c.height } })
+const frame = () => ss.evaluate(() => { const c = document.querySelector('canvas.ss-canvas').getBoundingClientRect(); const f = document.querySelector('.ss-crop')?.getBoundingClientRect(); return f ? { x: Math.round((f.left - c.left) * 400 / c.width), y: Math.round((f.top - c.top) * 300 / c.height), w: Math.round(f.width * 400 / c.width), h: Math.round(f.height * 300 / c.height), handles: document.querySelectorAll('.ss-crop-handle').length } : null })
+await ss.keyboard.press('c'); await ss.waitForTimeout(150)
+const f0 = await frame()
+check('17c. Bấm Cắt: khung phủ toàn ảnh, đủ 8 tay nắm', f0 && f0.x === 0 && f0.y === 0 && f0.w === 400 && f0.h === 300 && f0.handles === 8, JSON.stringify(f0))
+await drag([400, 300], [300, 220])
+const f1 = await frame()
+check('17d. Kéo góc dưới phải thu khung', f1 && Math.abs(f1.w - 300) <= 3 && Math.abs(f1.h - 220) <= 3 && f1.x === 0, JSON.stringify(f1))
+await drag([0, 110], [50, 110])
+const f2 = await frame()
+check('17e. Kéo cạnh trái chỉ đổi chiều ngang', f2 && Math.abs(f2.x - 50) <= 3 && Math.abs(f2.w - 250) <= 3 && f2.y === 0 && Math.abs(f2.h - 220) <= 3, JSON.stringify(f2))
+await drag([170, 110], [200, 140])
+const f3 = await frame()
+check('17f. Kéo bên trong di chuyển khung, giữ kích thước', f3 && Math.abs(f3.x - 80) <= 3 && Math.abs(f3.y - 30) <= 3 && Math.abs(f3.w - 250) <= 3 && Math.abs(f3.h - 220) <= 3, JSON.stringify(f3))
+await drag([200, 150], [900, 900])
+const f4 = await frame()
+check('17g. Kéo khung ra ngoài vẫn nằm trong ảnh', f4 && f4.x + f4.w <= 401 && f4.y + f4.h <= 301 && Math.abs(f4.w - 250) <= 3, JSON.stringify(f4))
+await ss.click('.ss-cropbar .ss-text-btn.primary'); await ss.waitForTimeout(500)
+const c5 = await canvasDims()
+check('17h. Nút Áp dụng cắt đúng khung đã chỉnh', Math.abs(c5.w - 250) <= 3 && Math.abs(c5.h - 220) <= 3, `${c5.w}x${c5.h}`)
+await ss.keyboard.press('Meta+z'); await ss.waitForTimeout(400)
+await ss.keyboard.press('c'); await ss.waitForTimeout(150); await ss.keyboard.press('Escape'); await ss.waitForTimeout(150)
+const c6 = await canvasDims()
+check('17i. Esc huỷ cắt, ảnh giữ nguyên', c6.w === 400 && c6.h === 300 && !(await ss.$('.ss-crop')), `${c6.w}x${c6.h}`)
 
 // 17b. a new image (hotkey/paste/open) is undoable: annotations are never wiped
 await tool('Mũi tên'); await drag([60, 200], [160, 240])
@@ -182,7 +208,7 @@ const closed = !(await home.evaluate(() => [...document.querySelectorAll('.tab-i
 check('19. Chọn "Không lưu" thì đóng tab', closed)
 
 // 20. dark theme follows the shell
-await home.locator('.quick-card', { hasText: 'Screenshots' }).first().click()
+await home.locator('.quick-card', { hasText: 'Chụp màn hình AI' }).first().click()
 const ss2 = await findSS()
 await ss2.waitForSelector('.ss-root')
 await home.evaluate(() => window.aiOffice.setTheme('dark'))
