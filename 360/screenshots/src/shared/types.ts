@@ -5,7 +5,7 @@
 
 export type CaptureMode = 'area' | 'window' | 'fullscreen'
 
-export type Tool = 'arrow' | 'rect' | 'ellipse' | 'line' | 'pen' | 'marker' | 'text' | 'step' | 'blur'
+export type Tool = 'select' | 'arrow' | 'rect' | 'ellipse' | 'line' | 'pen' | 'marker' | 'text' | 'step' | 'blur' | 'image'
 
 export interface Point {
   x: number
@@ -21,11 +21,12 @@ export interface Rect {
 
 /** One committed annotation. Document data: colors stay literal in every theme. */
 export type Shape =
-  | { tool: 'arrow' | 'line'; color: string; width: number; from: Point; to: Point }
-  | { tool: 'rect' | 'ellipse' | 'blur'; color: string; width: number; rect: Rect }
-  | { tool: 'pen' | 'marker'; color: string; width: number; points: Point[] }
-  | { tool: 'text'; color: string; width: number; at: Point; text: string; size: number }
-  | { tool: 'step'; color: string; width: number; at: Point; n: number }
+  | { id?: string; tool: 'arrow' | 'line'; color: string; width: number; from: Point; to: Point }
+  | { id?: string; tool: 'rect' | 'ellipse' | 'blur'; color: string; width: number; rect: Rect }
+  | { id?: string; tool: 'image'; rect: Rect; src: string; color?: string; width?: number }
+  | { id?: string; tool: 'pen' | 'marker'; color: string; width: number; points: Point[] }
+  | { id?: string; tool: 'text'; color: string; width: number; at: Point; text: string; size: number }
+  | { id?: string; tool: 'step'; color: string; width: number; at: Point; n: number }
 
 /** Annotation palette (document content, not UI chrome — stays hardcoded per CLAUDE.md §4). */
 export const PALETTE = [

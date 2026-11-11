@@ -1,9 +1,10 @@
-# ARCH — Kiến trúc Kỹ thuật VuaHeThong Pro
+# ARCH — Kiến trúc Kỹ thuật VuaHeThong Pro / VuaOffice Super-App
 
 > **Tài liệu kiến trúc.** Tầm nhìn & tuyên ngôn: [`IDEA.md`](IDEA.md) (nguồn chân lý).
-> Lộ trình & đặc tả code: [`PLAN.md`](PLAN.md).
+> Đặc tả hệ thống Siêu Ứng Dụng đầy đủ: [`docs/ARCH_SUPERAPP_VUAOFFICE_SYSTEM.md`](../ARCH_SUPERAPP_VUAOFFICE_SYSTEM.md).
+> Lộ trình & kế hoạch thi công chi tiết: [`PLAN.md`](PLAN.md).
 >
-> **Chủ quản:** 360 CORP · **Cập nhật:** 2026-09-13
+> **Chủ quản:** 360 CORP · **Cập nhật:** 2026-11-10 (Bản v5.0 — Super-App Architecture)
 
 ---
 

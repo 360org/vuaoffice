@@ -5,6 +5,27 @@ Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaO
 
 ## [Chưa phát hành] - 2026-11-11
 
+### [NEW] Screenshots: Tích hợp Trợ lý AI thực thi tự động (VuaAI Screenshots Assistant) & Tái sắp xếp đối tượng vector
+
+- **[NEW] Trợ lý AI thực thi tự động (`AgentLoop` + Multimodal Vision)**:
+  - Tích hợp thanh dock AI Assistant trực tiếp trong tab Chụp màn hình (phím tắt `⌘J` hoặc nút Trợ lý AI trên thanh công cụ).
+  - Tự động gắn canvas ảnh chụp màn hình hiện tại vào ngữ cảnh multimodal vision của LLM (VuaAI Pro Gateway / 360 CORP Router).
+  - Bổ sung bộ công cụ AI (`createScreenshotsSkill`):
+    - `auto_redact_sensitive`: Tự động nhận diện và làm mờ (blur) thông tin cá nhân, mật khẩu, email, số điện thoại, số tài khoản, token hoặc số thẻ.
+    - `annotate_screenshot`: Tự động vẽ mũi tên chỉ dẫn, khung chữ nhật, elip, số thứ tự bước (step badge 1, 2, 3...) và chữ chú thích lên ảnh.
+    - `crop_screenshot`: Tự động nhận diện vùng trọng tâm và cắt ảnh.
+    - `extract_text_ocr`: Trích xuất toàn bộ văn bản nhìn thấy trong ảnh.
+    - `clear_annotations`: Xóa chú thích theo loại hoặc xóa tất cả.
+  - Hỗ trợ các chip gợi ý thao tác nhanh (Che thông tin nhạy cảm, Đánh dấu điểm nhấn, Cắt vùng trọng tâm, Trích xuất OCR, Giải thích nội dung).
+- **[NEW] Tái sắp xếp, di chuyển & co giãn đối tượng vector (Vector Object Re-arrangement)**:
+  - Thêm công cụ **Chọn & Di chuyển** (`tool: 'select'`, phím `V`).
+  - Hỗ trợ 8 điểm neo co giãn kích thước (corner & edge handles) cho khung chữ nhật, elip, vùng làm mờ và hình ảnh chèn thêm; 2 điểm neo đầu mút cho mũi tên và đường thẳng.
+  - Cơ chế chuẩn hóa tọa độ mượt mà khi kéo lật góc (`normalizeRect`).
+  - Phân lớp đối tượng (Đưa lên trên `]` / Đưa xuống dưới `[`).
+  - Tinh chỉnh vị trí bằng các phím mũi tên (1px / 10px với `Shift`) và phím xoá (`⌫`).
+  - Hỗ trợ chèn tệp hình ảnh bổ sung lên canvas và dán trực tiếp từ clipboard (`⌘V`).
+- **[TEST]**: Bổ sung bộ unit tests kiểm thử hình học và AI skill (`engine.test.ts`), đạt 30/30 test PASS; 7/7 cổng chất lượng `brand:gate` ĐẠT 100%.
+
 ### [FIX] Định danh thiết bị vật lý phần cứng & Phân biệt lỗi kết nối AI với Chưa gán gói
 
 - **[FIX] Định danh thiết bị phần cứng cố định**: Tích hợp `getHardwareMachineId()` cố định theo phần cứng cho macOS (`IOPlatformUUID`), Windows (`csProduct.UUID`), Linux (`/etc/machine-id`), chống việc sinh UUID ngẫu nhiên làm phình thiết bị khi cài lại app hoặc xoá cache.
@@ -13,7 +34,7 @@ Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaO
 
 ## [Chưa phát hành] - 2026-11-09
 
-### [NEW] Screenshots: bổ sung toàn diện hệ thống phím tắt chuẩn Yandex.Disk
+### [NEW] Screenshots: bổ sung toàn diện hệ thống phím tắt chuyên nghiệp
 
 - **[NEW] Đầy đủ phím tắt thao tác & phóng to**:
   - `⌘+` / `⌘−`: Phóng to / thu nhỏ bàn vẽ theo các nấc 25% → 400%.
@@ -22,14 +43,14 @@ Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaO
   - `⌘C` / `⌘S`: Sao chép ảnh vào clipboard / Mở hộp thoại lưu ảnh PNG/JPEG.
   - `⌘Z` / `⇧⌘Z` (hoặc `⌘Y`): Hoàn tác / Làm lại lịch sử vẽ.
   - `Enter` / `Esc`: Áp dụng hoặc huỷ vùng cắt ảnh.
-  - Các phím mũi tên (`←` `→` `↑` `↓`): Tinh chỉnh vị trí khung cắt 1px, giữ `Shift` bước nhảy 4px chuẩn Yandex.Disk.
+  - Các phím mũi tên (`←` `→` `↑` `↓`): Tinh chỉnh vị trí khung cắt 1px, giữ `Shift` bước nhảy 4px tiện lợi.
   - Phím chọn công cụ: `A` (Mũi tên), `R` (Khung chữ nhật), `O` (Elip), `L` (Đường thẳng), `P` (Bút vẽ), `H` (Bút dạ quang), `T` (Chữ), `N` (Đánh số bước), `B` (Làm mờ), `C` (Cắt ảnh). Phím `1`-`8` chọn bảng màu.
   - Phím toàn cục ngoài app: `⌥⇧⌘1` (Vùng chọn), `⌥⇧⌘2` (Cửa sổ), `⌥⇧⌘3` (Toàn màn hình).
 - **[UI] Tooltip gắn nhãn phím tắt**: Mọi nút trên thanh công cụ đều hiển thị phím tắt tương ứng khi rê chuột.
 - **[CORE] Chặn menu ứng dụng nuốt phím**: Sử dụng `before-input-event` + `setIgnoreMenuShortcuts` để các tổ hợp phím ⌘ biên tập đi thẳng vào renderer thay vì bị menu shell nuốt.
 - **[TEST]**: Bổ sung unit test `isEditorShortcut` và `stepZoom` (17/17 PASS), 36/36 case E2E chạy trên Electron thật ổn định.
 
-### [IMPROVE] Screenshots: khung cắt ảnh kiểu Yandex.Disk
+### [IMPROVE] Screenshots: khung cắt ảnh chuyên nghiệp với 8 điểm neo co giãn
 
 - **[IMPROVE] Khung cắt có sẵn và 8 tay nắm**: bấm Cắt (phím C) là khung phủ toàn ảnh, kéo 4 góc hoặc 4 cạnh để thu lại, kéo bên trong để di chuyển, khung luôn nằm trong ảnh. Con trỏ đổi theo tay nắm. Kéo bên ngoài khung vẫn vẽ vùng mới như trước.
 - **[TEST]** `cropHitTest` + `dragCrop` trong `360/screenshots/src/shared/geometry.ts` có 4 unit test; bộ E2E Screenshots thêm 7 case thao tác khung cắt trên Electron thật (31/31 đạt).

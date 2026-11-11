@@ -25,6 +25,29 @@ const api: ScreenshotsApi = {
     ipcRenderer.on(CH.saveRequest, listener)
     return () => ipcRenderer.removeListener(CH.saveRequest, listener)
   },
+  getAiSettings: () => ipcRenderer.invoke('ai:get-settings'),
+  setAiSettings: (settings: unknown) => ipcRenderer.invoke('ai:set-settings', settings),
+  onAiSettingsChanged(handler: () => void) {
+    const listener = () => handler()
+    ipcRenderer.on('ai:settings-changed', listener)
+    return () => ipcRenderer.removeListener('ai:settings-changed', listener)
+  },
+  gskStatus: () => ipcRenderer.invoke('ai:gsk-status'),
+  aiStream: (request: unknown) => ipcRenderer.invoke('ai:stream', request),
+  aiStreamCancel: (requestId: string) => ipcRenderer.invoke('ai:stream-cancel', requestId),
+  onAiStream(handler: (chunk: unknown) => void) {
+    const listener = (_event: unknown, chunk: unknown) => handler(chunk)
+    ipcRenderer.on('ai:stream-chunk', listener)
+    return () => ipcRenderer.removeListener('ai:stream-chunk', listener)
+  },
+  openAiModelSettings: () => ipcRenderer.invoke('ai:open-model-settings'),
+  getAiPanelPrefs: () => ipcRenderer.invoke('app:get-ai-panel-prefs'),
+  setAiPanelPrefs: (prefs: unknown) => ipcRenderer.invoke('app:set-ai-panel-prefs', prefs),
+  onAiPanelPrefsChanged(handler: (prefs: unknown) => void) {
+    const listener = (_event: unknown, p: unknown) => handler(p)
+    ipcRenderer.on('app:ai-panel-prefs-changed', listener)
+    return () => ipcRenderer.removeListener('app:ai-panel-prefs-changed', listener)
+  },
 }
 
 contextBridge.exposeInMainWorld('screenshotsApi', api)

@@ -79,12 +79,14 @@ const checks = [
                 fs.existsSync(path.join(ROOT, '360/tunnel/local-proxy.ts')),
   },
   {
-    name: '12. VuaOffice Screenshots & Photo Editor Core (360/screenshots/)',
+    name: '12. VuaOffice Screenshots & Photo Editor Core + AI Agent (360/screenshots/)',
     test: () => fs.existsSync(path.join(ROOT, '360/screenshots/src/index.ts')) &&
                 fs.existsSync(path.join(ROOT, '360/screenshots/src/shared/types.ts')) &&
                 fs.existsSync(path.join(ROOT, '360/screenshots/src/main/screenshots-main.ts')) &&
                 fs.existsSync(path.join(ROOT, '360/screenshots/src/renderer/render.ts')) &&
-                fs.existsSync(path.join(ROOT, '360/screenshots/src/renderer/ScreenshotsEditor.tsx')),
+                fs.existsSync(path.join(ROOT, '360/screenshots/src/renderer/ScreenshotsEditor.tsx')) &&
+                fs.existsSync(path.join(ROOT, '360/screenshots/src/renderer/ai/screenshots-skill.ts')) &&
+                fs.existsSync(path.join(ROOT, '360/screenshots/src/renderer/ai/ScreenshotsAiPanel.tsx')),
   }
 ];
 

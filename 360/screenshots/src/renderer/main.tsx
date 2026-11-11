@@ -1,6 +1,8 @@
 import { StrictMode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import '@genoffice/ui/tokens.css'
+import '@genoffice/ui/ai-model-picker.css'
+import { applyAiPanelPrefs } from '@genoffice/ui'
 import type { ScreenshotsApi } from '../shared/channels'
 import { ScreenshotsEditor } from './ScreenshotsEditor'
 
@@ -31,9 +33,12 @@ function App({ initialLang }: { initialLang: string }) {
       setLang(next)
       document.documentElement.lang = next
     })
+    void window.screenshotsApi?.getAiPanelPrefs?.().then(applyAiPanelPrefs)
+    const offPrefs = window.screenshotsApi?.onAiPanelPrefsChanged?.(applyAiPanelPrefs)
     return () => {
       offTheme()
       offLang()
+      offPrefs?.()
     }
   }, [])
   return <ScreenshotsEditor api={window.screenshotsApi} lang={lang} />

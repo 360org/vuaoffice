@@ -2,7 +2,20 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { CAPTURE_ACCELERATORS } from '../shared/capture-args'
 import type { CaptureOutcome, ScreenshotsApi } from '../shared/channels'
-import { cropHitTest, dragCrop, normalizeRect, stepZoom, type CropHandle } from '../shared/geometry'
+import {
+  cropHitTest,
+  dragCrop,
+  hitTestShape,
+  hitTestShapeHandle,
+  moveShape,
+  normalizeRect,
+  resizeShapeHandle,
+  shapeBoundingBox,
+  shapeHandles,
+  stepZoom,
+  type CropHandle,
+  type ShapeHandleId,
+} from '../shared/geometry'
 import { commit, createHistory, redo, undo, type History } from '../shared/history'
 import { fill, screenshotsStrings } from '../shared/i18n'
 import {
@@ -17,7 +30,9 @@ import {
   type Tool,
 } from '../shared/types'
 import { ICONS } from './icons'
-import { canvasToPng, compose, drawShape, loadImage, pngUrl } from './render'
+import { canvasToPng, compose, drawShape, ensureImagesLoaded, loadImage, pngUrl } from './render'
+import { ScreenshotsAiPanel } from './ai/ScreenshotsAiPanel'
+import type { ScreenshotsAiDeps } from './ai/screenshots-skill'
 import './screenshots.css'
 
 /** what undo/redo walks over: the base image (crop replaces it) plus the shapes on top */
@@ -44,6 +59,7 @@ const CROP_CURSORS: Record<CropHandle, string> = {
 }
 
 const TOOLS: Array<{ id: EditorTool; key: string; label: keyof ReturnType<typeof screenshotsStrings> }> = [
+  { id: 'select', key: 'v', label: 'toolSelect' },
   { id: 'arrow', key: 'a', label: 'toolArrow' },
   { id: 'rect', key: 'r', label: 'toolRect' },
   { id: 'ellipse', key: 'o', label: 'toolEllipse' },
@@ -53,6 +69,7 @@ const TOOLS: Array<{ id: EditorTool; key: string; label: keyof ReturnType<typeof
   { id: 'text', key: 't', label: 'toolText' },
   { id: 'step', key: 'n', label: 'toolStep' },
   { id: 'blur', key: 'b', label: 'toolBlur' },
+  { id: 'image', key: 'i', label: 'toolImage' },
   { id: 'crop', key: 'c', label: 'toolCrop' },
 ]
 
@@ -73,6 +90,9 @@ function shortcutLabel(accel: string): string {
     .replace(/⌘⌥⇧/, '⌥⇧⌘')
 }
 
+let shapeUid = 0
+const genId = () => 's_' + Date.now().toString(36) + '_' + (++shapeUid)
+
 export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: string }) {
   const s = useMemo(() => screenshotsStrings(lang), [lang])
   const [history, setHistory] = useState<History<Doc>>(() => createHistory({ src: null, shapes: [] }))
@@ -81,6 +101,15 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
   const [tool, setTool] = useState<EditorTool>('arrow')
   const [color, setColor] = useState<string>(DEFAULT_COLOR)
   const [stroke, setStroke] = useState<number>(DEFAULT_STROKE)
+
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [liveEdit, setLiveEdit] = useState<{ id: string; shape: Shape } | null>(null)
+  const liveEditRef = useRef<{ id: string; shape: Shape } | null>(null)
+  const shapeDrag = useRef<{ shapeId: string; handle: ShapeHandleId; from: Point; startShape: Shape } | null>(null)
+  const [hoverCursor, setHoverCursor] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const editingTextId = useRef<string | null>(null)
+
   const [draft, setDraftState] = useState<Shape | null>(null)
   /** the in-progress shape, read synchronously on pointerup: a fast drag can
    *  release before React re-renders with the last pointermove */
@@ -100,6 +129,7 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
   const [toast, setToast] = useState<string | null>(null)
   const [permissionDenied, setPermissionDenied] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [aiOpen, setAiOpen] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const dragFrom = useRef<Point | null>(null)
   /** the doc last written to disk or the clipboard — "dirty" means the present differs */
@@ -126,7 +156,7 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
     }
   }, [doc.src, flash, s.imageUnreadable])
 
-  // ── repaint whenever the doc, the image or the in-progress shape changes ──
+  // ── repaint whenever the doc, the image, live shape edit or draft changes ──
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas || !base) return
@@ -134,13 +164,21 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
     if (canvas.height !== base.naturalHeight) canvas.height = base.naturalHeight
     const ctx = canvas.getContext('2d', { willReadFrequently: true })!
     ctx.drawImage(base, 0, 0)
-    for (const shape of doc.shapes) drawShape(ctx, shape)
+    const shapesToDraw = liveEdit
+      ? doc.shapes.map((shape) => (shape.id === liveEdit.id ? liveEdit.shape : shape))
+      : doc.shapes
+    for (const shape of shapesToDraw) {
+      if (editingTextId.current && shape.id === editingTextId.current) continue
+      drawShape(ctx, shape)
+    }
     if (draft) drawShape(ctx, draft)
-  }, [base, doc.shapes, draft])
+  }, [base, doc.shapes, draft, liveEdit])
 
   // ── dirty flag mirrors to main, which guards tab close and quit ──
   const dirty = doc.shapes.length > 0 && history.present !== savedDoc.current
   useEffect(() => api.setDirty(dirty), [api, dirty])
+
+  const apply = useCallback((next: Doc) => setHistory((h) => commit(h, next)), [])
 
   const loadPng = useCallback(
     (png: Uint8Array, needsCrop = false) => {
@@ -150,9 +188,9 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
       }
       const next: Doc = { src: pngUrl(png), shapes: [] }
       savedDoc.current = next
-      // a new capture (hotkey, paste, open) must not wipe unsaved annotations:
-      // it is one more undo step, ⌘Z brings the previous image + shapes back
       setHistory((h) => (h.present.src ? commit(h, next) : createHistory(next)))
+      setSelectedId(null)
+      setLiveEdit(null)
       setDraft(null)
       setTextAt(null)
       setCropRect(null)
@@ -161,6 +199,44 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
       if (needsCrop) flash(s.cropHint)
     },
     [flash, s.cropHint, s.imageTooLarge],
+  )
+
+  const insertImageBytes = useCallback(
+    async (png: Uint8Array) => {
+      if (!base) {
+        loadPng(png)
+        return
+      }
+      if (png.byteLength > MAX_IMAGE_BYTES) {
+        flash(s.imageTooLarge)
+        return
+      }
+      const url = pngUrl(png)
+      let img: HTMLImageElement
+      try {
+        img = await loadImage(url)
+      } catch {
+        flash(s.imageUnreadable)
+        return
+      }
+      const maxW = Math.round(base.naturalWidth * 0.6)
+      const maxH = Math.round(base.naturalHeight * 0.6)
+      const scale = Math.min(1, maxW / img.naturalWidth, maxH / img.naturalHeight)
+      const w = Math.max(30, Math.round(img.naturalWidth * scale))
+      const h = Math.max(30, Math.round(img.naturalHeight * scale))
+      const x = Math.max(0, Math.round((base.naturalWidth - w) / 2))
+      const y = Math.max(0, Math.round((base.naturalHeight - h) / 2))
+      const newShape: Shape = {
+        id: genId(),
+        tool: 'image',
+        src: url,
+        rect: { x, y, width: w, height: h },
+      }
+      apply({ ...doc, shapes: [...doc.shapes, newShape] })
+      setSelectedId(newShape.id ?? null)
+      setTool('select')
+    },
+    [apply, base, doc, flash, loadPng, s.imageTooLarge, s.imageUnreadable],
   )
 
   const applyOutcome = useCallback(
@@ -195,11 +271,10 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
     if (png) loadPng(png)
   }
 
-  const apply = (next: Doc) => setHistory((h) => commit(h, next))
-
   const exportPng = async (): Promise<Uint8Array | null> => {
     if (!base) return null
     commitText()
+    await ensureImagesLoaded(history.present.shapes)
     return canvasToPng(compose(base, history.present.shapes))
   }
 
@@ -224,7 +299,6 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
     return true
   }
 
-  // close prompt → "Save…": the latest save closure must answer, so re-subscribe each render
   useEffect(() => api.onSaveRequest(save))
 
   // ── pointer → image coordinates (the canvas may be scaled to fit) ──
@@ -239,6 +313,81 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
 
   const nextStep = () => doc.shapes.filter((x) => x.tool === 'step').length + 1
 
+  // ── Selection management & re-arrangement ──
+  const activeShape = useMemo(() => {
+    if (!selectedId) return null
+    if (liveEdit && liveEdit.id === selectedId) return liveEdit.shape
+    return doc.shapes.find((shape) => shape.id === selectedId) ?? null
+  }, [selectedId, liveEdit, doc.shapes])
+
+  const activeBbox = useMemo(() => (activeShape ? shapeBoundingBox(activeShape) : null), [activeShape])
+  const activeHandles = useMemo(() => (activeShape ? shapeHandles(activeShape) : []), [activeShape])
+
+  const deleteSelected = useCallback(() => {
+    if (!selectedId) return
+    apply({ ...doc, shapes: doc.shapes.filter((shape) => shape.id !== selectedId) })
+    setSelectedId(null)
+    setLiveEdit(null)
+    liveEditRef.current = null
+  }, [apply, doc, selectedId])
+
+  const bringForward = useCallback(() => {
+    if (!selectedId) return
+    const idx = doc.shapes.findIndex((shape) => shape.id === selectedId)
+    if (idx >= 0 && idx < doc.shapes.length - 1) {
+      const next = [...doc.shapes]
+      const [item] = next.splice(idx, 1)
+      next.splice(idx + 1, 0, item)
+      apply({ ...doc, shapes: next })
+    }
+  }, [apply, doc, selectedId])
+
+  const sendBackward = useCallback(() => {
+    if (!selectedId) return
+    const idx = doc.shapes.findIndex((shape) => shape.id === selectedId)
+    if (idx > 0) {
+      const next = [...doc.shapes]
+      const [item] = next.splice(idx, 1)
+      next.splice(idx - 1, 0, item)
+      apply({ ...doc, shapes: next })
+    }
+  }, [apply, doc, selectedId])
+
+  const nudgeSelected = useCallback(
+    (dx: number, dy: number) => {
+      if (!selectedId) return
+      const updated = doc.shapes.map((shape) => (shape.id === selectedId ? moveShape(shape, dx, dy) : shape))
+      apply({ ...doc, shapes: updated })
+    },
+    [apply, doc, selectedId],
+  )
+
+  const onColorChange = (c: string) => {
+    setColor(c)
+    if (selectedId) {
+      const updated = doc.shapes.map((shape) =>
+        shape.id === selectedId && shape.tool !== 'image' ? { ...shape, color: c } : shape,
+      )
+      apply({ ...doc, shapes: updated })
+    }
+  }
+
+  const onStrokeChange = (w: number) => {
+    setStroke(w)
+    if (selectedId) {
+      const updated = doc.shapes.map((shape) => (shape.id === selectedId ? { ...shape, width: w } : shape))
+      apply({ ...doc, shapes: updated })
+    }
+  }
+
+  const pickImageFile = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+      fileInputRef.current.click()
+    }
+  }
+
+  // ── pointer interactions ──
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (!base || e.button !== 0) return
     const p = toImage(e)
@@ -248,29 +397,93 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
       setTextValue('')
       return
     }
-    if (tool === 'step') {
-      apply({ ...doc, shapes: [...doc.shapes, { tool: 'step', color, width: stroke, at: p, n: nextStep() }] })
-      return
-    }
-    e.currentTarget.setPointerCapture(e.pointerId)
-    dragFrom.current = p
     if (tool === 'crop') {
-      // a handle half outside the image is grabbed by the element itself, not by hit-testing
+      e.currentTarget.setPointerCapture(e.pointerId)
+      dragFrom.current = p
       const grabbed = (e.target as HTMLElement).dataset.handle as CropHandle | undefined
       const hit = grabbed ?? (cropRect ? cropHitTest(cropRect, p, CROP_GRAB_PX / canvasScale) : null)
-      // moving a full-image frame does nothing, so a drag inside it draws a new area instead
       const isFull = !!cropRect && !!base && cropRect.width >= base.naturalWidth && cropRect.height >= base.naturalHeight
-      // outside the frame: start a fresh one from this point, dragged out by its corner
       cropDrag.current = hit && cropRect && !(hit === 'move' && isFull)
         ? { handle: hit, start: cropRect, from: p }
         : { handle: 'se', start: { x: p.x, y: p.y, width: 0, height: 0 }, from: p }
-    } else if (tool === 'pen' || tool === 'marker') setDraft({ tool, color, width: stroke, points: [p] })
+      return
+    }
+
+    // 1. Check if grabbed a handle on the currently selected shape
+    const currentSel = selectedId ? doc.shapes.find((shape) => shape.id === selectedId) : null
+    if (currentSel) {
+      const grabbedHandle = (e.target as HTMLElement).dataset.handle as ShapeHandleId | undefined
+      const handleHit = grabbedHandle ?? hitTestShapeHandle(currentSel, p, 10 / canvasScale)
+      if (handleHit) {
+        e.currentTarget.setPointerCapture(e.pointerId)
+        shapeDrag.current = {
+          shapeId: currentSel.id!,
+          handle: handleHit,
+          from: p,
+          startShape: { ...currentSel },
+        }
+        return
+      }
+    }
+
+    // 2. In Select tool ('select'), clicking any shape selects and moves it
+    if (tool === 'select') {
+      let hitShape = [...doc.shapes].reverse().find((shape) => hitTestShape(shape, p, 8 / canvasScale, true))
+      if (!hitShape) {
+        hitShape = [...doc.shapes].reverse().find((shape) => hitTestShape(shape, p, 8 / canvasScale, false))
+      }
+      if (hitShape) {
+        e.currentTarget.setPointerCapture(e.pointerId)
+        setSelectedId(hitShape.id!)
+        shapeDrag.current = {
+          shapeId: hitShape.id!,
+          handle: 'body',
+          from: p,
+          startShape: { ...hitShape },
+        }
+        return
+      }
+      setSelectedId(null)
+      return
+    }
+
+    // 3. In drawing tools, if clicking on the currently selected shape's body (except image overlay), allow moving it
+    if (currentSel && currentSel.tool !== 'image' && hitTestShape(currentSel, p, 8 / canvasScale, true)) {
+      e.currentTarget.setPointerCapture(e.pointerId)
+      shapeDrag.current = {
+        shapeId: currentSel.id!,
+        handle: 'body',
+        from: p,
+        startShape: { ...currentSel },
+      }
+      return
+    }
+
+    if (tool === 'step') {
+      const newStep: Shape = {
+        id: genId(),
+        tool: 'step',
+        color,
+        width: stroke,
+        at: p,
+        n: nextStep(),
+      }
+      apply({ ...doc, shapes: [...doc.shapes, newStep] })
+      setSelectedId(newStep.id ?? null)
+      return
+    }
+
+    setSelectedId(null)
+    e.currentTarget.setPointerCapture(e.pointerId)
+    dragFrom.current = p
+    if (tool === 'pen' || tool === 'marker') {
+      setDraft({ id: genId(), tool, color, width: stroke, points: [p] })
+    }
   }
 
   const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
-    const from = dragFrom.current
+    const p = toImage(e)
     if (tool === 'crop' && base) {
-      const p = toImage(e)
       const d = cropDrag.current
       if (d) {
         setCropRect(dragCrop(d.start, d.handle, p.x - d.from.x, p.y - d.from.y, base.naturalWidth, base.naturalHeight))
@@ -281,68 +494,169 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
       }
       return
     }
-    if (!from) return
-    const p = toImage(e)
-    setDraft((d) => {
-      switch (tool) {
-        case 'arrow':
-        case 'line':
-          return { tool, color, width: stroke, from, to: p }
-        case 'rect':
-        case 'ellipse':
-        case 'blur':
-          return { tool, color, width: stroke, rect: normalizeRect(from, p) }
-        case 'pen':
-        case 'marker':
-          return d && 'points' in d ? { ...d, points: [...d.points, p] } : d
-        default:
-          return d
+
+    // Dragging an existing shape or its handles
+    if (shapeDrag.current) {
+      const { shapeId, handle, from, startShape } = shapeDrag.current
+      const dx = p.x - from.x
+      const dy = p.y - from.y
+      let updated: Shape
+      if (handle === 'body') {
+        updated = moveShape(startShape, dx, dy)
+      } else {
+        updated = resizeShapeHandle(startShape, handle, p)
       }
-    })
+      liveEditRef.current = { id: shapeId, shape: updated }
+      setLiveEdit({ id: shapeId, shape: updated })
+      return
+    }
+
+    // Drafting a new shape
+    const from = dragFrom.current
+    if (from) {
+      setDraft((d) => {
+        switch (tool) {
+          case 'arrow':
+          case 'line':
+            return { id: d?.id ?? genId(), tool, color, width: stroke, from, to: p }
+          case 'rect':
+          case 'ellipse':
+          case 'blur':
+            return { id: d?.id ?? genId(), tool, color, width: stroke, rect: normalizeRect(from, p) }
+          case 'pen':
+          case 'marker':
+            return d && 'points' in d ? { ...d, points: [...d.points, p] } : d
+          default:
+            return d
+        }
+      })
+      return
+    }
+
+    // Hover cursor calculation when idle
+    if (base && !dragFrom.current && !shapeDrag.current) {
+      const currentSel = selectedId ? doc.shapes.find((shape) => shape.id === selectedId) : null
+      if (currentSel) {
+        const h = hitTestShapeHandle(currentSel, p, 10 / canvasScale)
+        if (h) {
+          const handles = shapeHandles(currentSel)
+          const found = handles.find((item) => item.id === h)
+          setHoverCursor(found ? found.cursor : 'pointer')
+          return
+        }
+        if (currentSel.tool !== 'image' && hitTestShape(currentSel, p, 8 / canvasScale, true)) {
+          setHoverCursor('move')
+          return
+        }
+      }
+      if (tool === 'select') {
+        const hit = [...doc.shapes].reverse().find((shape) => hitTestShape(shape, p, 8 / canvasScale, false))
+        setHoverCursor(hit ? 'move' : 'default')
+        return
+      }
+      setHoverCursor(null)
+    }
   }
 
   const onPointerUp = () => {
+    if (shapeDrag.current) {
+      if (liveEditRef.current) {
+        const finalEdit = liveEditRef.current
+        apply({
+          ...doc,
+          shapes: doc.shapes.map((shape) => (shape.id === finalEdit.id ? finalEdit.shape : shape)),
+        })
+        setLiveEdit(null)
+        liveEditRef.current = null
+      }
+      shapeDrag.current = null
+      return
+    }
     if (!dragFrom.current) return
     dragFrom.current = null
     if (tool === 'crop') {
       cropDrag.current = null
-      // a click without a drag leaves no usable frame: fall back to the whole image
       setCropRect((r) => (r && r.width >= 2 && r.height >= 2 ? r : fullFrame()))
       return
     }
     const done = draftRef.current
-    if (done && !isDegenerate(done)) apply({ ...doc, shapes: [...doc.shapes, done] })
+    if (done && !isDegenerate(done)) {
+      const withId: Shape = { ...done, id: done.id ?? genId() }
+      apply({ ...doc, shapes: [...doc.shapes, withId] })
+      setSelectedId(withId.id ?? null)
+    }
     setDraft(null)
   }
 
   function commitText() {
     if (textAt && textValue.trim()) {
       const size = 14 + stroke * 4
+      if (editingTextId.current) {
+        const targetId = editingTextId.current
+        apply({
+          ...history.present,
+          shapes: history.present.shapes.map((shape) =>
+            shape.id === targetId ? { ...shape, text: textValue, at: textAt, size, color } : shape,
+          ),
+        })
+        editingTextId.current = null
+      } else {
+        const newText: Shape = {
+          id: genId(),
+          tool: 'text',
+          color,
+          width: stroke,
+          at: textAt,
+          text: textValue,
+          size,
+        }
+        apply({
+          ...history.present,
+          shapes: [...history.present.shapes, newText],
+        })
+        setSelectedId(newText.id ?? null)
+      }
+    } else if (editingTextId.current) {
       apply({
         ...history.present,
-        shapes: [...history.present.shapes, { tool: 'text', color, width: stroke, at: textAt, text: textValue, size }],
+        shapes: history.present.shapes.filter((shape) => shape.id !== editingTextId.current),
       })
+      editingTextId.current = null
     }
     setTextAt(null)
     setTextValue('')
   }
 
+  const onDoubleClick = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (!base) return
+    const p = toImage(e)
+    const hit = [...doc.shapes].reverse().find((shape) => shape.tool === 'text' && hitTestShape(shape, p, 8 / canvasScale))
+    if (hit && hit.tool === 'text') {
+      commitText()
+      editingTextId.current = hit.id!
+      setTextAt(hit.at)
+      setTextValue(hit.text)
+      setColor(hit.color)
+      setSelectedId(hit.id!)
+    }
+  }
+
   const applyCrop = async () => {
     if (!base || !cropRect || cropRect.width < 2 || cropRect.height < 2) return
+    await ensureImagesLoaded(doc.shapes)
     const full = compose(base, doc.shapes)
     const out = document.createElement('canvas')
     out.width = Math.round(cropRect.width)
     out.height = Math.round(cropRect.height)
     out.getContext('2d')!.drawImage(full, -Math.round(cropRect.x), -Math.round(cropRect.y))
-    // the crop bakes the annotations into the new base, one undo step back restores both
     apply({ src: pngUrl(await canvasToPng(out)), shapes: [] })
+    setSelectedId(null)
     setCropRect(null)
     setTool('arrow')
   }
 
   const fullFrame = (): Rect | null => (base ? { x: 0, y: 0, width: base.naturalWidth, height: base.naturalHeight } : null)
 
-  // entering crop mode (button, "c" key, or an area capture) starts with the whole image framed
   useEffect(() => {
     if (tool === 'crop' && base && !cropRect) setCropRect({ x: 0, y: 0, width: base.naturalWidth, height: base.naturalHeight })
   }, [tool, base, cropRect])
@@ -359,10 +673,36 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
       const mod = IS_MAC ? e.metaKey : e.ctrlKey
       const k = e.key.toLowerCase()
       if (e.target instanceof HTMLInputElement) {
-        // the shell menu is bypassed for these keys (screenshots-main), so do its job in the text box
         if (mod && (k === 'c' || k === 'z')) document.execCommand(k === 'c' ? 'copy' : e.shiftKey ? 'redo' : 'undo')
         return
       }
+
+      if (selectedId && tool !== 'crop') {
+        if (k === 'backspace' || k === 'delete') {
+          e.preventDefault()
+          deleteSelected()
+          return
+        }
+        if (k === ']' || (mod && k === ']')) {
+          e.preventDefault()
+          bringForward()
+          return
+        }
+        if (k === '[' || (mod && k === '[')) {
+          e.preventDefault()
+          sendBackward()
+          return
+        }
+        if (e.key.startsWith('Arrow')) {
+          e.preventDefault()
+          const d = e.shiftKey ? 10 : 1
+          const dx = e.key === 'ArrowLeft' ? -d : e.key === 'ArrowRight' ? d : 0
+          const dy = e.key === 'ArrowUp' ? -d : e.key === 'ArrowDown' ? d : 0
+          nudgeSelected(dx, dy)
+          return
+        }
+      }
+
       if (mod && !e.altKey && (k === '=' || k === '+' || k === '-' || k === '0') && base) {
         e.preventDefault()
         const next = k === '0' ? 1 : stepZoom(canvasScale, k === '-' ? -1 : 1)
@@ -373,7 +713,6 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
         void openImage()
       } else if (tool === 'crop' && cropRect && base && e.key.startsWith('Arrow')) {
         e.preventDefault()
-        // same nudge as Yandex.Disk: 1px, 4px with Shift
         const d = e.shiftKey ? 4 : 1
         const dx = e.key === 'ArrowLeft' ? -d : e.key === 'ArrowRight' ? d : 0
         const dy = e.key === 'ArrowUp' ? -d : e.key === 'ArrowDown' ? d : 0
@@ -390,17 +729,24 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
       } else if (mod && k === 's' && base) {
         e.preventDefault()
         void save()
+      } else if (mod && k === 'j') {
+        e.preventDefault()
+        setAiOpen((v) => !v)
       } else if (!mod && !e.altKey) {
         if (k === 'enter' && tool === 'crop') void applyCrop()
         else if (k === 'escape') {
           if (tool === 'crop') cancelCrop()
+          setSelectedId(null)
           setDraft(null)
           dragFrom.current = null
         } else {
           const hit = TOOLS.find((t) => t.key === k)
-          if (hit) setTool(hit.id)
+          if (hit) {
+            if (hit.id === 'image') pickImageFile()
+            else setTool(hit.id)
+          }
           const digit = Number(k)
-          if (digit >= 1 && digit <= PALETTE.length) setColor(PALETTE[digit - 1])
+          if (digit >= 1 && digit <= PALETTE.length) onColorChange(PALETTE[digit - 1])
         }
       }
     }
@@ -408,7 +754,11 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
       const file = [...(e.clipboardData?.files ?? [])].find((f) => f.type.startsWith('image/'))
       if (!file) return
       e.preventDefault()
-      void file.arrayBuffer().then((buf) => loadPng(new Uint8Array(buf)))
+      void file.arrayBuffer().then((buf) => {
+        const bytes = new Uint8Array(buf)
+        if (!base) loadPng(bytes)
+        else void insertImageBytes(bytes)
+      })
     }
     window.addEventListener('keydown', onKey)
     window.addEventListener('paste', onPaste)
@@ -418,8 +768,63 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
     }
   })
 
+  const aiDeps: ScreenshotsAiDeps = useMemo(
+    () => ({
+      getImageDimensions: () => ({
+        width: base?.naturalWidth ?? 0,
+        height: base?.naturalHeight ?? 0,
+      }),
+      getCurrentShapes: () => history.present.shapes,
+      addShapes: (shapes: Shape[]) => {
+        setHistory((h) => commit(h, { ...h.present, shapes: [...h.present.shapes, ...shapes] }))
+      },
+      cropImage: (rect: Rect) => {
+        if (!base) return
+        void (async () => {
+          await ensureImagesLoaded(history.present.shapes)
+          const full = compose(base, history.present.shapes)
+          const out = document.createElement('canvas')
+          out.width = Math.max(10, Math.round(rect.width))
+          out.height = Math.max(10, Math.round(rect.height))
+          out.getContext('2d')!.drawImage(full, -Math.round(rect.x), -Math.round(rect.y))
+          const url = pngUrl(await canvasToPng(out))
+          setHistory((h) => commit(h, { src: url, shapes: [] }))
+          setSelectedId(null)
+          setCropRect(null)
+        })()
+      },
+      clearShapes: (toolType?: string) => {
+        setHistory((h) => {
+          const nextShapes =
+            !toolType || toolType === 'all'
+              ? []
+              : h.present.shapes.filter((sh) => sh.tool !== toolType)
+          return commit(h, { ...h.present, shapes: nextShapes })
+        })
+        setSelectedId(null)
+      },
+    }),
+    [base, history.present.shapes],
+  )
+
+  const getCanvasBase64 = useCallback(() => {
+    const c = canvasRef.current
+    if (!c || !base) return null
+    try {
+      return c.toDataURL('image/png')
+    } catch {
+      return null
+    }
+  }, [base])
+
   const canvasScale =
     zoom ?? (base && canvasRef.current ? canvasRef.current.getBoundingClientRect().width / base.naturalWidth : 1)
+
+  let activeCursor = 'crosshair'
+  if (tool === 'crop') activeCursor = cropCursor
+  else if (tool === 'text') activeCursor = 'text'
+  else if (hoverCursor) activeCursor = hoverCursor
+  else if (tool === 'select') activeCursor = 'default'
 
   return (
     <div className="ss-root">
@@ -441,7 +846,8 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
               disabled={!base}
               onClick={() => {
                 commitText()
-                setTool(t.id)
+                if (t.id === 'image') pickImageFile()
+                else setTool(t.id)
               }}
             >
               {ICONS[t.id]}
@@ -457,7 +863,7 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
               title={`${s.color} ${i + 1}`}
               aria-label={`${s.color} ${c}`}
               aria-pressed={color === c}
-              onClick={() => setColor(c)}
+              onClick={() => onColorChange(c)}
             />
           ))}
           <span className="ss-sep" />
@@ -468,12 +874,43 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
               title={`${s.stroke} ${w}px`}
               aria-label={`${s.stroke} ${w}px`}
               aria-pressed={stroke === w}
-              onClick={() => setStroke(w)}
+              onClick={() => onStrokeChange(w)}
             >
               <span className="ss-stroke" style={{ height: w }} />
             </button>
           ))}
         </div>
+
+        {selectedId && (
+          <div className="ss-group" aria-label="arrange">
+            <span className="ss-sep" />
+            <button
+              className="ss-icon-btn"
+              title={`${s.bringForward} (])`}
+              aria-label={s.bringForward}
+              onClick={bringForward}
+            >
+              {ICONS.bringForward}
+            </button>
+            <button
+              className="ss-icon-btn"
+              title={`${s.sendBackward} ([)`}
+              aria-label={s.sendBackward}
+              onClick={sendBackward}
+            >
+              {ICONS.sendBackward}
+            </button>
+            <button
+              className="ss-icon-btn"
+              title={`${s.deleteShape} (⌫)`}
+              aria-label={s.deleteShape}
+              onClick={deleteSelected}
+            >
+              {ICONS.delete}
+            </button>
+          </div>
+        )}
+
         <div className="ss-group ss-end">
           <Btn icon="undo" label={s.undo} shortcut={kbd('Z')} onClick={() => setHistory(undo)} disabled={history.past.length === 0} iconOnly />
           <Btn icon="redo" label={s.redo} shortcut={kbd('Z', true)} onClick={() => setHistory(redo)} disabled={history.future.length === 0} iconOnly />
@@ -487,8 +924,30 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
           </button>
           <Btn icon="copy" label={s.copy} shortcut={kbd('C')} onClick={() => void copy()} disabled={!base} />
           <Btn icon="save" label={s.save} shortcut={kbd('S')} onClick={() => void save()} disabled={!base} primary />
+          <span className="ss-sep" />
+          <Btn
+            icon="sparkles"
+            label={s.aiAssistant}
+            shortcut={kbd('J')}
+            onClick={() => setAiOpen((v) => !v)}
+            disabled={!base}
+            active={aiOpen}
+          />
         </div>
       </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={async (e) => {
+          const file = e.target.files?.[0]
+          if (!file) return
+          const buf = await file.arrayBuffer()
+          await insertImageBytes(new Uint8Array(buf))
+        }}
+      />
 
       {tool === 'crop' && base && (
         <div className="ss-cropbar">
@@ -514,7 +973,8 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
         </div>
       )}
 
-      <div className={`ss-stage${zoom === null ? ' fit' : ''}`}>
+      <div className="ss-workspace">
+        <div className={`ss-stage${zoom === null ? ' fit' : ''}`}>
         {base ? (
           <div
             className="ss-canvas-wrap"
@@ -522,18 +982,53 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
+            onDoubleClick={onDoubleClick}
           >
             <canvas
               ref={canvasRef}
               className={`ss-canvas tool-${tool}`}
               style={{
                 ...(zoom !== null && base ? { width: base.naturalWidth * zoom } : {}),
-                ...(tool === 'crop' ? { cursor: cropCursor } : {}),
+                cursor: activeCursor,
               }}
-              // the canvas is not focusable: without this the mousedown that follows
-              // pointerdown blurs the text box the same click just opened
               onMouseDown={(e) => e.preventDefault()}
             />
+
+            {/* Selection bounding box & handles */}
+            {activeShape && activeBbox && tool !== 'crop' && (
+              <div
+                className="ss-selection-layer"
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  pointerEvents: 'none',
+                }}
+              >
+                <div
+                  className="ss-selection-box"
+                  style={{
+                    left: activeBbox.x * canvasScale,
+                    top: activeBbox.y * canvasScale,
+                    width: activeBbox.width * canvasScale,
+                    height: activeBbox.height * canvasScale,
+                  }}
+                />
+                {activeHandles.map((h) => (
+                  <span
+                    key={h.id}
+                    data-handle={h.id}
+                    className="ss-selection-handle"
+                    style={{
+                      left: h.point.x * canvasScale,
+                      top: h.point.y * canvasScale,
+                      cursor: h.cursor,
+                    }}
+                    onMouseDown={(e) => e.preventDefault()}
+                  />
+                ))}
+              </div>
+            )}
+
             {tool === 'crop' && cropRect && cropRect.width > 0 && (
               <div
                 className="ss-crop"
@@ -567,6 +1062,7 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
                   else if (e.key === 'Escape') {
                     setTextAt(null)
                     setTextValue('')
+                    editingTextId.current = null
                   }
                 }}
                 onBlur={commitText}
@@ -585,6 +1081,14 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
             </p>
           </div>
         )}
+        </div>
+        <ScreenshotsAiPanel
+          isOpen={aiOpen && !!base}
+          onClose={() => setAiOpen(false)}
+          deps={aiDeps}
+          getCanvasBase64={getCanvasBase64}
+          lang={lang}
+        />
       </div>
 
       {toast && (
@@ -599,6 +1103,7 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
 function isDegenerate(shape: Shape): boolean {
   if ('rect' in shape) return shape.rect.width < 3 || shape.rect.height < 3
   if ('from' in shape) return Math.hypot(shape.to.x - shape.from.x, shape.to.y - shape.from.y) < 3
+  if ('points' in shape) return shape.points.length === 0
   return false
 }
 
@@ -608,12 +1113,13 @@ function Btn(props: {
   onClick: () => void
   disabled?: boolean
   primary?: boolean
+  active?: boolean
   iconOnly?: boolean
   shortcut?: string
 }) {
   return (
     <button
-      className={`ss-btn${props.primary ? ' primary' : ''}${props.iconOnly ? ' icon-only' : ''}`}
+      className={`ss-btn${props.primary ? ' primary' : ''}${props.active ? ' active' : ''}${props.iconOnly ? ' icon-only' : ''}`}
       onClick={props.onClick}
       disabled={props.disabled}
       title={props.shortcut ? `${props.label} (${props.shortcut})` : props.label}

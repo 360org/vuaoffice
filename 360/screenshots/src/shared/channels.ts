@@ -39,4 +39,17 @@ export interface ScreenshotsApi {
   relaunchApp(): Promise<void>
   /** the close prompt chose Save: run the save flow and report whether it landed */
   onSaveRequest(handler: () => Promise<boolean>): () => void
+
+  // AI assistant integration
+  getAiSettings?(): Promise<any>
+  setAiSettings?(settings: any): Promise<void>
+  onAiSettingsChanged?(handler: () => void): () => void
+  gskStatus?(): Promise<{ loggedIn: boolean } | null>
+  aiStream?(request: any): Promise<void>
+  aiStreamCancel?(requestId: string): Promise<void>
+  onAiStream?(handler: (chunk: any) => void): () => void
+  openAiModelSettings?(): Promise<void>
+  getAiPanelPrefs?(): Promise<any>
+  setAiPanelPrefs?(prefs: any): Promise<any>
+  onAiPanelPrefsChanged?(handler: (prefs: any) => void): () => void
 }

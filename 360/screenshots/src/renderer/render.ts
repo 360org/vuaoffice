@@ -1,6 +1,38 @@
 import { clampRect, pixelate, taperedArrowPolygon } from '../shared/geometry'
 import type { Shape } from '../shared/types'
 
+const imageCache = new Map<string, HTMLImageElement>()
+
+/** Return or create a cached HTMLImageElement for an overlay image shape. */
+export function getCachedImage(src: string): HTMLImageElement {
+  let img = imageCache.get(src)
+  if (!img) {
+    img = new Image()
+    img.src = src
+    imageCache.set(src, img)
+  }
+  return img
+}
+
+/** Preload all image assets referenced by image shapes so export won't be blank. */
+export async function ensureImagesLoaded(shapes: readonly Shape[]): Promise<void> {
+  const pending: Promise<void>[] = []
+  for (const s of shapes) {
+    if (s.tool === 'image') {
+      const img = getCachedImage(s.src)
+      if (!img.complete) {
+        pending.push(
+          new Promise<void>((resolve) => {
+            img.onload = () => resolve()
+            img.onerror = () => resolve()
+          }),
+        )
+      }
+    }
+  }
+  if (pending.length > 0) await Promise.all(pending)
+}
+
 /**
  * Paint one annotation onto the composed canvas. Called in list order, so a
  * pixelate region also hides the annotations drawn before it — the export is
@@ -8,15 +40,15 @@ import type { Shape } from '../shared/types'
  */
 export function drawShape(ctx: CanvasRenderingContext2D, s: Shape): void {
   ctx.save()
-  ctx.strokeStyle = s.color
-  ctx.fillStyle = s.color
-  ctx.lineWidth = s.width
+  ctx.strokeStyle = s.color ?? '#0077cd'
+  ctx.fillStyle = s.color ?? '#0077cd'
+  ctx.lineWidth = s.width ?? 2
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
   switch (s.tool) {
     case 'arrow': {
-      // Yandex.Disk tapered arrow ("đầu to đuôi nhỏ")
-      const pts = taperedArrowPolygon(s.from, s.to, s.width)
+      // Tapered arrow ("đầu to đuôi nhỏ")
+      const pts = taperedArrowPolygon(s.from, s.to, s.width ?? 2)
       if (pts.length < 3) break
       ctx.lineWidth = 1
       ctx.lineJoin = 'miter'
@@ -53,6 +85,13 @@ export function drawShape(ctx: CanvasRenderingContext2D, s: Shape): void {
       )
       ctx.stroke()
       break
+    case 'image': {
+      const img = getCachedImage(s.src)
+      if (img.complete && img.naturalWidth > 0) {
+        ctx.drawImage(img, s.rect.x, s.rect.y, s.rect.width, s.rect.height)
+      }
+      break
+    }
     case 'pen':
     case 'marker':
       if (s.tool === 'marker') {

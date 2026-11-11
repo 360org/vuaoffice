@@ -9,6 +9,7 @@ const en = {
   captureWindow: 'Window',
   captureFullscreen: 'Full screen',
   openImage: 'Open image',
+  toolSelect: 'Select & Move',
   toolArrow: 'Arrow',
   toolRect: 'Rectangle',
   toolEllipse: 'Ellipse',
@@ -18,7 +19,11 @@ const en = {
   toolText: 'Text',
   toolStep: 'Step number',
   toolBlur: 'Pixelate',
+  toolImage: 'Insert image',
   toolCrop: 'Crop',
+  bringForward: 'Bring forward',
+  sendBackward: 'Send backward',
+  deleteShape: 'Delete',
   undo: 'Undo',
   redo: 'Redo',
   copy: 'Copy',
@@ -50,6 +55,7 @@ const en = {
   openDialogTitle: 'Open image',
   imageTooLarge: 'The image is too large to open (over 100 MB).',
   imageUnreadable: 'That file is not an image VuaOffice can read.',
+  aiAssistant: 'AI Assistant',
 }
 
 export type ScreenshotsStrings = typeof en
@@ -61,6 +67,7 @@ const vi: ScreenshotsStrings = {
   captureWindow: 'Cửa sổ',
   captureFullscreen: 'Toàn màn hình',
   openImage: 'Mở ảnh',
+  toolSelect: 'Chọn & Di chuyển',
   toolArrow: 'Mũi tên',
   toolRect: 'Khung chữ nhật',
   toolEllipse: 'Hình elip',
@@ -70,7 +77,11 @@ const vi: ScreenshotsStrings = {
   toolText: 'Chữ',
   toolStep: 'Đánh số bước',
   toolBlur: 'Làm mờ',
+  toolImage: 'Chèn hình ảnh',
   toolCrop: 'Cắt ảnh',
+  bringForward: 'Đưa lên trên',
+  sendBackward: 'Đưa xuống dưới',
+  deleteShape: 'Xoá',
   undo: 'Hoàn tác',
   redo: 'Làm lại',
   copy: 'Sao chép',
@@ -102,6 +113,7 @@ const vi: ScreenshotsStrings = {
   openDialogTitle: 'Mở ảnh',
   imageTooLarge: 'Ảnh quá lớn để mở (trên 100 MB).',
   imageUnreadable: 'Tệp này không phải ảnh mà VuaOffice đọc được.',
+  aiAssistant: 'Trợ lý AI',
 }
 
 export const SCREENSHOTS_STRINGS = { en, vi } as const

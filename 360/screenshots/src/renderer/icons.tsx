@@ -42,6 +42,18 @@ export const ICONS: Record<string, ReactElement> = {
       <path d="m21 16-5-5-9 9" />
     </svg>
   ),
+  select: (
+    <svg {...base}>
+      <path d="m4 4 7 17 2.8-6.2L20 12z" />
+    </svg>
+  ),
+  image: (
+    <svg {...base}>
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <circle cx="8.5" cy="8.5" r="1.5" />
+      <path d="m21 15-5-5L5 21" />
+    </svg>
+  ),
   arrow: (
     <svg {...base}>
       <path d="M5 19 19 5M10 5h9v9" />
@@ -125,6 +137,27 @@ export const ICONS: Record<string, ReactElement> = {
     <svg {...base}>
       <path d="M12 3v12M7 10l5 5 5-5" />
       <path d="M5 21h14" />
+    </svg>
+  ),
+  bringForward: (
+    <svg {...base}>
+      <path d="M12 19V5M5 12l7-7 7 7" />
+    </svg>
+  ),
+  sendBackward: (
+    <svg {...base}>
+      <path d="M12 5v14M5 12l7 7 7-7" />
+    </svg>
+  ),
+  delete: (
+    <svg {...base}>
+      <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" />
+    </svg>
+  ),
+  sparkles: (
+    <svg {...base}>
+      <path d="m12 3 1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3Z" />
+      <path d="M5 3v4M3 5h4M19 17v4M17 19h4" />
     </svg>
   ),
 }

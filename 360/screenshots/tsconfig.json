@@ -5,6 +5,8 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "types": ["node", "vite/client"],
     "paths": {
+      "@genoffice/agent-core": ["../../packages/agent-core/src/index.ts"],
+      "@genoffice/ui": ["../../packages/ui/src/index.ts"],
       "@genoffice/electron-utils": ["../../packages/electron-utils/src/index.ts"]
     }
   },
