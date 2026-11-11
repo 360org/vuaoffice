@@ -3,6 +3,14 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Chưa phát hành] - 2026-11-11
+
+### [FIX] Định danh thiết bị vật lý phần cứng & Phân biệt lỗi kết nối AI với Chưa gán gói
+
+- **[FIX] Định danh thiết bị phần cứng cố định**: Tích hợp `getHardwareMachineId()` cố định theo phần cứng cho macOS (`IOPlatformUUID`), Windows (`csProduct.UUID`), Linux (`/etc/machine-id`), chống việc sinh UUID ngẫu nhiên làm phình thiết bị khi cài lại app hoặc xoá cache.
+- **[FIX] Phân biệt rõ lỗi kết nối AI với Chưa gán gói**: Chỉ hiển thị "Chưa gán AI Pack" khi máy chủ phản hồi mã `no_pack_assigned`. Các lỗi mất mạng hoặc máy chủ phản hồi lỗi (500, timeout, network error) hiển thị "Lỗi kết nối AI · Thử lại" và hỗ trợ bấm để đồng bộ lại ngay lập tức.
+- **[TEST]**: Cập nhật bộ unit test `ai-pack-alert.test.ts` (4/4 PASS) và `machine-id.test.ts` (1/1 PASS).
+
 ## [Chưa phát hành] - 2026-11-09
 
 ### [NEW] Screenshots: bổ sung toàn diện hệ thống phím tắt chuẩn Yandex.Disk

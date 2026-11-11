@@ -7,9 +7,13 @@ describe('aiPackAlert', () => {
     expect(a.text).toBe('Gói AI hết hạn 04/11/2026')
     expect(a.link).toBe('Gia hạn')
   })
-  it('keeps the "no pack" prompt for no_pack_assigned and legacy results', () => {
+  it('keeps the "no pack" prompt only for no_pack_assigned', () => {
     expect(aiPackAlert({ ok: false, hasPack: false, reason: 'no_pack_assigned' }).text).toBe('Chưa gán AI Pack')
-    expect(aiPackAlert({ ok: false, hasPack: false }).text).toBe('Chưa gán AI Pack')
+  })
+  it('distinguishes network and server errors from unassigned pack', () => {
+    expect(aiPackAlert({ ok: false, hasPack: false, reason: 'network_error' }).text).toBe('Lỗi kết nối AI')
+    expect(aiPackAlert({ ok: false, hasPack: false, reason: 'http_500' }).text).toBe('Lỗi kết nối AI')
+    expect(aiPackAlert({ ok: false, hasPack: false }).text).toBe('Lỗi kết nối AI')
   })
   it('falls back to a generic alert carrying the server message', () => {
     const a = aiPackAlert({ ok: false, hasPack: false, reason: 'account_suspended', error: 'Bị khoá' })

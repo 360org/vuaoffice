@@ -4,6 +4,7 @@ import { request as httpRequest } from 'node:http'
 import { randomUUID } from 'node:crypto'
 import os from 'node:os'
 import { readAppSettings, writeAppSetting } from './app-settings'
+import { getHardwareMachineId } from './machine-id'
 import { loadGenofficeAuth, genofficeLogout } from '@genoffice/ai-search'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { HOME_CHANNELS, type AiHandshakeResult } from '../shared/home-api'
@@ -72,12 +73,9 @@ export async function handshakeOdooAiConfig(
     return lastHandshakeResult
   }
 
-  let settings = readAppSettings(appSettingsPath)
-  let deviceUid = settings.deviceUid as string
-  if (!deviceUid) {
-    deviceUid = randomUUID()
-    writeAppSetting(appSettingsPath, 'deviceUid', deviceUid)
-  }
+  // Định danh thiết bị vật lý cố định theo phần cứng (Hardware Machine ID)
+  const deviceUid = getHardwareMachineId()
+  writeAppSetting(appSettingsPath, 'deviceUid', deviceUid)
 
   const appName = app.getName() || 'VuaOffice'
   const appVer = app.getVersion() || '1.0.0'
@@ -240,10 +238,13 @@ export async function handshakeOdooAiConfig(
           const errorMsg =
             data.message || data.error || ('Lỗi kết nối AI Gateway (HTTP ' + res.statusCode + ')')
           const setupUrl = data.setup_url || DEFAULT_SETUP_URL
+          const reason = typeof data.error === 'string' && data.error
+            ? data.error
+            : `http_${res.statusCode || 0}`
           lastHandshakeResult = {
             ok: false,
             hasPack: false,
-            ...(typeof data.error === 'string' ? { reason: data.error } : {}),
+            reason,
             ...(typeof data.expiration_date === 'string' ? { expiresOn: data.expiration_date } : {}),
             error: errorMsg,
             setupUrl,
@@ -260,6 +261,7 @@ export async function handshakeOdooAiConfig(
       lastHandshakeResult = {
         ok: false,
         hasPack: false,
+        reason: 'network_error',
         error: 'Không thể kết nối máy chủ: ' + err.message,
         setupUrl: DEFAULT_SETUP_URL,
         timestamp: Date.now(),
@@ -281,9 +283,8 @@ export async function selectOdooAiPack(
   const auth = loadGenofficeAuth()
   if (!auth || (!auth.accessToken && !auth.apiKey) || !model) return false
 
-  let settings = readAppSettings(appSettingsPath)
-  let deviceUid = settings.deviceUid as string
-  if (!deviceUid) return false
+  const deviceUid = getHardwareMachineId()
+  writeAppSetting(appSettingsPath, 'deviceUid', deviceUid)
 
   return new Promise((resolve) => {
     try {

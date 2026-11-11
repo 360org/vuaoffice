@@ -1417,6 +1417,15 @@ function AccountEntry({
     void window.aiOffice.openAiProfile?.(aiStatus?.setupUrl)
   }
 
+  const handleAlertClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (aiStatus?.reason === 'network_error' || aiStatus?.reason?.startsWith('http_')) {
+      void handleSyncAi(e)
+    } else {
+      handleOpenAiProfile(e)
+    }
+  }
+
   const openLoginUrl = () => void window.aiOffice.openLoginUrl?.()
 
   const copyLoginUrl = () => {
@@ -1516,7 +1525,7 @@ function AccountEntry({
               {aiStatus && !aiStatus.hasPack ? (
                 <div
                   className="account-ai-pack-alert danger"
-                  onClick={handleOpenAiProfile}
+                  onClick={handleAlertClick}
                   title={aiPackAlert(aiStatus).title}
                 >
                   <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">

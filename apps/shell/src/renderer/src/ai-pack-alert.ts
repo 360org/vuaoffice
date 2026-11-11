@@ -10,11 +10,18 @@ export function aiPackAlert(r: AiHandshakeResult): { text: string; link: string;
       title: r.error || 'Gói dịch vụ AI đã hết hạn. Nhấn để gia hạn trên vuahethong.net.',
     }
   }
-  if (!r.reason || r.reason === 'no_pack_assigned') {
+  if (r.reason === 'no_pack_assigned') {
     return {
       text: 'Chưa gán AI Pack',
       link: 'Gán ngay',
       title: 'Thiết bị chưa được gán AI Pack. Nhấn để mở hồ sơ AI trên vuahethong.net để kích hoạt.',
+    }
+  }
+  if (r.reason === 'network_error' || r.reason?.startsWith('http_') || !r.reason) {
+    return {
+      text: 'Lỗi kết nối AI',
+      link: 'Thử lại',
+      title: r.error || 'Không thể kết nối đến máy chủ AI Gateway. Vui lòng kiểm tra mạng hoặc thử lại.',
     }
   }
   return { text: 'AI chưa sẵn sàng', link: 'Xem', title: r.error || r.reason }
