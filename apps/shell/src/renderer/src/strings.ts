@@ -272,6 +272,7 @@ export const strings = {
     settings: '设置',
     setSecAccount: '账户',
     setSecGeneral: '通用',
+    setSecShortcuts: "快捷键",
     setMcp: '本地 MCP 服务',
     setMcpDesc:
       '让外部 AI 助手（如 Claude Desktop、Cursor）通过本应用生成 Word 文档。仅限本机访问。',
@@ -813,6 +814,7 @@ export const strings = {
     settings: 'Settings',
     setSecAccount: 'Account',
     setSecGeneral: 'General',
+    setSecShortcuts: "Shortcuts",
     setMcp: 'Local MCP server',
     setMcpDesc:
       'Let external AI agents (Claude Desktop, Cursor…) create Word documents through this running app. Localhost only.',
@@ -1353,6 +1355,7 @@ export const strings = {
     settings: 'Cài đặt',
     setSecAccount: 'Tài khoản',
     setSecGeneral: 'Chung',
+    setSecShortcuts: "Phím tắt",
     setMcp: 'Máy chủ MCP cục bộ',
     setMcpDesc:
       'Cho phép các tác tử AI bên ngoài (Claude Desktop, Cursor…) tạo tài liệu Word thông qua ứng dụng đang chạy này. Chỉ trên máy cục bộ (localhost).',
@@ -1912,6 +1915,7 @@ export const strings = {
     settings: 'Ayarlar',
     setSecAccount: 'Hesap',
     setSecGeneral: 'Genel',
+    setSecShortcuts: "Kısayollar",
     setMcp: 'Yerel MCP sunucusu',
     setMcpDesc:
       'Harici AI aracılarının (Claude Desktop, Cursor…) bu çalışan uygulama üzerinden Word belgeleri oluşturmasına izin verir. Yalnızca localhost.',
@@ -2496,6 +2500,7 @@ export const strings = {
     settings: '設定',
     setSecAccount: 'アカウント',
     setSecGeneral: '一般',
+    setSecShortcuts: "ショートカット",
     setMcp: 'ローカル MCP サーバー',
     setMcpDesc:
       '外部の AI エージェント（Claude Desktop、Cursor など）がこのアプリ経由で Word 文書を作成できるようにします。ローカルホストのみ。',
@@ -3060,6 +3065,7 @@ export const strings = {
     settings: '설정',
     setSecAccount: '계정',
     setSecGeneral: '일반',
+    setSecShortcuts: "단축키",
     setMcp: '로컬 MCP 서버',
     setMcpDesc:
       '외부 AI 에이전트(Claude Desktop, Cursor 등)가 이 앱을 통해 Word 문서를 만들 수 있게 합니다. 로컬호스트 전용.',
@@ -3628,6 +3634,7 @@ export const strings = {
     settings: 'Paramètres',
     setSecAccount: 'Compte',
     setSecGeneral: 'Général',
+    setSecShortcuts: "Raccourcis",
     setMcp: 'Serveur MCP local',
     setMcpDesc:
       'Permet à des agents IA externes (Claude Desktop, Cursor…) de créer des documents Word via cette application. Localhost uniquement.',
@@ -4211,6 +4218,7 @@ export const strings = {
     settings: 'Einstellungen',
     setSecAccount: 'Konto',
     setSecGeneral: 'Allgemein',
+    setSecShortcuts: "Tastenkombinationen",
     setMcp: 'Lokaler MCP-Server',
     setMcpDesc:
       'Erlaubt externen KI-Agenten (Claude Desktop, Cursor…), über diese laufende App Word-Dokumente zu erstellen. Nur localhost.',
@@ -4786,6 +4794,7 @@ export const strings = {
     settings: 'Configuración',
     setSecAccount: 'Cuenta',
     setSecGeneral: 'General',
+    setSecShortcuts: "Atajos",
     setMcp: 'Servidor MCP local',
     setMcpDesc:
       'Permite que agentes de IA externos (Claude Desktop, Cursor…) creen documentos de Word a través de esta aplicación. Solo localhost.',
@@ -5353,6 +5362,7 @@ export const strings = {
     settings: 'การตั้งค่า',
     setSecAccount: 'บัญชี',
     setSecGeneral: 'ทั่วไป',
+    setSecShortcuts: "แป้นพิมพ์ลัด",
     setMcp: 'เซิร์ฟเวอร์ MCP ภายในเครื่อง',
     setMcpDesc:
       'ให้เอเจนต์ AI ภายนอก (Claude Desktop, Cursor…) สร้างเอกสาร Word ผ่านแอปที่เปิดอยู่ได้ จำกัดเฉพาะ localhost',
@@ -5914,6 +5924,7 @@ export const strings = {
     settings: 'Pengaturan',
     setSecAccount: 'Akun',
     setSecGeneral: 'Umum',
+    setSecShortcuts: "Pintasan",
     setMcp: 'Server MCP lokal',
     setMcpDesc:
       'Izinkan agen AI eksternal (Claude Desktop, Cursor…) membuat dokumen Word melalui aplikasi ini. Hanya localhost.',
@@ -6480,6 +6491,7 @@ export const strings = {
     settings: 'Настройки',
     setSecAccount: 'Аккаунт',
     setSecGeneral: 'Общие',
+    setSecShortcuts: "Сочетания клавиш",
     setMcp: 'Локальный сервер MCP',
     setMcpDesc:
       'Позволяет внешним ИИ-агентам (Claude Desktop, Cursor…) создавать документы Word через это приложение. Только localhost.',
@@ -7048,6 +7060,7 @@ export const strings = {
     settings: 'الإعدادات',
     setSecAccount: 'الحساب',
     setSecGeneral: 'عام',
+    setSecShortcuts: "اختصارات",
     setMcp: 'خادم MCP محلي',
     setMcpDesc:
       'يتيح لوكلاء الذكاء الاصطناعي الخارجيين (Claude Desktop وCursor…) إنشاء مستندات Word عبر هذا التطبيق. على المضيف المحلي فقط.',
@@ -7605,6 +7618,7 @@ export const strings = {
     settings: 'Configurações',
     setSecAccount: 'Conta',
     setSecGeneral: 'Geral',
+    setSecShortcuts: "Atalhos",
     setMcp: 'Servidor MCP local',
     setMcpDesc:
       'Permite que agentes de IA externos (Claude Desktop, Cursor…) criem documentos do Word por meio deste aplicativo. Somente localhost.',
@@ -8169,6 +8183,7 @@ export const strings = {
     settings: 'Impostazioni',
     setSecAccount: 'Account',
     setSecGeneral: 'Generale',
+    setSecShortcuts: "Scorciatoie",
     setMcp: 'Server MCP locale',
     setMcpDesc:
       'Consente ad agenti IA esterni (Claude Desktop, Cursor…) di creare documenti Word tramite questa app. Solo localhost.',
@@ -8732,6 +8747,7 @@ export const strings = {
     settings: 'Ustawienia',
     setSecAccount: 'Konto',
     setSecGeneral: 'Ogólne',
+    setSecShortcuts: "Skróty",
     setMcp: 'Lokalny serwer MCP',
     setMcpDesc:
       'Pozwala zewnętrznym agentom AI (Claude Desktop, Cursor…) tworzyć dokumenty Word przez tę aplikację. Tylko localhost.',
@@ -9241,6 +9257,7 @@ export const strings = {
     settings: 'Nastavení',
     setSecAccount: 'Účet',
     setSecGeneral: 'Obecné',
+    setSecShortcuts: "Zkratky",
     setMcp: 'Místní server MCP',
     setMcpDesc:
       'Umožňuje externím AI agentům (Claude Desktop, Cursor…) vytvářet dokumenty Word prostřednictvím této aplikace. Pouze localhost.',
@@ -9847,6 +9864,7 @@ export const strings = {
     settings: 'Instellingen',
     setSecAccount: 'Account',
     setSecGeneral: 'Algemeen',
+    setSecShortcuts: "Sneltoetsen",
     setMcp: 'Lokale MCP-server',
     setMcpDesc:
       'Laat externe AI-agenten (Claude Desktop, Cursor…) Word-documenten maken via deze actieve app. Alleen localhost.',
@@ -10408,6 +10426,7 @@ export const strings = {
     settings: 'Tetapan',
     setSecAccount: 'Akaun',
     setSecGeneral: 'Umum',
+    setSecShortcuts: "Pintasan",
     setMcp: 'Pelayan MCP setempat',
     setMcpDesc:
       'Benarkan ejen AI luar (Claude Desktop, Cursor…) mencipta dokumen Word melalui aplikasi ini. Localhost sahaja.',
@@ -10965,6 +10984,7 @@ export const strings = {
     settings: 'הגדרות',
     setSecAccount: 'חשבון',
     setSecGeneral: 'כללי',
+    setSecShortcuts: "קיצורי מקשים",
     setMcp: 'שרת MCP מקומי',
     setMcpDesc:
       'מאפשר לסוכני בינה מלאכותית חיצוניים (Claude Desktop, Cursor…) ליצור מסמכי Word דרך האפליקציה הפועלת. localhost בלבד.',
@@ -11515,6 +11535,7 @@ export const strings = {
     settings: 'सेटिंग्स',
     setSecAccount: 'खाता',
     setSecGeneral: 'सामान्य',
+    setSecShortcuts: "शॉर्टकट",
     setMcp: 'स्थानीय MCP सर्वर',
     setMcpDesc:
       'बाहरी AI एजेंट (Claude Desktop, Cursor…) को इस चल रहे ऐप के ज़रिए Word दस्तावेज़ बनाने दें। केवल localhost।',
@@ -12063,6 +12084,7 @@ export const strings = {
     settings: '設定',
     setSecAccount: '帳戶',
     setSecGeneral: '一般',
+    setSecShortcuts: "快捷鍵",
     setMcp: '本機 MCP 服務',
     setMcpDesc:
       '讓外部 AI 助理（如 Claude Desktop、Cursor）透過本應用程式產生 Word 文件。僅限本機存取。',

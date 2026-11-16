@@ -223,6 +223,7 @@ export async function handshakeOdooAiConfig(
                   hasPack,
                   model: effectiveModel,
                   packName,
+                  expiresOn: data.expiration_date || undefined,
                   setupUrl: data.setup_url || DEFAULT_SETUP_URL,
                   timestamp: Date.now(),
                 }

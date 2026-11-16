@@ -1,4 +1,5 @@
 import { selectOdooAiPack } from '../../../shell/src/main/ai-handshake'
+import { recordAiTokenUsage } from '../../../shell/src/main/ai-token-tracker'
 import { createHash, randomUUID } from 'node:crypto'
 import { handOffBytes } from './byte-handoff'
 import {
@@ -4609,6 +4610,9 @@ export function registerAiIpc(): void {
         },
         onUsage: (usage) => {
           trace?.onUsage(usage)
+          try {
+            recordAiTokenUsage(usage)
+          } catch {}
           send({ requestId, type: 'usage', usage })
         },
       })

@@ -48,6 +48,18 @@ const api: ScreenshotsApi = {
     ipcRenderer.on('app:ai-panel-prefs-changed', listener)
     return () => ipcRenderer.removeListener('app:ai-panel-prefs-changed', listener)
   },
+  getHotkeysSettings: () => ipcRenderer.invoke('screenshots:get-hotkeys'),
+  onHotkeysSettingsChanged(handler) {
+    const listener = (_event: unknown, settings: any) => handler(settings)
+    ipcRenderer.on('screenshots:hotkeys-changed', listener)
+    return () => ipcRenderer.removeListener('screenshots:hotkeys-changed', listener)
+  },
+  skillsList: () => ipcRenderer.invoke('ai:skills-list'),
+  skillText: (name: string) => ipcRenderer.invoke('ai:skill-text', name),
+  openSkillsSettings: () => ipcRenderer.invoke('ai:open-skills-settings'),
+  pickAttachments: () => ipcRenderer.invoke('files:pick'),
+  addAttachmentPaths: (paths: string[]) => ipcRenderer.invoke('files:add', paths),
+  readAttachmentImage: (path: string) => ipcRenderer.invoke('files:read-image', path),
 }
 
 contextBridge.exposeInMainWorld('screenshotsApi', api)

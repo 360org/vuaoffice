@@ -26,6 +26,25 @@ export interface CaptureOutcome {
   error?: string
 }
 
+export interface AttachmentMeta {
+  path: string
+  name: string
+  ext: string
+  sizeBytes: number
+}
+
+export interface AttachmentAddResult {
+  accepted: AttachmentMeta[]
+  rejected: string[]
+}
+
+export interface AttachmentImageResult {
+  ok: boolean
+  base64?: string
+  mime?: string
+  error?: string
+}
+
 export interface ScreenshotsApi {
   capture(mode: import('./types').CaptureMode): Promise<CaptureOutcome>
   takePending(): Promise<CaptureOutcome | null>
@@ -52,4 +71,14 @@ export interface ScreenshotsApi {
   getAiPanelPrefs?(): Promise<any>
   setAiPanelPrefs?(prefs: any): Promise<any>
   onAiPanelPrefsChanged?(handler: (prefs: any) => void): () => void
+  getHotkeysSettings?(): Promise<import('./capture-args').ScreenshotHotkeysSettings>
+  onHotkeysSettingsChanged?(handler: (settings: import('./capture-args').ScreenshotHotkeysSettings) => void): () => void
+
+  // AI Skills & Attachments
+  skillsList?(): Promise<Array<{ name: string; description: string; relevant?: boolean }>>
+  skillText?(name: string): Promise<string>
+  openSkillsSettings?(): Promise<void>
+  pickAttachments?(): Promise<AttachmentAddResult | null>
+  addAttachmentPaths?(paths: string[]): Promise<AttachmentAddResult>
+  readAttachmentImage?(path: string): Promise<AttachmentImageResult>
 }

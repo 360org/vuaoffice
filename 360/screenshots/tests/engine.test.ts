@@ -249,10 +249,10 @@ describe('Vector Object Model & Re-arrangement', () => {
   })
 
   describe('shapeHandles & hit testing handles', () => {
-    it('provides 2 endpoints for arrow and 8 handles for box shapes', () => {
+    it('provides 3 control points for arrow and 8 handles for box shapes', () => {
       const aHandles = shapeHandles(arrow)
-      expect(aHandles).toHaveLength(2)
-      expect(aHandles.map((h) => h.id)).toEqual(['from', 'to'])
+      expect(aHandles).toHaveLength(3)
+      expect(aHandles.map((h) => h.id)).toEqual(['from', 'mid', 'to'])
 
       const rHandles = shapeHandles(rect)
       expect(rHandles).toHaveLength(8)
@@ -262,7 +262,7 @@ describe('Vector Object Model & Re-arrangement', () => {
     it('hitTestShapeHandle detects handles within grab tolerance', () => {
       expect(hitTestShapeHandle(arrow, { x: 51, y: 50 }, 6)).toBe('from')
       expect(hitTestShapeHandle(arrow, { x: 149, y: 101 }, 6)).toBe('to')
-      expect(hitTestShapeHandle(arrow, { x: 100, y: 75 }, 6)).toBeNull()
+      expect(hitTestShapeHandle(arrow, { x: 100, y: 75 }, 6)).toBe('mid')
 
       expect(hitTestShapeHandle(rect, { x: 201, y: 200 }, 6)).toBe('nw')
       expect(hitTestShapeHandle(rect, { x: 300, y: 260 }, 6)).toBe('se')
@@ -314,6 +314,16 @@ describe('Vector Object Model & Re-arrangement', () => {
       if (reshaped.tool === 'arrow') {
         expect(reshaped.from).toEqual({ x: 50, y: 50 })
         expect(reshaped.to).toEqual({ x: 180, y: 120 })
+      }
+    })
+
+    it('translates entire arrow when moving via mid handle', () => {
+      // arrow: from (50, 50), to (150, 100), midpoint is (100, 75)
+      // moving mid to (120, 85) -> dx = 20, dy = 10
+      const movedViaMid = resizeShapeHandle(arrow, 'mid', { x: 120, y: 85 })
+      if (movedViaMid.tool === 'arrow') {
+        expect(movedViaMid.from).toEqual({ x: 70, y: 60 })
+        expect(movedViaMid.to).toEqual({ x: 170, y: 110 })
       }
     })
 

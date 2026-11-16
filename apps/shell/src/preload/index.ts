@@ -27,6 +27,8 @@ import type {
   FileSearchPage,
   FileSearchRerank,
   FileSearchSettings,
+  ScreenshotHotkeysSettings,
+  AiTokenUsageStats,
 } from '../shared/home-api'
 import type { ProjectApi } from '@genoffice/project-store'
 import { HOME_CHANNELS } from '../shared/home-api'
@@ -590,6 +592,23 @@ const homeApi: HomeApi = {
   },
   async openAiProfile(setupUrl) {
     await ipcRenderer.invoke(HOME_CHANNELS.openAiProfile, setupUrl)
+  },
+  async getAiTokenUsage() {
+    return (await ipcRenderer.invoke(HOME_CHANNELS.getAiTokenUsage)) as AiTokenUsageStats
+  },
+  async getScreenshotHotkeys() {
+    return (await ipcRenderer.invoke(HOME_CHANNELS.getScreenshotHotkeys)) as ScreenshotHotkeysSettings
+  },
+  async setScreenshotHotkeys(settings) {
+    return (await ipcRenderer.invoke(HOME_CHANNELS.setScreenshotHotkeys, settings)) as {
+      ok: boolean
+      taken: string[]
+    }
+  },
+  onScreenshotHotkeysChanged(handler) {
+    const listener = (_e: Electron.IpcRendererEvent, s: ScreenshotHotkeysSettings) => handler(s)
+    ipcRenderer.on(HOME_CHANNELS.screenshotHotkeysChanged, listener)
+    return () => ipcRenderer.removeListener(HOME_CHANNELS.screenshotHotkeysChanged, listener)
   },
   async openCreditUsage() {
     await ipcRenderer.invoke(HOME_CHANNELS.openCreditUsage)

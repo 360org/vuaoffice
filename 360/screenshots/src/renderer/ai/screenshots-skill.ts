@@ -1,12 +1,19 @@
 import type { AgentSkill, AgentToolCall, AgentToolDef, ToolExecution } from '@genoffice/agent-core'
 import type { Shape, Rect, Point } from '../../shared/types'
 
+export interface ScreenshotsSnapshot {
+  src: string | null
+  shapes: Shape[]
+}
+
 export interface ScreenshotsAiDeps {
   getImageDimensions: () => { width: number; height: number }
   getCurrentShapes: () => Shape[]
   addShapes: (shapes: Shape[]) => void
   cropImage: (rect: Rect) => void
   clearShapes: (toolType?: string) => void
+  getSnapshot?: () => ScreenshotsSnapshot
+  restoreSnapshot?: (snapshot: ScreenshotsSnapshot) => void
 }
 
 const SYSTEM_PROMPT = `Bạn là Trợ lý AI Thông minh của VuaOffice Screenshots (360 CORP).

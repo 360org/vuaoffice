@@ -18,7 +18,13 @@ import {
   type WebContents,
 } from 'electron'
 import { RENDERER_SCHEME } from '@genoffice/electron-utils'
-import { CAPTURE_ACCELERATORS, isEditorShortcut, screencaptureArgs } from '../shared/capture-args'
+import {
+  CAPTURE_ACCELERATORS,
+  DEFAULT_SCREENSHOT_HOTKEYS,
+  isEditorShortcut,
+  screencaptureArgs,
+  type ScreenshotHotkeysSettings,
+} from '../shared/capture-args'
 import { SCREENSHOTS_CHANNELS as CH, type CaptureOutcome, type CapturePermission } from '../shared/channels'
 import { screenshotsStrings } from '../shared/i18n'
 import type { CaptureMode } from '../shared/types'
@@ -200,22 +206,57 @@ async function captureFromHotkey(mode: CaptureMode): Promise<void> {
   wc?.send(CH.imageReady)
 }
 
-let hotkeysRegistered: CaptureMode[] = []
+let registeredAccelerators: string[] = []
+let currentHotkeysSettings: ScreenshotHotkeysSettings = { ...DEFAULT_SCREENSHOT_HOTKEYS }
 
-/** Register the global capture hotkeys; returns the modes another app already holds. */
-export function registerScreenshotsHotkeys(): CaptureMode[] {
-  const taken: CaptureMode[] = []
-  for (const [mode, accel] of Object.entries(CAPTURE_ACCELERATORS) as Array<[CaptureMode, string]>) {
-    const ok = globalShortcut.register(accel, () => void captureFromHotkey(mode))
-    if (ok) hotkeysRegistered.push(mode)
-    else taken.push(mode)
+export function getScreenshotsHotkeysSettings(): ScreenshotHotkeysSettings {
+  return { ...currentHotkeysSettings }
+}
+
+/** Register the global capture hotkeys; returns the accelerator strings another app already holds. */
+export function registerScreenshotsHotkeys(
+  customSettings?: Partial<ScreenshotHotkeysSettings>,
+): { taken: string[] } {
+  unregisterScreenshotsHotkeys()
+  if (customSettings) {
+    currentHotkeysSettings = { ...currentHotkeysSettings, ...customSettings }
   }
-  return taken
+
+  const taken: string[] = []
+  if (!currentHotkeysSettings.enabled) {
+    return { taken }
+  }
+
+  const modes: Array<{ mode: CaptureMode; accel: string }> = [
+    { mode: 'area', accel: currentHotkeysSettings.area },
+    { mode: 'window', accel: currentHotkeysSettings.window },
+    { mode: 'fullscreen', accel: currentHotkeysSettings.fullscreen },
+  ]
+
+  for (const item of modes) {
+    if (!item.accel) continue
+    try {
+      const ok = globalShortcut.register(item.accel, () => void captureFromHotkey(item.mode))
+      if (ok) {
+        registeredAccelerators.push(item.accel)
+      } else {
+        taken.push(item.accel)
+      }
+    } catch {
+      taken.push(item.accel)
+    }
+  }
+
+  return { taken }
 }
 
 export function unregisterScreenshotsHotkeys(): void {
-  for (const mode of hotkeysRegistered) globalShortcut.unregister(CAPTURE_ACCELERATORS[mode])
-  hotkeysRegistered = []
+  for (const accel of registeredAccelerators) {
+    try {
+      globalShortcut.unregister(accel)
+    } catch {}
+  }
+  registeredAccelerators = []
 }
 
 function senderWindow(wc: WebContents): BrowserWindow | undefined {
@@ -252,13 +293,22 @@ export function registerScreenshotsIpc(): void {
     const s = screenshotsStrings(runtime?.lang() ?? 'en')
     const stamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-')
     const parent = senderWindow(e.sender)
+    const format = currentHotkeysSettings.format === 'jpeg' ? 'jpeg' : 'png'
+    const defaultExt = format === 'jpeg' ? 'jpg' : 'png'
+    const defaultFilters =
+      format === 'jpeg'
+        ? [
+            { name: 'JPEG', extensions: ['jpg', 'jpeg'] },
+            { name: 'PNG', extensions: ['png'] },
+          ]
+        : [
+            { name: 'PNG', extensions: ['png'] },
+            { name: 'JPEG', extensions: ['jpg', 'jpeg'] },
+          ]
     const opts = {
       title: s.saveDialogTitle,
-      defaultPath: `Screenshot-${stamp}.png`,
-      filters: [
-        { name: 'PNG', extensions: ['png'] },
-        { name: 'JPEG', extensions: ['jpg', 'jpeg'] },
-      ],
+      defaultPath: `Screenshot-${stamp}.${defaultExt}`,
+      filters: defaultFilters,
     }
     const { canceled, filePath } = parent
       ? await dialog.showSaveDialog(parent, opts)
@@ -299,4 +349,5 @@ export function registerScreenshotsIpc(): void {
     app.relaunch()
     app.exit(0)
   })
+  ipcMain.handle('screenshots:get-hotkeys', () => getScreenshotsHotkeysSettings())
 }

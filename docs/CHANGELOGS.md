@@ -3,6 +3,53 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.64] - 2026-11-16
+
+### [FIX] PDF: Tối ưu hoá toàn diện giao diện Hộp thoại In (Print Dialog) & Tinh gọn Cài đặt VuaOffice Super-App
+
+- **[FIX] PDF: Chuẩn hoá Hộp thoại In (Print Dialog)**:
+  - Tách riêng class giao diện chuyên dụng `.pdf-print-dialog` với chiều rộng chuẩn `440px - 480px`, chấm dứt hoàn toàn hiện tượng co rúm, cắt cụt chữ (`phạmv` -> `phạm vi`).
+  - Căn lề lưới 2 cột thẳng tắp: Cột nhãn cố định `min-width: 100px`, các ô dropdown và trường chọn chiếm trọn chiều rộng còn lại với phông chữ sắc nét.
+  - Sắp xếp ngay ngắn hàng Số bản in và checkbox "Sắp xếp theo bộ" với khoảng cách thoáng đãng.
+  - Đóng khung nhóm tuỳ chọn Phạm vi trang (`.pdf-print-range-box`) trực quan, sạch sẽ và hiện đại.
+  - Chuẩn hoá ngữ nghĩa tiếng Việt: Đổi nhãn `In` ở trường lọc trang thành `Trang in` (`printSubset`) tránh nhầm lẫn với nút In.
+  - Tự động chuyển ngữ thân thiện cho các tuỳ chọn máy in CUPS (`Loại giấy`, `Chất lượng in`, `Màu sắc`, `Giấy thường`...).
+- **[REFACTOR] Settings: Tinh gọn Cài đặt thành 4 mục cốt lõi**:
+  - Tinh giản thanh điều hướng chỉ còn đúng 4 phân mục: **Tài khoản** (`account`), **Chung** (`general`), **Phím tắt** (`shortcuts`), **Kỹ năng** (`skills`).
+  - Tích hợp đầy đủ cấu hình kiểm tra chính tả (`setAiSpellcheck`) và sửa lỗi phát hiện ứng dụng mặc định trên Windows.
+- **[TEST]**:
+  - `@genoffice/shell` test suite: 1217 tests PASS 100%.
+  - `360/screenshots` test suite: 42 tests PASS 100%.
+  - `brand:gate` ĐẠT 100% (13/13 tính năng độc quyền 360 CORP).
+
+## [Chưa phát hành] - 2026-11-13
+
+### [NEW] Screenshots: Đồng bộ tính năng Đính kèm Tệp (+), Thẻ Kỹ năng (AiSkillsMenu, AiSkillChips) & Dashboard Biểu đồ Mức sử dụng AI trong Settings
+
+- **[NEW] Đính kèm tệp & Menu Kỹ năng AI trong Tab Chụp màn hình (Parity với Word/Excel/Docs/Sheets)**:
+  - Tích hợp nút `+` vào footer composer của bảng điều khiển VuaAI Screenshots, mở `AiSkillsMenu` với `📎 Thêm tệp` và danh mục `🪄 Kỹ năng >`.
+  - Hiển thị danh sách kỹ năng đã chọn dưới dạng chip gắn thẻ (`AiSkillChips`) phía trên ô nhập lệnh và cho phép xoá nhanh.
+  - Tự động nạp nội dung kỹ năng vào prompt qua `withAttachedSkills()`.
+  - Hỗ trợ chọn tệp đính kèm (`files:pick`), đọc ảnh preview (`files:read-image`), kéo thả tệp và dán từ clipboard (`files:add`).
+  - Gửi kèm hình ảnh đính kèm vào payload multimodal vision của mô hình.
+- **[NEW] Bảng điều khiển Thống kê Mức sử dụng AI (AI Token Usage & Consumption Chart Dashboard) trong Cài đặt**:
+  - Bổ sung 5 thẻ KPI trực quan:
+    1. **Tổng Tokens**: Hiển thị tổng tokens định dạng (M/k) cùng chi tiết `In ... • Out ...`.
+    2. **Cached (Bộ đệm)**: Token tiết kiệm được qua bộ đệm ngữ cảnh và phần trăm tiết kiệm (`Tiết kiệm ...%`).
+    3. **Lượt yêu cầu**: Tổng số requests gọi qua API Gateway.
+    4. **Chi phí ước tính**: Chi phí thực tế bằng USD được tính tự động theo đơn giá chuẩn token.
+    5. **Tokens / request**: Mức tải trung bình mỗi lượt yêu cầu.
+  - **Biểu đồ tiêu thụ (Consumption Chart)** dạng SVG tương tác:
+    - Chuyển đổi linh hoạt giữa 3 góc nhìn: `[Tokens]`, `[Requests]`, `[Chi phí]`.
+    - Màu sắc nhận diện thương hiệu 360 CORP: Xanh công nghệ `#0077cd` (Prompt & Output) và Xanh chuyển đổi số `#00ce2c` (Cached).
+    - Tooltip tương tác hiển thị chi tiết khi rê chuột qua từng cột ngày.
+    - Bộ nhớ đệm lịch sử ngày `ai-token-tracker.ts` ghi nhận liên tục 30 ngày và đảm bảo trục 7 ngày gần nhất.
+- **[TEST]**:
+  - `ai-panel-parity.test.ts` (12/12 test PASS).
+  - `settings-ai-usage-chart.test.ts` (4/4 test PASS).
+  - `settings-shortcuts-menu.test.ts` (21/21 test PASS).
+  - `brand:gate` ĐẠT 100% (13/13 tính năng độc quyền 360 CORP).
+
 ## [Chưa phát hành] - 2026-11-11
 
 ### [NEW] Screenshots: Tích hợp Trợ lý AI thực thi tự động (VuaAI Screenshots Assistant) & Tái sắp xếp đối tượng vector

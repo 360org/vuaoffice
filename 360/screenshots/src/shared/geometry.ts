@@ -202,7 +202,7 @@ export function stepZoom(current: number, dir: 1 | -1): number {
 
 export type ShapeHandleId =
   | 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w'
-  | 'from' | 'to'
+  | 'from' | 'mid' | 'to'
   | 'body'
 
 export interface ShapeHandleInfo {
@@ -251,11 +251,16 @@ export function shapeBoundingBox(s: Shape): Rect {
   }
 }
 
-/** Handles for interactive reshaping (2 endpoints for arrow/line; 8 points for boxes). */
+/** Handles for interactive reshaping (3 points for arrow/line; 8 points for boxes). */
 export function shapeHandles(s: Shape): ShapeHandleInfo[] {
   if (s.tool === 'arrow' || s.tool === 'line') {
+    const mid = {
+      x: (s.from.x + s.to.x) / 2,
+      y: (s.from.y + s.to.y) / 2,
+    }
     return [
       { id: 'from', point: s.from, cursor: 'crosshair' },
+      { id: 'mid', point: mid, cursor: 'move' },
       { id: 'to', point: s.to, cursor: 'crosshair' },
     ]
   }
@@ -297,12 +302,13 @@ export function hitTestShapeHandle(s: Shape, p: Point, tol: number): ShapeHandle
 export function hitTestShape(s: Shape, p: Point, tol: number, hollowBorderOnly = false): boolean {
   switch (s.tool) {
     case 'arrow': {
-      if (pointToSegmentDistance(p, s.from, s.to) <= Math.max(tol, (s.width ?? 2) * 2.5)) return true
+      const strokeTol = Math.max(tol, (s.width ?? 2) * 3, 12)
+      if (pointToSegmentDistance(p, s.from, s.to) <= strokeTol) return true
       const poly = taperedArrowPolygon(s.from, s.to, s.width ?? 2)
       return pointInPolygon(p, poly)
     }
     case 'line':
-      return pointToSegmentDistance(p, s.from, s.to) <= Math.max(tol, (s.width ?? 2) * 1.5)
+      return pointToSegmentDistance(p, s.from, s.to) <= Math.max(tol, (s.width ?? 2) * 2.5, 12)
     case 'rect': {
       const r = s.rect
       const bt = Math.max(tol, (s.width ?? 2) + 4)
@@ -391,6 +397,16 @@ export function resizeShapeHandle(s: Shape, handle: ShapeHandleId, p: Point): Sh
   if (s.tool === 'arrow' || s.tool === 'line') {
     if (handle === 'to') return { ...s, to: p }
     if (handle === 'from') return { ...s, from: p }
+    if (handle === 'mid') {
+      const currentMid = { x: (s.from.x + s.to.x) / 2, y: (s.from.y + s.to.y) / 2 }
+      const dx = p.x - currentMid.x
+      const dy = p.y - currentMid.y
+      return {
+        ...s,
+        from: { x: s.from.x + dx, y: s.from.y + dy },
+        to: { x: s.to.x + dx, y: s.to.y + dy },
+      }
+    }
     return s
   }
   if (s.tool === 'rect' || s.tool === 'ellipse' || s.tool === 'blur' || s.tool === 'image') {

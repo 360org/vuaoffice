@@ -5551,8 +5551,7 @@ function installApplicationMenu(): void {
             : process.platform === 'darwin'
               ? { role: 'close' as const, label: tm('menuClose') }
               : { role: 'quit' as const, label: tm('menuQuit') },
-          { type: 'separator' },
-          settingsMenuItem(labels),
+          ...(process.platform === 'darwin' ? [] : [{ type: 'separator' as const }, settingsMenuItem(labels)]),
         ],
       },
       {

@@ -1731,6 +1731,74 @@ button {
   color: var(--text);
 }
 
+/* Print dialog: rộng rãi, căn chỉnh 2 cột thẳng hàng, không bị co xô lệch */
+.pdf-modal.pdf-print-dialog {
+  min-width: 440px;
+  max-width: 480px;
+  padding: 18px 20px;
+  gap: 12px;
+}
+
+.pdf-print-dialog .pdf-modal-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.pdf-print-dialog .pdf-modal-row.pdf-print-field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pdf-print-dialog .pdf-modal-row.pdf-print-field > span {
+  flex: 0 0 100px;
+  min-width: 100px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.pdf-print-dialog .pdf-modal-row.pdf-print-field select.pdf-modal-input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.pdf-print-copies-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.pdf-print-copies-controls .pdf-modal-input {
+  width: 72px;
+  flex: 0 0 72px;
+}
+
+.pdf-print-range-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin: 4px 0;
+}
+
+.pdf-print-range-box .pdf-modal-row {
+  cursor: pointer;
+  gap: 8px;
+}
+
+.pdf-print-range-box input[type="radio"] {
+  accent-color: var(--accent);
+  cursor: pointer;
+  margin: 0;
+}
+
 .pdf-print-copies {
   display: flex;
   align-items: center;

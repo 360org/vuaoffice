@@ -63,6 +63,100 @@ export interface AiHandshakeResult {
   timestamp?: number
 }
 
+/** Configurable screenshot hotkeys and capture settings. */
+export interface ScreenshotHotkeysSettings {
+  enabled: boolean
+  area: string
+  window: string
+  fullscreen: string
+  aiAssistant: string
+  format: 'png' | 'jpeg'
+}
+
+export const DEFAULT_SCREENSHOT_HOTKEYS: ScreenshotHotkeysSettings = {
+  enabled: true,
+  area: 'CommandOrControl+Alt+Shift+1',
+  window: 'CommandOrControl+Alt+Shift+2',
+  fullscreen: 'CommandOrControl+Alt+Shift+3',
+  aiAssistant: 'CommandOrControl+J',
+  format: 'png',
+}
+
+/**
+ * Chuyển đổi React / DOM KeyboardEvent sang Electron accelerator chuẩn.
+ * Ưu tiên đọc `e.code` trước `e.key` để tránh biến dạng phím Option trên macOS.
+ */
+export function keyEventToAccelerator(e: {
+  key: string
+  code?: string
+  metaKey: boolean
+  ctrlKey: boolean
+  altKey: boolean
+  shiftKey: boolean
+}): string | null {
+  const code = e.code || ''
+  let baseKey = ''
+
+  if (/^Digit[0-9]$/.test(code)) {
+    baseKey = code.slice(5)
+  } else if (/^Key[A-Z]$/.test(code)) {
+    baseKey = code.slice(3)
+  } else if (/^F[1-9][0-2]?$/.test(code)) {
+    baseKey = code
+  } else if (e.key && e.key.length === 1 && !e.altKey && !e.metaKey) {
+    baseKey = e.key.toUpperCase()
+  } else if (e.key && e.key.length === 1) {
+    baseKey = e.key.toUpperCase()
+  }
+
+  if (!baseKey) return null
+
+  const parts: string[] = []
+  if (e.metaKey || e.ctrlKey) parts.push('CommandOrControl')
+  if (e.altKey) parts.push('Alt')
+  if (e.shiftKey) parts.push('Shift')
+
+  if (parts.length === 0 && !/^F[1-9][0-2]?$/.test(baseKey)) {
+    return null
+  }
+
+  parts.push(baseKey)
+  return parts.join('+')
+}
+
+/** Định dạng accelerator thành mảng badge hiển thị thân thiện trên UI. */
+export function formatAcceleratorBadges(accel: string, isMac: boolean): string[] {
+  if (!accel) return []
+  return accel.split('+').map((part) => {
+    if (part === 'CommandOrControl') return isMac ? '⌘' : 'Ctrl'
+    if (part === 'Alt') return isMac ? '⌥' : 'Alt'
+    if (part === 'Shift') return isMac ? '⇧' : 'Shift'
+    return part
+  })
+}
+
+export interface DailyAiTokenUsage {
+  date: string // YYYY-MM-DD
+  inputTokens: number
+  outputTokens: number
+  cachedTokens: number
+  totalTokens: number
+  requestsCount: number
+  costUsd: number
+}
+
+/** Local device AI token usage accumulation stats. */
+export interface AiTokenUsageStats {
+  inputTokens: number
+  outputTokens: number
+  cachedTokens?: number
+  totalTokens: number
+  requestsCount: number
+  estimatedCostUsd?: number
+  lastUpdated?: number
+  dailyUsage?: DailyAiTokenUsage[]
+}
+
 export type UiLanguage =
   | 'zh'
   | 'en'
@@ -495,6 +589,14 @@ export interface HomeApi {
   getAiConfigStatus(): Promise<AiHandshakeResult | null>
   /** open VuaHeThong AI profile or setup URL in browser */
   openAiProfile(setupUrl?: string): Promise<void>
+  /** get aggregated AI token usage stats on this device */
+  getAiTokenUsage(): Promise<AiTokenUsageStats>
+  /** get configurable screenshot hotkey & format settings */
+  getScreenshotHotkeys(): Promise<ScreenshotHotkeysSettings>
+  /** save configurable screenshot hotkey & format settings, re-registering Electron globalShortcut */
+  setScreenshotHotkeys(settings: ScreenshotHotkeysSettings): Promise<{ ok: boolean; taken: string[] }>
+  /** subscribe to screenshot hotkey configuration updates */
+  onScreenshotHotkeysChanged(handler: (settings: ScreenshotHotkeysSettings) => void): () => void
   /** open the public GitHub repository in the default browser */
   openGitHubRepo(): Promise<void>
   /** open the VuaOffice website in the default browser */
@@ -833,6 +935,10 @@ export const HOME_CHANNELS = {
   syncAiConfig: 'home:sync-ai-config',
   getAiConfigStatus: 'home:get-ai-config-status',
   openAiProfile: 'home:open-ai-profile',
+  getAiTokenUsage: 'home:get-ai-token-usage',
+  getScreenshotHotkeys: 'home:get-screenshot-hotkeys',
+  setScreenshotHotkeys: 'home:set-screenshot-hotkeys',
+  screenshotHotkeysChanged: 'home:screenshot-hotkeys-changed',
   getAiSettings: 'home:get-ai-settings',
   setAiSettings: 'home:set-ai-settings',
   getDeveloperMode: 'home:get-developer-mode',

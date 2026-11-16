@@ -278,7 +278,21 @@ export function Markdown({
           return <img key={i} className="ai-md-img" src={src} alt={b.alt} loading="lazy" />
         }
         if (b.kind === 'ul' || b.kind === 'ol') {
-          const items = b.items.map((it, j) => <li key={j}>{renderInline(it, navList, images)}</li>)
+          const items = b.items.map((it, j) => {
+            const taskMatch = /^\s*\[([ xX])\]\s*(.*)$/.exec(it)
+            if (taskMatch) {
+              const checked = (taskMatch[1] ?? '').toLowerCase() === 'x'
+              return (
+                <li key={j} className={`ai-md-task-item ${checked ? 'checked' : 'unchecked'}`}>
+                  <span className={`ai-md-task-check ${checked ? 'checked' : 'unchecked'}`} aria-hidden>
+                    {checked ? '✓' : ''}
+                  </span>
+                  <span>{renderInline(taskMatch[2] ?? '', navList, images)}</span>
+                </li>
+              )
+            }
+            return <li key={j}>{renderInline(it, navList, images)}</li>
+          })
           return b.kind === 'ul' ? <ul key={i}>{items}</ul> : <ol key={i}>{items}</ol>
         }
         if (b.kind === 'code') {

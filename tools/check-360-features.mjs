@@ -87,6 +87,22 @@ const checks = [
                 fs.existsSync(path.join(ROOT, '360/screenshots/src/renderer/ScreenshotsEditor.tsx')) &&
                 fs.existsSync(path.join(ROOT, '360/screenshots/src/renderer/ai/screenshots-skill.ts')) &&
                 fs.existsSync(path.join(ROOT, '360/screenshots/src/renderer/ai/ScreenshotsAiPanel.tsx')),
+  },
+  {
+    name: '13. Cấu hình Phím tắt Toàn hệ thống & VuaHệThống AI Profile / Token Usage (apps/shell/SettingsModal)',
+    test: () => {
+      const modal = fs.readFileSync(path.join(ROOT, 'apps/shell/src/renderer/src/SettingsModal.tsx'), 'utf8');
+      const tracker = fs.existsSync(path.join(ROOT, 'apps/shell/src/main/ai-token-tracker.ts'));
+      const captureArgs = fs.readFileSync(path.join(ROOT, '360/screenshots/src/shared/capture-args.ts'), 'utf8');
+      return tracker &&
+             modal.includes('ShortcutsPane') &&
+             modal.includes('keyEventToAccelerator') &&
+             modal.includes('formatAcceleratorBadges') &&
+             modal.includes('set-ai-profile-card') &&
+             modal.includes('set-ai-token-card') &&
+             captureArgs.includes('DEFAULT_SCREENSHOT_HOTKEYS') &&
+             captureArgs.includes('isValidAccelerator');
+    }
   }
 ];
 
@@ -110,4 +126,4 @@ if (!allPassed) {
   process.exit(1);
 }
 
-console.log('\n🎉 [360-Features] ĐẠT — Toàn bộ 12/12 tính năng độc quyền của 360 CORP được bảo toàn đầy đủ 100%!\n');
+console.log('\n🎉 [360-Features] ĐẠT — Toàn bộ 13/13 tính năng độc quyền của 360 CORP được bảo toàn đầy đủ 100%!\n');

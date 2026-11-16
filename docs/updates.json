@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.0.64",
+    "date": "16/11/2026",
+    "highlight": "Nâng cấp toàn diện bộ công cụ Chụp màn hình vector & Trợ lý AI thực thi tự động, tinh gọn giao diện Cài đặt Siêu Ứng Dụng kèm biểu đồ tiêu thụ AI, và chuẩn hoá giao diện Hộp thoại In PDF.",
+    "features": [
+      {
+        "title": "Chụp màn hình Vector & Trợ lý VuaAI Assistant",
+        "desc": "Hỗ trợ chọn, di chuyển, co giãn 8 điểm neo cho mọi hình vẽ; dán/chèn ảnh lớp phủ (⌘V); tích hợp Trợ lý AI tự động nhận diện multimodal vision để làm mờ thông tin nhạy cảm, vẽ chú thích, cắt ảnh và trích xuất OCR; hỗ trợ đính kèm tệp và nạp thẻ kỹ năng AI."
+      },
+      {
+        "title": "Tinh gọn Cài đặt & Biểu đồ tiêu thụ AI",
+        "desc": "Giao diện Cài đặt chuẩn Siêu Ứng Dụng với 4 phân mục tập trung (Tài khoản, Chung, Phím tắt, Kỹ năng); tích hợp biểu đồ tiêu thụ Tokens / Requests / Chi phí và tùy biến phím tắt chụp màn hình toàn hệ thống."
+      },
+      {
+        "title": "Chuẩn hoá Hộp thoại In (Print Dialog) trong PDF",
+        "desc": "Mở rộng khung hộp thoại in rộng rãi, căn lề lưới 2 cột thẳng tắp, đóng khung nhóm phạm vi trang trực quan, chấm dứt hoàn toàn hiện tượng cắt chữ và tự động chuyển ngữ tiếng Việt thân thiện cho tuỳ chọn máy in."
+      }
+    ]
+  },
+  {
     "version": "1.0.63",
     "date": "09/11/2026",
     "highlight": "Nâng cấp toàn diện bộ công cụ Chụp màn hình AI (mũi tên vector sắc nét, khung cắt 8 điểm neo linh hoạt, bộ phím tắt chuyên nghiệp), hỗ trợ mở tài liệu cũ và cảnh báo hạn gói AI trực quan.",

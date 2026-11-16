@@ -1485,7 +1485,7 @@ export const strings = {
     printDuplexOff: 'Tắt',
     printDuplexLong: 'Lật theo cạnh dài',
     printDuplexShort: 'Lật theo cạnh ngắn',
-    printSubset: 'In',
+    printSubset: 'Trang in',
     printSubsetAll: 'Tất cả trang trong phạm vi',
     printSubsetOdd: 'Chỉ trang lẻ',
     printSubsetEven: 'Chỉ trang chẵn',

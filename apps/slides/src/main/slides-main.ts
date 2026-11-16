@@ -5272,8 +5272,7 @@ export function buildSlidesMenu(): Menu {
           : isMac
             ? { role: 'close' as const, label: tm('menuClose') }
             : { role: 'quit' as const, label: tm('menuQuit') },
-        { type: 'separator' },
-        settingsMenuItem(labels),
+        ...(isMac ? [] : [{ type: 'separator' as const }, settingsMenuItem(labels)]),
       ],
     },
     {

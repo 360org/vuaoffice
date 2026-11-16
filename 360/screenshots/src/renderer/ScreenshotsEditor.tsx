@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
-import { CAPTURE_ACCELERATORS } from '../shared/capture-args'
+import {
+  CAPTURE_ACCELERATORS,
+  DEFAULT_SCREENSHOT_HOTKEYS,
+  keyEventToAccelerator,
+  type ScreenshotHotkeysSettings,
+} from '../shared/capture-args'
 import type { CaptureOutcome, ScreenshotsApi } from '../shared/channels'
 import {
   cropHitTest,
@@ -31,8 +36,8 @@ import {
 } from '../shared/types'
 import { ICONS } from './icons'
 import { canvasToPng, compose, drawShape, ensureImagesLoaded, loadImage, pngUrl } from './render'
-import { ScreenshotsAiPanel } from './ai/ScreenshotsAiPanel'
-import type { ScreenshotsAiDeps } from './ai/screenshots-skill'
+import { ScreenshotsAiPanel, GensparkMark } from './ai/ScreenshotsAiPanel'
+import type { ScreenshotsAiDeps, ScreenshotsSnapshot } from './ai/screenshots-skill'
 import './screenshots.css'
 
 /** what undo/redo walks over: the base image (crop replaces it) plus the shapes on top */
@@ -82,6 +87,7 @@ const hotkeyLabel = (accel: string) =>
 const MAX_IMAGE_BYTES = 100 * 1024 * 1024
 
 function shortcutLabel(accel: string): string {
+  if (!accel) return ''
   if (!IS_MAC) return accel.replace('CommandOrControl', 'Ctrl')
   return accel
     .replace('CommandOrControl+', '⌘')
@@ -92,6 +98,25 @@ function shortcutLabel(accel: string): string {
 
 let shapeUid = 0
 const genId = () => 's_' + Date.now().toString(36) + '_' + (++shapeUid)
+
+export function isEditableTarget(target: EventTarget | null): boolean {
+  let curr = target as (Partial<HTMLElement> & { parentNode?: unknown }) | null
+  while (curr && typeof curr === 'object') {
+    if (typeof curr.tagName === 'string') {
+      const tag = curr.tagName.toLowerCase()
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return true
+    }
+    if (curr.isContentEditable || curr.contentEditable === 'true' || curr.contentEditable === '') {
+      return true
+    }
+    if (typeof curr.getAttribute === 'function') {
+      const ce = curr.getAttribute('contenteditable')
+      if (ce !== null && ce !== 'false') return true
+    }
+    curr = (curr.parentElement ?? curr.parentNode) as typeof curr
+  }
+  return false
+}
 
 export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: string }) {
   const s = useMemo(() => screenshotsStrings(lang), [lang])
@@ -130,10 +155,25 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
   const [permissionDenied, setPermissionDenied] = useState(false)
   const [busy, setBusy] = useState(false)
   const [aiOpen, setAiOpen] = useState(false)
+  const [hotkeys, setHotkeys] = useState<ScreenshotHotkeysSettings>(DEFAULT_SCREENSHOT_HOTKEYS)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const dragFrom = useRef<Point | null>(null)
   /** the doc last written to disk or the clipboard — "dirty" means the present differs */
   const savedDoc = useRef<Doc>(history.present)
+
+  useEffect(() => {
+    let alive = true
+    api.getHotkeysSettings?.().then((h) => {
+      if (alive && h) setHotkeys(h)
+    })
+    const unsub = api.onHotkeysSettingsChanged?.((h) => {
+      if (alive && h) setHotkeys(h)
+    })
+    return () => {
+      alive = false
+      unsub?.()
+    }
+  }, [api])
 
   const flash = useCallback((msg: string) => {
     setToast(msg)
@@ -413,12 +453,13 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
     const currentSel = selectedId ? doc.shapes.find((shape) => shape.id === selectedId) : null
     if (currentSel) {
       const grabbedHandle = (e.target as HTMLElement).dataset.handle as ShapeHandleId | undefined
-      const handleHit = grabbedHandle ?? hitTestShapeHandle(currentSel, p, 10 / canvasScale)
+      const handleHit = grabbedHandle ?? hitTestShapeHandle(currentSel, p, 12 / canvasScale)
       if (handleHit) {
         e.currentTarget.setPointerCapture(e.pointerId)
+        const effectiveHandle = handleHit === 'mid' ? 'body' : handleHit
         shapeDrag.current = {
           shapeId: currentSel.id!,
-          handle: handleHit,
+          handle: effectiveHandle,
           from: p,
           startShape: { ...currentSel },
         }
@@ -426,11 +467,25 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
       }
     }
 
-    // 2. In Select tool ('select'), clicking any shape selects and moves it
-    if (tool === 'select') {
-      let hitShape = [...doc.shapes].reverse().find((shape) => hitTestShape(shape, p, 8 / canvasScale, true))
+    // 2. Clicking any existing shape selects and moves it immediately
+    // Works across all interactive tools (except freehand pen/marker where clicking draws strokes)
+    if (tool !== 'pen' && tool !== 'marker' && tool !== 'step') {
+      // First check if clicking on currentSel body
+      if (currentSel && currentSel.tool !== 'image' && hitTestShape(currentSel, p, 12 / canvasScale, true)) {
+        e.currentTarget.setPointerCapture(e.pointerId)
+        shapeDrag.current = {
+          shapeId: currentSel.id!,
+          handle: 'body',
+          from: p,
+          startShape: { ...currentSel },
+        }
+        return
+      }
+
+      // Then check if clicking on any other shape (top-to-bottom in z-order)
+      let hitShape = [...doc.shapes].reverse().find((shape) => hitTestShape(shape, p, 12 / canvasScale, true))
       if (!hitShape) {
-        hitShape = [...doc.shapes].reverse().find((shape) => hitTestShape(shape, p, 8 / canvasScale, false))
+        hitShape = [...doc.shapes].reverse().find((shape) => hitTestShape(shape, p, 12 / canvasScale, false))
       }
       if (hitShape) {
         e.currentTarget.setPointerCapture(e.pointerId)
@@ -443,20 +498,6 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
         }
         return
       }
-      setSelectedId(null)
-      return
-    }
-
-    // 3. In drawing tools, if clicking on the currently selected shape's body (except image overlay), allow moving it
-    if (currentSel && currentSel.tool !== 'image' && hitTestShape(currentSel, p, 8 / canvasScale, true)) {
-      e.currentTarget.setPointerCapture(e.pointerId)
-      shapeDrag.current = {
-        shapeId: currentSel.id!,
-        handle: 'body',
-        from: p,
-        startShape: { ...currentSel },
-      }
-      return
     }
 
     if (tool === 'step') {
@@ -537,22 +578,24 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
     if (base && !dragFrom.current && !shapeDrag.current) {
       const currentSel = selectedId ? doc.shapes.find((shape) => shape.id === selectedId) : null
       if (currentSel) {
-        const h = hitTestShapeHandle(currentSel, p, 10 / canvasScale)
+        const h = hitTestShapeHandle(currentSel, p, 12 / canvasScale)
         if (h) {
           const handles = shapeHandles(currentSel)
           const found = handles.find((item) => item.id === h)
           setHoverCursor(found ? found.cursor : 'pointer')
           return
         }
-        if (currentSel.tool !== 'image' && hitTestShape(currentSel, p, 8 / canvasScale, true)) {
+        if (currentSel.tool !== 'image' && hitTestShape(currentSel, p, 12 / canvasScale, true)) {
           setHoverCursor('move')
           return
         }
       }
-      if (tool === 'select') {
-        const hit = [...doc.shapes].reverse().find((shape) => hitTestShape(shape, p, 8 / canvasScale, false))
-        setHoverCursor(hit ? 'move' : 'default')
-        return
+      if (tool !== 'crop' && tool !== 'pen' && tool !== 'marker') {
+        const hit = [...doc.shapes].reverse().find((shape) => hitTestShape(shape, p, 12 / canvasScale, false))
+        if (hit) {
+          setHoverCursor('move')
+          return
+        }
       }
       setHoverCursor(null)
     }
@@ -672,8 +715,28 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
     const onKey = (e: KeyboardEvent) => {
       const mod = IS_MAC ? e.metaKey : e.ctrlKey
       const k = e.key.toLowerCase()
-      if (e.target instanceof HTMLInputElement) {
-        if (mod && (k === 'c' || k === 'z')) document.execCommand(k === 'c' ? 'copy' : e.shiftKey ? 'redo' : 'undo')
+
+      const accel = keyEventToAccelerator({
+        key: e.key,
+        code: e.code,
+        metaKey: e.metaKey,
+        ctrlKey: e.ctrlKey,
+        altKey: e.altKey,
+        shiftKey: e.shiftKey,
+      })
+      const isAiShortcut =
+        (mod && k === 'j') ||
+        (Boolean(hotkeys.aiAssistant) &&
+          accel !== null &&
+          accel.toLowerCase() === hotkeys.aiAssistant.toLowerCase())
+
+      // Guard: when typing in any editable target (e.g. AI panel textarea, input, contenteditable)
+      // or during IME composition (Vietnamese Telex/VNI), do NOT execute canvas shortcuts.
+      if (isEditableTarget(e.target) || e.isComposing) {
+        if (isAiShortcut) {
+          e.preventDefault()
+          setAiOpen((v) => !v)
+        }
         return
       }
 
@@ -729,7 +792,7 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
       } else if (mod && k === 's' && base) {
         e.preventDefault()
         void save()
-      } else if (mod && k === 'j') {
+      } else if (isAiShortcut) {
         e.preventDefault()
         setAiOpen((v) => !v)
       } else if (!mod && !e.altKey) {
@@ -803,8 +866,17 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
         })
         setSelectedId(null)
       },
+      getSnapshot: () => ({
+        src: history.present.src,
+        shapes: [...history.present.shapes],
+      }),
+      restoreSnapshot: (snapshot: ScreenshotsSnapshot) => {
+        setHistory((h) => commit(h, { src: snapshot.src, shapes: [...snapshot.shapes] }))
+        setSelectedId(null)
+        setCropRect(null)
+      },
     }),
-    [base, history.present.shapes],
+    [base, history.present.shapes, history.present.src],
   )
 
   const getCanvasBase64 = useCallback(() => {
@@ -830,9 +902,9 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
     <div className="ss-root">
       <div className="ss-toolbar" role="toolbar">
         <div className="ss-group">
-          <Btn icon="area" label={s.captureArea} shortcut={hotkeyLabel(CAPTURE_ACCELERATORS.area)} onClick={() => void capture('area')} disabled={busy} primary />
-          <Btn icon="window" label={s.captureWindow} shortcut={hotkeyLabel(CAPTURE_ACCELERATORS.window)} onClick={() => void capture('window')} disabled={busy} />
-          <Btn icon="fullscreen" label={s.captureFullscreen} shortcut={hotkeyLabel(CAPTURE_ACCELERATORS.fullscreen)} onClick={() => void capture('fullscreen')} disabled={busy} />
+          <Btn icon="area" label={s.captureArea} shortcut={shortcutLabel(hotkeys.area)} onClick={() => void capture('area')} disabled={busy} primary />
+          <Btn icon="window" label={s.captureWindow} shortcut={shortcutLabel(hotkeys.window)} onClick={() => void capture('window')} disabled={busy} />
+          <Btn icon="fullscreen" label={s.captureFullscreen} shortcut={shortcutLabel(hotkeys.fullscreen)} onClick={() => void capture('fullscreen')} disabled={busy} />
           <Btn icon="open" label={s.openImage} shortcut={kbd('O')} onClick={() => void openImage()} />
         </div>
         <div className="ss-group" aria-label="tools">
@@ -925,14 +997,17 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
           <Btn icon="copy" label={s.copy} shortcut={kbd('C')} onClick={() => void copy()} disabled={!base} />
           <Btn icon="save" label={s.save} shortcut={kbd('S')} onClick={() => void save()} disabled={!base} primary />
           <span className="ss-sep" />
-          <Btn
-            icon="sparkles"
-            label={s.aiAssistant}
-            shortcut={kbd('J')}
+          <button
+            type="button"
+            className={`ss-btn ss-btn-vuaai${aiOpen ? ' active' : ''}`}
             onClick={() => setAiOpen((v) => !v)}
             disabled={!base}
-            active={aiOpen}
-          />
+            title={`VuaAI Pro (${kbd('J')})`}
+            aria-label="VuaAI Pro"
+          >
+            <GensparkMark size={18} />
+            <span>VuaAI Pro</span>
+          </button>
         </div>
       </div>
 
@@ -1004,15 +1079,18 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
                   pointerEvents: 'none',
                 }}
               >
-                <div
-                  className="ss-selection-box"
-                  style={{
-                    left: activeBbox.x * canvasScale,
-                    top: activeBbox.y * canvasScale,
-                    width: activeBbox.width * canvasScale,
-                    height: activeBbox.height * canvasScale,
-                  }}
-                />
+                {/* Bounding box is only drawn for 2D container shapes, strictly excluded for arrow/line/pen/marker/step */}
+                {['rect', 'ellipse', 'blur', 'image', 'text'].includes(activeShape.tool) && (
+                  <div
+                    className="ss-selection-box"
+                    style={{
+                      left: activeBbox.x * canvasScale,
+                      top: activeBbox.y * canvasScale,
+                      width: activeBbox.width * canvasScale,
+                      height: activeBbox.height * canvasScale,
+                    }}
+                  />
+                )}
                 {activeHandles.map((h) => (
                   <span
                     key={h.id}
@@ -1076,7 +1154,7 @@ export function ScreenshotsEditor({ api, lang }: { api: ScreenshotsApi; lang: st
             <p>
               {fill(s.emptyHint, {
                 paste: IS_MAC ? '⌘V' : 'Ctrl+V',
-                area: shortcutLabel(CAPTURE_ACCELERATORS.area),
+                area: shortcutLabel(hotkeys.area),
               })}
             </p>
           </div>

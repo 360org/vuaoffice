@@ -1146,9 +1146,21 @@ function AccountEntry({
   const themeRowRef = useRef<HTMLDivElement>(null)
   const themeCloseTimer = useRef<number | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [target, setTarget] = useState<SettingsTarget | null>(null)
   const [skillUpdate, setSkillUpdate] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
   const [appVersion, setAppVersion] = useState('')
+
+  const openSettings = useCallback((to: SettingsTarget | null) => {
+    setTarget(to)
+    setSettingsOpen(true)
+  }, [])
+
+  useEffect(() => {
+    if (openRequest) {
+      openSettings(openRequest)
+    }
+  }, [openRequest, openSettings])
 
   // query login state + app version once on mount
   useEffect(() => {
@@ -1826,7 +1838,28 @@ function AccountEntry({
             )}
           </div>
           <div className="account-menu-divider" />
-          
+
+          <button
+            className="account-menu-item lang-row"
+            role="menuitem"
+            onClick={() => {
+              closeMenu()
+              openSettings({ section: 'general' })
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path
+                d="M6.5 1.5h3l.4 1.6a5.5 5.5 0 0 1 1.3.8l1.6-.6 1.5 2.6-1.2 1.1a5.7 5.7 0 0 1 0 1.6l1.2 1.1-1.5 2.6-1.6-.6a5.5 5.5 0 0 1-1.3.8l-.4 1.6h-3l-.4-1.6a5.5 5.5 0 0 1-1.3-.8l-1.6.6-1.5-2.6 1.2-1.1a5.7 5.7 0 0 1 0-1.6l-1.2-1.1 1.5-2.6 1.6.6a5.5 5.5 0 0 1 1.3-.8l.4-1.6z"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                strokeLinejoin="round"
+              />
+              <circle cx="8" cy="8" r="2.2" stroke="currentColor" strokeWidth="1.2" />
+            </svg>
+            <span className="lang-row-label">{t('settings')}</span>
+            <span style={{ marginLeft: 'auto', fontSize: 11, opacity: 0.6 }}>⌘,</span>
+          </button>
+
           <button
             className="account-menu-item lang-row"
             role="menuitem"
@@ -2035,6 +2068,37 @@ function AccountEntry({
           )}
         </span>
       </button>
+
+      {settingsOpen && (
+        <SettingsModal
+          status={status}
+          loggingOut={loggingOut}
+          loginWaiting={waiting}
+          loginUrl={authUrl}
+          urlCopied={urlCopied}
+          onOpenLoginUrl={openLoginUrl}
+          onCopyLoginUrl={copyLoginUrl}
+          onClose={() => {
+            setSettingsOpen(false)
+            setTarget(null)
+          }}
+          onFileSearchChange={onFileSearchSettingsChange}
+          onLogin={() => {
+            setSettingsOpen(false)
+            startLogin()
+          }}
+          onLogout={() => {
+            setLoggingOut(true)
+            void window.aiOffice.accountLogout().then(() => {
+              setLoggingOut(false)
+              setStatus({ loggedIn: false })
+            })
+          }}
+          skillUpdateDue={skillUpdate}
+          onSkillUpdateDue={setSkillUpdate}
+          target={target}
+        />
+      )}
     </div>
   )
 }
@@ -2445,7 +2509,10 @@ export function Home() {
   useEffect(
     () =>
       window.aiOffice.onOpenSettings?.((target) =>
-        setSettingsRequest({ section: target.section as SettingsTarget['section'] }),
+        setSettingsRequest({
+          section: (target.section as SettingsTarget['section']) || 'general',
+          nonce: Date.now(),
+        }),
       ),
     [],
   )

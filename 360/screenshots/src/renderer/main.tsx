@@ -1,10 +1,17 @@
 import { StrictMode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import '@genoffice/ui/tokens.css'
+import '@genoffice/ui/screentip.css'
 import '@genoffice/ui/ai-model-picker.css'
-import { applyAiPanelPrefs } from '@genoffice/ui'
+import '@genoffice/ui/ai-usage.css'
+import '@genoffice/ui/markdown.css'
+import '@genoffice/ui/ai-panel-prefs.css'
+import '@genoffice/ui/ai-scope-quote.css'
+import { applyAiPanelPrefs, installScreenTips } from '@genoffice/ui'
 import type { ScreenshotsApi } from '../shared/channels'
 import { ScreenshotsEditor } from './ScreenshotsEditor'
+
+installScreenTips()
 
 interface ScreenshotsHost {
   getLanguage(): Promise<string>

@@ -311,8 +311,10 @@ import type {
   FileSearchQuery,
   FileSearchRerank,
   FileSearchSettings,
+  ScreenshotHotkeysSettings,
 } from '../shared/home-api'
-import { HOME_CHANNELS } from '../shared/home-api'
+import { DEFAULT_SCREENSHOT_HOTKEYS, HOME_CHANNELS } from '../shared/home-api'
+import { loadAiTokenUsage } from './ai-token-tracker'
 import {
   normalizeAiPanelPrefs,
   sameAiPanelPrefs,
@@ -5781,6 +5783,35 @@ function registerHomeIpc(): void {
     void shell.openExternal(setupUrl || 'https://vuahethong.net/my/ai-provider?tab=packs');
   })
 
+  ipcMain.handle(HOME_CHANNELS.getAiTokenUsage, () => {
+    return loadAiTokenUsage()
+  })
+
+  ipcMain.handle(HOME_CHANNELS.getScreenshotHotkeys, (): ScreenshotHotkeysSettings => {
+    const saved = readAppSettings(APP_SETTINGS_PATH()).screenshotHotkeys as
+      | Partial<ScreenshotHotkeysSettings>
+      | undefined
+    return saved ? { ...DEFAULT_SCREENSHOT_HOTKEYS, ...saved } : { ...DEFAULT_SCREENSHOT_HOTKEYS }
+  })
+
+  ipcMain.handle(HOME_CHANNELS.setScreenshotHotkeys, (_e, settings: ScreenshotHotkeysSettings) => {
+    const merged: ScreenshotHotkeysSettings = { ...DEFAULT_SCREENSHOT_HOTKEYS, ...settings }
+    writeAppSetting(APP_SETTINGS_PATH(), 'screenshotHotkeys', merged)
+    const res = registerScreenshotsHotkeys(merged)
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (!win.isDestroyed()) {
+        win.webContents.send(HOME_CHANNELS.screenshotHotkeysChanged, merged)
+      }
+    }
+    for (const wc of webContents.getAllWebContents()) {
+      if (!wc.isDestroyed()) {
+        wc.send(HOME_CHANNELS.screenshotHotkeysChanged, merged)
+        wc.send('screenshots:hotkeys-changed', merged)
+      }
+    }
+    return { ok: true, taken: res.taken }
+  })
+
   ipcMain.handle(HOME_CHANNELS.openCreditUsage, () => {
     shell.openExternal(CREDIT_USAGE_URL).catch(() => {
       // no browser handler available; nothing actionable for the user here
@@ -6407,8 +6438,7 @@ function buildHomeMenu(): void {
         },
         { type: 'separator' },
         { role: 'close', label: tm('menuClose') },
-        { type: 'separator' },
-        settingsMenuItem(labels),
+        ...(process.platform === 'darwin' ? [] : [{ type: 'separator' as const }, settingsMenuItem(labels)]),
       ],
     },
     viewMenuTemplate(),
@@ -6499,8 +6529,7 @@ function buildPdfMenu(): void {
           accelerator: 'CmdOrCtrl+W',
           click: () => closeFocusedEditor(),
         },
-        { type: 'separator' },
-        settingsMenuItem(labels),
+        ...(process.platform === 'darwin' ? [] : [{ type: 'separator' as const }, settingsMenuItem(labels)]),
       ],
     },
     editMenuTemplate(process.platform, appMenuLabels(currentLang())),
@@ -6606,8 +6635,7 @@ function buildMarkdownMenu(): void {
           accelerator: 'CmdOrCtrl+W',
           click: () => closeFocusedEditor(),
         },
-        { type: 'separator' },
-        settingsMenuItem(labels),
+        ...(process.platform === 'darwin' ? [] : [{ type: 'separator' as const }, settingsMenuItem(labels)]),
       ],
     },
     editMenuTemplate(process.platform, appMenuLabels(currentLang())),
@@ -6706,8 +6734,7 @@ function buildHtmlMenu(): void {
           accelerator: 'CmdOrCtrl+W',
           click: () => closeFocusedEditor(),
         },
-        { type: 'separator' },
-        settingsMenuItem(labels),
+        ...(process.platform === 'darwin' ? [] : [{ type: 'separator' as const }, settingsMenuItem(labels)]),
       ],
     },
     editMenuTemplate(process.platform, appMenuLabels(currentLang())),
@@ -7578,9 +7605,12 @@ app.whenReady().then(async () => {
     app.quit()
     return
   }
-  // 360 Screenshots: system-wide capture hotkeys (⌥⇧⌘1/2/3), only in the instance that owns the lock
-  const takenHotkeys = registerScreenshotsHotkeys()
-  if (takenHotkeys.length > 0) console.warn('[screenshots] hotkeys held by another app:', takenHotkeys)
+  // 360 Screenshots: system-wide capture hotkeys (configurable), only in the instance that owns the lock
+  const savedHotkeys = readAppSettings(APP_SETTINGS_PATH()).screenshotHotkeys as
+    | Partial<ScreenshotHotkeysSettings>
+    | undefined
+  const hotkeyReg = registerScreenshotsHotkeys(savedHotkeys)
+  if (hotkeyReg.taken.length > 0) console.warn('[screenshots] hotkeys held by another app:', hotkeyReg.taken)
   // another GenOffice-family app re-logging in rotates the shared key; the
   // home page re-reads its account status. A logout that leaves only the
   // gsk CLI fallback key is not a login

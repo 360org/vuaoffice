@@ -423,6 +423,33 @@ interface WrittenSteps {
 /** Each step holds the whole file twice: a long history of them would hold that much memory */
 const MAX_WRITTEN_STEPS = 10
 
+const DRIVER_NAME_TRANSLATIONS_VI: Record<string, string> = {
+  cupsPrintQuality: 'Chất lượng in',
+  ColorModel: 'Màu sắc',
+  MediaType: 'Loại giấy',
+  'Paper Type': 'Loại giấy',
+}
+
+const DRIVER_VALUE_TRANSLATIONS_VI: Record<string, string> = {
+  Draft: 'Bản nháp',
+  Normal: 'Tiêu chuẩn',
+  High: 'Chất lượng cao',
+  Color: 'Màu',
+  CMYK: 'Màu (CMYK)',
+  RGB: 'Màu (RGB)',
+  Gray: 'Trắng đen (Grayscale)',
+  Grayscale: 'Trắng đen',
+  Black: 'Trắng đen',
+  Monochrome: 'Đơn sắc',
+  PlainPaper: 'Giấy thường (Plain Paper)',
+  Plain: 'Giấy thường',
+  Thick: 'Giấy dày',
+  Recycled: 'Giấy tái chế',
+  Glossy: 'Giấy bóng (Glossy)',
+  Transparency: 'Giấy trong suốt',
+  Envelope: 'Phong bì',
+}
+
 export default function App() {
   const { lang, t } = useI18n()
   const collapse = useRibbonCollapse('genoffice-pdf-ribbon-collapsed', {
@@ -11867,7 +11894,7 @@ export default function App() {
             )}
             {printDlg && (
               <div className="pdf-modal-mask" onClick={() => setPrintDlg(false)}>
-                <div className="pdf-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="pdf-modal pdf-print-dialog" onClick={(e) => e.stopPropagation()}>
                   <div className="pdf-modal-title">{t('print')}</div>
                   <label className="pdf-modal-row pdf-print-field">
                     <span>{t('printPrinter')}</span>
@@ -11900,9 +11927,9 @@ export default function App() {
                       <option value={PRINT_SYSTEM_DIALOG}>{t('printSystemDialog')}</option>
                     </select>
                   </label>
-                  <div className="pdf-modal-row pdf-print-field">
-                    <label className="pdf-print-copies">
-                      <span>{t('printCopies')}</span>
+                  <div className="pdf-modal-row pdf-print-field pdf-print-copies-row">
+                    <span>{t('printCopies')}</span>
+                    <div className="pdf-print-copies-controls">
                       <input
                         className="pdf-modal-input"
                         type="number"
@@ -11916,16 +11943,16 @@ export default function App() {
                           )
                         }
                       />
-                    </label>
-                    <label className="pdf-modal-check">
-                      <input
-                        type="checkbox"
-                        checked={printCollate}
-                        disabled={printDevice === PRINT_SYSTEM_DIALOG || printCopies < 2}
-                        onChange={(e) => setPrintCollate(e.target.checked)}
-                      />
-                      {t('printCollate')}
-                    </label>
+                      <label className="pdf-modal-check">
+                        <input
+                          type="checkbox"
+                          checked={printCollate}
+                          disabled={printDevice === PRINT_SYSTEM_DIALOG || printCopies < 2}
+                          onChange={(e) => setPrintCollate(e.target.checked)}
+                        />
+                        {t('printCollate')}
+                      </label>
+                    </div>
                   </div>
                   <label className="pdf-modal-row pdf-print-field">
                     <span>{t('printDuplex')}</span>
@@ -11948,76 +11975,87 @@ export default function App() {
                       ))}
                     </select>
                   </label>
-                  {driverOptions.map((group) => (
-                    <label key={group.name} className="pdf-modal-row pdf-print-field">
-                      <span>{group.translation}</span>
-                      <select
-                        className="pdf-modal-input"
-                        value={driverChoices[group.name] ?? group.defaultValue ?? group.values[0]}
-                        onChange={(e) =>
-                          setDriverChoices((c) => ({ ...c, [group.name]: e.target.value }))
-                        }
-                      >
-                        {group.values.map((v) => (
-                          <option key={v} value={v}>
-                            {v}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  ))}
+                  {driverOptions.map((group) => {
+                    const isVi = lang === 'vi'
+                    const groupTitle = isVi
+                      ? (DRIVER_NAME_TRANSLATIONS_VI[group.name] ?? group.translation)
+                      : group.translation
+                    return (
+                      <label key={group.name} className="pdf-modal-row pdf-print-field">
+                        <span>{groupTitle}</span>
+                        <select
+                          className="pdf-modal-input"
+                          value={driverChoices[group.name] ?? group.defaultValue ?? group.values[0]}
+                          onChange={(e) =>
+                            setDriverChoices((c) => ({ ...c, [group.name]: e.target.value }))
+                          }
+                        >
+                          {group.values.map((v) => {
+                            const valText = isVi ? (DRIVER_VALUE_TRANSLATIONS_VI[v] ?? v) : v
+                            return (
+                              <option key={v} value={v}>
+                                {valText}
+                              </option>
+                            )
+                          })}
+                        </select>
+                      </label>
+                    )
+                  })}
                   <div className="pdf-print-divider" />
-                  <label className="pdf-modal-row">
-                    <input
-                      type="radio"
-                      name="print-range"
-                      checked={printMode === 'all'}
-                      onChange={() => {
-                        setPrintMode('all')
-                        setPrintInvalid(false)
-                      }}
-                    />
-                    <span>{t('printRangeAll')}</span>
-                  </label>
-                  <label className="pdf-modal-row">
-                    <input
-                      type="radio"
-                      name="print-range"
-                      checked={printMode === 'current'}
-                      onChange={() => {
-                        setPrintMode('current')
-                        setPrintInvalid(false)
-                      }}
-                    />
-                    <span>
-                      {t('printRangeCurrent')} ({printCurrentPage})
-                    </span>
-                  </label>
-                  <label className="pdf-modal-row">
-                    <input
-                      type="radio"
-                      name="print-range"
-                      checked={printMode === 'custom'}
-                      onChange={() => setPrintMode('custom')}
-                    />
-                    <span>{t('printRangeCustom')}</span>
-                  </label>
-                  {printMode === 'custom' && (
-                    <input
-                      className={`pdf-modal-input${printInvalid ? ' invalid' : ''}`}
-                      value={printInput}
-                      placeholder={t('printRangeHint')}
-                      autoFocus
-                      onChange={(e) => {
-                        setPrintInput(e.target.value)
-                        setPrintInvalid(false)
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') confirmPrint()
-                        else if (e.key === 'Escape') setPrintDlg(false)
-                      }}
-                    />
-                  )}
+                  <div className="pdf-print-range-box">
+                    <label className="pdf-modal-row">
+                      <input
+                        type="radio"
+                        name="print-range"
+                        checked={printMode === 'all'}
+                        onChange={() => {
+                          setPrintMode('all')
+                          setPrintInvalid(false)
+                        }}
+                      />
+                      <span>{t('printRangeAll')}</span>
+                    </label>
+                    <label className="pdf-modal-row">
+                      <input
+                        type="radio"
+                        name="print-range"
+                        checked={printMode === 'current'}
+                        onChange={() => {
+                          setPrintMode('current')
+                          setPrintInvalid(false)
+                        }}
+                      />
+                      <span>
+                        {t('printRangeCurrent')} ({printCurrentPage})
+                      </span>
+                    </label>
+                    <label className="pdf-modal-row">
+                      <input
+                        type="radio"
+                        name="print-range"
+                        checked={printMode === 'custom'}
+                        onChange={() => setPrintMode('custom')}
+                      />
+                      <span>{t('printRangeCustom')}</span>
+                    </label>
+                    {printMode === 'custom' && (
+                      <input
+                        className={`pdf-modal-input${printInvalid ? ' invalid' : ''}`}
+                        value={printInput}
+                        placeholder={t('printRangeHint')}
+                        autoFocus
+                        onChange={(e) => {
+                          setPrintInput(e.target.value)
+                          setPrintInvalid(false)
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') confirmPrint()
+                          else if (e.key === 'Escape') setPrintDlg(false)
+                        }}
+                      />
+                    )}
+                  </div>
                   <label className="pdf-modal-row pdf-print-field">
                     <span>{t('printSubset')}</span>
                     <select

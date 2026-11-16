@@ -134,7 +134,8 @@ async function openIntegrations(
   await click(buttonWithText('Integrations'))
 }
 
-describe('Settings → Integrations', () => {
+// Note: Integrations tab has been removed from SettingsModal in VuaOffice Super-App (kept 4 sections only).
+describe.skip('Settings → Integrations', () => {
   it('lists detected agents with their state and offers the matching actions', async () => {
     await openIntegrations({ status: async () => baseStatus(), copyText: async () => {} })
     const rows = [...host.querySelectorAll('.set-intg-row')]

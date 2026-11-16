@@ -212,8 +212,9 @@ async function pickProvider(label: string): Promise<void> {
 }
 
 // ── 1. it never writes settings ───────────────────────────
+// Note: Tab AI Model has been removed from SettingsModal in VuaOffice Super-App (kept 4 sections only).
 
-describe('the refresh touches the catalog and nothing else', () => {
+describe.skip('the refresh touches the catalog and nothing else', () => {
   it('does not revert a key typed while the probe is in flight', async () => {
     installApi(storedSettings())
     await openAiPane()
@@ -279,7 +280,7 @@ describe('the refresh touches the catalog and nothing else', () => {
   })
 })
 
-describe('saving a refreshed probe cache', () => {
+describe.skip('saving a refreshed probe cache', () => {
   function cachedSettings(): AiSettings {
     const settings = storedSettings({ model: 'a' })
     settings.customEndpoint = 'ep-cache'
@@ -357,7 +358,7 @@ describe('saving a refreshed probe cache', () => {
 
 // ── 2. the fold itself ────────────────────────────────────
 
-describe('the fold', () => {
+describe.skip('the fold', () => {
   it('turns the model box into a picker listing what the endpoint advertises', async () => {
     installApi(storedSettings())
     await openAiPane()
@@ -406,7 +407,7 @@ describe('the fold', () => {
 
 // ── 3. when it probes at all ──────────────────────────────
 
-describe('scope', () => {
+describe.skip('scope', () => {
   it('does not probe a saved endpoint while another provider is selected', async () => {
     installApi(storedSettings({ provider: 'genspark' }))
     await openAiPane()
@@ -437,7 +438,7 @@ describe('scope', () => {
 
 // ── 4. request discipline ─────────────────────────────────
 
-describe('request discipline', () => {
+describe.skip('request discipline', () => {
   it('collapses a burst of keystrokes in the address field into one request', async () => {
     installApi(storedSettings({ baseUrl: '' }))
     await openAiPane()
