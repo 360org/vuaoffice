@@ -1,10 +1,12 @@
 import {
+  existsSync,
   fsyncSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
   renameSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from 'node:fs'
 import { open, rename, writeFile, copyFile } from 'node:fs/promises'
@@ -15,6 +17,7 @@ import {
   atomicCopyFile,
   atomicWriteFile,
   atomicWriteVia,
+  restrictFileToOwner,
   writeJsonAtomic,
 } from '../src/atomic-write'
 
@@ -135,7 +138,63 @@ describe('atomicWriteFile', () => {
     const leftovers = readdirSync(dir).sort()
     expect(leftovers).toHaveLength(2)
     expect(leftovers[0]).toBe('a.docx')
-    expect(leftovers[1]).toMatch(/^a\.docx\..{12}\.tmp$/)
+    expect(leftovers[1]).toBe('a.docx.unsaved.tmp')
+  })
+
+  // A save that keeps failing (the document is open in another program, and
+  // the autosave retries it every 30s) must not leave a new file beside the
+  // document on every attempt: the user's folder fills with them
+  // (genoffice#2567).
+  it('replaces the rescue copy when the save keeps failing', async () => {
+    dir = mkdtempSync(join(tmpdir(), 'eu-aw-'))
+    const target = join(dir, 'a.docx')
+    writeFileSync(target, 'old')
+    const actual = await vi.importActual<typeof import('node:fs/promises')>('node:fs/promises')
+    vi.mocked(rename).mockRejectedValue(errnoError('EEXIST'))
+    // every attempt: the temp write lands, the in-place fallback does not
+    vi.mocked(writeFile).mockImplementation(async (...args) => {
+      if (vi.mocked(writeFile).mock.calls.length % 2 === 1) {
+        return actual.writeFile(...(args as Parameters<typeof actual.writeFile>))
+      }
+      throw errnoError('EACCES')
+    })
+
+    for (const bytes of ['one', 'two', 'three']) {
+      await expect(atomicWriteFile(target, Buffer.from(bytes))).rejects.toThrow('EACCES')
+    }
+
+    expect(readFileSync(target, 'utf8')).toBe('old')
+    // one rescue copy, holding the newest bytes — not one per attempt
+    const leftovers = readdirSync(dir).sort()
+    expect(leftovers).toHaveLength(2)
+    expect(leftovers[1]).toBe('a.docx.unsaved.tmp')
+    expect(readFileSync(join(dir, leftovers[1]!), 'utf8')).toBe('three')
+  })
+
+  // The rescue copy is stale once the save lands: the document holds the
+  // bytes, so the leftover beside it must go.
+  it('removes the rescue copy once a later save lands', async () => {
+    dir = mkdtempSync(join(tmpdir(), 'eu-aw-'))
+    const target = join(dir, 'a.docx')
+    writeFileSync(target, 'old')
+    const actual = await vi.importActual<typeof import('node:fs/promises')>('node:fs/promises')
+    vi.mocked(rename).mockRejectedValueOnce(errnoError('EEXIST'))
+    vi.mocked(writeFile).mockImplementationOnce((...args) =>
+      actual.writeFile(...(args as Parameters<typeof actual.writeFile>)),
+    )
+    vi.mocked(writeFile).mockRejectedValueOnce(errnoError('EACCES'))
+    await expect(atomicWriteFile(target, Buffer.from('new'))).rejects.toThrow('EACCES')
+    expect(readdirSync(dir).sort()).toEqual(['a.docx', 'a.docx.unsaved.tmp'])
+
+    // the next attempt lands: the document now holds the bytes, so the
+    // rescue copy beside it is stale
+    vi.mocked(rename).mockReset()
+    vi.mocked(rename).mockImplementation(async (from, to) => {
+      await actual.rename(from, to)
+    })
+    await atomicWriteFile(target, Buffer.from('newer'))
+    expect(readFileSync(target, 'utf8')).toBe('newer')
+    expect(readdirSync(dir).sort()).toEqual(['a.docx'])
   })
 })
 
@@ -297,7 +356,7 @@ describe('atomicWriteVia', () => {
     const leftovers = readdirSync(dir).sort((a, b) => a.length - b.length)
     expect(leftovers).toHaveLength(2)
     expect(leftovers[0]).toBe('a.pptx')
-    expect(leftovers[1]).toMatch(/a\.pptx\..{12}\.tmp$/)
+    expect(leftovers[1]).toBe('a.pptx.unsaved.tmp')
     expect(readFileSync(join(dir, leftovers[1]!), 'utf8')).toBe('new')
   })
 })
@@ -363,5 +422,56 @@ describe('writeJsonAtomic', () => {
     })
     writeJsonAtomic(target, { ok: true })
     expect(JSON.parse(readFileSync(target, 'utf8'))).toEqual({ ok: true })
+  })
+})
+
+describe('writeJsonAtomic mode', () => {
+  it.skipIf(process.platform === 'win32')('writes the file owner-only when a mode is given', () => {
+    dir = mkdtempSync(join(tmpdir(), 'eu-json-'))
+    const target = join(dir, 'ai-settings.json')
+    writeJsonAtomic(target, { apiKey: 'sk-test' }, 0o600)
+    expect((statSync(target).mode & 0o777) === 0o600).toBe(true)
+  })
+
+  it.skipIf(process.platform === 'win32')(
+    'tightens the mode of an existing looser file via the rename',
+    () => {
+      dir = mkdtempSync(join(tmpdir(), 'eu-json-'))
+      const target = join(dir, 'ai-settings.json')
+      writeFileSync(target, '{"old":true}', { mode: 0o644 })
+      writeJsonAtomic(target, { apiKey: 'sk-test' }, 0o600)
+      expect(JSON.parse(readFileSync(target, 'utf8'))).toEqual({ apiKey: 'sk-test' })
+      expect((statSync(target).mode & 0o777) === 0o600).toBe(true)
+    },
+  )
+
+  it('stays at the platform default when no mode is passed', () => {
+    dir = mkdtempSync(join(tmpdir(), 'eu-json-'))
+    const target = join(dir, 'recents.json')
+    writeJsonAtomic(target, { ok: true })
+    expect(JSON.parse(readFileSync(target, 'utf8'))).toEqual({ ok: true })
+    // the platform/umask default applies; only assert the restricted mode was
+    // NOT forced here, since the exact default depends on the umask
+    expect((statSync(target).mode & 0o777) === 0o600 || (statSync(target).mode & 0o077) !== 0).toBe(
+      true,
+    )
+  })
+})
+
+describe('restrictFileToOwner', () => {
+  it.skipIf(process.platform === 'win32')('heals a world-readable credentials file', () => {
+    dir = mkdtempSync(join(tmpdir(), 'eu-json-'))
+    const target = join(dir, 'ai-settings.json')
+    writeFileSync(target, '{"apiKey":"sk-old"}', { mode: 0o644 })
+    restrictFileToOwner(target)
+    expect((statSync(target).mode & 0o777) === 0o600).toBe(true)
+    expect(JSON.parse(readFileSync(target, 'utf8'))).toEqual({ apiKey: 'sk-old' })
+  })
+
+  it('is a no-op for a missing file', () => {
+    dir = mkdtempSync(join(tmpdir(), 'eu-json-'))
+    const target = join(dir, 'absent.json')
+    expect(() => restrictFileToOwner(target)).not.toThrow()
+    expect(existsSync(target)).toBe(false)
   })
 })

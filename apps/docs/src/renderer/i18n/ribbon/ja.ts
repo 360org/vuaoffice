@@ -25,6 +25,7 @@ export const ja = {
   ribbonLangTraditionalChinese: '繁体字中国語',
   ribbonLangVietnamese: 'ベトナム語',
   ribbonLangTurkish: 'トルコ語',
+  ribbonLangHungarian: 'ハンガリー語',
   ribbonAiCreditNote: 'AI を呼び出し、クレジットを消費します',
   ribbonAiRewriteConfirm:
     'この操作は AI を呼び出します。クレジットを消費し、内容全体が書き換えられる可能性があります。続行しますか？（確認後は再表示されません）',
@@ -813,6 +814,8 @@ export const ja = {
   ribbonWebLayoutTip: 'Web レイアウト:ページ区切りなしでウィンドウ幅いっぱいに表示',
   ribbonOutlineView: 'アウトライン',
   ribbonOutlineViewTip: 'アウトライン表示:見出しの階層のみを表示し、見出しを直接編集可能',
+  ribbonStoryView: 'ストーリー',
+  ribbonStoryViewTip: 'ストーリー: 文書の書式を隠して文章を書く',
   ribbonReadMode: '閲覧モード',
   ribbonReadModeTip: '閲覧モード:リボンを非表示にして読書に集中。Esc キーで終了',
   ribbonPagePreview: 'ページ プレビュー',

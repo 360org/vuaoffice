@@ -25,6 +25,7 @@ export const nl = {
   ribbonLangHindi: 'Hindi',
   ribbonLangVietnamese: 'Vietnamees',
   ribbonLangTurkish: 'Turks',
+  ribbonLangHungarian: 'Hongaars',
   ribbonAiCreditNote: 'Gebruikt AI en verbruikt tegoed',
   ribbonAiRewriteConfirm:
     'Deze actie roept AI aan: het verbruikt tegoed en kan de volledige inhoud herschrijven. Doorgaan? (U wordt niet opnieuw gevraagd.)',
@@ -54,6 +55,7 @@ export const nl = {
   ribbonFilePrint: 'Afdrukken…',
   ribbonFileExportImages: 'Exporteren als PNG…',
   ribbonFileExportImagesJpg: 'Exporteren als JPG…',
+  ribbonFileExportVideo: 'Exporteren als video (MP4)…',
   ribbonUnsavedSuffix: ' — Niet opgeslagen',
   ribbonSaveTip: 'Opslaan (⌘S)',
   ribbonAutoSave: 'Automatisch opslaan',

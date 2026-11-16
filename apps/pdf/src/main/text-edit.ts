@@ -29,6 +29,8 @@ const FPDF_FONT_TYPE1 = 1
 const FPDF_FONT_TRUETYPE = 2
 const FPDF_TEXTRENDERMODE_FILL_STROKE = 2
 const FPDF_TEXTRENDERMODE_FILL_STROKE_CLIP = 6
+/** render mode 3: the run draws nothing (the OCR bake layer's invisible form) */
+const FPDF_TEXTRENDERMODE_INVISIBLE = 3
 const FPDF_LINEJOIN_ROUND = 1
 
 /** Emscripten module surface we call into (raw FPDF_* exports + heap access) */
@@ -60,6 +62,7 @@ export interface Pdfium {
   _FPDFText_GetLooseCharBox(textPage: number, index: number, rect: number): number
   _FPDFText_GetCharOrigin(textPage: number, index: number, x: number, y: number): number
   _FPDFText_LoadFont(doc: number, data: number, size: number, fontType: number, cid: number): number
+  _FPDFText_LoadStandardFont(doc: number, fontName: number): number
   _FPDFText_SetText(textObj: number, text: number): number
   _FPDFPage_CountObjects(page: number): number
   _FPDFPage_GetObject(page: number, index: number): number
@@ -748,6 +751,10 @@ function canReuseFont(
   whole: boolean,
 ): boolean {
   if (matches.length !== 1) return false
+  // A reveal rebuilds the run as visible text: the in-place path only rewrites
+  // the glyphs, so the run would keep its invisible rendering (mode 3, white
+  // fill) and the reveal would show nothing.
+  if (edit.reveal === true) return false
   if (edit.newFontSize !== undefined || edit.newColor !== undefined || edit.newFont !== undefined)
     return false
   // Selection-level styles split the line into several objects: always rebuild
@@ -1028,6 +1035,54 @@ function fontString(m: Pdfium, read: (buf: number, len: number) => number): stri
     return Buffer.from(m.HEAPU8.subarray(buf, buf + len - 1)).toString()
   } finally {
     m._free(buf)
+  }
+}
+
+const STANDARD_LATIN_FONTS = new Set([
+  'Helvetica',
+  'Helvetica-Bold',
+  'Helvetica-Oblique',
+  'Helvetica-BoldOblique',
+  'Times-Roman',
+  'Times-Bold',
+  'Times-Italic',
+  'Times-BoldItalic',
+  'Courier',
+  'Courier-Bold',
+  'Courier-Oblique',
+  'Courier-BoldOblique',
+])
+
+const WIN_ANSI_HIGH = '€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ'
+
+export function winAnsiCovers(text: string): boolean {
+  for (const ch of text) {
+    const cp = ch.codePointAt(0)!
+    if ((cp >= 0x20 && cp <= 0x7e) || (cp >= 0xa0 && cp <= 0xff)) continue
+    if (!WIN_ANSI_HIGH.includes(ch)) return false
+  }
+  return true
+}
+
+export function keptStandardFont(
+  name: string,
+  embedded: boolean,
+  edit: Pick<TextEditInput, 'newFont' | 'newItalic'>,
+  drawn: string,
+): string | null {
+  if (embedded || edit.newFont || edit.newItalic) return null
+  if (!STANDARD_LATIN_FONTS.has(name)) return null
+  return winAnsiCovers(drawn) ? name : null
+}
+
+function loadStandardFont(m: Pdfium, doc: number, name: string): number {
+  const ptr = m._malloc(name.length + 1)
+  try {
+    for (let i = 0; i < name.length; i++) m.HEAPU8[ptr + i] = name.charCodeAt(i)
+    m.HEAPU8[ptr + name.length] = 0
+    return m._FPDFText_LoadStandardFont(doc, ptr)
+  } finally {
+    m._free(ptr)
   }
 }
 
@@ -1657,6 +1712,9 @@ async function rebuildRun(
   textPage: number,
 ): Promise<boolean> {
   const anchor = matches.reduce((a, b) => (b.bounds[0] < a.bounds[0] ? b : a))
+  // An invisible anchor (the OCR bake layer) must not reappear as white glyphs
+  // after an edit: the redraw keeps its render mode unless the edit reveals.
+  const anchorRenderMode = m._FPDFTextObj_GetTextRenderMode(anchor.obj)
   const matPtr = m._malloc(24)
   const sizePtr = m._malloc(4)
   const colPtr = m._malloc(16)
@@ -1684,11 +1742,20 @@ async function rebuildRun(
       colPtr + 8,
       colPtr + 12,
     )
+    // An invisible run's stored fill is white (the bake picks it to survive grey
+    // paper and photos); revealing without an explicit color reads as black
     const color: readonly [number, number, number, number] = edit.newColor
       ? [edit.newColor[0], edit.newColor[1], edit.newColor[2], 255]
-      : hasColor
-        ? ([0, 4, 8, 12].map((off) => m.HEAPU8[colPtr + off]!) as [number, number, number, number])
-        : [0, 0, 0, 255]
+      : edit.reveal === true
+        ? [0, 0, 0, 255]
+        : hasColor
+          ? ([0, 4, 8, 12].map((off) => m.HEAPU8[colPtr + off]!) as [
+              number,
+              number,
+              number,
+              number,
+            ])
+          : [0, 0, 0, 255]
     // Some producers (Chrome print) leave the object's fill alpha reading as 0 while
     // the glyphs render opaque (the RGB part reads fine). Inheriting that raw 0 drew
     // the rebuilt run fully transparent — visible text must never become invisible.
@@ -1696,15 +1763,22 @@ async function rebuildRun(
 
     // Colors already in the matched run survive underneath the user's selection
     // styles; an explicit whole-edit newColor means "repaint uniformly" and wins.
-    const keepColors = edit.newColor ? null : matchCharColors(m, matches, newText)
+    const keepColors =
+      edit.newColor || edit.reveal === true ? null : matchCharColors(m, matches, newText)
     const charStyles = overlayStyles(keepColors, plannedCharStyles(edit, newText), newText)
 
     // Object-preserving mode. Whole-edit face/size/style overrides mean "restyle
     // everything" and take the full-redraw path; so does a rotated/skewed matrix
     // (the cursor walk below only models horizontal text). Selection-level style
     // runs are fine: buildKeepPlan redraws any object their ranges touch.
+    // A reveal edit rebuilds as visible text, so it always takes the redraw path
+    // (the keep plan would translate the original invisible objects as they are)
     const styleOverride =
-      edit.newFontSize !== undefined || edit.newFont !== undefined || edit.newBold || edit.newItalic
+      edit.reveal === true ||
+      edit.newFontSize !== undefined ||
+      edit.newFont !== undefined ||
+      edit.newBold ||
+      edit.newItalic
     const axisAligned =
       Math.abs(matrix[1]!) < 1e-4 && Math.abs(matrix[2]!) < 1e-4 && matrix[0]! > 0 && matrix[3]! > 0
     const keeps =
@@ -1732,6 +1806,19 @@ async function rebuildRun(
       styleEdit: TextEditInput,
       text: string,
     ): Promise<{ font: number; synth: boolean }> => {
+      const standard = anchor.font
+        ? keptStandardFont(
+            fontString(m, (b, l) => m._FPDFFont_GetBaseFontName(anchor.font, b, l)),
+            !!m._FPDFFont_GetIsEmbedded(anchor.font),
+            styleEdit,
+            (text.trim() ? text : 'x').replace(/\n/g, ''),
+          )
+        : null
+      if (standard) {
+        const f = loadStandardFont(m, doc, standard)
+        if (!f) throw new Error('FPDFText_LoadStandardFont failed')
+        return { font: f, synth: !!styleEdit.newBold && !faceIsBold(m, anchor.font) }
+      }
       const { bytes: fontBytes, syntheticBold } = await resolveRebuildFont(
         m,
         anchor.font,
@@ -1837,11 +1924,24 @@ async function rebuildRun(
         ? [style.color[0], style.color[1], style.color[2], 255]
         : color
       m._FPDFPageObj_SetFillColor(newObj, c[0], c[1], c[2], c[3])
+      // An invisible anchor stays invisible unless the edit reveals it: a stroke
+      // would put the run in fill+stroke (mode 2) and surface the bake layer's
+      // white glyphs on the scanned page.
+      const invisibleAnchor =
+        anchorRenderMode === FPDF_TEXTRENDERMODE_INVISIBLE && edit.reveal !== true
+      if (edit.reveal === true) {
+        // explicit reveal: the rebuilt run draws (mode 0 is the default)
+      } else if (invisibleAnchor) {
+        m._FPDFTextObj_SetTextRenderMode(newObj, FPDF_TEXTRENDERMODE_INVISIBLE)
+      }
       const emPt = sizeOf(style) * Math.hypot(matrix[0]!, matrix[1]!)
-      if (synthFor(style)) strokeObject(m, newObj, c, syntheticBoldWidth(emPt))
-      else if (inherited?.sameAsFill)
-        strokeObject(m, newObj, c, syntheticBoldWidth(emPt), inherited.mode)
-      else if (inherited) strokeObject(m, newObj, inherited.color, inherited.width, inherited.mode)
+      if (!invisibleAnchor) {
+        if (synthFor(style)) strokeObject(m, newObj, c, syntheticBoldWidth(emPt))
+        else if (inherited?.sameAsFill)
+          strokeObject(m, newObj, c, syntheticBoldWidth(emPt), inherited.mode)
+        else if (inherited)
+          strokeObject(m, newObj, inherited.color, inherited.width, inherited.mode)
+      }
       newObjs.push(newObj)
       segAnchors.push(lastKeptObj)
     }
@@ -2430,7 +2530,10 @@ async function applyPageEdits(
         const ok = m._FPDFText_SetText(obj, textPtr)
         m._free(textPtr)
         if (!ok) throw new Error('FPDFText_SetText failed')
-        if (eff.newBold && !faceIsBold(m, matches[0]!.font) && !readStroke(m, obj)) {
+        // A stroke turns an invisible run (render mode 3) into fill+stroke, which
+        // surfaces the bake layer's white glyphs on the scanned page.
+        const invisible = m._FPDFTextObj_GetTextRenderMode(obj) === FPDF_TEXTRENDERMODE_INVISIBLE
+        if (eff.newBold && !faceIsBold(m, matches[0]!.font) && !readStroke(m, obj) && !invisible) {
           strokeObject(m, obj, fillColorOf(m, obj), syntheticBoldWidth(renderedEm(m, obj)))
         }
       } else {
@@ -2627,6 +2730,12 @@ async function validateTextEditsInner(
                   }))
                 : undefined,
             baseColor,
+            // The matched run draws nothing (render mode 3): the OCR bake layer's
+            // invisible form. The reveal toggle follows this, not the session:
+            // a scan that was recognized, saved and reopened carries the layer.
+            invisible: res.matches.some(
+              (t) => m._FPDFTextObj_GetTextRenderMode(t.obj) === FPDF_TEXTRENDERMODE_INVISIBLE,
+            ),
           }
         }
       } finally {

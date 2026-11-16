@@ -9,6 +9,8 @@ export type { PrinterOption }
 /** largest slice readFileChunk hands over IPC; the renderer loops over them */
 export const PDF_READ_CHUNK_BYTES = 8 * 1024 * 1024
 
+export type PdfDefaultZoom = 'width' | 'page' | 'last'
+
 export const PDF_CHANNELS = {
   consumePending: 'pdf:consume-pending',
   readFile: 'pdf:read-file',
@@ -56,6 +58,7 @@ export const PDF_CHANNELS = {
   addSignature: 'pdf:add-signature',
   removeSignature: 'pdf:remove-signature',
   getUsername: 'pdf:get-username',
+  getDefaultZoom: 'pdf:get-default-zoom',
   dirtyChanged: 'pdf:dirty-changed',
   closeSaveRequest: 'pdf:close-save-request',
   closeSaveResult: 'pdf:close-save-result',
@@ -432,6 +435,11 @@ export interface TextEditInput {
   oldText: string
   /** Replacement; '\n' splits it into stacked lines (one text object per line) */
   newText: string
+  /** Rebuild the replaced run as visible text (the OCR bake layer's objects are
+      render mode 3 with a white fill, so an edit that keeps them can never be
+      seen). Forces the full-redraw path and defaults the fill to black when the
+      caller sends no color; absent = keep the run's own visibility. */
+  reveal?: boolean
   /** Original run's font size in PDF pt (fallback sizing for the rebuilt object) */
   fontSize: number
   /** User-chosen size in PDF pt; absent = keep the original run's size */
@@ -534,6 +542,10 @@ export interface TextEditValidation {
   /** Base fill color of the matched run (its first object in reading order), for
       display while editing — a uniformly colored run has no colorRuns to seed from */
   baseColor?: [number, number, number]
+  /** The matched run draws nothing (render mode 3): the OCR bake layer's
+      invisible form. The reveal toggle follows the data, so a scan that was
+      recognized, saved and reopened still offers it. */
+  invisible?: boolean
 }
 
 /** Curated fonts selectable for rebuilt text runs. Single-face .ttf on every platform we
@@ -622,6 +634,9 @@ export interface StaticFormFillRecord {
 }
 
 /** A pending area selected for permanent native PDF redaction. PDF user space, y up. */
+/** Max redaction rects per request: prevents 100k-rect DoS on native redact. */
+export const MAX_REDACTION_REGIONS = 500
+
 export interface RedactionInput {
   pageIndex: number
   rect: [number, number, number, number]
@@ -1235,6 +1250,8 @@ export interface PdfApi {
   /** Settings → General user name (the OS account name when unset), used as the default author of new note comments */
   getUsername(): Promise<string>
   onUsernameChanged(handler: (name: string) => void): () => void
+  /** Settings → General default zoom, applied to files without a remembered reading position */
+  getDefaultZoom(): Promise<PdfDefaultZoom>
   /** Mirror unsaved-changes state to the main process; drives the save prompt before closing a tab/window */
   setDirty(dirty: boolean): void
   /** Main process asks for a save (close prompt, menu Save, export flows) and waits for sendCloseSaveResult.

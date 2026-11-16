@@ -25,6 +25,7 @@ export const pt = {
   ribbonLangTraditionalChinese: 'chinês tradicional',
   ribbonLangVietnamese: 'vietnamita',
   ribbonLangTurkish: 'turco',
+  ribbonLangHungarian: 'húngaro',
   ribbonAiCreditNote: 'Usa IA e consome créditos',
   ribbonAiRewriteConfirm:
     'Esta ação chama a IA: consome créditos e pode reescrever todo o conteúdo. Continuar? (Não será perguntado novamente.)',
@@ -800,6 +801,8 @@ export const pt = {
   ribbonOutlineView: 'Estrutura de Tópicos',
   ribbonOutlineViewTip:
     'Estrutura de tópicos: mostrar apenas a hierarquia de títulos; os títulos continuam editáveis',
+  ribbonStoryView: 'História',
+  ribbonStoryViewTip: 'História: escrever sem a formatação do documento',
   ribbonReadMode: 'Modo de Leitura',
   ribbonReadModeTip:
     'Modo de leitura: ocultar a faixa de opções para leitura focada; pressione Esc para sair',

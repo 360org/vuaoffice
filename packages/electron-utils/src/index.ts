@@ -65,6 +65,14 @@ export {
 } from './default-save-dir'
 export { installNavigationGuard } from './navigation-guard'
 export {
+  decodeChunks,
+  decodeChunksUtf8,
+  decodeCommandOutput,
+  decodeUtf8,
+  windowsOemCodePage,
+  type DecodeCommandOptions,
+} from './console-output'
+export {
   DROP_OPEN_CHANNEL,
   droppableFilePaths,
   installDropOpenBridge,
@@ -137,7 +145,13 @@ export {
   type RendererHost,
 } from './renderer-scheme'
 export { installRendererProtocol, registerRendererScheme } from './renderer-protocol'
-export { atomicCopyFile, atomicWriteFile, atomicWriteVia, writeJsonAtomic } from './atomic-write'
+export {
+  atomicCopyFile,
+  atomicWriteFile,
+  atomicWriteVia,
+  writeJsonAtomic,
+  restrictFileToOwner,
+} from './atomic-write'
 export {
   PRINT_READY_SCRIPT,
   printHtmlDocument,
@@ -156,3 +170,11 @@ export {
   writeLegacyImportSkip,
   type LegacyImportKind,
 } from './legacy-import-prefs'
+export {
+  PDF_DEFAULT_ZOOM_KEY,
+  PDF_DEFAULT_ZOOMS,
+  readPdfDefaultZoom,
+  sanitizePdfDefaultZoom,
+  writePdfDefaultZoom,
+  type PdfDefaultZoom,
+} from './pdf-zoom-prefs'

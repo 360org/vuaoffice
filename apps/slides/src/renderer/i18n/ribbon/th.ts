@@ -25,6 +25,7 @@ export const th = {
   ribbonLangHindi: 'ภาษาฮินดี',
   ribbonLangVietnamese: 'ภาษาเวียดนาม',
   ribbonLangTurkish: 'ภาษาตุรกี',
+  ribbonLangHungarian: 'ภาษาฮังการี',
   ribbonAiCreditNote: 'เรียกใช้ AI และใช้เครดิต',
   ribbonAiRewriteConfirm:
     'การดำเนินการนี้จะเรียกใช้ AI: ใช้เครดิตและอาจเขียนเนื้อหาทั้งหมดใหม่ ดำเนินการต่อหรือไม่ (จะไม่ถามอีก)',
@@ -55,6 +56,7 @@ export const th = {
   ribbonFilePrint: 'พิมพ์…',
   ribbonFileExportImages: 'ส่งออกเป็น PNG…',
   ribbonFileExportImagesJpg: 'ส่งออกเป็น JPG…',
+  ribbonFileExportVideo: 'ส่งออกเป็นวิดีโอ (MP4)…',
   ribbonUnsavedSuffix: ' — ยังไม่ได้บันทึก',
   ribbonSaveTip: 'บันทึก (⌘S)',
   ribbonAutoSave: 'บันทึกอัตโนมัติ',

@@ -25,6 +25,7 @@ export const en = {
   ribbonLangTraditionalChinese: 'Traditional Chinese',
   ribbonLangVietnamese: 'Vietnamese',
   ribbonLangTurkish: 'Turkish',
+  ribbonLangHungarian: 'Hungarian',
   ribbonAiCreditNote: 'Uses AI and consumes credits',
   ribbonAiRewriteConfirm:
     'This action calls the AI assistant: it consumes credits and may rewrite the entire content. Continue? (You will not be asked again.)',
@@ -795,6 +796,8 @@ export const en = {
   ribbonWebLayoutTip: 'Web Layout: fill the window width, without page breaks',
   ribbonOutlineView: 'Outline',
   ribbonOutlineViewTip: 'Outline view: show only the heading hierarchy; headings stay editable',
+  ribbonStoryView: 'Story',
+  ribbonStoryViewTip: 'Story view: write without the document formatting',
   ribbonReadMode: 'Read Mode',
   ribbonReadModeTip: 'Read Mode: hide the ribbon for focused reading, press Esc to exit',
   ribbonPagePreview: 'Page Preview',

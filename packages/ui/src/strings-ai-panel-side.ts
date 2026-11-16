@@ -31,4 +31,5 @@ export const AI_PANEL_SIDE_LABELS: Record<Lang, Record<AiPanelSide, string>> = {
   'zh-TW': { left: '將 AI 面板移到左側', right: '將 AI 面板移到右側' },
   vi: { left: 'Chuyển bảng điều khiển AI sang bên trái', right: 'Chuyển bảng điều khiển AI sang bên phải' },
   tr: { left: 'AI panelini sola taşı', right: 'AI panelini sağa taşı' },
+  hu: { left: 'AI-panel áthelyezése balra', right: 'AI-panel áthelyezése jobbra' },
 }

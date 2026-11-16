@@ -19,7 +19,7 @@
   <a href="https://github.com/genspark-ai/genoffice/stargazers"><img src="https://img.shields.io/github/stars/genspark-ai/genoffice?style=flat" alt="GitHub stars"></a>
 </p>
 
-<p align="center"><a href="../../README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.pt-BR.md">Português</a> · <a href="README.de.md">Deutsch</a> · <a href="README.fr.md">Français</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.ko.md">한국어</a> · <a href="README.ja.md">日本語</a> · <a href="README.ar.md">العربية</a> · <a href="README.ru.md">Русский</a> · <a href="README.it.md">Italiano</a> · <a href="README.nl.md">Nederlands</a> · <a href="README.pl.md">Polski</a> · <a href="README.cs.md">Čeština</a> · <a href="README.id.md">Bahasa Indonesia</a> · <a href="README.ms.md">Bahasa Melayu</a> · <b>ไทย</b> · <a href="README.hi.md">हिन्दी</a> · <a href="README.he.md">עברית</a> · <a href="README.vi.md">Tiếng Việt</a> · <a href="README.tr.md">Türkçe</a></p>
+<p align="center"><a href="../../README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.pt-BR.md">Português</a> · <a href="README.de.md">Deutsch</a> · <a href="README.fr.md">Français</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.ko.md">한국어</a> · <a href="README.ja.md">日本語</a> · <a href="README.ar.md">العربية</a> · <a href="README.ru.md">Русский</a> · <a href="README.it.md">Italiano</a> · <a href="README.nl.md">Nederlands</a> · <a href="README.pl.md">Polski</a> · <a href="README.cs.md">Čeština</a> · <a href="README.id.md">Bahasa Indonesia</a> · <a href="README.ms.md">Bahasa Melayu</a> · <b>ไทย</b> · <a href="README.hi.md">हिन्दी</a> · <a href="README.he.md">עברית</a> · <a href="README.vi.md">Tiếng Việt</a> · <a href="README.tr.md">Türkçe</a> · <a href="README.hu.md">Magyar</a></p>
 
 <p align="center">
   <a href="#download"><b>ดาวน์โหลด</b></a> ·
@@ -219,6 +219,12 @@ Desktop, Cursor และไคลเอนต์ MCP อื่นใดสา�
 <td><b>เชื่อมต่อครั้งเดียวจาก การตั้งค่า → การเชื่อมต่อ</b> — คัดลอกคำสั่ง <code>claude mcp add</code> สำหรับ Claude Code หรือบล็อก JSON ไปวางใน Cursor, Claude Desktop หรือไคลเอนต์ MCP อื่นใด ตัวเลือก B เปิดใช้เซิร์ฟเวอร์ HTTP ในเครื่องสำหรับเอดิเตอร์ Word ที่มองเห็นได้ ทั้งสองแบบอธิบายไว้ใน <a href="#mcp-server">เซิร์ฟเวอร์ MCP</a></td>
 </tr>
 </table>
+
+### 9 · ไฟล์รุ่นเก่า — `.doc`, `.xls` และ `.ppt` จากยุค 2000 ก็เปิดได้
+
+ไฟล์ `.doc` ของ Word 97–2003, `.xls` ของ Excel หรือ `.ppt` ของ PowerPoint จะเปิดเป็นสำเนา `.docx`, `.xlsx` หรือ `.pptx` ที่แปลงบนเครื่องของคุณ ไฟล์ต้นฉบับจะไม่ถูกแก้ไข รูปภาพ ตาราง สูตร รูปแบบตัวเลข สีเติม และเค้าโครงจะถูกนำมาด้วย
+
+<img src="../assets/readme/legacy-formats-motion.webp" alt="ไทม์แลปส์ของ GenOffice ขณะเปิดไฟล์ .ppt, .doc และ .xls ของรายงานประจำปี 2004 ที่สมมติขึ้น จากนั้นแสดงสไลด์หนึ่งแผ่นใน PowerPoint เทียบกับงานนำเสนอที่แปลงแล้วใน GenOffice" width="100%">
 
 ## ทำไมต้อง GenOffice
 

@@ -19,7 +19,7 @@
   <a href="https://github.com/genspark-ai/genoffice/stargazers"><img src="https://img.shields.io/github/stars/genspark-ai/genoffice?style=flat" alt="Звёзды на GitHub"></a>
 </p>
 
-<p align="center"><a href="../../README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.pt-BR.md">Português</a> · <a href="README.de.md">Deutsch</a> · <a href="README.fr.md">Français</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.ko.md">한국어</a> · <a href="README.ja.md">日本語</a> · <a href="README.ar.md">العربية</a> · <b>Русский</b> · <a href="README.it.md">Italiano</a> · <a href="README.nl.md">Nederlands</a> · <a href="README.pl.md">Polski</a> · <a href="README.cs.md">Čeština</a> · <a href="README.id.md">Bahasa Indonesia</a> · <a href="README.ms.md">Bahasa Melayu</a> · <a href="README.th.md">ไทย</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.he.md">עברית</a> · <a href="README.vi.md">Tiếng Việt</a> · <a href="README.tr.md">Türkçe</a></p>
+<p align="center"><a href="../../README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.pt-BR.md">Português</a> · <a href="README.de.md">Deutsch</a> · <a href="README.fr.md">Français</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.ko.md">한국어</a> · <a href="README.ja.md">日本語</a> · <a href="README.ar.md">العربية</a> · <b>Русский</b> · <a href="README.it.md">Italiano</a> · <a href="README.nl.md">Nederlands</a> · <a href="README.pl.md">Polski</a> · <a href="README.cs.md">Čeština</a> · <a href="README.id.md">Bahasa Indonesia</a> · <a href="README.ms.md">Bahasa Melayu</a> · <a href="README.th.md">ไทย</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.he.md">עברית</a> · <a href="README.vi.md">Tiếng Việt</a> · <a href="README.tr.md">Türkçe</a> · <a href="README.hu.md">Magyar</a></p>
 
 <p align="center">
   <a href="#download"><b>Скачать</b></a> ·
@@ -225,6 +225,12 @@ HTTP-сервер внутри приложения позволяет аген�
 <td><b>Подключите один раз в разделе «Настройки → Интеграции»</b> — скопируйте строку <code>claude mcp add</code> для Claude Code или JSON-блок в Cursor, Claude Desktop или любой другой MCP-клиент. Вариант B включает локальный HTTP-сервер для видимого редактора Word. Оба варианта описаны в разделе <a href="#mcp-server">MCP-сервер</a>.</td>
 </tr>
 </table>
+
+### 9 · Старые файлы — `.doc`, `.xls` и `.ppt` из 2000-х тоже открываются
+
+Файл `.doc` Word 97–2003, `.xls` Excel или `.ppt` PowerPoint открывается как преобразованная копия `.docx`, `.xlsx` или `.pptx`, созданная на вашем компьютере; исходный файл никогда не меняется. Изображения, таблицы, формулы, числовые форматы, заливки и макет сохраняются.
+
+<img src="../assets/readme/legacy-formats-motion.webp" alt="Ускоренная запись: GenOffice открывает файлы .ppt, .doc и .xls вымышленного годового отчёта за 2004 год, затем один слайд показан в PowerPoint рядом с преобразованной презентацией в GenOffice" width="100%">
 
 ## Почему GenOffice
 

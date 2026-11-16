@@ -226,6 +226,7 @@ describe('createI18n', () => {
     'zh-TW': { hello: '你好 {name}', plain: '檔案' },
     vi: { hello: 'Xin chào {name}', plain: 'Tệp' },
     tr: { hello: 'Merhaba {name}', plain: 'Dosyalar' },
+    hu: { hello: 'Szia {name}', plain: 'Fájlok' },
   })
 
   it('translates per language with interpolation', () => {

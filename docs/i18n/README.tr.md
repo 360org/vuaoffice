@@ -20,7 +20,7 @@ Word, Excel, PowerPoint ve PDF dosyaları; siz ve yapay zekânız tarafından d�
   <a href="https://x.com/merrickbuilds"><img src="https://img.shields.io/badge/follow-%40merrickbuilds-000000?logo=x&logoColor=white" alt="X'te @merrickbuilds'i takip edin"></a>
 </p>
 
-<p align="center"><a href="../../README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.pt-BR.md">Português</a> · <a href="README.de.md">Deutsch</a> · <a href="README.fr.md">Français</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.ko.md">한국어</a> · <a href="README.ja.md">日本語</a> · <a href="README.ar.md">العربية</a> · <a href="README.ru.md">Русский</a> · <a href="README.it.md">Italiano</a> · <a href="README.nl.md">Nederlands</a> · <a href="README.pl.md">Polski</a> · <a href="README.cs.md">Čeština</a> · <a href="README.id.md">Bahasa Indonesia</a> · <a href="README.ms.md">Bahasa Melayu</a> · <a href="README.th.md">ไทย</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.he.md">עברית</a> · <a href="README.vi.md">Tiếng Việt</a> · <b>Türkçe</b></p><!-- lang-switcher · public-hygiene: allow -->
+<p align="center"><a href="../../README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.pt-BR.md">Português</a> · <a href="README.de.md">Deutsch</a> · <a href="README.fr.md">Français</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.ko.md">한국어</a> · <a href="README.ja.md">日本語</a> · <a href="README.ar.md">العربية</a> · <a href="README.ru.md">Русский</a> · <a href="README.it.md">Italiano</a> · <a href="README.nl.md">Nederlands</a> · <a href="README.pl.md">Polski</a> · <a href="README.cs.md">Čeština</a> · <a href="README.id.md">Bahasa Indonesia</a> · <a href="README.ms.md">Bahasa Melayu</a> · <a href="README.th.md">ไทย</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.he.md">עברית</a> · <a href="README.vi.md">Tiếng Việt</a> · <b>Türkçe</b> · <a href="README.hu.md">Magyar</a></p><!-- lang-switcher · public-hygiene: allow -->
 
 <p align="center">
   <a href="#download"><b>İndir</b></a> ·
@@ -284,6 +284,12 @@ belgesi oluşturmasına izin verir.
 <td><b>Bir kez bağlanın, Ayarlar → Integrations üzerinden</b> — Claude Code için <code>claude mcp add</code> satırını ya da JSON bloğunu Cursor, Claude Desktop veya başka bir MCP istemcisine kopyalayın. B seçeneği, görünür Word düzenleyicisi için yerel HTTP sunucusunu açar. İkisi de <a href="#mcp-server">MCP sunucusu</a> bölümünde açıklanmıştır.</td>
 </tr>
 </table>
+
+### 11 · Eski dosyalar — 2000'lerden kalma `.doc`, `.xls` ve `.ppt` dosyaları da açılır
+
+Word 97–2003 `.doc`, Excel `.xls` veya PowerPoint `.ppt` dosyası, bilgisayarınızda oluşturulan dönüştürülmüş bir `.docx`, `.xlsx` veya `.pptx` kopyası olarak açılır; özgün dosya hiçbir zaman değiştirilmez. Görseller, tablolar, formüller, sayı biçimleri, dolgular ve düzen aktarılır.
+
+<img src="../assets/readme/legacy-formats-motion.webp" alt="GenOffice'in kurgusal bir 2004 faaliyet raporuna ait .ppt, .doc ve .xls dosyalarını açtığı hızlandırılmış görüntü; ardından bir slayt PowerPoint'te, yanında GenOffice'te dönüştürülmüş sunu" width="100%">
 
 ## Neden GenOffice
 

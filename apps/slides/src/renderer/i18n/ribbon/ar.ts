@@ -25,6 +25,7 @@ export const ar = {
   ribbonLangHindi: 'الهندية',
   ribbonLangVietnamese: 'الفيتنامية',
   ribbonLangTurkish: 'التركية',
+  ribbonLangHungarian: 'المجرية',
   ribbonAiCreditNote: 'يستدعي الذكاء الاصطناعي ويستهلك الرصيد',
   ribbonAiRewriteConfirm:
     'هذا الإجراء يستدعي الذكاء الاصطناعي: يستهلك الرصيد وقد يعيد كتابة المحتوى بالكامل. هل تريد المتابعة؟ (لن يتم السؤال مرة أخرى.)',
@@ -55,6 +56,7 @@ export const ar = {
   ribbonFilePrint: 'طباعة…',
   ribbonFileExportImages: 'تصدير كصور PNG…',
   ribbonFileExportImagesJpg: 'تصدير كصور JPG…',
+  ribbonFileExportVideo: 'تصدير كفيديو (MP4)…',
   ribbonUnsavedSuffix: ' — غير محفوظ',
   ribbonSaveTip: 'حفظ (⌘S)',
   ribbonAutoSave: 'حفظ تلقائي',

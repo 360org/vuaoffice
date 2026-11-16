@@ -25,6 +25,7 @@ export const hi = {
   ribbonLangTraditionalChinese: 'पारंपरिक चीनी',
   ribbonLangVietnamese: 'वियतनामी',
   ribbonLangTurkish: 'तुर्की',
+  ribbonLangHungarian: 'हंगेरियन',
   ribbonAiCreditNote: 'AI का उपयोग करता है और क्रेडिट खर्च होते हैं',
   ribbonAiRewriteConfirm:
     'यह क्रिया AI को कॉल करती है: इसमें क्रेडिट खर्च होते हैं और पूरी सामग्री फिर से लिखी जा सकती है। जारी रखें? (दोबारा नहीं पूछा जाएगा।)',
@@ -798,6 +799,8 @@ export const hi = {
   ribbonOutlineView: 'रूपरेखा',
   ribbonOutlineViewTip:
     'रूपरेखा दृश्य: केवल शीर्षकों का पदानुक्रम दिखाएँ; शीर्षक संपादन योग्य रहते हैं',
+  ribbonStoryView: 'स्टोरी',
+  ribbonStoryViewTip: 'स्टोरी: दस्तावेज़ के प्रारूपण के बिना लिखें',
   ribbonReadMode: 'पठन मोड',
   ribbonReadModeTip: 'पठन मोड: एकाग्र पढ़ने के लिए रिबन छिपाएँ, बाहर निकलने के लिए Esc दबाएँ',
   ribbonPagePreview: 'पृष्ठ पूर्वावलोकन',

@@ -25,6 +25,7 @@ export const de = {
   ribbonLangHindi: 'Hindi',
   ribbonLangVietnamese: 'Vietnamesisch',
   ribbonLangTurkish: 'Türkisch',
+  ribbonLangHungarian: 'Ungarisch',
   ribbonAiCreditNote: 'Ruft KI auf und verbraucht Guthaben',
   ribbonAiRewriteConfirm:
     'Diese Aktion ruft die KI auf: Sie verbraucht Guthaben und kann den gesamten Inhalt umschreiben. Fortfahren? (Sie werden nicht erneut gefragt.)',
@@ -56,6 +57,7 @@ export const de = {
   ribbonFilePrint: 'Drucken…',
   ribbonFileExportImages: 'Als PNG exportieren…',
   ribbonFileExportImagesJpg: 'Als JPG exportieren…',
+  ribbonFileExportVideo: 'Als Video exportieren (MP4)…',
   ribbonUnsavedSuffix: ' — Nicht gespeichert',
   ribbonSaveTip: 'Speichern (⌘S)',
   ribbonAutoSave: 'AutoSpeichern',

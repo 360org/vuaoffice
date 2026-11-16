@@ -19,7 +19,7 @@ Word, Excel, PowerPoint और PDF फ़ाइलें, आपके और �
   <a href="https://github.com/genspark-ai/genoffice/stargazers"><img src="https://img.shields.io/github/stars/genspark-ai/genoffice?style=flat" alt="GitHub stars"></a>
 </p>
 
-<p align="center"><a href="../../README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.pt-BR.md">Português</a> · <a href="README.de.md">Deutsch</a> · <a href="README.fr.md">Français</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.ko.md">한국어</a> · <a href="README.ja.md">日本語</a> · <a href="README.ar.md">العربية</a> · <a href="README.ru.md">Русский</a> · <a href="README.it.md">Italiano</a> · <a href="README.nl.md">Nederlands</a> · <a href="README.pl.md">Polski</a> · <a href="README.cs.md">Čeština</a> · <a href="README.id.md">Bahasa Indonesia</a> · <a href="README.ms.md">Bahasa Melayu</a> · <a href="README.th.md">ไทย</a> · <b>हिन्दी</b> · <a href="README.he.md">עברית</a> · <a href="README.vi.md">Tiếng Việt</a> · <a href="README.tr.md">Türkçe</a></p>
+<p align="center"><a href="../../README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.pt-BR.md">Português</a> · <a href="README.de.md">Deutsch</a> · <a href="README.fr.md">Français</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.ko.md">한국어</a> · <a href="README.ja.md">日本語</a> · <a href="README.ar.md">العربية</a> · <a href="README.ru.md">Русский</a> · <a href="README.it.md">Italiano</a> · <a href="README.nl.md">Nederlands</a> · <a href="README.pl.md">Polski</a> · <a href="README.cs.md">Čeština</a> · <a href="README.id.md">Bahasa Indonesia</a> · <a href="README.ms.md">Bahasa Melayu</a> · <a href="README.th.md">ไทย</a> · <b>हिन्दी</b> · <a href="README.he.md">עברית</a> · <a href="README.vi.md">Tiếng Việt</a> · <a href="README.tr.md">Türkçe</a> · <a href="README.hu.md">Magyar</a></p>
 
 <p align="center">
   <a href="#download"><b>डाउनलोड</b></a> ·
@@ -184,6 +184,12 @@ skill इंस्टॉल करने की ज़रूरत, न को�
 <td><b>सेटिंग्स → इंटीग्रेशन से एक बार कनेक्ट करें</b> — Claude Code के लिए <code>claude mcp add</code> लाइन कॉपी करें, या JSON ब्लॉक को Cursor, Claude Desktop या किसी भी अन्य MCP क्लाइंट में डालें। विकल्प B दिखने वाले Word एडिटर के लिए लोकल HTTP सर्वर चालू करता है। दोनों के बारे में <a href="#mcp-server">MCP सर्वर</a> में बताया गया है।</td>
 </tr>
 </table>
+
+### 9 · पुरानी फ़ाइलें — 2000 के दशक की `.doc`, `.xls` और `.ppt` भी खुलती हैं
+
+Word 97–2003 की `.doc`, Excel की `.xls` या PowerPoint की `.ppt` फ़ाइल आपके कंप्यूटर पर ही बनी रूपांतरित `.docx`, `.xlsx` या `.pptx` प्रति के रूप में खुलती है; मूल फ़ाइल कभी नहीं बदलती। चित्र, तालिकाएँ, फ़ॉर्मूले, संख्या फ़ॉर्मैट, भराव और लेआउट साथ आते हैं।
+
+<img src="../assets/readme/legacy-formats-motion.webp" alt="GenOffice का टाइम-लैप्स: 2004 की एक काल्पनिक वार्षिक रिपोर्ट की .ppt, .doc और .xls फ़ाइलें खुलती हैं, फिर एक स्लाइड PowerPoint में और उसके बगल में GenOffice में रूपांतरित प्रस्तुति" width="100%">
 
 ## GenOffice क्यों
 

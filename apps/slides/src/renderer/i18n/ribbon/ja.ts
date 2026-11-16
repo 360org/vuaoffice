@@ -25,6 +25,7 @@ export const ja = {
   ribbonLangHindi: 'ヒンディー語',
   ribbonLangVietnamese: 'ベトナム語',
   ribbonLangTurkish: 'トルコ語',
+  ribbonLangHungarian: 'ハンガリー語',
   ribbonAiCreditNote: 'AI を呼び出し、クレジットを消費します',
   ribbonAiRewriteConfirm:
     'この操作は AI を呼び出します。クレジットを消費し、内容全体が書き換えられる可能性があります。続行しますか？（確認後は再表示されません）',
@@ -55,6 +56,7 @@ export const ja = {
   ribbonFilePrint: '印刷…',
   ribbonFileExportImages: 'PNG としてエクスポート…',
   ribbonFileExportImagesJpg: 'JPG としてエクスポート…',
+  ribbonFileExportVideo: 'ビデオとしてエクスポート (MP4)…',
   ribbonUnsavedSuffix: ' — 未保存',
   ribbonSaveTip: '保存 (⌘S)',
   ribbonAutoSave: '自動保存',

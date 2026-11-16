@@ -25,6 +25,7 @@ export const ko = {
   ribbonLangTraditionalChinese: '중국어 번체',
   ribbonLangVietnamese: '베트남어',
   ribbonLangTurkish: '터키어',
+  ribbonLangHungarian: '헝가리어',
   ribbonAiCreditNote: 'AI를 호출하며 크레딧이 소모됩니다',
   ribbonAiRewriteConfirm:
     '이 작업은 AI를 호출합니다. 크레딧이 소모되며 전체 내용이 다시 작성될 수 있습니다. 계속하시겠습니까? (확인 후 다시 묻지 않습니다)',
@@ -811,6 +812,8 @@ export const ko = {
   ribbonWebLayoutTip: '웹 모양: 페이지 나누기 없이 창 너비에 맞게 표시',
   ribbonOutlineView: '개요',
   ribbonOutlineViewTip: '개요 보기: 제목 수준만 표시하며 제목을 직접 편집 가능',
+  ribbonStoryView: '스토리',
+  ribbonStoryViewTip: '스토리: 문서 서식을 숨기고 글만 작성',
   ribbonReadMode: '읽기 모드',
   ribbonReadModeTip: '읽기 모드: 리본을 숨기고 읽기에 집중, Esc 키로 종료',
   ribbonPagePreview: '페이지 미리 보기',

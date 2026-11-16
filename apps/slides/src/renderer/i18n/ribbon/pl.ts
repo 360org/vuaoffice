@@ -25,6 +25,7 @@ export const pl = {
   ribbonLangHindi: 'hindi',
   ribbonLangVietnamese: 'wietnamski',
   ribbonLangTurkish: 'turecki',
+  ribbonLangHungarian: 'węgierski',
   ribbonAiCreditNote: 'Używa AI i zużywa kredyty',
   ribbonAiRewriteConfirm:
     'Ta akcja wywołuje AI: zużywa kredyty i może przepisać całą treść. Kontynuować? (Nie zapytamy ponownie.)',
@@ -54,6 +55,7 @@ export const pl = {
   ribbonFilePrint: 'Drukuj…',
   ribbonFileExportImages: 'Eksportuj jako PNG…',
   ribbonFileExportImagesJpg: 'Eksportuj jako JPG…',
+  ribbonFileExportVideo: 'Eksportuj jako wideo (MP4)…',
   ribbonUnsavedSuffix: ' — Niezapisane',
   ribbonSaveTip: 'Zapisz (⌘S)',
   ribbonAutoSave: 'Autozapis',

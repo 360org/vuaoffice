@@ -18,6 +18,7 @@ import type { WebContents } from 'electron'
 import {
   buildPrintableHtml,
   configuredAuthorName,
+  readPdfDefaultZoom,
   configuredDefaultSaveDir,
   contextMenuLabels,
   installContextMenu,
@@ -217,6 +218,27 @@ const tDlg = createI18n({
     btnSave: 'Kaydet',
     btnDontSave: 'Kaydetme',
     btnCancel: 'İptal',
+  },
+  hu: {
+    dlgExportImages: 'Képek exportálása mappába',
+    dlgExtract: 'Oldalak kinyerése PDF-ként',
+    dlgInsert: 'Importálandó PDF kiválasztása',
+    dlgSplit: 'PDF felosztása mappába',
+    dlgMerge: 'Egyesítendő PDF-fájlok kiválasztása',
+    dlgMergeSave: 'Egyesített PDF mentése másként',
+    dlgMergePages: 'Egyesített oldalak mentése másként',
+    dlgReplace: 'Helyettesítő PDF kiválasztása',
+    dlgSplitPages: 'Felosztott oldalak mentése másként',
+    dlgRedactCopy: 'Kitakart másolat mentése másként',
+    dlgPickCertificate: 'Tanúsítványfájl kiválasztása',
+    dlgSignedCopy: 'Aláírt másolat mentése másként',
+    filterCertificate: 'Tanúsítványfájlok (.p12, .pfx)',
+    filterPdf: 'PDF-dokumentumok',
+    closeUnsavedMsg: 'A PDF-ben mentetlen módosítások vannak.',
+    closeUnsavedDetail: 'Mented a módosításokat a bezárás előtt?',
+    btnSave: 'Mentés',
+    btnDontSave: 'Ne mentsd',
+    btnCancel: 'Mégse',
   },
   ja: {
     dlgExportImages: '画像をフォルダに書き出す',
@@ -1259,6 +1281,9 @@ function registerPdfIpc(): void {
   ipcMain.handle(PDF_CHANNELS.consumePending, (e) => openPathByWc.get(e.sender.id) ?? null)
 
   ipcMain.handle(PDF_CHANNELS.getUsername, (): string => configuredAuthorName(app))
+  ipcMain.handle(PDF_CHANNELS.getDefaultZoom, () =>
+    readPdfDefaultZoom(join(app.getPath('userData'), 'app-settings.json')),
+  )
 
   ipcMain.handle(PDF_CHANNELS.printers, async (e) => {
     const printers = await e.sender.getPrintersAsync()

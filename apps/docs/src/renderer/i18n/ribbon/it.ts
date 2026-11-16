@@ -25,6 +25,7 @@ export const it = {
   ribbonLangTraditionalChinese: 'cinese tradizionale',
   ribbonLangVietnamese: 'vietnamita',
   ribbonLangTurkish: 'turco',
+  ribbonLangHungarian: 'ungherese',
   ribbonAiCreditNote: "Usa l'IA e consuma crediti",
   ribbonAiRewriteConfirm:
     "Questa azione richiama l'IA: consuma crediti e può riscrivere l'intero contenuto. Continuare? (Non verrà più chiesto.)",
@@ -806,6 +807,8 @@ export const it = {
   ribbonOutlineView: 'Struttura',
   ribbonOutlineViewTip:
     'Visualizzazione struttura: mostra solo la gerarchia dei titoli; i titoli restano modificabili',
+  ribbonStoryView: 'Story',
+  ribbonStoryViewTip: 'Story: scrivere senza la formattazione del documento',
   ribbonReadMode: 'Modalità di lettura',
   ribbonReadModeTip:
     'Modalità di lettura: nascondi la barra multifunzione per una lettura concentrata, premi Esc per uscire',

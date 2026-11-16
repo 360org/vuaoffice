@@ -25,6 +25,7 @@ export const nl = {
   ribbonLangTraditionalChinese: 'Traditioneel Chinees',
   ribbonLangVietnamese: 'Vietnamees',
   ribbonLangTurkish: 'Turks',
+  ribbonLangHungarian: 'Hongaars',
   ribbonAiCreditNote: 'Gebruikt AI en verbruikt tegoed',
   ribbonAiRewriteConfirm:
     'Deze actie roept AI aan: het verbruikt tegoed en kan de volledige inhoud herschrijven. Doorgaan? (U wordt niet opnieuw gevraagd.)',
@@ -803,6 +804,8 @@ export const nl = {
   ribbonOutlineView: 'Overzicht',
   ribbonOutlineViewTip:
     'Overzichtsweergave: alleen de kophiërarchie weergeven; koppen blijven bewerkbaar',
+  ribbonStoryView: 'Story',
+  ribbonStoryViewTip: 'Story: schrijven zonder de opmaak van het document',
   ribbonReadMode: 'Leesmodus',
   ribbonReadModeTip:
     'Leesmodus: het lint verbergen om geconcentreerd te lezen; druk op Esc om af te sluiten',

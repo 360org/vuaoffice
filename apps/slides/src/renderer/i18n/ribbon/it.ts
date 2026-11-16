@@ -25,6 +25,7 @@ export const it = {
   ribbonLangHindi: 'hindi',
   ribbonLangVietnamese: 'vietnamita',
   ribbonLangTurkish: 'turco',
+  ribbonLangHungarian: 'ungherese',
   ribbonAiCreditNote: "Usa l'IA e consuma crediti",
   ribbonAiRewriteConfirm:
     "Questa azione richiama l'IA: consuma crediti e può riscrivere l'intero contenuto. Continuare? (Non verrà più chiesto.)",
@@ -54,6 +55,7 @@ export const it = {
   ribbonFilePrint: 'Stampa…',
   ribbonFileExportImages: 'Esporta come PNG…',
   ribbonFileExportImagesJpg: 'Esporta come JPG…',
+  ribbonFileExportVideo: 'Esporta come video (MP4)…',
   ribbonUnsavedSuffix: ' — Non salvato',
   ribbonSaveTip: 'Salva (⌘S)',
   ribbonAutoSave: 'Salvataggio automatico',

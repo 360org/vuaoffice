@@ -19,7 +19,7 @@ Word-, Excel-, PowerPoint- en PDF-bestanden, bewerkt door jou en je AI, opgeslag
   <a href="https://github.com/genspark-ai/genoffice/stargazers"><img src="https://img.shields.io/github/stars/genspark-ai/genoffice?style=flat" alt="GitHub-sterren"></a>
 </p>
 
-<p align="center"><a href="../../README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.pt-BR.md">Português</a> · <a href="README.de.md">Deutsch</a> · <a href="README.fr.md">Français</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.ko.md">한국어</a> · <a href="README.ja.md">日本語</a> · <a href="README.ar.md">العربية</a> · <a href="README.ru.md">Русский</a> · <a href="README.it.md">Italiano</a> · <b>Nederlands</b> · <a href="README.pl.md">Polski</a> · <a href="README.cs.md">Čeština</a> · <a href="README.id.md">Bahasa Indonesia</a> · <a href="README.ms.md">Bahasa Melayu</a> · <a href="README.th.md">ไทย</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.he.md">עברית</a> · <a href="README.vi.md">Tiếng Việt</a> · <a href="README.tr.md">Türkçe</a></p>
+<p align="center"><a href="../../README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.pt-BR.md">Português</a> · <a href="README.de.md">Deutsch</a> · <a href="README.fr.md">Français</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.ko.md">한국어</a> · <a href="README.ja.md">日本語</a> · <a href="README.ar.md">العربية</a> · <a href="README.ru.md">Русский</a> · <a href="README.it.md">Italiano</a> · <b>Nederlands</b> · <a href="README.pl.md">Polski</a> · <a href="README.cs.md">Čeština</a> · <a href="README.id.md">Bahasa Indonesia</a> · <a href="README.ms.md">Bahasa Melayu</a> · <a href="README.th.md">ไทย</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.he.md">עברית</a> · <a href="README.vi.md">Tiếng Việt</a> · <a href="README.tr.md">Türkçe</a> · <a href="README.hu.md">Magyar</a></p>
 
 <p align="center">
   <a href="#download"><b>Download</b></a> ·
@@ -227,6 +227,12 @@ editortabblad terwijl je toekijkt.
 <td><b>Eén keer verbinden, via Instellingen → Integraties</b> — kopieer de <code>claude mcp add</code>-regel voor Claude Code, of het JSON-blok in Cursor, Claude Desktop of een andere MCP-client. Optie B schakelt de lokale HTTP-server in voor de zichtbare Word-editor. Beide worden beschreven in <a href="#mcp-server">MCP-server</a>.</td>
 </tr>
 </table>
+
+### 9 · Oude bestanden — ook `.doc`, `.xls` en `.ppt` uit de jaren 2000 gaan open
+
+Een Word 97–2003-bestand `.doc`, een Excel-bestand `.xls` of een PowerPoint-bestand `.ppt` opent als geconverteerde `.docx`-, `.xlsx`- of `.pptx`-kopie die op je eigen computer wordt gemaakt; het originele bestand wordt nooit gewijzigd. Afbeeldingen, tabellen, formules, getalnotaties, opvullingen en opmaak blijven behouden.
+
+<img src="../assets/readme/legacy-formats-motion.webp" alt="Timelapse van GenOffice dat de .ppt-, .doc- en .xls-bestanden van een fictief jaarverslag 2004 opent, daarna één dia in PowerPoint naast de geconverteerde presentatie in GenOffice" width="100%">
 
 ## Waarom GenOffice
 

@@ -25,6 +25,7 @@ export const es = {
   ribbonLangTraditionalChinese: 'chino tradicional',
   ribbonLangVietnamese: 'vietnamita',
   ribbonLangTurkish: 'turco',
+  ribbonLangHungarian: 'húngaro',
   ribbonAiCreditNote: 'Usa IA y consume créditos',
   ribbonAiRewriteConfirm:
     'Esta acción llama a la IA: consume créditos y puede reescribir todo el contenido. ¿Continuar? (No se volverá a preguntar.)',
@@ -804,6 +805,8 @@ export const es = {
   ribbonOutlineView: 'Esquema',
   ribbonOutlineViewTip:
     'Vista Esquema: mostrar solo la jerarquía de títulos; los títulos siguen siendo editables',
+  ribbonStoryView: 'Historia',
+  ribbonStoryViewTip: 'Historia: escribir sin el formato del documento',
   ribbonReadMode: 'Modo de lectura',
   ribbonReadModeTip:
     'Modo de lectura: ocultar la cinta para leer sin distracciones; presione Esc para salir',

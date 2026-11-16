@@ -25,6 +25,7 @@ export const cs = {
   ribbonLangHindi: 'hindi',
   ribbonLangVietnamese: 'vietnamština',
   ribbonLangTurkish: 'turečtina',
+  ribbonLangHungarian: 'maďarština',
   ribbonAiCreditNote: 'Používá AI a spotřebovává kredity',
   ribbonAiRewriteConfirm:
     'Tato akce volá asistenta AI: spotřebovává kredity a může přepsat celý obsah. Pokračovat? (Příště se již nebudeme ptát.)',
@@ -54,6 +55,7 @@ export const cs = {
   ribbonFilePrint: 'Tisk…',
   ribbonFileExportImages: 'Exportovat jako PNG…',
   ribbonFileExportImagesJpg: 'Exportovat jako JPG…',
+  ribbonFileExportVideo: 'Exportovat jako video (MP4)…',
   ribbonUnsavedSuffix: ' — Neuloženo',
   ribbonSaveTip: 'Uložit (⌘S)',
   ribbonAutoSave: 'Automatické ukládání',

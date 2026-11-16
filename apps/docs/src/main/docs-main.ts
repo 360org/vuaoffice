@@ -72,11 +72,16 @@ import {
   MAX_REMOTE_IMAGE_BYTES,
   readBodyCapped,
   writeJsonAtomic,
+  restrictFileToOwner,
   recoveryCopyDiskNewer,
   readLegacyImportSkip,
   writeLegacyImportSkip,
 } from '@genoffice/electron-utils'
-import { configureMetricsCache, familyVerticalMetrics } from '@genoffice/font-metrics'
+import {
+  configureMetricsCache,
+  familyAliases,
+  familyVerticalMetrics,
+} from '@genoffice/font-metrics'
 import { createI18n, getUiLang, normalizeLang, setUiLang } from '@genoffice/i18n'
 import { ProjectStore } from '@genoffice/project-store'
 import type {
@@ -157,6 +162,7 @@ import { ATTACHMENT_IMAGE_EXTS, MARKDOWN_MEDIA_DIR_TOKEN, type MarkdownImage } f
 import { MERGE_DATA_SOURCE_EXTENSIONS, readMergeDataSource } from './merge-data-source'
 import { mergeOutputFileName, mergeOutputPath } from './merge-output'
 import { ClickClaims } from '../shared/context-menu-claims'
+import { SAVE_AS_EXPORT_FILTERS, saveAsExportFormat } from '../shared/save-as-format'
 import {
   OPENABLE_DOC_EXTENSIONS,
   docImportKindForPath,
@@ -164,6 +170,7 @@ import {
   isOpenableDocPath,
 } from '../shared/open-file'
 import { atomicWriteFile } from './atomic-write'
+import { bareFileName } from './file-name'
 import {
   adoptLazyMediaHashes,
   forgetLazyMediaOwner,
@@ -197,6 +204,7 @@ import { isExternallyModified, type DiskFileState } from './external-change'
 import { copyImageDisplaySize, validCopyImageDataUrl } from './copy-image-guard'
 import {
   printJobOptions,
+  printPaperOption,
   printScaleOption,
   validPrintGeometry,
   validPrintPaper,
@@ -827,6 +835,159 @@ const tMain = createI18n({
     menuWindow: 'Pencere',
     menuHelp: 'Yardım',
     menuShortcuts: 'Klavye Kısayolları',
+  },
+  hu: {
+    dlgOpenDoc: 'Dokumentum megnyitása',
+    filterWord: 'Word-dokumentumok',
+    odtImportMsg: 'Átalakítsuk ezt a(z) .{ext} dokumentumot?',
+    odtImportDetail:
+      'A GenOffice .docx fájlokat szerkeszt, ODF-et nem. A szövegtörzs, a címsorok, a listák, a táblázatok és a képek átmennek; a lábjegyzetek, a megjegyzések és a szövegdobozok nem maradnak meg teljesen. Az eredeti fájl sosem változik; az átalakított .docx egy külön példány, amelybe a későbbi mentések kerülnek.',
+    hwpImportDetail:
+      'A GenOffice .docx fájlokat szerkeszt, HWP-t nem. A szövegtörzs, a táblázatok, a képek, az élőfejek és az élőlábak átmennek; az egyenletek, a lábjegyzetek és a beágyazott objektumok nem alakulnak át, az automatikus számozás pedig egyszerű szöveggé válik. Az eredeti fájl sosem változik; az átalakított .docx egy külön példány, amelybe a későbbi mentések kerülnek.',
+    odtImportConvertBtn: 'Átalakítás és megnyitás',
+    importSkipConfirm: 'Átalakítás a továbbiakban kérdés nélkül',
+    docImportMsg: 'Átalakítsuk ezt a(z) .{ext} dokumentumot?',
+    docImportDetail:
+      'A GenOffice .docx fájlokat szerkeszt, Word 97-2003 dokumentumokat nem. A szövegtörzs, a címsorok, a listák, a táblázatok és a képek átmennek; a lábjegyzetek, a megjegyzések és a szövegdobozok nem maradnak meg teljesen. Az eredeti fájl sosem változik; az átalakított .docx egy külön példány, amelybe a későbbi mentések kerülnek.',
+    docImportConvertBtn: 'Átalakítás és megnyitás',
+    dlgSaveAs: 'Mentés másként',
+    closeUnsavedMsg: 'A dokumentum nem mentett módosításokat tartalmaz.',
+    closeUnsavedDetail: 'Mented a módosításokat bezárás előtt?',
+    closeNoReplyMsg:
+      'A dokumentum nem válaszol, és lehet, hogy nem mentett módosításokat tartalmaz.',
+    closeNoReplyDetail: 'Mindenképp bezárod? A nem mentett módosítások elvesznek.',
+    btnCloseAnyway: 'Bezárás mindenképp',
+    autosaveFoundTitle: 'Helyreállított verzió található',
+    autosaveDiskNewer:
+      'Megjegyzés: a lemezen lévő fájlt a helyreállítási másolat mentése után módosították. A visszaállítás felülírja ezeket az újabb módosításokat.',
+    autosaveFoundBody:
+      'Nem mentett módosítások maradtak az előző munkamenetből. Visszaállítod az automatikusan mentett verziót?',
+    autosaveRestore: 'Visszaállítás',
+    autosaveDiscard: 'Elvetés',
+    btnDontSave: 'Ne mentsd',
+    btnCancel: 'Mégse',
+    extModifiedMsg: 'A fájlt egy másik program módosította.',
+    extModifiedDetail: 'Mindenképp mented, és felülírod a lemezen lévő módosításokat?',
+    btnOverwrite: 'Felülírás',
+    dlgInsertImage: 'Kép beszúrása',
+    filterImages: 'Képek',
+    dlgMergeDataSource: 'Címzettlista kiválasztása',
+    filterMergeDataSource: 'Excel vagy CSV',
+    dlgAddAttachment: 'Mellékletek hozzáadása',
+    filterSupported: 'Támogatott fájlok',
+    filterAll: 'Minden fájl',
+    dlgExportPdf: 'Exportálás PDF-ként',
+    dlgExportHtml: 'Exportálás HTML-ként',
+    dlgExportMarkdown: 'Exportálás Markdown-ként',
+    dlgPickExportDir: 'Exportmappa kiválasztása',
+    errUnsupportedExt: 'A .{ext} fájlok nem támogatottak',
+    errNotFile: 'nem fájl',
+    errTooLarge: 'túllépi a(z) {mb}MB-os korlátot',
+    errImageTooLarge: 'a kép túllépi az 5MB-os korlátot',
+    errUnreadable: 'nem olvasható',
+    errFileTooLarge: 'A fájl túllépi a méretkorlátot',
+    errParseFailed: 'Nem sikerült értelmezni a fájlt',
+    errImageNoText:
+      'A képmellékletek nem tartalmaznak szöveget; a kép a felhasználó üzenetével együtt lesz elküldve',
+    errNotImage: 'nem támogatott képtípus',
+    errGskNotLoggedIn:
+      'Nem vagy bejelentkezve a Gensparkba: kattints alább a „Bejelentkezés a Gensparkba” gombra, jelentkezz be, majd próbáld újra',
+    errNoApiKey: 'Nincs API-kulcs beállítva a következőhöz: {provider}',
+    errAiRegion:
+      'A modell szolgáltatója nem érhető el a jelenlegi régiódban — válassz másik modellt, vagy válts hálózatot',
+    errAiBusy: 'Az AI-szolgáltatás jelenleg elfoglalt — próbáld újra egy pillanat múlva',
+    errNoModel: 'Nincs modellnév megadva',
+    menuFile: 'Fájl',
+    menuNewDoc: 'Új dokumentum',
+    menuNewWindow: 'Új ablak',
+    menuOpen: 'Megnyitás…',
+    menuOpenRecent: 'Legutóbbiak megnyitása',
+    menuNoRecent: 'Nincsenek legutóbbi dokumentumok',
+    menuClose: 'Bezárás',
+    menuSave: 'Mentés',
+    menuSaveAs: 'Mentés másként…',
+    menuPageSetup: 'Oldalbeállítás…',
+    menuExportPdf: 'Exportálás PDF-ként…',
+    menuExportHtml: 'Exportálás HTML-ként…',
+    menuExportMarkdown: 'Exportálás Markdown-ként…',
+    menuExportImages: 'Exportálás képekként…',
+    menuPrint: 'Nyomtatás…',
+    menuEdit: 'Szerkesztés',
+    menuUndo: 'Visszavonás',
+    menuRedo: 'Újra',
+    menuCut: 'Kivágás',
+    menuCopy: 'Másolás',
+    menuPaste: 'Beillesztés',
+    menuPasteMatch: 'Beillesztés és stílus egyeztetése',
+    menuFindReplace: 'Keresés és csere…',
+    menuGoTo: 'Ugrás…',
+    menuSelectAll: 'Az összes kijelölése',
+    menuView: 'Nézet',
+    menuZoom: 'Nagyítás',
+    menuZoomIn: 'Nagyítás',
+    menuZoomOut: 'Kicsinyítés',
+    menuZoom100: 'Tényleges méret (100%)',
+    menuPageWidth: 'Oldalszélesség',
+    menuWholePage: 'Teljes oldal',
+    menuMultiPage: 'Több oldal',
+    menuAiSidebar: 'AI-oldalsáv',
+    menuDarkMode: 'Sötét mód',
+    menuFullscreen: 'Teljes képernyő',
+    menuInsert: 'Beszúrás',
+    menuInsertTable: 'Táblázat…',
+    menuInsertImage: 'Kép…',
+    menuInsertPageBreak: 'Oldaltörés',
+    menuInsertLink: 'Hivatkozás…',
+    menuInsertEquation: 'Egyenlet…',
+    menuComment: 'Megjegyzés',
+    menuFormat: 'Formázás',
+    menuBold: 'Félkövér',
+    menuItalic: 'Dőlt',
+    menuUnderline: 'Aláhúzott',
+    menuAlign: 'Igazítás',
+    menuAlignLeft: 'Balra igazítás',
+    menuAlignCenter: 'Középre igazítás',
+    menuAlignRight: 'Jobbra igazítás',
+    menuAlignJustify: 'Sorkizárt',
+    menuFont: 'Betűtípus…',
+    menuParagraph: 'Bekezdés…',
+    menuTools: 'Eszközök',
+    menuTable: 'Táblázat',
+    menuTableInsert: 'Beszúrás',
+    menuTableInsertTable: 'Táblázat…',
+    menuTableColsLeft: 'Oszlopok balra',
+    menuTableColsRight: 'Oszlopok jobbra',
+    menuTableRowsAbove: 'Sorok fölé',
+    menuTableRowsBelow: 'Sorok alá',
+    menuTableCells: 'Cellák…',
+    menuTableDelete: 'Törlés',
+    menuTableDeleteTable: 'Táblázat',
+    menuTableDeleteColumns: 'Oszlopok',
+    menuTableDeleteRows: 'Sorok',
+    menuTableSelect: 'Kijelölés',
+    menuTableSelectCell: 'Cella',
+    menuTableSelectColumn: 'Oszlop',
+    menuTableSelectRow: 'Sor',
+    menuTableSelectTable: 'Táblázat',
+    menuTableMergeCells: 'Cellák egyesítése',
+    menuTableSplitCells: 'Cellák felosztása…',
+    menuTableSplitTable: 'Táblázat felosztása',
+    menuTableAutoFit: 'Automatikus méretezés és elosztás',
+    menuTableAutoFitContents: 'Automatikus méretezés a tartalomhoz',
+    menuTableAutoFitWindow: 'Automatikus méretezés az ablakhoz',
+    menuTableFixedWidth: 'Rögzített oszlopszélesség',
+    menuTableDistributeRows: 'Sorok egyenletes elosztása',
+    menuTableDistributeColumns: 'Oszlopok egyenletes elosztása',
+    menuTableRepeatHeader: 'Fejlécsorok ismétlése',
+    menuTableGridlines: 'Rácsvonalak megjelenítése',
+    menuTableProperties: 'Táblázat tulajdonságai…',
+    menuWordCount: 'Szavak száma…',
+    menuAutoCorrect: 'Automatikus javítás beállításai…',
+    menuPreferences: 'Beállítások…',
+    menuAiProofread: 'AI nyelvi ellenőrzés',
+    menuWindow: 'Ablak',
+    menuHelp: 'Súgó',
+    menuShortcuts: 'Billentyűparancsok',
   },
   ja: {
     dlgOpenDoc: '文書を開く',
@@ -3661,12 +3822,18 @@ export function defaultSaveDir(): string {
   return configuredDefaultSaveDir(app)
 }
 
-/** first free path for fileName inside dir: name.ext, name-2.ext, name-3.ext… */
+/** first free path for fileName inside dir: name.ext, name-2.ext, name-3.ext…
+ *  fileName arrives from renderers and MCP callers as a *suggestion*, so it is
+ *  reduced to its bare name first (file-name.ts): a `..` segment or an
+ *  absolute path must not steer the write out of dir — docs:save-new's
+ *  suggested name had no dialog or grant behind it, and every new-file write
+ *  funnels through here. */
 export function uniquePathIn(dir: string, fileName: string): string {
-  const dot = fileName.lastIndexOf('.')
-  const base = dot > 0 ? fileName.slice(0, dot) : fileName
-  const ext = dot > 0 ? fileName.slice(dot) : ''
-  let candidate = join(dir, fileName)
+  const bare = bareFileName(fileName)
+  const dot = bare.lastIndexOf('.')
+  const base = dot > 0 ? bare.slice(0, dot) : bare
+  const ext = dot > 0 ? bare.slice(dot) : ''
+  let candidate = join(dir, bare)
   for (let i = 2; existsSync(candidate); i++) candidate = join(dir, `${base}-${i}${ext}`)
   return candidate
 }
@@ -4181,6 +4348,20 @@ async function prepareDocumentForOpen(
   )
   if (picked.canceled || !picked.filePath) return null
   try {
+    // Imports are read whole and handed to one converter or another — the
+    // rhwp WASM path especially is unauditable — so the same cap as the
+    // .docx open (MAX_OPEN_BYTES) applies before a byte is read.
+    if ((await stat(filePath)).size > MAX_OPEN_BYTES) {
+      const mb = MAX_OPEN_BYTES / 1024 / 1024
+      if (parent && !parent.isDestroyed()) {
+        await dialog.showMessageBox(parent, {
+          type: 'error',
+          message: tm('dlgOpenDoc'),
+          detail: `${basename(filePath)}: ${tm('errTooLarge', { mb })}`,
+        })
+      }
+      return null
+    }
     const source = new Uint8Array(await readFile(filePath))
     const result = word97
       ? await convertLegacyDocToDocx(source)
@@ -4466,8 +4647,11 @@ export function registerAiIpc(): void {
     // file and clobber a saved (half-configured) BYOK selection.
     if ((stored.provider ?? 'genspark') === 'genspark' && stored.gskToolsEnabled === false) {
       stored.gskToolsEnabled = true
-      writeJsonAtomic(SETTINGS_PATH(), stored)
+      writeJsonAtomic(SETTINGS_PATH(), stored, 0o600)
     }
+    // heal the file mode of a settings file saved by an older build: BYOK keys
+    // are credentials and must not stay readable by other local accounts
+    restrictFileToOwner(SETTINGS_PATH())
     const settings = resolveAiSettings(stored, defaultAiSettings())
     // a stored BYOK provider is honored when usable; half-filled configs fall back to genspark
     settings.provider = activeProvider(settings)
@@ -4503,7 +4687,7 @@ export function registerAiIpc(): void {
       console.warn('[ai] rejected invalid ai:set-settings payload')
       return
     }
-    writeJsonAtomic(SETTINGS_PATH(), sanitized)
+    writeJsonAtomic(SETTINGS_PATH(), sanitized, 0o600)
     broadcastAiSettingsChanged()
     if (sanitized.provider === 'vuaaipro' && sanitized.providers?.vuaaipro?.model) {
       const appSettingsPath = join(app.getPath('userData'), 'app-settings.json')
@@ -5050,6 +5234,20 @@ export function registerDocsIpc(): void {
   ipcMain.handle('docs:font-metrics', (_event, family: string) =>
     typeof family === 'string' ? familyVerticalMetrics(family) : null,
   )
+  // the other spellings of the installed faces behind these names: a document
+  // that declares a CJK font by its localized name needs the English spelling
+  // the browser resolves (genoffice#2449). The renderer is not trusted, but
+  // the answer is only font names.
+  ipcMain.handle('docs:font-aliases', (_event, names: unknown) => {
+    if (!Array.isArray(names)) return {}
+    const out: Record<string, readonly string[]> = {}
+    for (const raw of names.slice(0, 512)) {
+      if (typeof raw !== 'string' || raw.length === 0 || raw.length > 256) continue
+      const aliases = familyAliases(raw)
+      if (aliases.length) out[raw] = aliases
+    }
+    return out
+  })
 
   ipcMain.handle('docs:open', async (event) => {
     const result = await openDialog(event, {
@@ -5466,12 +5664,18 @@ export function registerDocsIpc(): void {
           typeof sourcePath === 'string' ? sourcePath : null,
           defaultName,
         ),
-        filters: [{ name: tm('filterWord'), extensions: ['docx'] }],
+        filters: [{ name: tm('filterWord'), extensions: ['docx'] }, ...SAVE_AS_EXPORT_FILTERS],
       })
       if (result.canceled || !result.filePath) return { ok: false }
       // the tab may have been closed while the dialog was open; checked before the
       // write because Save As may overwrite an existing file (no safe rollback)
       if (tornDownWcIds.has(event.sender.id)) return { ok: false }
+      // another format is an exported copy: the renderer runs that export, the document stays where it is
+      const exportAs = saveAsExportFormat(result.filePath)
+      if (exportAs) {
+        allowPdfWrite(event.sender.id, result.filePath)
+        return { ok: false, exportAs, path: result.filePath }
+      }
       try {
         const passwordState = snapshotDocPassword(
           event.sender.id,
@@ -5860,6 +6064,10 @@ export function registerDocsIpc(): void {
       margins: { marginType: 'none' as const },
       ...printScale(scale),
       ...printJobOptions(job),
+      // the document's own paper: Chromium prints on Letter unless the job
+      // states one, and an A4 sheet on Letter is taller than the paper — it
+      // splits in two, so the printed page loses its bottom (genoffice#2563)
+      ...printPaperOption(paper),
     }
     // A named printer prints silently, and Chromium's silent print on macOS
     // can drop the job outright — no queue entry, no callback error

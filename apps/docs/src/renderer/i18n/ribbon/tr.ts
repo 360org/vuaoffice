@@ -25,6 +25,7 @@ export const tr = {
   ribbonLangTraditionalChinese: 'Geleneksel Çince',
   ribbonLangVietnamese: 'Vietnamca',
   ribbonLangTurkish: 'Türkçe',
+  ribbonLangHungarian: 'Macarca',
   ribbonAiCreditNote: 'Yapay zeka kullanır ve kredi harcar',
   ribbonAiRewriteConfirm:
     'Bu işlem yapay zeka asistanını çağırır: kredi harcar ve içeriğin tamamını yeniden yazabilir. Devam edilsin mi? (Bir daha sorulmayacak.)',
@@ -802,6 +803,8 @@ export const tr = {
   ribbonOutlineView: 'Ana Hat',
   ribbonOutlineViewTip:
     'Ana hat görünümü: yalnızca başlık hiyerarşisini göster; başlıklar düzenlenebilir kalır',
+  ribbonStoryView: 'Hikaye',
+  ribbonStoryViewTip: 'Hikaye: belge biçimlendirmesi olmadan yazın',
   ribbonReadMode: 'Okuma Modu',
   ribbonReadModeTip: 'Okuma Modu: odaklanmış okuma için şeridi gizle, çıkmak için Esc tuşuna basın',
   ribbonPagePreview: 'Sayfa Önizleme',

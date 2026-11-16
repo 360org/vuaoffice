@@ -25,6 +25,7 @@ export const ru = {
   ribbonLangTraditionalChinese: 'китайский (традиционный)',
   ribbonLangVietnamese: 'вьетнамский',
   ribbonLangTurkish: 'турецкий',
+  ribbonLangHungarian: 'венгерский',
   ribbonAiCreditNote: 'Использует ИИ и расходует кредиты',
   ribbonAiRewriteConfirm:
     'Это действие вызывает ИИ: расходуются кредиты, и всё содержимое может быть переписано. Продолжить? (Вопрос больше не появится.)',
@@ -799,6 +800,8 @@ export const ru = {
   ribbonOutlineView: 'Структура',
   ribbonOutlineViewTip:
     'Режим структуры: показывать только иерархию заголовков; заголовки можно редактировать',
+  ribbonStoryView: 'История',
+  ribbonStoryViewTip: 'История: писать без форматирования документа',
   ribbonReadMode: 'Режим чтения',
   ribbonReadModeTip:
     'Режим чтения: скрыть ленту для сосредоточенного чтения, для выхода нажмите Esc',

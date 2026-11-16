@@ -19,7 +19,7 @@ Word、Excel、PowerPoint 和 PDF 文件，由你与你的 AI 共同编辑，并
   <a href="https://github.com/genspark-ai/genoffice/stargazers"><img src="https://img.shields.io/github/stars/genspark-ai/genoffice?style=flat" alt="GitHub Star 数"></a>
 </p>
 
-<p align="center"><a href="../../README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.pt-BR.md">Português</a> · <a href="README.de.md">Deutsch</a> · <a href="README.fr.md">Français</a> · <b>简体中文</b> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.ko.md">한국어</a> · <a href="README.ja.md">日本語</a> · <a href="README.ar.md">العربية</a> · <a href="README.ru.md">Русский</a> · <a href="README.it.md">Italiano</a> · <a href="README.nl.md">Nederlands</a> · <a href="README.pl.md">Polski</a> · <a href="README.cs.md">Čeština</a> · <a href="README.id.md">Bahasa Indonesia</a> · <a href="README.ms.md">Bahasa Melayu</a> · <a href="README.th.md">ไทย</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.he.md">עברית</a> · <a href="README.vi.md">Tiếng Việt</a> · <a href="README.tr.md">Türkçe</a></p>
+<p align="center"><a href="../../README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.pt-BR.md">Português</a> · <a href="README.de.md">Deutsch</a> · <a href="README.fr.md">Français</a> · <b>简体中文</b> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.ko.md">한국어</a> · <a href="README.ja.md">日本語</a> · <a href="README.ar.md">العربية</a> · <a href="README.ru.md">Русский</a> · <a href="README.it.md">Italiano</a> · <a href="README.nl.md">Nederlands</a> · <a href="README.pl.md">Polski</a> · <a href="README.cs.md">Čeština</a> · <a href="README.id.md">Bahasa Indonesia</a> · <a href="README.ms.md">Bahasa Melayu</a> · <a href="README.th.md">ไทย</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.he.md">עברית</a> · <a href="README.vi.md">Tiếng Việt</a> · <a href="README.tr.md">Türkçe</a> · <a href="README.hu.md">Magyar</a></p>
 
 <p align="center">
   <a href="#download"><b>下载</b></a> ·
@@ -207,6 +207,12 @@ Word 文档，供你实时查看。
 <td><b>在设置 → 集成中连接一次即可</b> —— 复制 Claude Code 的 <code>claude mcp add</code> 命令行，或把 JSON 代码块粘贴进 Cursor、Claude Desktop 或任何其他 MCP 客户端。选项 B 会开启本地 HTTP 服务器，用于可见的 Word 编辑器。两者都在<a href="#mcp-server">MCP 服务器</a>中有详细说明。</td>
 </tr>
 </table>
+
+### 9 · 旧格式文件 — 2000 年代的 `.doc`、`.xls` 和 `.ppt` 也能打开
+
+Word 97–2003 的 `.doc`、Excel 的 `.xls` 或 PowerPoint 的 `.ppt` 会在本机转换成 `.docx`、`.xlsx` 或 `.pptx` 副本后打开，原文件不会被改动。图片、表格、公式、数字格式、填充和版式都会保留。
+
+<img src="../assets/readme/legacy-formats-motion.webp" alt="GenOffice 依次打开一份虚构的 2004 年度报告的 .ppt、.doc 和 .xls 文件的延时画面，随后是同一页幻灯片在 PowerPoint 中的原件与在 GenOffice 中的转换结果并排对比" width="100%">
 
 ## 为什么选择 GenOffice
 

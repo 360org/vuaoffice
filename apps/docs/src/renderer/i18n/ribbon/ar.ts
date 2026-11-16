@@ -25,6 +25,7 @@ export const ar = {
   ribbonLangTraditionalChinese: 'الصينية التقليدية',
   ribbonLangVietnamese: 'الفيتنامية',
   ribbonLangTurkish: 'التركية',
+  ribbonLangHungarian: 'المجرية',
   ribbonAiCreditNote: 'يستدعي الذكاء الاصطناعي ويستهلك الرصيد',
   ribbonAiRewriteConfirm:
     'هذا الإجراء يستدعي الذكاء الاصطناعي: يستهلك الرصيد وقد يعيد كتابة المحتوى بالكامل. هل تريد المتابعة؟ (لن يتم السؤال مرة أخرى.)',
@@ -793,6 +794,8 @@ export const ar = {
   ribbonOutlineView: 'مخطط تفصيلي',
   ribbonOutlineViewTip:
     'عرض المخطط التفصيلي: إظهار التسلسل الهرمي للعناوين فقط؛ وتبقى العناوين قابلة للتحرير',
+  ribbonStoryView: 'عرض القصة',
+  ribbonStoryViewTip: 'عرض القصة: اكتب دون تنسيق المستند',
   ribbonReadMode: 'وضع القراءة',
   ribbonReadModeTip: 'وضع القراءة: إخفاء الشريط للتركيز على القراءة، اضغط Esc للخروج',
   ribbonPagePreview: 'معاينة الصفحات',

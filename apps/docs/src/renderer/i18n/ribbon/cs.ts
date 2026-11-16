@@ -25,6 +25,7 @@ export const cs = {
   ribbonLangTraditionalChinese: 'tradiční čínština',
   ribbonLangVietnamese: 'vietnamština',
   ribbonLangTurkish: 'turečtina',
+  ribbonLangHungarian: 'maďarština',
   ribbonAiCreditNote: 'Používá AI a spotřebovává kredity',
   ribbonAiRewriteConfirm:
     'Tato akce volá asistenta AI: spotřebovává kredity a může přepsat celý obsah. Pokračovat? (Znovu se už nezeptáme.)',
@@ -794,6 +795,8 @@ export const cs = {
   ribbonOutlineView: 'Osnova',
   ribbonOutlineViewTip:
     'Zobrazení osnovy: zobrazit pouze hierarchii nadpisů; nadpisy zůstávají upravitelné',
+  ribbonStoryView: 'Příběh',
+  ribbonStoryViewTip: 'Příběh: psaní bez formátování dokumentu',
   ribbonReadMode: 'Režim čtení',
   ribbonReadModeTip: 'Režim čtení: skrýt pás karet pro soustředěné čtení, ukončíte klávesou Esc',
   ribbonPagePreview: 'Náhled stránky',

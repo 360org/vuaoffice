@@ -25,6 +25,7 @@ export const he = {
   ribbonLangTraditionalChinese: 'סינית מסורתית',
   ribbonLangVietnamese: 'וייטנאמית',
   ribbonLangTurkish: 'טורקית',
+  ribbonLangHungarian: 'הונגרית',
   ribbonAiCreditNote: 'משתמש ב-AI וצורך קרדיטים',
   ribbonAiRewriteConfirm:
     'פעולה זו מפעילה AI: היא צורכת קרדיטים ועשויה לשכתב את כל התוכן. להמשיך? (לא תישאל שוב.)',
@@ -786,6 +787,8 @@ export const he = {
   ribbonWebLayoutTip: 'פריסת אינטרנט: מילוי רוחב החלון, ללא מעברי עמוד',
   ribbonOutlineView: 'חלוקה לרמות',
   ribbonOutlineViewTip: 'תצוגת חלוקה לרמות: הצג רק את היררכיית הכותרות; הכותרות ניתנות לעריכה',
+  ribbonStoryView: 'סיפור',
+  ribbonStoryViewTip: 'סיפור: כתיבה ללא עיצוב המסמך',
   ribbonReadMode: 'מצב קריאה',
   ribbonReadModeTip: 'מצב קריאה: הסתר את רצועת הכלים לקריאה ממוקדת, הקש Esc ליציאה',
   ribbonPagePreview: 'תצוגה מקדימה של עמודים',

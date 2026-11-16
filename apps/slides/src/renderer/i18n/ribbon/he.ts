@@ -25,6 +25,7 @@ export const he = {
   ribbonLangHindi: 'הינדית',
   ribbonLangVietnamese: 'וייטנאמית',
   ribbonLangTurkish: 'טורקית',
+  ribbonLangHungarian: 'הונגרית',
   ribbonAiCreditNote: 'משתמש ב-AI וצורך קרדיטים',
   ribbonAiRewriteConfirm:
     'פעולה זו מפעילה AI: היא צורכת קרדיטים ועשויה לשכתב את כל התוכן. להמשיך? (לא תישאל שוב.)',
@@ -53,6 +54,7 @@ export const he = {
   ribbonFilePrint: 'הדפסה…',
   ribbonFileExportImages: 'ייצוא כ-PNG…',
   ribbonFileExportImagesJpg: 'ייצוא כ-JPG…',
+  ribbonFileExportVideo: 'ייצוא כווידאו (MP4)…',
   ribbonUnsavedSuffix: ' — לא נשמר',
   ribbonSaveTip: 'שמירה (⌘S)',
   ribbonAutoSave: 'שמירה אוטומטית',

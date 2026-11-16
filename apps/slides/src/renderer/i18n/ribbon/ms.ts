@@ -25,6 +25,7 @@ export const ms = {
   ribbonLangHindi: 'Hindi',
   ribbonLangVietnamese: 'Vietnam',
   ribbonLangTurkish: 'Turki',
+  ribbonLangHungarian: 'Hungary',
   ribbonAiCreditNote: 'Menggunakan AI dan menggunakan kredit',
   ribbonAiRewriteConfirm:
     'Tindakan ini memanggil AI: menggunakan kredit dan mungkin menulis semula keseluruhan kandungan. Teruskan? (Tidak akan ditanya lagi.)',
@@ -54,6 +55,7 @@ export const ms = {
   ribbonFilePrint: 'Cetak…',
   ribbonFileExportImages: 'Eksport sebagai PNG…',
   ribbonFileExportImagesJpg: 'Eksport sebagai JPG…',
+  ribbonFileExportVideo: 'Eksport sebagai video (MP4)…',
   ribbonUnsavedSuffix: ' — Belum disimpan',
   ribbonSaveTip: 'Simpan (⌘S)',
   ribbonAutoSave: 'AutoSimpan',

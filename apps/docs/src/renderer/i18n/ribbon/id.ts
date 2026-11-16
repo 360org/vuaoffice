@@ -25,6 +25,7 @@ export const id = {
   ribbonLangTraditionalChinese: 'Tionghoa Tradisional',
   ribbonLangVietnamese: 'Vietnam',
   ribbonLangTurkish: 'Turki',
+  ribbonLangHungarian: 'Hongaria',
   ribbonAiCreditNote: 'Menggunakan AI dan menghabiskan kredit',
   ribbonAiRewriteConfirm:
     'Tindakan ini memanggil AI: menghabiskan kredit dan dapat menulis ulang seluruh konten. Lanjutkan? (Tidak akan ditanya lagi.)',
@@ -798,6 +799,8 @@ export const id = {
   ribbonOutlineView: 'Kerangka',
   ribbonOutlineViewTip:
     'Tampilan Kerangka: hanya menampilkan hierarki judul; judul tetap dapat diedit',
+  ribbonStoryView: 'Cerita',
+  ribbonStoryViewTip: 'Cerita: menulis tanpa format dokumen',
   ribbonReadMode: 'Mode Baca',
   ribbonReadModeTip: 'Mode Baca: sembunyikan ribbon agar fokus membaca, tekan Esc untuk keluar',
   ribbonPagePreview: 'Pratinjau Halaman',

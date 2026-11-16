@@ -25,6 +25,7 @@ export const ms = {
   ribbonLangTraditionalChinese: 'Cina Tradisional',
   ribbonLangVietnamese: 'Vietnam',
   ribbonLangTurkish: 'Turki',
+  ribbonLangHungarian: 'Hungary',
   ribbonAiCreditNote: 'Menggunakan AI dan menggunakan kredit',
   ribbonAiRewriteConfirm:
     'Tindakan ini memanggil AI: menggunakan kredit dan mungkin menulis semula keseluruhan kandungan. Teruskan? (Tidak akan ditanya lagi.)',
@@ -802,6 +803,8 @@ export const ms = {
   ribbonOutlineView: 'Rangka',
   ribbonOutlineViewTip:
     'Pandangan rangka: paparkan hierarki tajuk sahaja; tajuk kekal boleh diedit',
+  ribbonStoryView: 'Cerita',
+  ribbonStoryViewTip: 'Cerita: menulis tanpa format dokumen',
   ribbonReadMode: 'Mod Baca',
   ribbonReadModeTip: 'Mod baca: sembunyikan reben untuk pembacaan fokus, tekan Esc untuk keluar',
   ribbonPagePreview: 'Pratonton Halaman',

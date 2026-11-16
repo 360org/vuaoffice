@@ -20,7 +20,7 @@ Tệp Word, Excel, PowerPoint và PDF do bạn và AI của bạn cùng chỉnh 
   <a href="https://x.com/merrickbuilds"><img src="https://img.shields.io/badge/follow-%40merrickbuilds-000000?logo=x&logoColor=white" alt="Follow @merrickbuilds on X"></a>
 </p>
 
-<p align="center"><a href="../../README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.pt-BR.md">Português</a> · <a href="README.de.md">Deutsch</a> · <a href="README.fr.md">Français</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.ko.md">한국어</a> · <a href="README.ja.md">日本語</a> · <a href="README.ar.md">العربية</a> · <a href="README.ru.md">Русский</a> · <a href="README.it.md">Italiano</a> · <a href="README.nl.md">Nederlands</a> · <a href="README.pl.md">Polski</a> · <a href="README.cs.md">Čeština</a> · <a href="README.id.md">Bahasa Indonesia</a> · <a href="README.ms.md">Bahasa Melayu</a> · <a href="README.th.md">ไทย</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.he.md">עברית</a> · <b>Tiếng Việt</b> · <a href="README.tr.md">Türkçe</a></p>
+<p align="center"><a href="../../README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.pt-BR.md">Português</a> · <a href="README.de.md">Deutsch</a> · <a href="README.fr.md">Français</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.ko.md">한국어</a> · <a href="README.ja.md">日本語</a> · <a href="README.ar.md">العربية</a> · <a href="README.ru.md">Русский</a> · <a href="README.it.md">Italiano</a> · <a href="README.nl.md">Nederlands</a> · <a href="README.pl.md">Polski</a> · <a href="README.cs.md">Čeština</a> · <a href="README.id.md">Bahasa Indonesia</a> · <a href="README.ms.md">Bahasa Melayu</a> · <a href="README.th.md">ไทย</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.he.md">עברית</a> · <b>Tiếng Việt</b> · <a href="README.tr.md">Türkçe</a> · <a href="README.hu.md">Magyar</a></p>
 
 <p align="center">
   <a href="#download"><b>Tải xuống</b></a> ·
@@ -361,6 +361,12 @@ trình soạn thảo Word hiện rõ. Cả hai được mô tả ở
 <a href="#mcp-server">Máy chủ MCP</a>.</td>
 </tr>
 </table>
+
+### 11 · Tệp cũ — `.doc`, `.xls` và `.ppt` từ những năm 2000 cũng mở được
+
+Tệp `.doc` của Word 97–2003, `.xls` của Excel hoặc `.ppt` của PowerPoint được mở dưới dạng bản sao `.docx`, `.xlsx` hoặc `.pptx` đã chuyển đổi ngay trên máy của bạn; tệp gốc không bao giờ bị thay đổi. Hình ảnh, bảng, công thức, định dạng số, màu tô và bố cục đều được giữ lại.
+
+<img src="../assets/readme/legacy-formats-motion.webp" alt="Video tua nhanh GenOffice mở các tệp .ppt, .doc và .xls của một báo cáo thường niên giả định năm 2004, sau đó là một slide hiển thị trong PowerPoint bên cạnh bản trình bày đã chuyển đổi trong GenOffice" width="100%">
 
 ## Vì sao chọn GenOffice
 

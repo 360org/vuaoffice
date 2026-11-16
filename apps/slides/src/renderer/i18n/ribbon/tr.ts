@@ -25,6 +25,7 @@ export const tr = {
   ribbonLangHindi: 'Hintçe',
   ribbonLangVietnamese: 'Vietnamca',
   ribbonLangTurkish: 'Türkçe',
+  ribbonLangHungarian: 'Macarca',
   ribbonAiCreditNote: 'AI kullanır ve kredi harcar',
   ribbonAiRewriteConfirm:
     'Bu eylem AI asistanını çağırır: kredi harcar ve tüm içeriği yeniden yazabilir. Devam edilsin mi? (Bir daha sorulmayacak.)',
@@ -54,6 +55,7 @@ export const tr = {
   ribbonFilePrint: 'Yazdır…',
   ribbonFileExportImages: 'PNG Olarak Dışa Aktar…',
   ribbonFileExportImagesJpg: 'JPG Olarak Dışa Aktar…',
+  ribbonFileExportVideo: 'Video Olarak Dışa Aktar (MP4)…',
   ribbonUnsavedSuffix: ' — Kaydedilmedi',
   ribbonSaveTip: 'Kaydet (⌘S)',
   ribbonAutoSave: 'Otomatik Kaydet',

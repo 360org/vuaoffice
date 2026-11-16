@@ -19,7 +19,7 @@
   <a href="https://github.com/genspark-ai/genoffice/stargazers"><img src="https://img.shields.io/github/stars/genspark-ai/genoffice?style=flat" alt="نجوم GitHub"></a>
 </p>
 
-<p align="center"><a href="../../README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.pt-BR.md">Português</a> · <a href="README.de.md">Deutsch</a> · <a href="README.fr.md">Français</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.ko.md">한국어</a> · <a href="README.ja.md">日本語</a> · <b>العربية</b> · <a href="README.ru.md">Русский</a> · <a href="README.it.md">Italiano</a> · <a href="README.nl.md">Nederlands</a> · <a href="README.pl.md">Polski</a> · <a href="README.cs.md">Čeština</a> · <a href="README.id.md">Bahasa Indonesia</a> · <a href="README.ms.md">Bahasa Melayu</a> · <a href="README.th.md">ไทย</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.he.md">עברית</a> · <a href="README.vi.md">Tiếng Việt</a> · <a href="README.tr.md">Türkçe</a></p>
+<p align="center"><a href="../../README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.pt-BR.md">Português</a> · <a href="README.de.md">Deutsch</a> · <a href="README.fr.md">Français</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.ko.md">한국어</a> · <a href="README.ja.md">日本語</a> · <b>العربية</b> · <a href="README.ru.md">Русский</a> · <a href="README.it.md">Italiano</a> · <a href="README.nl.md">Nederlands</a> · <a href="README.pl.md">Polski</a> · <a href="README.cs.md">Čeština</a> · <a href="README.id.md">Bahasa Indonesia</a> · <a href="README.ms.md">Bahasa Melayu</a> · <a href="README.th.md">ไทย</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.he.md">עברית</a> · <a href="README.vi.md">Tiếng Việt</a> · <a href="README.tr.md">Türkçe</a> · <a href="README.hu.md">Magyar</a></p>
 
 <p align="center" dir="rtl">
   <a href="#download"><b>التنزيل</b></a> ·
@@ -220,6 +220,12 @@ Desktop وCursor وأي عميل MCP آخر تشغيل `genoffice mcp` بأنف�
 <td dir="rtl"><b>اتصل مرة واحدة، من الإعدادات → التكاملات</b> — انسخ سطر <code>claude mcp add</code> لـ Claude Code، أو كتلة JSON إلى Cursor أو Claude Desktop أو أي عميل MCP آخر. يفعِّل الخيار B خادم HTTP المحلي لمحرِّر Word المرئي. كلاهما موضّح في <a href="#mcp-server">خادم MCP</a>.</td>
 </tr>
 </table>
+
+### 9 · الملفات القديمة — ملفات `.doc` و`.xls` و`.ppt` من العقد الأول من الألفية تُفتح أيضاً
+
+يُفتح ملف Word 97–2003 بصيغة `.doc` أو ملف Excel بصيغة `.xls` أو ملف PowerPoint بصيغة `.ppt` كنسخة محوَّلة بصيغة `.docx` أو `.xlsx` أو `.pptx` تُنشأ على جهازك؛ والملف الأصلي لا يتغير أبداً. تنتقل الصور والجداول والصيغ وتنسيقات الأرقام والتعبئات والتخطيط.
+
+<img src="../assets/readme/legacy-formats-motion.webp" alt="عرض سريع لـ GenOffice وهو يفتح ملفات .ppt و.doc و.xls لتقرير سنوي خيالي لعام 2004، ثم شريحة واحدة معروضة في PowerPoint بجانب العرض المحوَّل في GenOffice" width="100%">
 
 ## لماذا GenOffice
 

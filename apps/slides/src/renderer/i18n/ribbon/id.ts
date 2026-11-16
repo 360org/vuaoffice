@@ -25,6 +25,7 @@ export const id = {
   ribbonLangHindi: 'Hindi',
   ribbonLangVietnamese: 'Vietnam',
   ribbonLangTurkish: 'Turki',
+  ribbonLangHungarian: 'Hongaria',
   ribbonAiCreditNote: 'Menggunakan AI dan menghabiskan kredit',
   ribbonAiRewriteConfirm:
     'Tindakan ini memanggil AI: menghabiskan kredit dan dapat menulis ulang seluruh konten. Lanjutkan? (Tidak akan ditanya lagi.)',
@@ -56,6 +57,7 @@ export const id = {
   ribbonFilePrint: 'Cetak…',
   ribbonFileExportImages: 'Ekspor sebagai PNG…',
   ribbonFileExportImagesJpg: 'Ekspor sebagai JPG…',
+  ribbonFileExportVideo: 'Ekspor sebagai video (MP4)…',
   ribbonUnsavedSuffix: ' — Belum disimpan',
   ribbonSaveTip: 'Simpan (⌘S)',
   ribbonAutoSave: 'Simpan Otomatis',

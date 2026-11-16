@@ -24,6 +24,7 @@ export const zh = {
   ribbonLangHindi: '印地文',
   ribbonLangVietnamese: '越南文',
   ribbonLangTurkish: '土耳其文',
+  ribbonLangHungarian: '匈牙利文',
   ribbonAiCreditNote: '将调用 AI 并消耗额度',
   ribbonAiRewriteConfirm:
     '此操作将调用 AI：会消耗额度，并可能改写整篇内容。是否继续？（确认后不再提示）',
@@ -54,6 +55,7 @@ export const zh = {
   ribbonFilePrint: '打印…',
   ribbonFileExportImages: '导出为 PNG…',
   ribbonFileExportImagesJpg: '导出为 JPG…',
+  ribbonFileExportVideo: '导出为视频 (MP4)…',
   ribbonUnsavedSuffix: ' — 未保存',
   ribbonSaveTip: '保存 (⌘S)',
   ribbonAutoSave: '自动保存',

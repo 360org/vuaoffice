@@ -25,6 +25,7 @@ export const vi = {
   ribbonLangHindi: 'Tiếng Hindi',
   ribbonLangVietnamese: 'Tiếng Việt',
   ribbonLangTurkish: 'Tiếng Thổ Nhĩ Kỳ',
+  ribbonLangHungarian: 'Tiếng Hungary',
   ribbonAiCreditNote: 'Sử dụng AI và tiêu tốn tín dụng',
   ribbonAiRewriteConfirm:
     'Thao tác này sẽ gọi trợ lý AI: tiêu tốn tín dụng và có thể viết lại toàn bộ nội dung. Bạn có muốn tiếp tục? (Sau khi xác nhận sẽ không hỏi lại nữa.)',
@@ -54,6 +55,7 @@ export const vi = {
   ribbonFilePrint: 'In…',
   ribbonFileExportImages: 'Xuất dưới dạng PNG…',
   ribbonFileExportImagesJpg: 'Xuất dưới dạng JPG…',
+  ribbonFileExportVideo: 'Xuất dưới dạng video (MP4)…',
   ribbonUnsavedSuffix: ' — Chưa lưu',
   ribbonSaveTip: 'Lưu (⌘S)',
   ribbonAutoSave: 'Tự động lưu',

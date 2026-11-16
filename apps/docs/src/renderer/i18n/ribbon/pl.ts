@@ -25,6 +25,7 @@ export const pl = {
   ribbonLangTraditionalChinese: 'tradycyjny chiński',
   ribbonLangVietnamese: 'wietnamski',
   ribbonLangTurkish: 'turecki',
+  ribbonLangHungarian: 'węgierski',
   ribbonAiCreditNote: 'Używa AI i zużywa kredyty',
   ribbonAiRewriteConfirm:
     'Ta akcja wywołuje AI: zużywa kredyty i może przepisać całą treść. Kontynuować? (Nie zapytamy ponownie.)',
@@ -800,6 +801,8 @@ export const pl = {
   ribbonOutlineView: 'Konspekt',
   ribbonOutlineViewTip:
     'Widok konspektu: pokaż tylko hierarchię nagłówków; nagłówki pozostają edytowalne',
+  ribbonStoryView: 'Story',
+  ribbonStoryViewTip: 'Story: pisanie bez formatowania dokumentu',
   ribbonReadMode: 'Tryb czytania',
   ribbonReadModeTip:
     'Tryb czytania: ukryj wstążkę, aby skupić się na czytaniu; naciśnij Esc, aby wyjść',

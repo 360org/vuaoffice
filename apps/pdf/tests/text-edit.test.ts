@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs'
 import { inflateSync } from 'node:zlib'
-import { PDFDocument, StandardFonts } from 'pdf-lib'
+import { PDFDict, PDFDocument, PDFName, StandardFonts } from 'pdf-lib'
 import { describe, expect, it } from 'vitest'
 import {
   applyTextEdits,
@@ -8,9 +8,11 @@ import {
   mergeEngineCodepoints,
   textInsertAxes,
   eraseTextRuns,
+  keptStandardFont,
   loadPdfium,
   saveDoc,
   validateTextEdits,
+  winAnsiCovers,
   withDocument,
 } from '../src/main/text-edit'
 import { SYNTHETIC_BOLD_STROKE_EM } from '../src/shared/ipc'
@@ -166,6 +168,51 @@ describe('applyTextEdits translate (block move)', () => {
     expect(result.skipped).toHaveLength(1)
     expect(result.skipped[0]!.reason).toMatch(/moved as one unit/)
     expect(await extractText(result.bytes)).toBe('Alpha beta gamma')
+  })
+})
+
+describe('standard fonts on rebuild', () => {
+  it('covers French text, the euro sign and the oe ligature in WinAnsi, not CJK', () => {
+    expect(winAnsiCovers('Ligne réécrite, ŒUVRE à 5 € — « fin »')).toBe(true)
+    expect(winAnsiCovers('\u5e94\u4ed8')).toBe(false)
+    expect(winAnsiCovers('Ā')).toBe(false)
+  })
+
+  it('keeps a non-embedded standard font only when nothing asks for another face', () => {
+    expect(keptStandardFont('Helvetica', false, {}, 'abc')).toBe('Helvetica')
+    expect(keptStandardFont('Times-Bold', false, {}, 'abc')).toBe('Times-Bold')
+    expect(keptStandardFont('Helvetica', true, {}, 'abc')).toBeNull()
+    expect(keptStandardFont('Helvetica', false, { newFont: 'arial' }, 'abc')).toBeNull()
+    expect(keptStandardFont('Helvetica', false, { newItalic: true }, 'abc')).toBeNull()
+    expect(keptStandardFont('Helvetica', false, {}, '\u5e94\u4ed8')).toBeNull()
+    expect(keptStandardFont('ArialMT', false, {}, 'abc')).toBeNull()
+    expect(keptStandardFont('Symbol', false, {}, 'abc')).toBeNull()
+  })
+
+  for (const face of [StandardFonts.Helvetica, StandardFonts.TimesRoman, StandardFonts.Courier]) {
+    it(`rebuilds a ${face} run with ${face} itself, nothing embedded`, async () => {
+      const f = await makeFixture('Ligne 5 de la page 3', face)
+      const out = await applyAll(f.bytes, [
+        edit(f, 'Ligne 5 de la page 3', 'Ligne 5 de la page 3, ŒUVRE à 5 €\nsuite réécrite'),
+      ])
+      const raw = Buffer.from(out).toString('latin1')
+      expect(raw).not.toMatch(/\/FontFile/)
+      expect(raw).not.toMatch(/Liberation|Arial/)
+      const pdf = await PDFDocument.load(out)
+      const fonts = pdf.context
+        .enumerateIndirectObjects()
+        .map(([, o]) => o)
+        .filter((o) => o instanceof PDFDict && o.get(PDFName.of('Type')) === PDFName.of('Font'))
+        .map((o) => (o as PDFDict).get(PDFName.of('BaseFont'))?.toString())
+      expect(new Set(fonts)).toEqual(new Set([`/${face}`]))
+      expect(await extractText(out)).toBe('Ligne 5 de la page 3, ŒUVRE à 5 €suite réécrite')
+    })
+  }
+
+  it('still embeds a face when the new text leaves WinAnsi', async () => {
+    const f = await makeFixture('Amount due 500')
+    const out = await applyAll(f.bytes, [edit(f, 'Amount due 500', 'Amount due Ā 500\nnext')])
+    expect(Buffer.from(out).toString('latin1')).toMatch(/\/FontFile/)
   })
 })
 
@@ -1475,8 +1522,11 @@ describe('whitespace edits (space deletion/insertion between runs)', () => {
     try {
       const content = await (await pdf.getPage(1)).getTextContent()
       const items = content.items
-        .filter((i): i is { str: string; transform: number[] } => 'str' in i && !!i.str.trim())
-        .map((i) => ({ str: i.str, x: i.transform[4]! }))
+        .filter(
+          (i): i is { str: string; transform: number[]; width: number } =>
+            'str' in i && !!i.str.trim(),
+        )
+        .map((i) => ({ str: i.str, x: i.transform[4]!, end: i.transform[4]! + i.width }))
       // 'phone' must be contiguous (one item, no gap where the deleted space sat)
       // and the untouched prefix stays anchored at the original line start. The
       // unchanged words are kept as original objects now, so pdf.js may split
@@ -1486,10 +1536,10 @@ describe('whitespace edits (space deletion/insertion between runs)', () => {
       expect(prefix.x).toBeCloseTo(xs[0]!, 1)
       // 'bill' moves left by about the deleted space width (rebuild-font advances
       // for the redrawn middle allow some tolerance, but the gap must be gone)
-      const bill = items.find((i) => i.str.startsWith('bill'))!
+      const billX = Math.max(...items.map((i) => i.end)) - font.widthOfTextAtSize('bill', 14)
       const spaceW = font.widthOfTextAtSize(' ', 14)
-      expect(bill.x).toBeLessThan(xs[6]! - spaceW * 0.5)
-      expect(bill.x).toBeGreaterThan(xs[6]! - spaceW * 2.5)
+      expect(billX).toBeLessThan(xs[6]! - spaceW * 0.5)
+      expect(billX).toBeGreaterThan(xs[6]! - spaceW * 2.5)
     } finally {
       await pdf.loadingTask.destroy()
     }
@@ -1525,13 +1575,16 @@ describe('whitespace edits (space deletion/insertion between runs)', () => {
     try {
       const content = await (await pdf.getPage(1)).getTextContent()
       const items = content.items
-        .filter((i): i is { str: string; transform: number[] } => 'str' in i && !!i.str.trim())
-        .map((i) => ({ str: i.str, x: i.transform[4]! }))
+        .filter(
+          (i): i is { str: string; transform: number[]; width: number } =>
+            'str' in i && !!i.str.trim(),
+        )
+        .map((i) => ({ str: i.str, x: i.transform[4]!, end: i.transform[4]! + i.width }))
       // 'bill' moves right by roughly the inserted space width
-      const bill = items.find((i) => i.str.startsWith('bill'))!
+      const billX = Math.max(...items.map((i) => i.end)) - font.widthOfTextAtSize('bill', 14)
       const spaceW = font.widthOfTextAtSize(' ', 14)
-      expect(bill.x).toBeGreaterThan(xs[3]! + spaceW * 0.3)
-      expect(bill.x).toBeLessThan(xs[3]! + spaceW * 2.5)
+      expect(billX).toBeGreaterThan(xs[3]! + spaceW * 0.3)
+      expect(billX).toBeLessThan(xs[3]! + spaceW * 2.5)
     } finally {
       await pdf.loadingTask.destroy()
     }
@@ -1703,5 +1756,168 @@ describe('eraseTextRuns', () => {
     const { erased, bytes } = await erase(f.bytes, [edit(f, 'Never was here', '')])
     expect(erased).toEqual([false])
     expect(await extractText(bytes)).toBe('Still here')
+  })
+})
+
+describe('reveal edits on the OCR bake layer (#2549)', () => {
+  /** visible anchor text + an invisible white bake-layer run, like a saved scan */
+  async function scanFixture(): Promise<Fixture> {
+    const f = await makeFixture('Existing text')
+    const r = await applyTextInserts(f.bytes, [
+      {
+        pageIndex: 0,
+        origin: [50, 650],
+        text: 'Scanned words',
+        fontSize: 14,
+        color: [255, 255, 255],
+        invisible: true,
+      },
+    ])
+    return {
+      bytes: r.bytes,
+      // the invisible run's match rect (engine matches the text; the rect scopes it)
+      rect: [45, 644, 150, 668],
+    }
+  }
+
+  const fillColors = (bytes: Uint8Array) => {
+    const raw = Buffer.from(bytes)
+    const text = raw.toString('latin1')
+    let content = ''
+    for (const m of text.matchAll(/(?<!end)stream\r?\n/g)) {
+      const start = m.index! + m[0].length
+      const chunk = raw.subarray(start, text.indexOf('endstream', start))
+      let body: string
+      try {
+        body = inflateSync(chunk).toString('latin1')
+      } catch {
+        body = chunk.toString('latin1')
+      }
+      if (/T[jJ]/.test(body)) content += body
+    }
+    return [...content.matchAll(/([\d.]+) ([\d.]+) ([\d.]+) rg\b/g)].map((m) =>
+      m.slice(1).map(Number),
+    )
+  }
+
+  it('keeps the bake layer invisible when the edit does not reveal', async () => {
+    const f = await scanFixture()
+    const check = await validateTextEdits(f.bytes, [
+      {
+        pageIndex: 0,
+        rect: f.rect,
+        oldText: 'Scanned words',
+        newText: 'Edited words',
+        fontSize: 14,
+      },
+    ])
+    expect(check[0]?.reason).toBeNull()
+    const out = await applyAll(f.bytes, [
+      {
+        pageIndex: 0,
+        rect: f.rect,
+        oldText: 'Scanned words',
+        newText: 'Edited words',
+        fontSize: 14,
+      },
+    ])
+    expect(await extractText(out)).toContain('Edited words')
+    // render mode 3 survived the rewrite
+    expect(strokeOps(out).renderModes).toContain(3)
+  })
+
+  it('reveal rebuilds the run visible with a black fill', async () => {
+    const f = await scanFixture()
+    const out = await applyAll(f.bytes, [
+      {
+        pageIndex: 0,
+        rect: f.rect,
+        oldText: 'Scanned words',
+        newText: 'Edited words',
+        fontSize: 14,
+        reveal: true,
+      },
+    ])
+    expect(await extractText(out)).toContain('Edited words')
+    // no invisible object remains, and the rebuilt run draws black
+    expect(strokeOps(out).renderModes).not.toContain(3)
+    expect(fillColors(out)).toContainEqual([0, 0, 0])
+  })
+
+  // The reveal toggle follows the data: the validation reports the matched run
+  // as invisible, so a scan that was recognized, saved and reopened still
+  // offers the eye.
+  it('the validation reports the matched run as invisible', async () => {
+    const f = await scanFixture()
+    const check = await validateTextEdits(f.bytes, [
+      {
+        pageIndex: 0,
+        rect: f.rect,
+        oldText: 'Scanned words',
+        newText: 'Scanned words',
+        fontSize: 14,
+      },
+    ])
+    expect(check[0]?.reason).toBeNull()
+    expect(check[0]?.invisible).toBe(true)
+  })
+
+  // The reveal must not take the in-place path: that one only rewrites the
+  // glyphs, so a run whose text does not change would keep its invisible
+  // rendering (mode 3, white fill) and the reveal would show nothing.
+  it('reveal draws the run even when the text does not change', async () => {
+    const f = await scanFixture()
+    const out = await applyAll(f.bytes, [
+      {
+        pageIndex: 0,
+        rect: f.rect,
+        oldText: 'Scanned words',
+        newText: 'Scanned words',
+        fontSize: 14,
+        reveal: true,
+      },
+    ])
+    expect(strokeOps(out).renderModes).not.toContain(3)
+    expect(fillColors(out)).toContainEqual([0, 0, 0])
+  })
+
+  // A stroke puts the run in fill+stroke (mode 2) and surfaces the bake
+  // layer's white glyphs on the scanned page — the very regression the reveal
+  // removes. Without a reveal the run stays invisible.
+  it('bold without a reveal keeps the bake layer invisible', async () => {
+    const f = await scanFixture()
+    const out = await applyAll(f.bytes, [
+      {
+        pageIndex: 0,
+        rect: f.rect,
+        oldText: 'Scanned words',
+        newText: 'Edited words',
+        fontSize: 14,
+        newBold: true,
+      },
+    ])
+    expect(strokeOps(out).renderModes).toContain(3)
+    expect(strokeOps(out).renderModes).not.toContain(2)
+  })
+
+  it('reveal with an explicit color keeps the caller color', async () => {
+    const f = await scanFixture()
+    const out = await applyAll(f.bytes, [
+      {
+        pageIndex: 0,
+        rect: f.rect,
+        oldText: 'Scanned words',
+        newText: 'Edited words',
+        fontSize: 14,
+        newColor: [200, 10, 10],
+        reveal: true,
+      },
+    ])
+    expect(strokeOps(out).renderModes).not.toContain(3)
+    // content-stream floats round: compare channels approximately
+    const red = fillColors(out).find(
+      (c) => Math.abs(c[0]! - 200 / 255) < 0.01 && Math.abs(c[1]! - 10 / 255) < 0.01,
+    )
+    expect(red).toBeDefined()
   })
 })
