@@ -18,7 +18,7 @@ export const hu = {
   aiQcStopped: 'Elrendezés-ellenőrzés leállítva',
   aiQcCapped: '{count} további oldal ellenőrizetlen maradt (futásonkénti korlát)',
   aiGskLoginBtn: 'Bejelentkezés a Gensparkba',
-  aiPanelTitle: 'Genspark',
+  aiPanelTitle: 'VuaAI Pro',
   aiOpenAssistant: 'AI-asszisztens megnyitása',
   aiFactCheckBtn: 'AI-tényellenőrzés',
   aiFactCheckPrompt:

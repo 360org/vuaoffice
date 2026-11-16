@@ -29,7 +29,7 @@ export const isTimesClassFace = (face: string): boolean =>
 export const SEGOE_SYMBOL_CSS = "'Segoe UI Symbol GO'"
 
 /** the face whose only glyph is the balanced-width space, as a CSS family */
-export const BALANCED_SPACE_CSS = "'GenOffice Balanced Space'"
+export const BALANCED_SPACE_CSS = "'VuaOffice Balanced Space'"
 
 /** family name of the blank PUA face in fonts.css */
 export const PUA_BLANK_FAMILY = 'GenOffice PUA Blank'

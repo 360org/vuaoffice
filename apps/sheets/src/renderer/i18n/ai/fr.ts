@@ -5,7 +5,7 @@ export const fr = {
   aiEmptyBuildTitle: "Laissez l'IA construire ce classeur pour vous",
   aiEmptyBuildBody:
     "Décrivez le tableau, les données ou le graphique voulu — l'IA les crée directement.",
-  aiGskLoginBtn: 'Se connecter à Genspark',
+  aiGskLoginBtn: 'Se connecter à VuaOffice',
   aiUndelivered: 'Non envoyé',
   aiRetry: 'Réessayer',
   aiOpenAssistant: "Ouvrir l'assistant IA",
@@ -56,7 +56,7 @@ export const fr = {
   aiLoggedInAs: 'Connecté : {email}',
   aiNotLoggedIn: 'Non connecté (les fonctions IA nécessitent un compte Genspark)',
   aiWaitingBrowserLogin: 'En attente de la connexion dans le navigateur…',
-  aiLoginGenspark: 'Se connecter à Genspark',
+  aiLoginGenspark: 'Se connecter à VuaOffice',
   aiModel: 'Modèle',
   aiCancel: 'Annuler',
   aiSave: 'Enregistrer',

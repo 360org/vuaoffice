@@ -151,7 +151,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-              Chọn file từ máy tính để import vào hộp thư GenOffice Mail:
+              Chọn file từ máy tính để import vào hộp thư VuaOffice Mail:
             </span>
             <input
               type="file"

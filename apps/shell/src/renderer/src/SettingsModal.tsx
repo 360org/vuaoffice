@@ -83,6 +83,7 @@ const AI_FONT_SIZE_OPTIONS = [
 export const DECISION_ENDPOINTS: { value: DecisionEndpoint; label: string }[] = [
   { value: 'openrouter', label: 'Jev (OpenRouter)' },
   { value: 'direct', label: 'Jev (TypeSafe API)' },
+  { value: 'gemini', label: 'Google (Decisions API)' },
   { value: 'perplexity', label: 'Perplexity (v1 27B)' },
   { value: 'perplexity-v12', label: 'Perplexity (v1.2)' },
   { value: 'perplexity-flash', label: 'Perplexity (Flash v1.2)' },
@@ -365,7 +366,7 @@ function ShortcutsPane({ t }: { t: TFunc }) {
             Bật phím tắt chụp màn hình toàn hệ thống (Global Shortcuts)
           </div>
           <div className="set-hotkey-master-desc">
-            Cho phép chụp ảnh màn hình từ bất kỳ cửa sổ hoặc ứng dụng nào mà không cần chuyển về GenOffice
+            Cho phép chụp ảnh màn hình từ bất kỳ cửa sổ hoặc ứng dụng nào mà không cần chuyển về VuaOffice
           </div>
         </div>
         <button
@@ -1043,7 +1044,7 @@ export function SettingsModal({
                     <div className="set-ai-meta-item">
                       <span className="set-ai-meta-label">Gói AI</span>
                       <span className="set-ai-meta-val">
-                        {aiStatus?.packName || (aiStatus?.hasPack ? 'Gói Genspark AI' : 'Chưa gán gói AI')}
+                        {aiStatus?.packName || (aiStatus?.hasPack ? 'Gói VuaAI Pro' : 'Chưa gán gói AI')}
                       </span>
                     </div>
                     <div className="set-ai-meta-item">
@@ -1271,6 +1272,23 @@ export function SettingsModal({
                 <div className="set-field">
                   <div className="set-field-text">
                     <div className="set-field-stack">
+                      <div className="set-field-label">{t('setAiShowAskTrigger')}</div>
+                      <div className="set-field-desc">{t('setAiShowAskTriggerDesc')}</div>
+                    </div>
+                  </div>
+                  <button
+                    className="set-switch"
+                    role="switch"
+                    aria-checked={aiPrefs.showAiAskTrigger ?? true}
+                    aria-label={t('setAiShowAskTrigger')}
+                    onClick={() =>
+                      updateAiPrefs({ showAiAskTrigger: !(aiPrefs.showAiAskTrigger ?? true) })
+                    }
+                  />
+                </div>
+                <div className="set-field">
+                  <div className="set-field-text">
+                    <div className="set-field-stack">
                       <label className="set-field-label" htmlFor="set-author-name">
                         {t('setAuthorName')}
                       </label>
@@ -1440,7 +1458,7 @@ export function SettingsModal({
                 </div>
                 {appVersion && (
                   <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border-subtle)', color: 'var(--text-muted)', fontSize: '12px' }}>
-                    GenOffice v{appVersion} · Phát triển bởi 360 CORP (support@360.org.vn)
+                    VuaOffice v{appVersion} · Phát triển bởi 360 CORP (support@360.org.vn)
                   </div>
                 )}
               </>

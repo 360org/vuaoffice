@@ -11,7 +11,7 @@ export const hu = {
   aiStarterContinue: 'Folytasd az írást ott, ahol a dokumentum abbahagyta',
   aiStarterFillTemplate: 'Keresd meg és töltsd ki a dokumentum helyőrzőit',
   aiGskLoginBtn: 'Bejelentkezés a Gensparkba',
-  aiPanelTitle: 'Genspark',
+  aiPanelTitle: 'VuaAI Pro',
   aiOpenAssistant: 'AI-asszisztens megnyitása',
   aiSummarizeBtn: 'AI-összefoglalás',
   aiSummarizePrompt: 'Foglald össze a dokumentum fő tartalmát és legfontosabb pontjait',

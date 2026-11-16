@@ -3,6 +3,21 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.65] - 2026-11-16
+
+### [MERGE] Hợp nhất bản cập nhật Upstream (87 commits) & Nâng cấp bảo mật
+
+- **[MERGE] Đồng bộ toàn diện lõi Upstream genoffice**:
+  - Hợp nhất 87 commits từ upstream/main: cập nhật bản vá bảo mật Node.js brotli (CVE-2026-111497) qua Electron ^43.8.10.
+  - Nâng cấp bộ chuyển đổi ODF sang OOXML (`odf2ooxml`), PDF2DOCX, DOC2DOCX và công cụ định dạng bảng biểu Sheets/Docs.
+  - Bổ sung ngôn ngữ giao diện tiếng Hungary (hu) đồng bộ toàn diện trên 1630 tệp mã nguồn.
+  - Tối ưu hoá sao chép định dạng EMF sang Windows clipboard.
+- **[PRESERVE] Bảo toàn tuyệt đối 13 tính năng độc quyền 360 CORP**:
+  - Bảo toàn trọn vẹn 13 tính năng: VuaOffice Mail, Egress Tunnel, Screenshots Vector & Trợ lý AI, Cài đặt 4 mục, Biểu đồ tiêu thụ AI, và Hộp thoại in PDF chuẩn hoá.
+- **[TEST]**:
+  - `brand:gate` ĐẠT 100% (13/13 tính năng độc quyền 360 CORP).
+  - Toàn bộ unit tests và typecheck vượt qua 100%.
+
 ## [1.0.64] - 2026-11-16
 
 ### [FIX] PDF: Tối ưu hoá toàn diện giao diện Hộp thoại In (Print Dialog) & Tinh gọn Cài đặt VuaOffice Super-App

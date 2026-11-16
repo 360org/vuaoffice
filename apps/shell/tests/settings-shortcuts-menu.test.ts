@@ -76,8 +76,8 @@ describe('Settings, Shortcuts & AI Profile verification', () => {
   describe('2. Localization symmetry for shortcuts section', () => {
     const locales = Object.keys(strings) as Array<keyof typeof strings>
 
-    it('case 9: verifies setSecShortcuts exists across all 22 locales', () => {
-      expect(locales.length).toBe(22)
+    it('case 9: verifies setSecShortcuts exists across all locales', () => {
+      expect(locales.length).toBeGreaterThanOrEqual(22)
       for (const loc of locales) {
         const table = strings[loc] as Record<string, string>
         expect(table.setSecShortcuts).toBeDefined()

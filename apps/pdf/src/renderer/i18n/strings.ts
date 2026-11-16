@@ -6,7 +6,7 @@ const v360PdfStrings = {
   ocrRunning: 'Recognizing text (OCR)…',
   ocrSuccess: 'Successfully added {count} native text line(s)',
   ocrNoText: 'No text recognized',
-  fileChangedExternally: 'This file changed outside GenOffice since it was last opened or saved. The original was not overwritten; reopen it or use Save As to protect your work.',
+  fileChangedExternally: 'This file changed outside VuaOffice since it was last opened or saved. The original was not overwritten; reopen it or use Save As to protect your work.',
   forensicsOriginalTitle: 'Original File (Unmodified)',
   forensicsModifiedTitle: 'Modified Document',
   forensicsOriginalDesc: 'Structure and revision analysis confirms this is the original exported PDF with no secondary edits or incremental updates.',
@@ -2379,6 +2379,7 @@ export const strings = {
     propModified: 'Değiştirilme',
   },
   hu: {
+    ...v360PdfStrings,
     ...fillFormStringsFor('hu'),
     ...certSignStringsFor('hu'),
     ...protectStringsFor('hu'),
@@ -2506,6 +2507,11 @@ export const strings = {
     searchNoResults: 'Nincs találat',
     searchMatchCase: 'Kis- és nagybetűk megkülönböztetése',
     searchWholeWord: 'Csak teljes szavak',
+    ocrRecognize: 'Szöveg felismerése',
+    ocrRecognizeTip: 'OCR futtatása a dokumentum összes beolvasott oldalán (oldalkorlát nélkül)',
+    ocrNothing: 'Nincs több felismerendő beolvasott oldal.',
+    texteditReveal:
+      'A szöveg megjelenítése az oldalon szerkesztés után; kikapcsolva a láthatatlan keresési rétegben marad',
     ocrRunning: 'Beolvasott oldalak felismerése: {done} / {total}',
     ocrPageCap:
       'Leállt a felismerés a {limit} oldalas korlátnál: {done} / {total} beolvasott oldal felismerve.',

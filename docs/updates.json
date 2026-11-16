@@ -1,5 +1,20 @@
 [
   {
+    "version": "1.0.65",
+    "date": "16/11/2026",
+    "highlight": "Hợp nhất toàn diện 87 bản cập nhật mới nhất từ upstream genoffice (bảo mật Node.js brotli, sửa lỗi xuất file ODF/PDF2DOCX, tối ưu hóa xử lý văn bản tiếng Hungary và Windows clipboard), bảo toàn 100% 13 tính năng độc quyền của VuaOffice.",
+    "features": [
+      {
+        "title": "Hợp nhất upstream genoffice mới nhất",
+        "desc": "Nâng cấp Electron bảo mật brotli (CVE-2026-111497); hoàn thiện bộ lọc xuất nhập tài liệu ODF và chuyển đổi PDF2DOCX; bổ sung ngôn ngữ giao diện tiếng Hungary (hu); tối ưu hoá sao chép EMF clipboard trên Windows."
+      },
+      {
+        "title": "Bảo toàn tuyệt đối 13 tính năng 360 CORP",
+        "desc": "Giữ vững 100% các tính năng độc quyền: VuaOffice Mail, Egress Tunnel, Screenshots Vector & Trợ lý AI, Cài đặt Siêu Ứng Dụng 4 mục, Biểu đồ tiêu thụ AI, và Hộp thoại in PDF chuẩn hoá 2 cột."
+      }
+    ]
+  },
+  {
     "version": "1.0.64",
     "date": "16/11/2026",
     "highlight": "Nâng cấp toàn diện bộ công cụ Chụp màn hình vector & Trợ lý AI thực thi tự động, tinh gọn giao diện Cài đặt Siêu Ứng Dụng kèm biểu đồ tiêu thụ AI, và chuẩn hoá giao diện Hộp thoại In PDF.",

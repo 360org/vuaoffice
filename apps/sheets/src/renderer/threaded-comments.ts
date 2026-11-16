@@ -30,7 +30,7 @@ export interface CellThread {
   readonly replies: readonly ThreadReply[]
 }
 
-export const FALLBACK_AUTHOR = 'GenOffice User'
+export const FALLBACK_AUTHOR = 'VuaOffice User'
 
 export interface CellRange {
   readonly startRow: number
