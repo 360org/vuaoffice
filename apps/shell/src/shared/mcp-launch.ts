@@ -24,7 +24,7 @@ export function mcpLaunch(cli: {
 
 function windowsAppLaunch(dir: string): McpLaunch {
   return {
-    command: `${dir}\\..\\..\\VuaOffice.exe`,
+    command: `${dir}\\..\\..\\GenOffice.exe`,
     args: [`${dir}\\genoffice.cjs`, 'mcp'],
     env: { ELECTRON_RUN_AS_NODE: '1' },
   }

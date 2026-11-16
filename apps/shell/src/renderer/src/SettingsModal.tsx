@@ -365,7 +365,7 @@ function ShortcutsPane({ t }: { t: TFunc }) {
             Bật phím tắt chụp màn hình toàn hệ thống (Global Shortcuts)
           </div>
           <div className="set-hotkey-master-desc">
-            Cho phép chụp ảnh màn hình từ bất kỳ cửa sổ hoặc ứng dụng nào mà không cần chuyển về VuaOffice
+            Cho phép chụp ảnh màn hình từ bất kỳ cửa sổ hoặc ứng dụng nào mà không cần chuyển về GenOffice
           </div>
         </div>
         <button
@@ -1043,7 +1043,7 @@ export function SettingsModal({
                     <div className="set-ai-meta-item">
                       <span className="set-ai-meta-label">Gói AI</span>
                       <span className="set-ai-meta-val">
-                        {aiStatus?.packName || (aiStatus?.hasPack ? 'Gói VuaAI Pro' : 'Chưa gán gói AI')}
+                        {aiStatus?.packName || (aiStatus?.hasPack ? 'Gói Genspark AI' : 'Chưa gán gói AI')}
                       </span>
                     </div>
                     <div className="set-ai-meta-item">
@@ -1440,7 +1440,7 @@ export function SettingsModal({
                 </div>
                 {appVersion && (
                   <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border-subtle)', color: 'var(--text-muted)', fontSize: '12px' }}>
-                    VuaOffice v{appVersion} · Phát triển bởi 360 CORP (support@360.org.vn)
+                    GenOffice v{appVersion} · Phát triển bởi 360 CORP (support@360.org.vn)
                   </div>
                 )}
               </>

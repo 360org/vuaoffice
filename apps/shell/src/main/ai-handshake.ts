@@ -77,7 +77,7 @@ export async function handshakeOdooAiConfig(
   const deviceUid = getHardwareMachineId()
   writeAppSetting(appSettingsPath, 'deviceUid', deviceUid)
 
-  const appName = app.getName() || 'VuaOffice'
+  const appName = app.getName() || 'GenOffice'
   const appVer = app.getVersion() || '1.0.0'
   const deviceName = os.hostname() || 'Desktop'
   const osName = os.type() + ' ' + os.release()
@@ -213,7 +213,7 @@ export async function handshakeOdooAiConfig(
                     deviceUid,
                     token: data.api_key,
                   })
-                  console.log('[AI Handshake] VuaOffice Egress Tunnel initialized via 360/tunnel')
+                  console.log('[AI Handshake] GenOffice Egress Tunnel initialized via 360/tunnel')
                 } catch (tunnelErr: any) {
                   console.warn('[AI Handshake] Egress tunnel start warning:', tunnelErr?.message)
                 }
@@ -303,7 +303,7 @@ export async function selectOdooAiPack(
             'Content-Length': Buffer.byteLength(payload),
             Authorization: 'Bearer ' + (auth.accessToken || auth.apiKey),
             'X-Device-Uid': deviceUid,
-            'X-Client-App': (app.getName() || 'VuaOffice') + '/' + (app.getVersion() || '1.0.0'),
+            'X-Client-App': (app.getName() || 'GenOffice') + '/' + (app.getVersion() || '1.0.0'),
           },
         },
         (res) => {
