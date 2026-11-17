@@ -62,6 +62,24 @@ const fontCdnUrl = normalizeHttpsBaseUrl(
 // alias) keys off which dmgs exist, so flipping this flag is the single
 // switch.
 const includeMacX64 = process.env.GENOFFICE_MAC_X64 === '1'
+const cliHasX64 = process.argv.includes('--x64')
+const cliHasArm64 = process.argv.includes('--arm64')
+const macTargetArchs = cliHasX64
+  ? ['x64']
+  : cliHasArm64
+    ? ['arm64']
+    : includeMacX64
+      ? ['arm64', 'x64']
+      : ['arm64']
+
+const canSignMac = Boolean(process.env.CSC_LINK || process.env.CSC_NAME)
+const canNotarizeMac = Boolean(
+  process.env.APPLE_KEYCHAIN_PROFILE ||
+    (process.env.APPLE_ID &&
+      process.env.APPLE_APP_SPECIFIC_PASSWORD &&
+      process.env.APPLE_TEAM_ID &&
+      canSignMac),
+)
 
 // GENOFFICE_WIN_ARM64=1 — package the Windows ARM64 installer instead of x64.
 // CI runs it as a second electron-builder pass (own BUILD_DIR) after the
@@ -732,8 +750,8 @@ const config = {
     // electron-updater picks by process.arch. Dual-arch packs ship the same
     // lipo fat xlsx-sidecar (see assertUniversalSidecar above).
     target: [
-      { target: 'dmg', arch: includeMacX64 ? ['arm64', 'x64'] : ['arm64'] },
-      { target: 'zip', arch: includeMacX64 ? ['arm64', 'x64'] : ['arm64'] },
+      { target: 'dmg', arch: macTargetArchs },
+      { target: 'zip', arch: macTargetArchs },
     ],
     category: 'public.app-category.productivity',
     hardenedRuntime: true,
@@ -746,7 +764,7 @@ const config = {
       NSMicrophoneUsageDescription:
         'VuaOffice records your narration when you record a slide show.',
     },
-    notarize: true,
+    notarize: canNotarizeMac,
     extraResources: [
       {
         from: '../sheets/native/xlsx-engine/target/release/xlsx-sidecar',
@@ -889,7 +907,7 @@ const config = {
     ensureThirdPartyNotices()
     assertModuleTreesPresent()
     ensureCliBundleCarriesAppVersion()
-    if (context.electronPlatformName === 'darwin' && includeMacX64) {
+    if (context.electronPlatformName === 'darwin' && macTargetArchs.length > 1) {
       assertUniversalSidecar()
       assertUniversalVisionOcr()
     }
@@ -917,7 +935,7 @@ const config = {
     }
   },
   dmg: {
-    sign: true,
+    sign: canSignMac,
   },
   afterAllArtifactBuild: 'build/notarize-dmg.js',
 }
