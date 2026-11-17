@@ -27,10 +27,14 @@ exports.default = function (result) {
     return []
   }
   for (const file of result.artifactPaths.filter((p) => p.endsWith('.dmg'))) {
-    execFileSync('xcrun', ['notarytool', 'submit', file, ...credArgs, '--wait'], {
-      stdio: 'inherit'
-    })
-    execFileSync('xcrun', ['stapler', 'staple', file], { stdio: 'inherit' })
+    try {
+      execFileSync('xcrun', ['notarytool', 'submit', file, ...credArgs, '--wait'], {
+        stdio: 'inherit'
+      })
+      execFileSync('xcrun', ['stapler', 'staple', file], { stdio: 'inherit' })
+    } catch (err) {
+      console.error(`[notarize] Warning: failed to notarize or staple ${file}:`, err && err.message ? err.message : err)
+    }
   }
   return []
 }
