@@ -764,7 +764,9 @@ const config = {
       NSMicrophoneUsageDescription:
         'VuaOffice records your narration when you record a slide show.',
     },
-    notarize: canNotarizeMac,
+    // Notarization is safely handled by afterAllArtifactBuild (build/notarize-dmg.js)
+    // with try/catch fallback so network timeouts do not break packaging.
+    notarize: false,
     extraResources: [
       {
         from: '../sheets/native/xlsx-engine/target/release/xlsx-sidecar',
