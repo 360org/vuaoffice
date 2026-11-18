@@ -152,6 +152,12 @@ Nguyên tắc nền tảng:
 8b. **Bản ghi kiểm toán BẤT BIẾN**: cấm sửa/ghi đè/xoá tệp trong `docs/audits/`.
    Kiểm toán mới → tạo tệp mới `AUDIT-<YYYY-MM-DD>-<version>.md` kèm banner
    `<!-- AUDIT-IMMUTABLE -->`. Cổng `audit:check` sẽ chặn nếu vi phạm.
+8c. **Changelogs chỉ viết cho người dùng cuối (LUẬT CỨNG BẮT BUỘC)**: Mọi nội dung cập nhật
+   trong `docs/updates.json`, `docs/CHANGELOGS.md` và trên `vuaoffice.com` TUYỆT ĐỐI CHỈ
+   NÊU TÍNH NĂNG & TRẢI NGHIỆM CÓ GIÁ TRỊ THIẾT THỰC VỚI CLIENT / USER. Nghiêm cấm đưa
+   thuật ngữ kỹ thuật nội bộ, tên dự án gốc upstream (genoffice...), mã lỗi/bảo mật CVE,
+   thư viện nền tảng (brotli, wasm...), hay các ngôn ngữ không phục vụ trực tiếp khách hàng
+   vào changelog.
 9. **Đồng bộ upstream**: chạy `npm run upstream:setup` một lần mỗi máy (Git
    KHÔNG tự kích hoạt merge driver `ours` khi clone — thiếu bước này thì
    `.gitattributes` im lặng vô tác dụng). Merge **thẳng vào `main`**, chạy

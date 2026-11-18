@@ -43,11 +43,11 @@
   outline: none; /* receives initial focus as the dialog container */
   display: flex;
   flex-direction: column;
-  width: 540px;
+  width: min(600px, calc(100vw - 48px));
   /* 420px is the design-spec height for the anchor languages; longer locales
    * (de/ru/ar wrap the slide-2 copy to 3 lines) grow the card instead of
    * overflowing the fixed box and eating the bottom padding */
-  min-height: 420px;
+  min-height: 440px;
   max-width: calc(100vw - 48px);
   max-height: calc(100vh - 48px);
   border-radius: 20px;
@@ -55,7 +55,7 @@
   box-shadow:
     0 24px 64px rgba(35, 36, 37, 0.22),
     0 2px 8px rgba(35, 36, 37, 0.08);
-  padding: 41px 32px 25px;
+  padding: 32px 32px 24px;
 }
 
 /* all slides render stacked in one grid cell; the tallest one sets the card
@@ -130,6 +130,29 @@
 
 .onb-art-check {
   margin-left: -4px;
+}
+
+/* ── Video guide embed (Slide 2) ── */
+.onb-video-container {
+  width: 100%;
+  margin-top: 14px;
+  position: relative;
+  padding-bottom: 56.25%; /* 16:9 ratio */
+  height: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--onb-btn-primary);
+  border: 1px solid var(--onb-border-default);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.onb-video-frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
 }
 
 .onb-title {

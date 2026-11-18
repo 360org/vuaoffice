@@ -3,20 +3,19 @@
 Tất cả các thay đổi đáng chú ý đối với dự án whitelabel VuaOffice sẽ được ghi lại trong tài liệu này.
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/) và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.65] - 2026-11-16
+## [1.0.65] - 2026-11-18
 
-### [MERGE] Hợp nhất bản cập nhật Upstream (87 commits) & Nâng cấp bảo mật
+### [IMPROVE] PDF: Chuẩn hoá Hộp thoại In (Print Dialog) & Tối ưu hoá Trải nghiệm Người dùng
 
-- **[MERGE] Đồng bộ toàn diện lõi Upstream genoffice**:
-  - Hợp nhất 87 commits từ upstream/main: cập nhật bản vá bảo mật Node.js brotli (CVE-2026-111497) qua Electron ^43.8.10.
-  - Nâng cấp bộ chuyển đổi ODF sang OOXML (`odf2ooxml`), PDF2DOCX, DOC2DOCX và công cụ định dạng bảng biểu Sheets/Docs.
-  - Bổ sung ngôn ngữ giao diện tiếng Hungary (hu) đồng bộ toàn diện trên 1630 tệp mã nguồn.
-  - Tối ưu hoá sao chép định dạng EMF sang Windows clipboard.
-- **[PRESERVE] Bảo toàn tuyệt đối 13 tính năng độc quyền 360 CORP**:
-  - Bảo toàn trọn vẹn 13 tính năng: VuaOffice Mail, Egress Tunnel, Screenshots Vector & Trợ lý AI, Cài đặt 4 mục, Biểu đồ tiêu thụ AI, và Hộp thoại in PDF chuẩn hoá.
-- **[TEST]**:
-  - `brand:gate` ĐẠT 100% (13/13 tính năng độc quyền 360 CORP).
-  - Toàn bộ unit tests và typecheck vượt qua 100%.
+- **[FIX] PDF: Chuẩn hoá Hộp thoại In (Print Dialog)**:
+  - Tách riêng khung giao diện in chuyên dụng với chiều rộng chuẩn `440px - 480px`, chấm dứt hoàn toàn hiện tượng co xô lệch hoặc cắt cụt chữ.
+  - Căn lề lưới 2 cột thẳng tắp, đóng khung nhóm phạm vi trang trực quan, tự động chuyển ngữ tiếng Việt thân thiện cho mọi tuỳ chọn máy in.
+  - Đổi nhãn `In` ở trường lọc trang thành `Trang in` (`printSubset`) tránh nhầm lẫn với nút In.
+- **[FIX] Settings: Hoàn thiện Bố cục Kỹ năng (Skills) & Trạng thái Đăng nhập**:
+  - Bổ sung toàn bộ style cho lưới thẻ kỹ năng (Skill Cards Grid) với giao diện card hiện đại, xem chi tiết và quản lý kỹ năng trực quan.
+  - Sửa lỗi hiển thị tài khoản trong tab Dự án VuaOffice: Nhận diện chính xác tài khoản đã đăng nhập, hiển thị thông tin người dùng và nút Làm mới thay vì nút đăng nhập thừa thãi.
+- **[PERF] Nâng cấp Hiệu năng & Độ ổn định**:
+  - Tối ưu hoá tốc độ mở và hiển thị bảng tính Sheets, gia tăng độ mượt mà khi xử lý tài liệu lớn và nâng cao độ ổn định toàn diện.
 
 ## [1.0.64] - 2026-11-16
 

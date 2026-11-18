@@ -2119,7 +2119,7 @@ const CLOUD_KIND_EXT: Record<string, string> = { docs: 'docx', sheets: 'xlsx', s
 /** rows revealed per "load more" step; purely client-side over the local snapshot */
 const CLOUD_REVEAL_STEP = 100
 
-function CloudProjectsView() {
+function CloudProjectsView({ accountStatus }: { accountStatus?: AccountStatus | null }) {
   const i18n = useI18n()
   const { t } = i18n
   const [snapshot, setSnapshot] = useState<CloudProjectsSnapshot | null>(null)
@@ -2245,17 +2245,9 @@ function CloudProjectsView() {
   }
 
   const renderBody = () => {
-    if (snapshot && !snapshot.available) {
-      return (
-        <p className="empty proj-empty">
-          <span className="empty-hint">{t('cloudLoginHint')}</span>
-          <button className="btn btn-secondary" disabled={loginWaiting} onClick={startLogin}>
-            {loginWaiting ? t('waitingShort') : t('login')}
-          </button>
-        </p>
-      )
-    }
-    if (!snapshot) {
+    const isUserLoggedIn = accountStatus?.loggedIn ?? false
+
+    if (isUserLoggedIn) {
       if (loading || syncing) {
         return (
           <div className="load-more" aria-hidden="true">
@@ -2263,23 +2255,57 @@ function CloudProjectsView() {
           </div>
         )
       }
-      return (
-        <p className="empty proj-empty">
-          <span className="empty-hint">{t('cloudError')}</span>
-          <button className="btn btn-secondary" onClick={() => startSync()}>
-            {t('cloudRetry')}
-          </button>
-        </p>
-      )
-    }
-    if (list.length === 0) {
-      return (
-        <p className="empty proj-empty">
-          <span className="empty-hint">
-            {t(q ? 'cloudNoResults' : kind === 'all' ? 'cloudEmpty' : 'emptyFiltered')}
-          </span>
-        </p>
-      )
+      if (!snapshot || !snapshot.available || list.length === 0) {
+        const accountLabel = accountStatus?.name || accountStatus?.email
+        return (
+          <p className="empty proj-empty">
+            <span className="empty-hint">
+              {accountLabel ? `${t('loggedIn')}: ${accountLabel}. ` : ''}
+              {t(q ? 'cloudNoResults' : kind === 'all' ? 'cloudEmpty' : 'emptyFiltered')}
+            </span>
+            <button className="btn btn-secondary" disabled={syncing} onClick={() => startSync()}>
+              {syncing ? t('waitingShort') : t('cloudRefresh')}
+            </button>
+          </p>
+        )
+      }
+    } else {
+      if (snapshot && !snapshot.available) {
+        return (
+          <p className="empty proj-empty">
+            <span className="empty-hint">{t('cloudLoginHint')}</span>
+            <button className="btn btn-secondary" disabled={loginWaiting} onClick={startLogin}>
+              {loginWaiting ? t('waitingShort') : t('login')}
+            </button>
+          </p>
+        )
+      }
+      if (!snapshot) {
+        if (loading || syncing) {
+          return (
+            <div className="load-more" aria-hidden="true">
+              <span className="load-more-spinner" />
+            </div>
+          )
+        }
+        return (
+          <p className="empty proj-empty">
+            <span className="empty-hint">{t('cloudError')}</span>
+            <button className="btn btn-secondary" onClick={() => startSync()}>
+              {t('cloudRetry')}
+            </button>
+          </p>
+        )
+      }
+      if (list.length === 0) {
+        return (
+          <p className="empty proj-empty">
+            <span className="empty-hint">
+              {t(q ? 'cloudNoResults' : kind === 'all' ? 'cloudEmpty' : 'emptyFiltered')}
+            </span>
+          </p>
+        )
+      }
     }
     return (
       <div className="cloud-scroll">
@@ -2560,11 +2586,13 @@ export function Home() {
   }, [])
   // name in the greeting; omitted when logged out
   const [accountName, setAccountName] = useState('')
+  const [accountStatus, setAccountStatus] = useState<AccountStatus | null>(null)
   // 360 CORP Projects is web-account data, so its nav entry only shows when logged in
   const [loggedIn, setLoggedIn] = useState(false)
   // single source of account state: AccountEntry reports every change (initial
   // load, login, logout), keeping the greeting name and the nav entry in sync
   const handleAccountStatus = useCallback((s: AccountStatus | null) => {
+    setAccountStatus(s)
     const on = s?.loggedIn ?? false
     setLoggedIn(on)
     if (!on) setCloudMode(false)
@@ -4754,7 +4782,7 @@ export function Home() {
           onOpenModelSettings={() => setSettingsRequest({ section: 'aiModel' })}
         />
       ) : cloudMode ? (
-        <CloudProjectsView />
+        <CloudProjectsView accountStatus={accountStatus} />
       ) : (
         renderGlobalContent()
       )}

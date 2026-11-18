@@ -1061,9 +1061,9 @@ export const strings = {
     onbSubtitle1: 'The first All in One Free, AI-native office suite',
     onbBody1:
       'Create docs, build sheets, make slides, View Markdown, Work with Email and review PDFs. AI is built into every step.',
-    onbTitle2: 'This is just the beginning',
+    onbTitle2: 'Installation & getting started guide',
     onbBody2:
-      'VuaOffice is still in alpha. Join the group chat on GenTeam to share feedback and help shape what comes next.',
+      'Watch the step-by-step video tutorial to install, configure permissions, and get started with VuaOffice.',
     onbCredits: 'Active contributors get **1,000+ 360 CORP credits**',
     onbJoinGenTeam: 'Join GenTeam',
     onbSkip: 'Skip',
@@ -1631,9 +1631,9 @@ export const strings = {
     onbSubtitle1: 'Bộ ứng dụng văn phòng AI nguồn mở đầu tiên',
     onbBody1:
       'Tạo tài liệu, xây dựng bảng tính, tạo bản trình bày và xem lại PDF. AI được tích hợp trong từng bước.',
-    onbTitle2: 'Đây mới chỉ là khởi đầu',
+    onbTitle2: 'Video hướng dẫn cài đặt & bắt đầu',
     onbBody2:
-      'VuaOffice vẫn đang trong giai đoạn alpha. Hãy tham gia nhóm trò chuyện trên GenTeam để chia sẻ phản hồi và định hình những bước phát triển tiếp theo.',
+      'Xem video hướng dẫn chi tiết cách cài đặt, cấp quyền bảo mật và sử dụng VuaOffice:',
     onbCredits: 'Thành viên đóng góp tích cực nhận được **1.000+ credit VuaOffice**',
     onbJoinGenTeam: 'Tham gia GenTeam',
     onbSkip: 'Bỏ qua',

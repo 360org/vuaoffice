@@ -1,35 +1,35 @@
 [
   {
     "version": "1.0.65",
-    "date": "16/11/2026",
-    "highlight": "Hợp nhất toàn diện 87 bản cập nhật mới nhất từ upstream genoffice (bảo mật Node.js brotli, sửa lỗi xuất file ODF/PDF2DOCX, tối ưu hóa xử lý văn bản tiếng Hungary và Windows clipboard), bảo toàn 100% 13 tính năng độc quyền của VuaOffice.",
+    "date": "18/11/2026",
+    "highlight": "Tối ưu hoá toàn diện giao diện Hộp thoại In (Print Dialog) trong PDF, hoàn thiện bố cục lưới thẻ Kỹ năng AI, chuẩn hoá nhận diện tài khoản trong Dự án VuaOffice và nâng cao độ mượt mà khi xử lý tài liệu.",
     "features": [
       {
-        "title": "Hợp nhất upstream genoffice mới nhất",
-        "desc": "Nâng cấp Electron bảo mật brotli (CVE-2026-111497); hoàn thiện bộ lọc xuất nhập tài liệu ODF và chuyển đổi PDF2DOCX; bổ sung ngôn ngữ giao diện tiếng Hungary (hu); tối ưu hoá sao chép EMF clipboard trên Windows."
+        "title": "Chuẩn hoá Hộp thoại In (Print Dialog) trong PDF",
+        "desc": "Khung in thiết kế 2 cột rộng rãi, thẳng hàng, chia nhóm phạm vi trang trực quan, chấm dứt hoàn toàn hiện tượng cắt chữ và tự động chuyển ngữ tiếng Việt thân thiện cho mọi tuỳ chọn máy in."
       },
       {
-        "title": "Bảo toàn tuyệt đối 13 tính năng 360 CORP",
-        "desc": "Giữ vững 100% các tính năng độc quyền: VuaOffice Mail, Egress Tunnel, Screenshots Vector & Trợ lý AI, Cài đặt Siêu Ứng Dụng 4 mục, Biểu đồ tiêu thụ AI, và Hộp thoại in PDF chuẩn hoá 2 cột."
+        "title": "Hoàn thiện Giao diện Kỹ năng (Skills) & Nhận diện Tài khoản",
+        "desc": "Bố cục lưới thẻ kỹ năng dạng card hiện đại, xem chi tiết và cài đặt kỹ năng dễ dàng; chuẩn hoá trạng thái hiển thị tài khoản đã đăng nhập trong mục Dự án VuaOffice."
+      },
+      {
+        "title": "Nâng cấp hiệu năng & Độ ổn định toàn diện",
+        "desc": "Tối ưu hoá tốc độ mở và hiển thị bảng tính Sheets, cải tiến sao chép đồ hoạ sắc nét sang ứng dụng ngoài và gia tăng độ ổn định của toàn bộ hệ thống."
       }
     ]
   },
   {
     "version": "1.0.64",
     "date": "16/11/2026",
-    "highlight": "Nâng cấp toàn diện bộ công cụ Chụp màn hình vector & Trợ lý AI thực thi tự động, tinh gọn giao diện Cài đặt Siêu Ứng Dụng kèm biểu đồ tiêu thụ AI, và chuẩn hoá giao diện Hộp thoại In PDF.",
+    "highlight": "Nâng cấp toàn diện bộ công cụ Chụp màn hình vector & Trợ lý AI thực thi tự động, tinh gọn giao diện Cài đặt Siêu Ứng Dụng kèm biểu đồ tiêu thụ AI.",
     "features": [
       {
         "title": "Chụp màn hình Vector & Trợ lý VuaAI Assistant",
-        "desc": "Hỗ trợ chọn, di chuyển, co giãn 8 điểm neo cho mọi hình vẽ; dán/chèn ảnh lớp phủ (⌘V); tích hợp Trợ lý AI tự động nhận diện multimodal vision để làm mờ thông tin nhạy cảm, vẽ chú thích, cắt ảnh và trích xuất OCR; hỗ trợ đính kèm tệp và nạp thẻ kỹ năng AI."
+        "desc": "Hỗ trợ chọn, di chuyển, co giãn 8 điểm neo cho mọi hình vẽ; dán/chèn ảnh lớp phủ (⌘V); tích hợp Trợ lý AI tự động làm mờ thông tin nhạy cảm, vẽ chú thích và trích xuất chữ OCR."
       },
       {
-        "title": "Tinh gọn Cài đặt & Biểu đồ tiêu thụ AI",
-        "desc": "Giao diện Cài đặt chuẩn Siêu Ứng Dụng với 4 phân mục tập trung (Tài khoản, Chung, Phím tắt, Kỹ năng); tích hợp biểu đồ tiêu thụ Tokens / Requests / Chi phí và tùy biến phím tắt chụp màn hình toàn hệ thống."
-      },
-      {
-        "title": "Chuẩn hoá Hộp thoại In (Print Dialog) trong PDF",
-        "desc": "Mở rộng khung hộp thoại in rộng rãi, căn lề lưới 2 cột thẳng tắp, đóng khung nhóm phạm vi trang trực quan, chấm dứt hoàn toàn hiện tượng cắt chữ và tự động chuyển ngữ tiếng Việt thân thiện cho tuỳ chọn máy in."
+        "title": "Bảng điều khiển Cài đặt Siêu Ứng Dụng & Quản lý AI",
+        "desc": "Giao diện Cài đặt tinh gọn với 4 phân mục tập trung (Tài khoản, Chung, Phím tắt, Kỹ năng); tích hợp biểu đồ tiêu thụ Tokens / Requests / Chi phí và tùy biến phím tắt chụp màn hình toàn hệ thống."
       }
     ]
   },

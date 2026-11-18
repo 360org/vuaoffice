@@ -21,11 +21,19 @@ interface Slide {
   showStar?: boolean
   /** closing slide explains default-on analytics and how to disable it */
   showAnalyticsNotice?: boolean
+  /** video slide embeds YouTube tutorial */
+  showVideo?: boolean
   art: 'logo' | 'gift' | 'check'
 }
 
 const SLIDES: readonly Slide[] = [
   { titleKey: 'onbTitle1', subtitleKey: 'onbSubtitle1', bodyKey: 'onbBody1', art: 'logo' },
+  {
+    titleKey: 'onbTitle2',
+    subtitleKey: 'onbBody2',
+    showVideo: true,
+    art: 'logo',
+  },
   {
     titleKey: 'onbTitle3',
     subtitleKey: 'onbBody3',
@@ -156,9 +164,20 @@ export function Onboarding({ onDone }: OnboardingProps) {
             >
               <SlideArt kind={s.art} />
               <h2 className="onb-title">{t(s.titleKey)}</h2>
-              <p className="onb-subtitle">{t(s.subtitleKey)}</p>
+              {s.subtitleKey && <p className="onb-subtitle">{t(s.subtitleKey)}</p>}
               {s.bodyKey && (
                 <p className={`onb-body${s.bodyDim ? ' onb-body-dim' : ''}`}>{t(s.bodyKey)}</p>
+              )}
+              {s.showVideo && (
+                <div className="onb-video-container">
+                  <iframe
+                    className="onb-video-frame"
+                    src="https://www.youtube-nocookie.com/embed/JWJR1u4bKUw"
+                    title="Video hướng dẫn cài đặt VuaOffice"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
               )}
               {s.showStar && (
                 <div className="onb-star">

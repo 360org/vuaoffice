@@ -62,8 +62,9 @@ const fontCdnUrl = normalizeHttpsBaseUrl(
 // alias) keys off which dmgs exist, so flipping this flag is the single
 // switch.
 const includeMacX64 = process.env.GENOFFICE_MAC_X64 === '1'
-const cliHasX64 = process.argv.includes('--x64')
-const cliHasArm64 = process.argv.includes('--arm64')
+const argv = typeof process !== 'undefined' && Array.isArray(process?.argv) ? process.argv : []
+const cliHasX64 = argv.includes('--x64')
+const cliHasArm64 = argv.includes('--arm64')
 const macTargetArchs = cliHasX64
   ? ['x64']
   : cliHasArm64
