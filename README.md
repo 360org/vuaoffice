@@ -34,19 +34,21 @@ Tất cả các bản phát hành được đóng gói tự động, bảo đả
 
 ---
 
-## 🏢 Trọn bộ 7 ứng dụng văn phòng tích hợp
+## 🏢 Trọn bộ 9 phân hệ văn phòng tích hợp
 
-VuaOffice cung cấp không gian làm việc đồng nhất dưới một cửa sổ thông minh với đầy đủ 7 phân hệ thiết yếu:
+VuaOffice cung cấp không gian làm việc đồng nhất dưới một cửa sổ thông minh với đầy đủ 9 phân hệ chuyên sâu:
 
 ```
 VuaOffice Suite
-├── 📄 VuaOffice Docs      → Soạn thảo văn bản chuẩn Word (.docx), giữ nguyên cấu trúc và bố cục.
-├── 📊 VuaOffice Sheets    → Bảng tính chuẩn Excel (.xlsx), hỗ trợ Pivot Table, biểu đồ và engine tính toán Rust tốc độ cao.
-├── 📽️ VuaOffice Slides    → Thiết kế bài trình chiếu chuyên nghiệp (.pptx), hỗ trợ layout hiện đại và text-shaping cao cấp.
-├── 📑 VuaOffice PDF       → Chỉnh sửa trực tiếp văn bản trong file PDF gốc, nhận dạng chữ tiếng Việt OCR ngoại tuyến.
-├── 📝 VuaOffice Markdown  → Trình biên soạn Markdown trực quan, chia đôi màn hình, dàn bài thông minh và xuất đa định dạng.
-├── 🌐 VuaOffice HTML      → Soạn thảo và xem trước trang web, tài liệu HTML động kèm trợ lý AI thiết kế bố cục.
-└── ✉️ VuaOffice Mail      → Quản lý Hộp thư điện tử (IMAP/POP3) và Lịch làm việc bảo mật cao, thay thế hoàn hảo Outlook.
+├── 📄 VuaOffice Docs         → Soạn thảo văn bản chuẩn Word (.docx), giữ nguyên cấu trúc và bố cục.
+├── 📊 VuaOffice Sheets       → Bảng tính chuẩn Excel (.xlsx), hỗ trợ Pivot Table, biểu đồ và engine tính toán Rust tốc độ cao.
+├── 📽️ VuaOffice Slides       → Thiết kế bài trình chiếu chuyên nghiệp (.pptx), hỗ trợ layout hiện đại và text-shaping cao cấp.
+├── 📑 VuaOffice PDF          → Chỉnh sửa trực tiếp văn bản trong file PDF gốc, nhận dạng chữ tiếng Việt OCR ngoại tuyến.
+├── 📝 VuaOffice Markdown     → Trình biên soạn Markdown trực quan, chia đôi màn hình, dàn bài thông minh và xuất đa định dạng.
+├── 🌐 VuaOffice HTML         → Soạn thảo mã nguồn HTML5/CSS3 với CodeMirror 6, xem trước thời gian thực (Live Preview) và sinh mã AI.
+├── ✉️ VuaOffice Mail         → Quản lý Hộp thư điện tử (IMAP/SMTP) và Lịch làm việc đa tài khoản, bảo mật cao thay thế Outlook 365.
+├── 📸 VuaOffice Screenshots  → Chụp màn hình đa chế độ, biên tập đồ họa vector chuyên nghiệp và Trợ lý AI nhận diện thị giác.
+└── 🧠 VuaOffice Native AI    → Động cơ Trợ lý AI trung tâm (VuaAI Pro), tự động hóa tác vụ đa ứng dụng và kết nối Egress Tunnel.
 ```
 
 ---
@@ -107,7 +109,7 @@ VuaOffice cung cấp sẵn máy chủ MCP nội bộ:
 
 <details>
 <summary><b>1. VuaOffice có miễn phí không?</b></summary>
-Có. VuaOffice được phát hành miễn phí cho người dùng cá nhân và doanh nghiệp. Người dùng có thể sử dụng trọn vẹn toàn bộ 7 ứng dụng văn phòng mà không bị giới hạn tính năng soạn thảo.
+Có. VuaOffice được phát hành miễn phí cho người dùng cá nhân và doanh nghiệp. Người dùng có thể sử dụng trọn vẹn toàn bộ 9 phân hệ văn phòng mà không bị giới hạn tính năng soạn thảo.
 </details>
 
 <details>

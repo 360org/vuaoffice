@@ -13,7 +13,9 @@ Dự án sử dụng mô hình npm workspaces với cấu trúc chuẩn hóa:
 ```text
 vuaoffice/
 ├── 360/                    # 🌟 Hệ sinh thái Độc quyền 360 CORP (Zero Upstream Conflict)
-│   ├── whitelabel/         # Cấu hình thương hiệu và tài nguyên đồ họa VuaOffice
+│   ├── brand-config.json   # Cấu hình thương hiệu và tài nguyên đồ họa VuaOffice
+│   ├── screenshots/        # Mô-đun Chụp màn hình & Biên tập Vector AI (AI Screenshots)
+│   ├── tunnel/             # Lõi Egress Tunnel chống mass ban (Native WSS Proxy)
 │   └── packages/
 │       └── file-creator/   # Package @360/file-creator (Sinh file đa định dạng & Artifacts)
 ├── apps/
@@ -22,6 +24,7 @@ vuaoffice/
 │   ├── slides/             # Ứng dụng Trình chiếu & Thiết kế Slide (.pptx)
 │   ├── pdf/                # Ứng dụng Xem & Ghi chú PDF (.pdf)
 │   ├── markdown/           # Ứng dụng Soạn thảo GFM Notes (.md)
+│   ├── html/               # Ứng dụng Soạn thảo Web & Trang HTML (.html)
 │   ├── mail/               # Ứng dụng Mail Client (Email & Lịch)
 │   └── shell/              # Khung ứng dụng Desktop chính (Host Shell)
 ├── packages/

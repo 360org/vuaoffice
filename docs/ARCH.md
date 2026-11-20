@@ -24,6 +24,7 @@ graph TD
         SlidesApp["apps/slides<br/>(PowerPoint/Pptx)"]
         PdfApp["apps/pdf<br/>(PDF Reader & Annotator)"]
         MdApp["apps/markdown<br/>(Tiptap GFM Notes)"]
+        HtmlApp["apps/html<br/>(Visual HTML & Web Sandbox)"]
         MailApp["apps/mail<br/>(AI Mail Client)"]
     end
 
@@ -44,7 +45,9 @@ graph TD
         CiBuild["GitHub Actions CI/CD<br/>(release.yml)"]
     end
 
-    subgraph "360-Office Extension Layer (360/packages/*)"
+    subgraph "360-Office Extension Layer (360/*)"
+        Screenshots["360/screenshots<br/>(AI Screenshots & Vector Editor)"]
+        Tunnel["360/tunnel<br/>(Egress Tunnel WSS Core)"]
         FileCreator["@360/file-creator<br/>(Universal File Generator & Artifacts)"]
         Seams["Capability Seams<br/>(IFileGenerator, IStorageService)"]
         ArtifactUi["Artifact Card UI<br/>(Download, Finder, Tab Open)"]
@@ -52,7 +55,7 @@ graph TD
 
     HomeRenderer --> PreloadBridge
     PreloadBridge --> MainProcess
-    MainProcess --> DocsApp & SheetsApp & SlidesApp & PdfApp & MdApp & MailApp
+    MainProcess --> DocsApp & SheetsApp & SlidesApp & PdfApp & MdApp & HtmlApp & MailApp
 
     DocsApp --> DocxEng & UiLib & I18nLib & AiProvider & AgentCore
     SheetsApp --> UiLib & I18nLib & AiProvider & AgentCore

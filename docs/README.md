@@ -20,7 +20,7 @@ Trang web giới thiệu trực quan hoàn chỉnh được lưu tại [`index.h
 
 ---
 
-## ⚡ 7 Công Nghệ Văn Phòng Cốt Lõi
+## ⚡ 9 Phân Hệ & Công Nghệ Văn Phòng Cốt Lõi
 
 | # | Công nghệ | Định dạng | Điểm nổi bật mang lại cho khách hàng |
 | :-: | :--- | :--- | :--- |
@@ -29,8 +29,10 @@ Trang web giới thiệu trực quan hoàn chỉnh được lưu tại [`index.h
 | **3** | **VuaOffice Slides** | `.pptx`, `.ppt` | Thiết kế bài thuyết trình trực quan, công nghệ HarfBuzz sắc nét, hỗ trợ trình chiếu 2 màn hình (Presenter View). |
 | **4** | **PDF Studio** | `.pdf` | Chỉnh sửa trực tiếp từng câu chữ trong tệp PDF giữ nguyên phông gốc; ký số điện tử không đóng dấu watermark. |
 | **5** | **VuaOffice Markdown** | `.md` | Soạn thảo Markdown (Định dạng AI) trực quan với Tiptap; live preview, hỗ trợ công thức toán, code highlight và xuất PDF/Word nhanh. |
-| **6** | **Mail & Calendar** | IMAP / SMTP | Ứng dụng thư điện tử và lịch biểu đa tài khoản tích hợp AI tóm tắt luồng thư (*Sắp ra mắt*). |
-| **7** | **Native AI Agentic** | Gateway 360 | Trợ lý thông minh kết nối trực tiếp trong từng ứng dụng; hỗ trợ cả Developer Mode để dùng API Key riêng. |
+| **6** | **VuaOffice HTML** | `.html`, `.htm` | Soạn thảo mã nguồn HTML5/CSS3 với CodeMirror 6, khung xem trước thời gian thực (Live Web Sandbox) và AI Web Builder. |
+| **7** | **Mail & Calendar** | IMAP / SMTP | Ứng dụng thư điện tử và lịch biểu đa tài khoản tích hợp AI tóm tắt luồng thư và gợi ý phản hồi thay thế Outlook 365. |
+| **8** | **Screenshots & Editor** | `.png`, `.jpg` | Chụp màn hình đa chế độ (Vùng chọn, Cửa sổ, Toàn màn hình) kết hợp biên tập vector (mũi tên, khung hình, chèn ảnh, pixelate) và Trợ lý AI nhận diện OCR. |
+| **9** | **Native AI Agentic** | Gateway 360 | Động cơ AI trung tâm kết nối trực tiếp trong từng ứng dụng; tích hợp Egress Tunnel chống mass ban và hỗ trợ Developer Mode dùng Key riêng. |
 
 ---
 
@@ -43,7 +45,7 @@ Trang web giới thiệu trực quan hoàn chỉnh được lưu tại [`index.h
 | **Tương thích MS Office (.docx, .xlsx)** | ✅ **Chuẩn 100% Layout & Font** (Không vỡ bố cục) | ✅ Gốc | Khá tốt (đôi khi lệch) | ⚠️ Thường lệch font & bảng |
 | **Chỉnh sửa chữ trực tiếp trong PDF** | ✅ **Tích hợp sẵn** (Giữ phông gốc, ký số miễn phí) | ❌ Cần mua thêm Adobe Acrobat | ⚠️ Khóa tính năng với bản Free | ⚠️ Vỡ layout khi mở qua Draw |
 | **Trí tuệ nhân tạo (Native AI)** | ✅ **Tích hợp sẵn** (VuaAI Pro + Developer Key) | ⚠️ Phụ thu Copilot $20-$30/tháng | ⚠️ Giới hạn điểm token/VIP | ❌ Không có |
-| **Bộ công cụ All-in-One** | ✅ **Docs, Sheets, Slides, PDF, MD, Mail** trong 1 app | Phân tán nhiều app riêng lẻ | Nhiều tab nhưng kèm QC | Thiếu PDF Studio & Markdown |
+| **Bộ công cụ All-in-One** | ✅ **Docs, Sheets, Slides, PDF, MD, HTML, Mail, Screenshots, AI** trong 1 app | Phân tán nhiều app riêng lẻ | Nhiều tab nhưng kèm QC | Thiếu PDF Studio & Markdown |
 | **Hiệu năng & Tốc độ** | ✅ **Rust Engine mở bảng tính lớn cực mượt** | Nặng, tốn tài nguyên RAM | Dễ crash khi mở file nặng | Khởi động chậm, font mờ |
 | **Bảo mật dữ liệu Offline** | ✅ **100% Offline trên thiết bị** (An toàn bảo mật) | Bắt buộc OneDrive | Lưu đám mây bên thứ ba | ✅ Chạy Offline |
 | **An toàn pháp lý doanh nghiệp** | ✅ **100% Hợp pháp** (Freeware không lo thanh tra) | ⚠️ Rủi ro bị phạt nếu dùng lậu | Bản Free chỉ cho cá nhân | ✅ Hợp pháp |
