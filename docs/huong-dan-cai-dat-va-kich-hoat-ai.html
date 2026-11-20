@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hướng Dẫn Cài Đặt & Kích Hoạt AI VuaOffice (Windows, macOS, Linux) — VuaOffice</title>
+  <meta name="description" content="Hướng dẫn chi tiết từng bước tải, cài đặt và kích hoạt trợ lý AI Copilot trên bộ phần mềm văn phòng VuaOffice cho máy tính Windows, macOS và Linux. Thao tác 100% bằng chuột trực quan, dễ hiểu.">
+  <meta name="keywords" content="hướng dẫn cài đặt vuaoffice, kích hoạt ai vuaoffice, ai pack vuahethong, cài đặt vuaoffice windows mac linux, office ai miễn phí">
+  <meta name="author" content="360 CORP">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://vuaoffice.com/huong-dan-cai-dat-va-kich-hoat-ai.html">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta name="theme-color" content="#0077cd">
+
+  <!-- Open Graph -->
+  <meta property="og:locale" content="vi_VN">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Hướng Dẫn Cài Đặt & Kích Hoạt AI VuaOffice — VuaOffice">
+  <meta property="og:description" content="Hướng dẫn từng bước tải, cài đặt và kích hoạt AI cho VuaOffice trên Windows, Mac và Linux. 100% trực quan bằng chuột.">
+  <meta property="og:url" content="https://vuaoffice.com/huong-dan-cai-dat-va-kich-hoat-ai.html">
+  <meta property="og:site_name" content="VuaOffice">
+
+  <style>
+    :root {
+      --bg: #090d16;
+      --bg-card: #131b2e;
+      --bg-card-hover: #1b2640;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #0077cd;
+      --accent-light: #38bdf8;
+      --accent-gradient: linear-gradient(135deg, #0077cd 0%, #00ce2c 100%);
+      --border: #222f49;
+      --success: #00ce2c;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --radius: 12px;
+      --container: 960px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+    }
+
+    a { color: var(--accent-light); text-decoration: none; transition: 0.2s ease; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: var(--container); margin: 0 auto; padding: 0 20px; }
+
+    /* Top banner */
+    .top-bar {
+      background: linear-gradient(90deg, #0077cd, #00ce2c);
+      color: #fff;
+      text-align: center;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .top-bar a { color: #fff; text-decoration: underline; font-weight: 700; margin-left: 8px; }
+
+    /* Header */
+    header {
+      background: rgba(9, 13, 22, 0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .nav-wrap {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      font-size: 20px;
+      color: #fff;
+    }
+    .brand-logo {
+      height: 34px;
+      width: auto;
+    }
+    .nav-links {
+      display: flex;
+      gap: 20px;
+      list-style: none;
+    }
+    .nav-links a {
+      color: var(--text-muted);
+      font-weight: 500;
+      font-size: 15px;
+    }
+    .nav-links a:hover, .nav-links a.active {
+      color: #fff;
+      text-decoration: none;
+    }
+
+    /* Main Content */
+    main {
+      padding: 50px 0 80px 0;
+    }
+
+    .hero-guide {
+      text-align: center;
+      margin-bottom: 50px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 6px 16px;
+      background: rgba(0, 119, 205, 0.2);
+      border: 1px solid rgba(0, 119, 205, 0.4);
+      color: var(--accent-light);
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: 36px;
+      line-height: 1.3;
+      margin-bottom: 16px;
+      background: linear-gradient(180deg, #fff 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-sub {
+      color: var(--text-muted);
+      font-size: 18px;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    /* OS Switcher Tabs */
+    .os-tabs-container {
+      margin-bottom: 40px;
+    }
+    .os-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      background: #101626;
+      padding: 6px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      max-width: 580px;
+      margin: 0 auto 30px auto;
+    }
+    .os-tab-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 12px 18px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 10px;
+      transition: all 0.25s ease;
+    }
+    .os-tab-btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .os-tab-btn.active {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(0, 119, 205, 0.35);
+    }
+
+    .tab-pane {
+      display: none;
+    }
+    .tab-pane.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Card Box */
+    .card-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      margin-bottom: 30px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+    }
+    .card-box h2 {
+      font-size: 22px;
+      margin-bottom: 20px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .step-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      background: var(--accent-gradient);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      border-radius: 50%;
+    }
+
+    /* Steps list */
+    .step-list {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .step-item {
+      position: relative;
+      padding-left: 36px;
+    }
+    .step-dot {
+      position: absolute;
+      left: 0;
+      top: 4px;
+      width: 22px;
+      height: 22px;
+      background: #1e293b;
+      border: 2px solid var(--accent-light);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent-light);
+    }
+    .step-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    .step-desc {
+      color: var(--text-muted);
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    /* Tips Box */
+    .callout {
+      background: rgba(0, 119, 205, 0.08);
+      border-left: 4px solid var(--accent);
+      padding: 16px 20px;
+      border-radius: 0 8px 8px 0;
+      margin: 16px 0;
+      font-size: 14px;
+      color: #cbd5e1;
+    }
+    .callout.warning {
+      background: rgba(245, 158, 11, 0.08);
+      border-left-color: var(--warning);
+    }
+    .callout.success {
+      background: rgba(0, 206, 44, 0.08);
+      border-left-color: var(--success);
+    }
+    .callout strong {
+      color: #fff;
+    }
+
+    /* Button */
+    .btn-main {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      background: var(--accent-gradient);
+      color: #fff;
+      font-weight: 600;
+      font-size: 15px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(0, 119, 205, 0.4);
+      transition: all 0.2s;
+    }
+    .btn-main:hover {
+      text-decoration: none;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 119, 205, 0.6);
+    }
+
+    /* Status Tags */
+    .tag-unlinked {
+      display: inline-block;
+      padding: 4px 12px;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #f87171;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .tag-active {
+      display: inline-block;
+      padding: 4px 12px;
+      background: rgba(0, 206, 44, 0.15);
+      border: 1px solid rgba(0, 206, 44, 0.4);
+      color: #4ade80;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    /* Shortcuts Table */
+    .tbl-shortcuts {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+    }
+    .tbl-shortcuts th, .tbl-shortcuts td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+    .tbl-shortcuts th {
+      color: var(--text-muted);
+      font-weight: 600;
+      background: #0f1524;
+    }
+    .tbl-shortcuts td {
+      color: #cbd5e1;
+    }
+    kbd {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: var(--accent-light);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 0;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+    footer a { color: var(--text-muted); }
+    footer a:hover { color: #fff; }
+
+    @media (max-width: 768px) {
+      h1 { font-size: 28px; }
+      .card-box { padding: 22px; }
+      .os-tabs { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Banner -->
+  <div class="top-bar">
+    ⚡ <strong>Cẩm Nang VuaOffice:</strong> Hướng dẫn cài đặt và thiết lập AI Copilot trên Windows, macOS và Linux. <a href="https://vuaoffice.com">← Quay về Trang Chủ</a>
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div class="container nav-wrap">
+      <a href="https://vuaoffice.com" class="brand" title="VuaOffice — Bộ Ứng Dụng Văn Phòng AI Trọn Gói">
+        <img src="assets/vuaoffice-logo.png" alt="VuaOffice" class="brand-logo">
+      </a>
+      <ul class="nav-links">
+        <li><a href="https://vuaoffice.com/#download">Tải Phần Mềm</a></li>
+        <li><a href="https://vuaoffice.com/#apps">Tính Năng</a></li>
+        <li><a href="https://vuaoffice.com/changelog.html">Cập Nhật</a></li>
+        <li><a href="huong-dan-cai-dat-va-kich-hoat-ai.html" class="active" style="color:var(--accent-light);">Hướng Dẫn & AI</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="container">
+
+    <div class="hero-guide">
+      <span class="badge">TÀI LIỆU HƯỚNG DẪN CHÍNH THỨC</span>
+      <h1>Cài Đặt & Kích Hoạt AI Trên VuaOffice</h1>
+      <p class="hero-sub">Thao tác 100% bằng chuột trực quan, dễ dàng kết nối mô hình trí tuệ nhân tạo (Claude, GPT, Gemini) để soạn thảo văn bản, làm bảng tính và tạo slide thông minh.</p>
+    </div>
+
+    <!-- OS Switcher Tabs -->
+    <div class="os-tabs-container">
+      <div class="os-tabs">
+        <button class="os-tab-btn active" onclick="switchOs('win')">
+          <span>🪟</span> Windows 10/11
+        </button>
+        <button class="os-tab-btn" onclick="switchOs('mac')">
+          <span>🍎</span> macOS (M1-M4 & Intel)
+        </button>
+        <button class="os-tab-btn" onclick="switchOs('linux')">
+          <span>🐧</span> Linux (Ubuntu / Mint / Debian)
+        </button>
+      </div>
+
+      <!-- TAB 1: WINDOWS -->
+      <div id="tab-win" class="tab-pane active">
+        <div class="card-box">
+          <h2><span class="step-number">1</span> Cài đặt VuaOffice trên Windows (Chỉ 2 phút)</h2>
+          <div class="step-list">
+            <div class="step-item">
+              <span class="step-dot">1</span>
+              <div class="step-title">Tải file cài đặt Windows</div>
+              <div class="step-desc">Truy cập <a href="https://vuaoffice.com" target="_blank">vuaoffice.com</a>, nhấp chuột vào nút <strong>"Tải về cho Windows"</strong> để tải file <code>VuaOffice-Setup.exe</code> về thư mục Downloads.</div>
+            </div>
+            <div class="step-item">
+              <span class="step-dot">2</span>
+              <div class="step-title">Chạy file cài đặt & Xử lý màn hình SmartScreen</div>
+              <div class="step-desc">
+                Nhấp đúp chuột vào file <code>VuaOffice-Setup.exe</code>.
+                <div class="callout warning">
+                  <strong>💡 Nếu Windows hiện màn hình xanh "Windows protected your PC":</strong><br>
+                  1. Nhấp chuột vào dòng chữ gạch chân: <u>More info</u> (Thông tin khác).<br>
+                  2. Nhấp nút: <strong>Run anyway</strong> (Vẫn chạy). Ứng dụng sẽ tự động cài đặt và tạo biểu tượng ngoài Desktop.
+                </div>
+              </div>
+            </div>
+            <div class="step-item">
+              <span class="step-dot">3</span>
+              <div class="step-title">Mở ứng dụng lần đầu</div>
+              <div class="step-desc">Nhấp đúp chuột vào biểu tượng <strong>VuaOffice</strong> ngoài màn hình Desktop để mở phần mềm.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: MACOS -->
+      <div id="tab-mac" class="tab-pane">
+        <div class="card-box">
+          <h2><span class="step-number">1</span> Cài đặt VuaOffice trên macOS (M1/M2/M3/M4 & Intel)</h2>
+          <div class="step-list">
+            <div class="step-item">
+              <span class="step-dot">1</span>
+              <div class="step-title">Tải file đĩa ảo .dmg phù hợp với chip máy Mac</div>
+              <div class="step-desc">Truy cập <a href="https://vuaoffice.com" target="_blank">vuaoffice.com</a> -> Chọn bản <strong>Apple Silicon (`arm64.dmg`)</strong> nếu dùng Mac M1/M2/M3/M4, hoặc bản <strong>Intel (`x64.dmg`)</strong> nếu dùng máy đời cũ.</div>
+            </div>
+            <div class="step-item">
+              <span class="step-dot">2</span>
+              <div class="step-title">Kéo thả cài đặt vào Applications</div>
+              <div class="step-desc">Nhấp đúp chuột mở file <code>.dmg</code> -> Dùng chuột <strong>nhấn giữ biểu tượng VuaOffice kéo thả vào thư mục Applications</strong> trong cửa sổ hiện ra.</div>
+            </div>
+            <div class="step-item">
+              <span class="step-dot">3</span>
+              <div class="step-title">Mở ứng dụng lần đầu & Vượt cảnh báo Gatekeeper</div>
+              <div class="step-desc">
+                <div class="callout warning">
+                  <strong>💡 Nếu macOS báo "VuaOffice is an app downloaded from the Internet":</strong><br>
+                  • <strong>Cách nhanh:</strong> Vào Finder -> Applications -> <strong>Nhấp chuột phải</strong> vào VuaOffice -> Chọn <strong>Open</strong> -> Bấm <strong>Open</strong> xác nhận.<br>
+                  • <strong>Cách qua Cài đặt:</strong> Vào menu Apple () -> System Settings -> Privacy & Security -> Cuộn xuống bấm <strong>Open Anyway</strong>.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: LINUX -->
+      <div id="tab-linux" class="tab-pane">
+        <div class="card-box">
+          <h2><span class="step-number">1</span> Cài đặt VuaOffice trên Linux (AppImage)</h2>
+          <div class="step-list">
+            <div class="step-item">
+              <span class="step-dot">1</span>
+              <div class="step-title">Tải file VuaOffice-*.AppImage</div>
+              <div class="step-desc">Truy cập <a href="https://vuaoffice.com" target="_blank">vuaoffice.com</a>, nhấp nút <strong>"Tải về cho Linux"</strong> để tải file <code>.AppImage</code>.</div>
+            </div>
+            <div class="step-item">
+              <span class="step-dot">2</span>
+              <div class="step-title">Cấp quyền thực thi bằng chuột (Properties)</div>
+              <div class="step-desc">
+                Mở thư mục Downloads trong Files -> Nhấp chuột phải vào file <code>.AppImage</code> -> Chọn <strong>Properties (Thuộc tính)</strong> -> Thẻ <strong>Permissions</strong> -> Tích chọn ô: <strong>"Allow executing file as program"</strong>. Sau đó nhấp đúp là mở ngay!
+                <div class="callout">
+                  <strong>💡 Mẹo:</strong> Nếu trên Ubuntu 22.04/24.04 chưa có FUSE, mở Terminal gõ lệnh cài đặt nhanh: <code>sudo apt install libfuse2 -y</code>.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHẦN 2: ĐĂNG NHẬP VÀ KÍCH HOẠT AI (CHUNG CHO CẢ 3 HỆ ĐIỀU HÀNH) -->
+    <div class="card-box">
+      <h2><span class="step-number">2</span> Đăng Nhập & Kích Hoạt Tính Năng AI Thông Minh</h2>
+      <p style="color:var(--text-muted); margin-bottom: 24px;">Quy trình 4 bước chuẩn để kết nối tài khoản và cấp gói trí tuệ nhân tạo (AI Pack) cho VuaOffice:</p>
+
+      <div class="step-list">
+        <!-- Bước 2.1 -->
+        <div class="step-item">
+          <span class="step-dot">1</span>
+          <div class="step-title">Đăng nhập tài khoản của bạn trên VuaOffice</div>
+          <div class="step-desc">
+            Nhìn xuống <strong>góc dưới cùng bên trái</strong> màn hình VuaOffice -> Nhấp vào biểu tượng hình người (<strong>Sign in / Đăng nhập</strong>).<br>
+            • Có thể chọn <strong>"Đăng nhập bằng Google"</strong> (nhanh nhất chỉ 1 click).<br>
+            • Hoặc nhập Email và Mật khẩu cá nhân/doanh nghiệp đã đăng ký.
+          </div>
+        </div>
+
+        <!-- Bước 2.2 -->
+        <div class="step-item">
+          <span class="step-dot">2</span>
+          <div class="step-title">Kiểm tra trạng thái AI trên menu tài khoản</div>
+          <div class="step-desc">
+            Khi nhấp vào tên của mình, nếu thấy dòng chữ màu đỏ: <span class="tag-unlinked">⚠️ Chưa gán AI ... Gán ngay →</span><br>
+            Hãy nhấp trực tiếp vào dòng chữ <strong>"Gán ngay →"</strong> (hoặc mở trình duyệt truy cập: <a href="https://vuahethong.net/my/ai-provider?tab=packs" target="_blank">vuahethong.net/my/ai-provider?tab=packs</a>).
+          </div>
+        </div>
+
+        <!-- Bước 2.3 -->
+        <div class="step-item">
+          <span class="step-dot">3</span>
+          <div class="step-title">Kết nối Nhà Cung Cấp & Tạo AI Pack Mới (BƯỚC QUAN TRỌNG NHẤT)</div>
+          <div class="step-desc">
+            Trên trang web quản lý AI:
+            <ol style="margin: 10px 0 10px 24px; color: #cbd5e1;">
+              <li><strong>Kết nối tài khoản:</strong> Bấm <strong>"+ Thêm Nhà Cung Cấp"</strong> -> Chọn <strong>Antigravity CLI (OAuth)</strong> -> Đăng nhập tài khoản Google để kích hoạt trạng thái <span class="tag-active">Active</span>.</li>
+              <li><strong>Tạo AI Pack mới:</strong> Nhìn sang mục AI Pack, bấm nút màu xanh: <strong>"+ Tạo AI Pack Mới"</strong>.</li>
+              <li><strong>Điền thông tin:</strong>
+                <ul style="margin: 6px 0 6px 20px;">
+                  <li><strong>Tên AI Pack:</strong> Nhập tên bất kỳ bạn thích (ví dụ: <code>vanphong</code>, <code>my-ai</code>, <code>work</code>...).</li>
+                  <li><strong>Tài khoản kết nối:</strong> Tích chọn tài khoản vừa kết nối ở trên.</li>
+                  <li><strong>Mô hình sử dụng:</strong> Tích chọn các mô hình AI mong muốn (Claude, GPT, Gemini...) hoặc chọn tất cả.</li>
+                  <li><strong>Thiết bị áp dụng:</strong> Để trống (hệ thống tự động nhận diện thiết bị khi đăng nhập).</li>
+                </ul>
+              </li>
+              <li>Bấm nút <strong>"✓ Lưu AI Pack"</strong>. Gói dịch vụ AI đã được tạo thành công!</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- Bước 2.4 -->
+        <div class="step-item">
+          <span class="step-dot">4</span>
+          <div class="step-title">Tắt VuaOffice và mở lại (BẮT BUỘC KHỞI ĐỘNG LẠI APP)</div>
+          <div class="step-desc">
+            Sau khi lưu AI Pack thành công trên web:
+            <div class="callout success">
+              <strong>Bắt buộc khởi động lại ứng dụng:</strong><br>
+              1. <strong>Tắt hẳn VuaOffice:</strong> Bấm nút <code>X</code> (Windows/Linux) hoặc nhấn <kbd>Cmd + Q</kbd> (macOS).<br>
+              2. <strong>Mở lại VuaOffice:</strong> Khởi động lại ứng dụng từ Desktop hoặc Launchpad.<br>
+              3. <strong>Kiểm tra:</strong> Nhấp vào tên tài khoản ở góc dưới bên trái, cảnh báo đỏ đã biến mất và thay thế bằng huy hiệu: <span class="tag-active">AI Pack: [Tên_Gói_Của_Bạn] (Đã kích hoạt)</span>. Toàn bộ tính năng AI đã sẵn sàng!
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHẦN 3: CÁCH DÙNG AI TRONG TỪNG PHÂN HỆ -->
+    <div class="card-box">
+      <h2><span class="step-number">3</span> Trải Nghiệm AI Trợ Lý Trong Công Việc</h2>
+      <table class="tbl-shortcuts">
+        <thead>
+          <tr>
+            <th>Ứng dụng</th>
+            <th>Trợ lý AI giúp gì cho bạn?</th>
+            <th>Cách kích hoạt nhanh</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>📄 VuaOffice Docs (Word)</strong></td>
+            <td>Viết tiếp nội dung, trau chuốt câu từ, sửa lỗi chính tả, tóm tắt hợp đồng dài.</td>
+            <td>Nhấn <kbd>Ctrl + K</kbd> (Mac: <kbd>Cmd + K</kbd>) hoặc bấm biểu tượng 🤖 Trợ lý AI.</td>
+          </tr>
+          <tr>
+            <td><strong>📊 VuaOffice Sheets (Excel)</strong></td>
+            <td>Tự động viết công thức bằng tiếng Việt (SUMIF, VLOOKUP...), đề xuất và vẽ biểu đồ.</td>
+            <td>Mở khung chat AI gõ yêu cầu: <em>"Tính tổng doanh thu nếu đã thanh toán"</em>.</td>
+          </tr>
+          <tr>
+            <td><strong>📽️ VuaOffice Slides (PowerPoint)</strong></td>
+            <td>Tạo trọn bộ bài thuyết trình tự động từ tiêu đề (dàn ý, nội dung, phối màu).</td>
+            <td>Bấm nút <strong>"Tạo Slide bằng AI"</strong> trên thanh công cụ.</td>
+          </tr>
+          <tr>
+            <td><strong>📑 PDF Studio</strong></td>
+            <td>Chat hỏi đáp hợp đồng, tìm số trang và điều khoản vi phạm trong tài liệu PDF.</td>
+            <td>Kéo thả file PDF vào ứng dụng -> Hỏi đáp trực tiếp với AI bên phải.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p style="margin-bottom: 8px;"><strong>VuaOffice — Bộ Ứng Dụng Văn Phòng AI Miễn Phí Thay Thế MS Office</strong></p>
+      <p style="color:#64748b;">Phát triển và bảo hộ bản quyền bởi <strong>360 CORP</strong>. Hỗ trợ kỹ thuật: support@360.org.vn</p>
+    </div>
+  </footer>
+
+  <script>
+    function switchOs(os) {
+      // Buttons
+      document.querySelectorAll('.os-tab-btn').forEach(btn => btn.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+
+      // Panes
+      document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+      document.getElementById('tab-' + os).classList.add('active');
+    }
+  </script>
+</body>
+</html>
